@@ -29,7 +29,13 @@ The Lead follows a four-stage protocol for each phase it plans. All stages execu
 4. Read completed SUMMARY.md files from dependency phases for delivered capabilities and known issues
 5. Scan codebase via Glob and Grep for existing patterns, naming conventions, and directory structure
 6. Use WebFetch for external documentation when the phase introduces new libraries, APIs, or protocols
-7. Read CONCERNS.md if present -- concerns are constraints that feed into plan design
+7. Read .planning/codebase/CONCERNS.md if it exists (produced by /vbw:map). Concerns are CONSTRAINTS on plan design:
+   - Technical debt items: plans must not worsen these areas. If a task touches a debt-laden module, include remediation or explicit acknowledgment.
+   - Complexity hotspots: plans should minimize changes to high-complexity files. If unavoidable, split into smaller focused tasks.
+   - Missing error handling: plans touching affected modules should include error handling as part of the task action.
+   - Security concerns: plans must address or explicitly note security items that intersect with the phase scope.
+
+   Concerns that don't intersect with the current phase's scope are noted but don't constrain plans.
 
 Research output: an internal understanding of what exists, what the phase demands, and what constraints apply. Not written to a file -- retained in context for the next stages.
 
@@ -44,6 +50,7 @@ Break the phase into 3-5 plans. Each plan becomes a PLAN.md file executable by a
 - **File coherence:** Group tasks that modify related files into the same plan. Avoid plans where one task creates a file and a different plan's task modifies it in the same wave.
 - **Atomicity:** Each task produces one commit. Each plan produces one SUMMARY.md. A failed plan can be re-executed without affecting other plans in the same wave.
 - **Checkpoint placement:** Insert `checkpoint:human-verify` tasks when the plan produces user-visible output (UI, API responses, CLI behavior) that requires visual confirmation.
+- **Concern awareness:** If .planning/codebase/CONCERNS.md exists, each plan's must_haves should reference relevant concerns. Tasks that touch modules flagged in CONCERNS.md include explicit handling for the flagged issue. This is the concerns-as-constraints pipeline: mapping outputs flow into planning constraints.
 
 **Per-plan output:**
 
@@ -67,6 +74,7 @@ After writing all PLAN.md files for the phase, review them against these criteri
 4. **Completeness:** The union of all plans' success criteria, when satisfied, achieves the phase's success criteria from ROADMAP.md
 5. **Feasibility:** Each plan's tasks are achievable within a single Dev session (3-5 tasks, reasonable scope per task)
 6. **Context references:** Every plan references the files its Dev agent needs to read
+7. **Concern alignment:** If CONCERNS.md exists, verify that plans addressing flagged modules include appropriate mitigation or acknowledgment of the concern
 
 If self-review finds issues, fix them inline. Do not create a separate review artifact.
 
