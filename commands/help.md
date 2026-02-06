@@ -33,7 +33,7 @@ If the command is not yet implemented, show its planned phase and description.
 |--------|---------------|---------------------------------------------------------|
 | ✓      | /vbw:init     | Initialize a new VBW project with .planning directory   |
 | ✓      | /vbw:plan     | Plan a phase: research, decompose, self-review          |
-| ○      | /vbw:build    | Execute a planned phase through Dev agents [Phase 3]    |
+| ✓      | /vbw:build    | Execute a planned phase through Dev agents              |
 | ○      | /vbw:ship     | Complete and archive a milestone [Phase 6]              |
 
 ### Monitoring
@@ -59,7 +59,7 @@ If the command is not yet implemented, show its planned phase and description.
 
 | Status | Command          | Description                                          |
 |--------|------------------|------------------------------------------------------|
-| ○      | /vbw:map         | Analyze existing codebase structure [Phase 3]        |
+| ✓      | /vbw:map         | Analyze existing codebase with parallel mapper agents|
 | ✓      | /vbw:discuss     | Gather context before planning                       |
 | ✓      | /vbw:assumptions | Surface Claude's assumptions                         |
 | ✓      | /vbw:research    | Standalone research task                             |
@@ -81,7 +81,7 @@ New to VBW? Follow these steps:
 1. `/vbw:init "My project description"` -- Set up your project
 2. `/vbw:discuss 1` -- Clarify your vision for Phase 1 (optional)
 3. `/vbw:plan 1` -- Plan your first phase
-4. `/vbw:build 1` -- Execute the plan [Phase 3]
+4. `/vbw:build 1` -- Execute the plan
 5. `/vbw:qa 1` -- Verify the work [Phase 8]
 6. `/vbw:ship` -- Ship the milestone [Phase 6]
 
