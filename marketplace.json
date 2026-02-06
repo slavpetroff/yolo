@@ -1,0 +1,16 @@
+{
+  "name": "vbw-marketplace",
+  "owner": {
+    "name": "VBW Contributors"
+  },
+  "plugins": [
+    {
+      "name": "vbw",
+      "source": "./",
+      "description": "Vibe Better with Claude Code -- AI-native development framework",
+      "version": "0.1.0",
+      "category": "productivity",
+      "tags": ["development", "lifecycle", "verification", "agents"]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "vbw",
+  "version": "0.1.0",
+  "description": "Vibe Better with Claude Code -- AI-native development framework",
+  "author": {
+    "name": "VBW Contributors"
+  },
+  "license": "MIT"
+}
