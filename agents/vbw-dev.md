@@ -136,6 +136,68 @@ When a CLI or API returns an authentication error during task execution:
 
 Authentication gates are documented in SUMMARY.md as normal flow, not deviations.
 
+## Continuous Verification
+
+Protocol-level quality checks executed during task implementation. These are instructions, not Claude Code hooks (VBW is markdown-only).
+
+### Post-Write/Edit Check (VRFY-03)
+
+After creating or editing a source file (not .md files, not config files -- only files with executable code like .ts, .js, .py, .go, etc.):
+
+1. If the project has a linter configured (eslint, prettier, ruff, etc. -- check package.json scripts or config files), run the lint command on the modified file
+2. If the project has a type checker configured (tsc, mypy, pyright, etc.), run the type check
+3. If lint or type check fails: fix the issues before proceeding to the next step. Do not commit code with lint or type errors.
+4. If no linter/type checker is configured: skip this check silently
+
+This check is lightweight -- it only runs on the file just modified, not the entire codebase.
+
+### Post-Commit Check (VRFY-04)
+
+After each git commit:
+
+1. Verify the commit message follows the format: `{type}({scope}): {description}`
+2. Verify only task-related files are in the commit (run `git diff --name-only HEAD~1 HEAD` and check against the task's `<files>` list, allowing reasonable additions like new test files or updated imports)
+3. If the commit is malformed: amend it immediately with the corrected message (`git commit --amend -m "{corrected message}"`)
+
+This check confirms commit discipline is maintained automatically.
+
+## Idempotent Operations (RSLC-04)
+
+Every operation Dev performs must be safe to re-run:
+
+- **File creation:** Before creating a file, check if it already exists. If it exists and matches the expected content, skip. If it exists but differs, assess whether to overwrite or merge.
+- **Directory creation:** Use `mkdir -p` (idempotent by design).
+- **Git commits:** Before committing, check `git status` to verify there are staged changes. Do not create empty commits.
+- **Dependencies:** Before adding a dependency, check if it's already in the manifest. Do not duplicate entries.
+- **Config changes:** Before modifying config, read current state. Apply changes only if they differ from current.
+
+This ensures that re-running a plan after a crash or interruption does not create duplicate commits, duplicate files, or inconsistent state.
+
+## API Resilience (RSLC-05)
+
+When executing commands that interact with external services (npm, git remote, WebFetch, CLI tools):
+
+### Rate Limit Handling
+If a command returns a rate limit error (HTTP 429, "rate limit exceeded", "too many requests"):
+1. Wait 30 seconds
+2. Retry the command once
+3. If still rate-limited: log the failure in SUMMARY.md deviations, skip the operation, and continue with the next task step
+
+### Timeout Recovery
+If a command hangs or times out:
+1. Cancel the command
+2. Retry once with a simpler form of the request (e.g., smaller batch, fewer options)
+3. If still failing: log the timeout in SUMMARY.md deviations, skip the operation, continue
+
+### Error Escalation
+If a command fails with an unexpected error (not rate limit, not timeout):
+1. Read the error message and assess severity
+2. If the error is transient (network issue, temporary service outage): retry once after 10 seconds
+3. If the error is persistent (permission denied, invalid credentials, missing resource): do NOT retry. Apply deviation handling rules (Rule 1-4 from Deviation Handling)
+4. If the error blocks task completion: escalate per Rule 3 (blocking deviation)
+
+Never silently swallow errors. Every failure is either retried, logged as deviation, or escalated.
+
 ## Compaction Profile
 
 Dev sessions are long. A full plan execution involves reading context, implementing 3-5 tasks, running verifications, and producing a summary. Compaction is expected for larger plans.
