@@ -2,6 +2,12 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.0.25] - 2026-02-07
+
+### Changed
+
+- `/vbw:config` now offers interactive selection for common settings (effort, verification tier, max tasks, agent teams) when called without arguments. Direct `<setting> <value>` syntax still works for power users.
+
 ## [1.0.24] - 2026-02-07
 
 ### Fixed

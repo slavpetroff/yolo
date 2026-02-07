@@ -19,11 +19,11 @@ If .vbw-planning/config.json doesn't exist, STOP: "No VBW configuration found. R
 
 ## Behavior
 
-### No arguments: Display current configuration
+### No arguments: Interactive configuration
 
-Read .vbw-planning/config.json. Display all settings with current values and descriptions.
+Read .vbw-planning/config.json. Display current settings as a summary table, then use AskUserQuestion to let the user pick what to change.
 
-Also display current skill-hook mappings if any exist under the `skill_hooks` key:
+**Step 1: Display current settings**
 
 ```
 ┌──────────────────────────────────────────┐
@@ -44,10 +44,30 @@ Also display current skill-hook mappings if any exist under the `skill_hooks` ke
   Skill-Hook Mappings:
     {skill-name} -> {hook-event} on {matcher}
     (or "None configured")
+```
 
+**Step 2: Ask what to change**
+
+Use AskUserQuestion with up to 4 of the most commonly changed settings. Each question shows the current value and available options:
+
+- **Effort profile**: "Which effort profile?" with options: thorough, balanced, fast, turbo (mark current as selected)
+- **Verification tier**: "Default verification tier?" with options: quick, standard, deep
+- **Max tasks per plan**: "Max tasks per plan?" with options: 3, 5, 7
+- **Agent Teams**: "Use Agent Teams for parallel builds?" with options: Enabled, Disabled
+
+**Step 3: Apply changes**
+
+For each setting the user changed from its current value:
+1. Update config.json
+2. Display: "✓ {setting}: {old} ➜ {new}"
+
+If nothing changed, display: "✓ No changes made."
+
+Then show:
+```
 ➜ Next Up
+  /vbw:config <setting> <value> -- Change other settings directly
   /vbw:status -- View project state
-  /vbw:help -- View all commands
 ```
 
 ### With arguments: Modify a setting
