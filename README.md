@@ -235,7 +235,15 @@ VBW auto-detects the next phase that needs planning. The Lead agent researches y
 /vbw:build
 ```
 
-Again, VBW knows which phase to build next. An Agent Team of Dev teammates executes each task in parallel, making atomic commits. Hooks run continuous verification automatically. You get a `SUMMARY.md` with what was done, what deviated, and how many tokens were burned. Repeat for each phase until your roadmap is complete.
+Again, VBW knows which phase to build next. An Agent Team of Dev teammates executes each task in parallel, making atomic commits. Hooks run continuous verification automatically. You get a `SUMMARY.md` with what was done, what deviated, and how many tokens were burned.
+
+```
+/vbw:status
+```
+
+At any point, check where you stand. Shows phase progress, completion bars, velocity metrics, and suggests what to do next. Add `--metrics` for a token consumption breakdown per agent. Think of it as the project dashboard you never bothered to set up manually.
+
+Repeat `/vbw:plan` and `/vbw:build` for each phase until your roadmap is complete.
 
 ```
 /vbw:ship
