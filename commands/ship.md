@@ -152,11 +152,25 @@ After archiving, update the ACTIVE file:
    Remove the `.planning/ACTIVE` file entirely.
    Display: `Single-milestone mode restored.`
 
-### Step 7: Clear milestone-scoped state
+### Step 7: Clear milestone-scoped state and memory cleanup (MEMO-06)
 
-The milestone directory was moved to `.planning/milestones/` in Step 4. The archive IS the cleanup -- no additional file deletion needed.
+The milestone directory was moved to .planning/milestones/ in Step 4. The archive IS the cleanup for milestone artifacts.
 
-If the project has a CLAUDE.md or other persistent memory files that reference the shipped milestone by name or slug, note in the output: "Consider updating persistent memory to remove shipped milestone references."
+**Memory cleanup:**
+
+1. **Delete RESUME.md:** If a RESUME.md file exists in the archived milestone directory (.planning/milestones/{slug}/RESUME.md) or at .planning/RESUME.md (single-milestone mode), delete it. Session state from a shipped milestone is stale.
+
+2. **Preserve patterns:** .planning/patterns/PATTERNS.md is project-scoped (not milestone-scoped). Do NOT move or delete it during archival. Patterns persist across milestones per MLST-09.
+
+3. **Regenerate CLAUDE.md:** If CLAUDE.md exists at the project root, regenerate it following @${CLAUDE_PLUGIN_ROOT}/references/memory-protocol.md:
+   - Update Active Context to reflect the new state:
+     - If another milestone is now active (Step 6 set a new ACTIVE): show that milestone's position
+     - If no milestones remain: show "No active milestone" and suggest /vbw:milestone
+   - Remove references to the shipped milestone from Key Decisions (keep only project-level decisions)
+   - Keep Learned Patterns section (patterns persist)
+   - Update the "Next action" suggestion appropriately
+
+   If CLAUDE.md does not exist, skip regeneration.
 
 ### Step 8: Present ship confirmation
 
@@ -175,6 +189,11 @@ Display the ship confirmation using the Ship Confirmation template (template 6) 
 
   Archive: .planning/milestones/{SLUG}/
   Tag:     {tag-name or "none"}
+
+  Memory:
+    ✓ Patterns preserved (.planning/patterns/)
+    ✓ CLAUDE.md updated
+    ✓ Session resume cleared
 
   {If other milestones exist:}
   Active milestone switched to: {next-milestone}

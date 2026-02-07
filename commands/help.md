@@ -51,9 +51,9 @@ If the command is not yet implemented, show its planned phase and description.
 | ✓      | /vbw:help     | This help guide                                         |
 | ○      | /vbw:fix      | Quick task with commit discipline [Phase 8]             |
 | ○      | /vbw:debug    | Systematic bug investigation [Phase 8]                  |
-| ○      | /vbw:todo     | Add item to backlog [Phase 7]                           |
-| ○      | /vbw:pause    | Save session context for later [Phase 7]                |
-| ○      | /vbw:resume   | Restore previous session context [Phase 7]              |
+| ✓      | /vbw:todo     | Add item to persistent backlog                          |
+| ✓      | /vbw:pause    | Save session context for later                          |
+| ✓      | /vbw:resume   | Restore previous session context                        |
 
 ### Advanced
 
