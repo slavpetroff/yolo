@@ -139,43 +139,41 @@ Keep under 200 lines.
 
 ### Step 5.9: Statusline setup
 
-Read `~/.claude/settings.json` and check the `statusLine` field. Also check if `~/.claude/vbw-statusline.sh` exists.
+Read `~/.claude/settings.json` and check the `statusLine` field.
 
 **Classify the current statusLine value:**
-- The `statusLine` field may be a **string** (e.g., `"bash ~/.claude/vbw-statusline.sh"`) or an **object** (e.g., `{"type":"command","command":"bash ~/.claude/vbw-statusline.sh"}`). Handle both.
-- **HAS_VBW**: The string value (or the object's `command` field) contains `vbw-statusline`
+- The `statusLine` field may be a **string** or an **object** with a `command` field. Handle both.
+- **HAS_VBW**: The value (string or object's `command` field) contains `vbw-statusline`
 - **HAS_OTHER**: A non-empty value that does NOT contain `vbw-statusline`
 - **EMPTY**: The field is missing, null, or empty
 
 **Decision tree:**
 
-1. If HAS_VBW and `~/.claude/vbw-statusline.sh` exists → **Skip silently.** Already installed.
+1. If HAS_VBW → **Skip silently.** Already installed.
 
-2. If HAS_VBW but `~/.claude/vbw-statusline.sh` is missing → **Stale setting.** Copy the script without asking:
-   - Copy `${CLAUDE_PLUGIN_ROOT}/scripts/vbw-statusline.sh` to `~/.claude/vbw-statusline.sh`
-   - Run `chmod +x ~/.claude/vbw-statusline.sh`
-   - Display "✓ Statusline script restored. Restart Claude Code to activate."
-
-3. If HAS_OTHER → **Offer to replace.** Display:
+2. If HAS_OTHER → **Offer to replace.** Display:
    ```
    ○ A statusline is already configured but it's not VBW's.
      VBW includes a status line showing phase progress, context usage,
      cost, duration, and more. Replace the current statusline?
    ```
-   If approved, proceed to install (step 5 below). If declined, skip.
+   If approved, proceed to install (step 4 below). If declined, skip.
 
-4. If EMPTY → **Offer to install.** Display:
+3. If EMPTY → **Offer to install.** Display:
    ```
    ○ VBW includes a custom status line showing phase progress, context usage,
      cost, duration, and more — updated after every response. Install it?
    ```
-   If approved, proceed to install (step 5 below). If declined, display "○ Skipped. Run /vbw:config to install it later."
+   If approved, proceed to install (step 4 below). If declined, display "○ Skipped. Run /vbw:config to install it later."
 
-5. **Install procedure** (used by cases 3 and 4):
-   - Copy `${CLAUDE_PLUGIN_ROOT}/scripts/vbw-statusline.sh` to `~/.claude/vbw-statusline.sh`
-   - Run `chmod +x ~/.claude/vbw-statusline.sh`
+4. **Install procedure** (used by cases 2 and 3):
    - Read `~/.claude/settings.json` (create `{}` if missing)
-   - Set `statusLine` to the object `{"type": "command", "command": "bash ~/.claude/vbw-statusline.sh"}` — the object format with `type` and `command` is **required** by the settings schema; a plain string will fail validation
+   - Set `statusLine` to:
+     ```json
+     {"type": "command", "command": "bash -c 'for f in \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/vbw-statusline.sh; do [ -f \"$f\" ] && exec bash \"$f\"; done'"}
+     ```
+   - The object format with `type` and `command` is **required** by the settings schema; a plain string will fail validation
+   - The command uses a glob to find the script inside the plugin cache — when VBW is uninstalled, the cache is removed and the statusline disappears automatically. No files are copied outside the plugin cache.
    - Write the file back
    - Display "✓ Statusline installed. Restart Claude Code to activate."
 
