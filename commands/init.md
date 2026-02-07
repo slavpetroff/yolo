@@ -163,7 +163,11 @@ Ask the user for permission. If they approve:
 
 If they decline: display "○ Skipped. Run /vbw:config to install it later." and continue.
 
-If a statusline is already configured: skip silently (don't overwrite other plugins' statuslines).
+If a statusline is already configured BUT contains `vbw-statusline` and the file `~/.claude/vbw-statusline.sh` does NOT exist: the setting is stale — proceed with the copy (steps 1-6 above) without asking.
+
+If a statusline is already configured and does NOT contain `vbw-statusline`: skip silently (don't overwrite other plugins' statuslines).
+
+If a statusline is already configured and `~/.claude/vbw-statusline.sh` exists: skip silently (already installed).
 
 ### Step 6: Present summary
 
