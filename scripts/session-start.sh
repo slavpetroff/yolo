@@ -1,6 +1,12 @@
 #!/bin/bash
 # SessionStart hook: Detect VBW project state and check for updates
 
+# --- Dependency check ---
+if ! command -v jq &>/dev/null; then
+  echo '{"hookSpecificOutput":{"additionalContext":"VBW: jq not found. Install with: brew install jq (macOS) or apt install jq (Linux). VBW hooks will be non-functional."}}'
+  exit 0
+fi
+
 PLANNING_DIR=".vbw-planning"
 UPDATE_MSG=""
 
