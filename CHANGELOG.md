@@ -2,7 +2,7 @@
 
 All notable changes to VBW will be documented in this file.
 
-## [1.0.40] - 2026-02-08
+## [1.0.41] - 2026-02-08
 
 ### Added
 
