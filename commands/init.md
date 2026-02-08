@@ -117,13 +117,22 @@ If BROWNFIELD=true:
 
 ### Step 3: Skill discovery
 
-Follow `${CLAUDE_PLUGIN_ROOT}/references/skill-discovery.md`:
-1. Scan installed skills (global, project, MCP)
-2. Detect stack via `${CLAUDE_PLUGIN_ROOT}/config/stack-mappings.json`
-3. Suggest uninstalled skills (if skill_suggestions enabled in config)
-4. Write Skills section to STATE.md
+Run the detect-stack script to get stack detection, installed skills, and suggestions in one call:
 
-**IMPORTANT:** Do NOT mention `find-skills` to the user during init. The find-skills meta-skill is only used during `/vbw:plan` for dynamic registry lookups. During init, curated stack mappings are sufficient. If find-skills is not installed, proceed silently — do not report it as missing or suggest installing it.
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/detect-stack.sh "$(pwd)"
+```
+
+This returns JSON with: `detected_stack[]`, `installed.global[]`, `installed.project[]`, `recommended_skills[]`, `suggestions[]`, `find_skills_available`.
+
+**Using the results:**
+
+1. **Display detected stack** — list items from `detected_stack[]`.
+2. **Display installed skills** — list items from `installed.global[]` and `installed.project[]`.
+3. **Display suggestions** — list items from `suggestions[]` (recommended but not installed). For each, show the install command: `npx skills add <skill-name> -g -y`.
+4. **Write Skills section to STATE.md** — using the format from `${CLAUDE_PLUGIN_ROOT}/references/skill-discovery.md` (SKIL-05).
+
+**IMPORTANT:** Do NOT mention `find-skills` to the user during init. During init, curated stack mappings are sufficient. If the script reports `find_skills_available: false`, proceed silently. Users can run `/vbw:skills` later for dynamic registry search.
 
 ### Step 4: Present summary
 

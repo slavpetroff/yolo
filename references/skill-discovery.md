@@ -45,7 +45,7 @@ For each discovered skill, record:
 3. If **not installed** and `skill_suggestions` is `true`: display a brief note:
    ```
    ○ Optional: Skills.sh registry not installed (curated mappings still work fine).
-     To enable dynamic skill search: npx skills find find-skills
+     To enable dynamic skill search: npx skills add vercel-labs/skills --skill find-skills -g -y
    ```
    Do not block on this. Do not present it as an error or warning. Continue with curated mappings only.
 
@@ -92,7 +92,7 @@ Dynamic discovery runs during `/vbw:plan` (not `/vbw:init`) for any detected tec
      "skill_cache": {
        "<query>": {
          "results": [
-           { "name": "skill-name", "description": "...", "install": "npx skills find skill-name" }
+           { "name": "skill-name", "description": "...", "install": "npx skills add skill-name -g -y" }
          ],
          "cached_at": "2026-02-07T12:00:00Z"
        }
@@ -129,10 +129,10 @@ Suggested skills (not installed):
 5. Read `skill_suggestions` from `.vbw-planning/config.json`:
    - If `false`: skip suggestion display entirely. End here.
 6. Read `auto_install_skills` from `.vbw-planning/config.json`:
-   - If `true`: for each suggested skill, run `npx @anthropic-ai/claude-code skills add {skill-name}` without prompting. Display result (success or failure) for each.
+   - If `true`: for each suggested skill, run `npx skills add {skill-name} -g -y` without prompting. Display result (success or failure) for each.
    - If `false` (default): display suggestions in a formatted list with source attribution (see SKIL-07 Source Attribution). Show the installation command for each:
      ```
-     npx @anthropic-ai/claude-code skills add {skill-name}
+     npx skills add {skill-name} -g -y
      ```
 
 ## Capability Map

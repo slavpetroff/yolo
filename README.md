@@ -43,7 +43,7 @@ Whether you're a seasoned engineer who wants to push the boundaries of what AI-a
 
 Inspired by **[Ralph](https://github.com/frankbria/ralph-claude-code)** and **[Get Shit Done](https://github.com/glittercowboy/get-shit-done)**, however, an entirely new architecture.
 
-VBW is a Claude Code plugin that bolts an actual development lifecycle onto your vibe coding sessions. It gives you 28 slash commands and 6 AI agents that handle planning, building, verifying, and shipping your code, so what you produce has at least a fighting chance of surviving a code review.
+VBW is a Claude Code plugin that bolts an actual development lifecycle onto your vibe coding sessions. It gives you 29 slash commands and 6 AI agents that handle planning, building, verifying, and shipping your code, so what you produce has at least a fighting chance of surviving a code review.
 
 You describe what you want. VBW breaks it into phases. Agents plan, write, and verify the code. Commits are atomic. Verification is goal-backward. State persists across sessions. It's the entire software development lifecycle, except you replaced the engineering team with a plugin and a prayer.
 
@@ -111,7 +111,9 @@ VBW integrates with [Skills.sh](https://skills.sh), the open-source skill regist
 
 - **Automatic stack detection.** `/vbw:init` scans your project during setup, identifies your tech stack (Next.js, Django, Prisma, Tailwind, etc.), and recommends relevant skills from a curated mapping.
 
-- **Dynamic registry search.** For stacks not covered by curated mappings, VBW falls back to the Skills.sh registry via the `find-skills` meta-skill. Results are cached locally with a 7-day TTL -- no repeated network calls.
+- **On-demand skill discovery.** Run `/vbw:skills` anytime to detect your stack, browse curated suggestions, search the Skills.sh registry, and install skills in one step. Use `--search <query>` for direct registry lookups.
+
+- **Dynamic registry search.** For stacks not covered by curated mappings, VBW can search the Skills.sh registry via the optional `find-skills` meta-skill. Results are cached locally with a 7-day TTL -- no repeated network calls. Install it with `npx skills add vercel-labs/skills --skill find-skills -g -y`.
 
 - **Skill-hook wiring.** Use `/vbw:config` to wire installed skills to hook events. Run your linter after every file write. Run your test runner after every commit. The hooks call the skills automatically.
 
@@ -391,6 +393,7 @@ Phase numbers are optional -- when omitted, VBW auto-detects the next phase base
 | `/vbw:todo` | Add an item to a persistent backlog that survives across sessions. For all those "we should really..." thoughts that usually die in a terminal tab. |
 | `/vbw:pause` | Save full session context. For when biological needs interrupt your workflow. Or your laptop battery does. |
 | `/vbw:resume` | Restore previous session. Picks up exactly where you left off with full context. It remembers more about your project than you do. |
+| `/vbw:skills` | Browse and install community skills from skills.sh based on your project's tech stack. Detects your stack, suggests relevant skills, and installs them with one command. |
 | `/vbw:config` | View and toggle VBW settings: effort profiles, skill suggestions, auto-install behavior, and skill-hook wiring. |
 | `/vbw:help` | Command reference with usage examples. You are reading its output's spiritual ancestor right now. |
 
@@ -533,7 +536,7 @@ Not every task deserves the same level of scrutiny. Most of yours don't. VBW pro
 ```
 .claude-plugin/    Plugin manifest (plugin.json)
 agents/            6 agent definitions with native tool permissions
-commands/          28 slash commands (commands/*.md)
+commands/          29 slash commands (commands/*.md)
 config/            Default settings and stack-to-skill mappings
 hooks/             Plugin hooks for continuous verification
 scripts/           Hook handler scripts (security, validation, QA gates)

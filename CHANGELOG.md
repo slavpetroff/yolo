@@ -2,6 +2,25 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.0.52] - 2026-02-08
+
+### Added
+
+- `/vbw:skills` command: standalone skill discovery and installation from skills.sh — detects tech stack, suggests curated skills, searches the registry, and installs with one command
+- `scripts/detect-stack.sh`: helper script that detects project tech stack, cross-references installed skills, and outputs suggestions as JSON — replaces 50+ inline LLM tool calls with one bash call
+
+### Fixed
+
+- `/vbw:init` Step 3 skill discovery never suggested skills on brownfield projects — root cause: SKIL-02 protocol was too complex for inline LLM execution (27 entries x multiple detect patterns). Now uses `detect-stack.sh` for reliable detection
+- Wrong install command in `references/skill-discovery.md`: `npx @anthropic-ai/claude-code skills add` does not exist — replaced with correct `npx skills add <name> -g -y`
+- Wrong `find-skills` install note in SKIL-06: replaced with correct `npx skills add vercel-labs/skills --skill find-skills -g -y`
+- Both `marketplace.json` files said "27 commands" when there were already 28 — updated to 29
+
+### Changed
+
+- Command count: 28 to 29 across README, help, and both marketplace.json files
+- `/vbw:init` Step 3 now calls `detect-stack.sh` directly instead of delegating to the 180-line skill-discovery.md protocol
+
 ## [1.0.51] - 2026-02-08
 
 ### Changed

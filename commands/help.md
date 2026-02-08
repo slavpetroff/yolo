@@ -76,6 +76,7 @@ Read `${CLAUDE_PLUGIN_ROOT}/commands/{name}.md` and display: name, description, 
 
 | Status | Command        | Description                                          |
 |--------|----------------|------------------------------------------------------|
+| ✓      | /vbw:skills    | Browse and install community skills from skills.sh   |
 | ✓      | /vbw:config    | View/modify settings and skill-hook wiring           |
 | ✓      | /vbw:help      | This help guide                                      |
 | ✓      | /vbw:whats-new | View changelog and recent updates                    |
