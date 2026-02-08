@@ -40,7 +40,45 @@ Read effort from config or --effort flag. Map per `${CLAUDE_PLUGIN_ROOT}/referen
 | Fast     | medium          |
 | Turbo    | low             |
 
-### Step 2: Spawn Debugger agent
+### Step 2: Classify bug ambiguity
+
+Determine if the bug is ambiguous using these signals (any 2+ = ambiguous):
+- Bug description contains words like "intermittent", "sometimes", "random", "unclear", "inconsistent", "flaky", "sporadic", "nondeterministic"
+- Multiple potential root cause areas mentioned
+- Error message is generic or missing (e.g., "it just doesn't work", "something is wrong")
+- Bug has been investigated before without resolution (check git log for reverted fix attempts)
+
+**Flag overrides:**
+- `--competing` or `--parallel` in $ARGUMENTS: always classify as ambiguous regardless of signals
+- `--serial` in $ARGUMENTS: never classify as ambiguous regardless of signals
+
+### Step 3: Spawn investigation
+
+This step has two paths based on effort level and ambiguity classification.
+
+**Path A: Competing Hypotheses (DEBUGGER_EFFORT=high AND bug is ambiguous)**
+
+1. Generate 3 independent hypotheses about the bug's root cause before spawning any agents. Each hypothesis must identify: the suspected cause, which area of the codebase to investigate, and what evidence would confirm/refute it.
+
+2. Create an Agent Team via TeamCreate with name "debug-{timestamp}" and description "Competing hypothesis investigation".
+
+3. Create 3 tasks via TaskCreate -- one per hypothesis. Each task description includes:
+   - The bug report
+   - ONLY this teammate's assigned hypothesis (not the others -- prevent cross-contamination)
+   - Working directory
+   - Instruction: "Investigate ONLY this hypothesis. Use SendMessage to report your findings to the lead when done. Include: evidence found (for/against), confidence level (high/medium/low), and recommended fix if confirmed."
+
+4. Spawn 3 vbw-debugger teammates, assign one task each.
+
+5. Wait for all 3 to complete. Collect their findings via received messages.
+
+6. Synthesize: Compare findings across all 3 investigations. The hypothesis with the strongest confirming evidence and highest confidence wins. If multiple hypotheses are confirmed, they may be contributing factors -- document all.
+
+7. If a winning hypothesis has a recommended fix: apply the fix (or spawn one more debugger to apply it), commit with `fix({scope}): {description}`.
+
+8. Send shutdown requests to all teammates, wait for approval, then TeamDelete.
+
+**Path B: Standard Investigation (all other effort levels, or DEBUGGER_EFFORT=high + non-ambiguous)**
 
 Spawn vbw-debugger as a subagent via the Task tool with thin context:
 
@@ -52,13 +90,14 @@ Follow protocol: reproduce, hypothesize, gather evidence, diagnose, fix, verify,
 If you apply a fix, commit with: fix({scope}): {description}.
 ```
 
-### Step 3: Present investigation summary
+### Step 4: Present investigation summary
 
 ```
 ┌──────────────────────────────────────────┐
 │  Bug Investigation Complete              │
 └──────────────────────────────────────────┘
 
+  Mode:       {investigation mode -- see below}
   Issue:      {one-line summary}
   Root Cause: {from report}
   Fix:        {commit hash and message, or "No fix applied"}
@@ -67,6 +106,10 @@ If you apply a fix, commit with: fix({scope}): {description}.
 
 ➜ Next: /vbw:status -- View project status
 ```
+
+**Investigation mode line:**
+- For Path A: "Competing Hypotheses (3 parallel)" followed by a brief summary of each hypothesis and its outcome (confirmed/refuted/inconclusive)
+- For Path B: "Standard (single debugger)"
 
 ## Output Format
 
