@@ -2,6 +2,12 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.0.50] - 2026-02-08
+
+### Added
+
+- Security filter blocks `.planning/` directory (GSD's workspace) to prevent cross-tool contamination — `.vbw-planning/` is unaffected
+
 ## [1.0.49] - 2026-02-08
 
 ### Fixed

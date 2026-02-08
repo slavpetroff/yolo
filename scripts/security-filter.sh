@@ -18,4 +18,11 @@ if echo "$FILE_PATH" | grep -qE '\.env$|\.env\.|\.pem$|\.key$|\.cert$|\.p12$|\.p
   exit 2
 fi
 
+# Block GSD's .planning/ directory — prevent cross-tool contamination.
+# Match any path containing .planning/ but exclude .vbw-planning/ (VBW's own).
+if echo "$FILE_PATH" | grep -qF '.planning/' && ! echo "$FILE_PATH" | grep -qF '.vbw-planning/'; then
+  echo "Blocked: .planning/ is managed by GSD, not VBW ($FILE_PATH)" >&2
+  exit 2
+fi
+
 exit 0
