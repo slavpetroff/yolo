@@ -2,6 +2,34 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.0.60] - 2026-02-08
+
+### Fixed
+
+- **`eval` removed from statusline** — replaced `eval "$(jq ...)"` with safe `IFS='|' read` parsing for Anthropic usage API response, eliminating shell injection risk (S1)
+- **Security filter now fail-closed** — `security-filter.sh` exits 2 (block) on jq failures, empty stdin, or malformed data instead of silently allowing access (S2)
+- **Unquoted variables fixed** — replaced unsafe `xargs rm -rf` with `while read` loops in session-start.sh, cache-nuke.sh; quoted `$PROJECT_ROOT` in file-guard.sh; fixed word-splitting in validate-commit.sh (S3)
+- **Safe `git reset --hard`** — session-start.sh now checks `git diff --quiet` before resetting marketplace checkout, skips with warning if dirty (S5)
+- **Temp file ownership checks** — statusline cache reads now verify file ownership with `[ -O "$file" ]` before trusting cached data (S6)
+- **Settings mutation backup** — session-start.sh creates `.bak` before modifying `~/.claude/settings.json`, restores on jq failure (P4)
+- **Cache cleanup race condition** — mkdir-based lock prevents concurrent session-start scripts from racing on cache cleanup (R2)
+- **`set -u` strict mode** — added to all 13 hook scripts to catch undefined variable typos, with proper `${VAR:-}` defaults (R1)
+
+### Added
+
+- **`sort -V` fallback in hooks** — all 17 hook entries now use `(sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n)` for systems without GNU sort version sorting (P3)
+- **`_note` key in hooks.json** — documents the hard-coded cache path coupling and why it cannot be abstracted (M2)
+- **`--verify` flag for bump-version.sh** — checks all 4 version files are in sync without bumping, exits 1 with diff report on mismatch (P1)
+- **Offline version bump fallback** — bump-version.sh falls back to local VERSION when remote fetch fails instead of hard-exiting (M4)
+- **jq availability check** — session-start.sh warns users if jq is missing with install instructions (M3)
+- **Version management docs** — CONTRIBUTING.md now documents the 4-file sync, bump-version.sh workflow, and --verify flag (D3)
+
+### Changed
+
+- **Marketplace.json schemas aligned** — root and plugin marketplace.json now share consistent owner, metadata, and license fields (D1)
+- **Owner name encoding consistent** — all manifest files use "Tiago Serôdio" with circumflex accent (D2)
+- **`.claude/settings.local.json` gitignored** — user-specific permission settings no longer tracked in git (I3)
+
 ## [1.0.59] - 2026-02-08
 
 ### Fixed
