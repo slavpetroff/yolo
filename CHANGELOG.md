@@ -2,6 +2,14 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.0.94] - 2026-02-09
+
+### Changed
+
+- **`config`** -- default autonomy level changed from `dangerously-vibe` to `standard`. New installations now require plan approval and stop after each phase for review, giving users guardrails by default.
+
+---
+
 ## [1.0.93] - 2026-02-09
 
 ### Changed
