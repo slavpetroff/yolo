@@ -3,7 +3,7 @@
 # Line 1: [VBW] Phase N/M │ Plans: done/total (N this phase) │ Effort: X │ QA: pass │ Branch: main +2~3
 # Line 2: Context: ▓▓▓▓▓▓▓▓░░░░░░░░░░░░ 42% 84.0K/200K │ Tokens: 15.2K in  1.2K out │ Cache: 5.0K write  2.0K read
 # Line 3: Session: ██░░░░░░░░  6% ~2h13m │ Weekly: ███░░░░░░░ 35% ~2d 23h │ Extra: 96% $578/$600
-# Line 4: Model: Opus │ Time: 12m 34s (API: 23s) │ Diff: +156 -23 │ repo:branch │ CC 1.0.11
+# Line 4: Model: Opus │ Time: 12m 34s (API: 23s) │ Diff: +156 -23 │ repo:branch │ VBW 1.0.67 │ CC 1.0.11
 # Line 5: Team: build-team │ researcher ◆ │ tester ○ │ dev-1 ✓ │ Tasks: 3/5  (conditional)
 
 input=$(cat)
@@ -391,7 +391,7 @@ L4="$L4 ${D}│${X} Time: ${DUR_FMT} (API: ${API_DUR_FMT})"
 L4="$L4 ${D}│${X} Diff: ${G}+${ADDED}${X} ${R}-${REMOVED}${X}"
 [ -n "$AGENT_LINE" ] && L4="$L4 ${D}│${X} ${AGENT_LINE}"
 [ -n "$GH_LINK" ] && L4="$L4 ${D}│${X} ${GH_LINK}"
-L4="$L4 ${D}│${X} ${D}CC ${VER}${X}"
+L4="$L4 ${D}│${X} ${D}VBW ${_VER:-?}${X} ${D}│${X} ${D}CC ${VER}${X}"
 
 # --- Output ---
 
