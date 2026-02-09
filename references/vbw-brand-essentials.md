@@ -1,4 +1,4 @@
-# VBW Brand Vocabulary (Essentials)
+# VBW Brand Vocabulary
 
 ## Semantic Symbols
 
@@ -41,4 +41,4 @@ Progress bars always 10 characters wide for visual consistency.
 4. Keep lines under 80 characters inside boxes
 5. Use semantic symbols consistently across all agent output
 
-For full output templates and fallback examples, see vbw-brand.md.
+This file is the single source of truth for brand vocabulary. Output templates are defined inline in each command file's Output Format section.

@@ -39,4 +39,4 @@ Progress
 - **Last Completed:** Most recent task commit message and hash
 - **Next Action:** First incomplete task from current plan
 - **Active Concerns:** From STATE.md blockers/concerns, or "None"
-- **Progress bars:** 10-char wide, see vbw-brand.md for format
+- **Progress bars:** 10-char wide, see vbw-brand-essentials.md for format

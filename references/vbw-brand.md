@@ -1,5 +1,10 @@
 # VBW Brand Vocabulary
 
+> **Developer Reference Only** -- This file is NOT loaded into agent context.
+> Agents use `references/vbw-brand-essentials.md` (the canonical brand file).
+> This extended reference exists for human developers who need output template
+> examples and fallback patterns.
+
 Single source of truth for all VBW visual output formatting.
 
 ## Semantic Symbols
