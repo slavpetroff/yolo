@@ -58,6 +58,9 @@ Priority order:
 
 3. Config default mapped via same table. If no config: Standard.
 
+After resolving the effort level, read the corresponding profile for detailed QA behavior:
+- `${CLAUDE_PLUGIN_ROOT}/references/effort-profile-{profile}.md`
+
 **Context overrides:** If >15 requirements or last phase before ship: override to Deep.
 
 ### Step 2: Resolve milestone context

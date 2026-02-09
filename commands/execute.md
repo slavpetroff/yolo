@@ -60,6 +60,10 @@ Map effort to agent levels per `${CLAUDE_PLUGIN_ROOT}/references/effort-profiles
 | Fast     | medium     | low       | off           | post-build |
 | Turbo    | low        | skip      | off           | skip       |
 
+After resolving the effort level, read the corresponding profile for detailed agent behavior:
+- `${CLAUDE_PLUGIN_ROOT}/references/effort-profile-{profile}.md` (where {profile} is thorough, balanced, fast, or turbo)
+Do NOT read all four profile files -- only the active one.
+
 ### Step 2: Load plans and detect resume state
 
 1. Glob for `*-PLAN.md` in the phase directory. Read each plan's YAML frontmatter (plan, title, wave, depends_on, autonomous, files_modified).

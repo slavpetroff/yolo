@@ -41,6 +41,9 @@ Read effort from config or --effort flag. Map per `${CLAUDE_PLUGIN_ROOT}/referen
 | Fast     | medium          |
 | Turbo    | low             |
 
+After resolving the effort level, read the corresponding profile for detailed debugger behavior:
+- `${CLAUDE_PLUGIN_ROOT}/references/effort-profile-{profile}.md`
+
 ### Step 2: Classify bug ambiguity
 
 Determine if the bug is ambiguous using these signals (any 2+ = ambiguous):
