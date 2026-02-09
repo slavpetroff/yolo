@@ -277,12 +277,41 @@ if [ -O "$SLOW_CF" ]; then
                   FETCH_OK UPDATE_AVAIL < "$SLOW_CF"
 fi
 
-# --- Cost cache: previous snapshot for delta tracking ---
+# --- Cost cache: delta attribution per render ---
 
 COST_CF="${_CACHE}-cost"
 PREV_COST=""
 [ -O "$COST_CF" ] && PREV_COST=$(cat "$COST_CF" 2>/dev/null)
 printf '%s\n' "${COST}" > "$COST_CF" 2>/dev/null
+
+# Delta attribution: attribute cost increase to active agent
+LEDGER_FILE=".vbw-planning/.cost-ledger.json"
+if [ -n "$PREV_COST" ] && [ -d ".vbw-planning" ]; then
+  # Convert to cents for integer arithmetic
+  _to_cents() {
+    local val="$1" w f
+    w="${val%%.*}"
+    if [ "$w" = "$val" ]; then f="00"; else f="${val#*.}"; f="${f}00"; f="${f:0:2}"; fi
+    echo $(( 10#${w:-0} * 100 + 10#$f ))
+  }
+  PREV_CENTS=$(_to_cents "$PREV_COST")
+  CURR_CENTS=$(_to_cents "$COST")
+  DELTA_CENTS=$((CURR_CENTS - PREV_CENTS))
+
+  if [ "$DELTA_CENTS" -gt 0 ]; then
+    ACTIVE_AGENT="other"
+    [ -f ".vbw-planning/.active-agent" ] && ACTIVE_AGENT=$(cat .vbw-planning/.active-agent 2>/dev/null)
+    [ -z "$ACTIVE_AGENT" ] && ACTIVE_AGENT="other"
+
+    if [ -f "$LEDGER_FILE" ] && jq empty "$LEDGER_FILE" 2>/dev/null; then
+      jq --arg agent "$ACTIVE_AGENT" --argjson delta "$DELTA_CENTS" \
+        '.[$agent] = ((.[$agent] // 0) + $delta)' "$LEDGER_FILE" > "${LEDGER_FILE}.tmp" 2>/dev/null \
+        && mv "${LEDGER_FILE}.tmp" "$LEDGER_FILE"
+    else
+      printf '{"%s":%d}\n' "$ACTIVE_AGENT" "$DELTA_CENTS" > "$LEDGER_FILE"
+    fi
+  fi
+fi
 
 # --- Usage rendering ---
 
