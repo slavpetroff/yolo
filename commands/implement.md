@@ -285,4 +285,4 @@ Display the all-done summary with next action suggestions.
 - Next Up Block for navigation
 - No ANSI color codes
 - Next Up references /vbw:implement (not /vbw:plan or /vbw:execute) as the primary next action
-- Next Up references /vbw:archive (not /vbw:ship) for completion
+- Next Up references /vbw:archive for completion
