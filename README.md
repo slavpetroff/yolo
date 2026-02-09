@@ -366,12 +366,11 @@ These are the commands you'll use every day. This is the job now.
 
 | Command | Description |
 | :--- | :--- |
-| `/vbw:init` | Set up environment and scaffold `.vbw-planning/` directory with templates and config. Configures Agent Teams and statusline. Automatically installs git hooks (pre-push version enforcement). For existing codebases, maps the codebase first, then uses the map data to inform stack detection and skill suggestions before auto-chaining to `/vbw:new`. |
-| `/vbw:new [desc]` | Define your project. Asks for name, requirements, creates a phased roadmap, initializes state, and generates CLAUDE.md. |
+| `/vbw:init` | Set up environment and scaffold `.vbw-planning/` directory with templates and config. Configures Agent Teams and statusline. Automatically installs git hooks (pre-push version enforcement). For existing codebases, maps the codebase first, then uses the map data to inform stack detection and skill suggestions before auto-chaining to `/vbw:implement`. |
+| `/vbw:implement [phase]` | The one command. Auto-detects project state and does the right thing -- bootstraps new projects, gathers requirements, plans phases, executes builds. Smart router through the full lifecycle. |
 | `/vbw:plan [phase]` | Plan a phase. The Lead agent researches context, decomposes work into tasks grouped by wave, and self-reviews the plan. Produces PLAN.md files with YAML frontmatter. Accepts `--effort` flag (thorough/balanced/fast/turbo). Phase is auto-detected when omitted. |
 | `/vbw:execute [phase]` | Execute a planned phase. Creates an Agent Team with Dev teammates for parallel execution with per-plan dependency wiring. At Thorough effort, Devs enter plan-approval mode before writing code. Atomic commits per task. Continuous QA via hooks. Produces SUMMARY.md. Resumes from last checkpoint if interrupted. Phase is auto-detected when omitted. |
-| `/vbw:implement [phase]` | Plan and execute in one command. Auto-detects whether a phase needs planning, execution, or both. Skips the intermediate "Planned" state. Shortcut for `/vbw:plan` then `/vbw:execute`. |
-| `/vbw:ship` | Complete a milestone. Runs audit, archives state to `.vbw-planning/milestones/`, tags the git release, merges milestone branch (if any), and updates project docs. The one command that means you actually finished something. |
+| `/vbw:archive` | Close out completed work. Runs audit, archives state to `.vbw-planning/milestones/`, tags the git release, and updates project docs. |
 | `/vbw:release` | Bump version, finalize changelog, commit, and push. Runs `bump-version.sh` across all 4 version files, renames `[Unreleased]` to the new version in CHANGELOG.md, commits, and pushes. Supports `--dry-run`, `--no-push`, `--major`, `--minor`. |
 
 Phase numbers are optional -- when omitted, VBW auto-detects the next phase based on artifact state.
@@ -410,9 +409,7 @@ Phase numbers are optional -- when omitted, VBW auto-detects the next phase base
 | `/vbw:discuss [phase]` | Gather context through adaptive questioning before planning. For when you want to think before you type. Revolutionary concept. Phase is auto-detected when omitted. |
 | `/vbw:assumptions [phase]` | Surface Claude's assumptions about your phase approach. Useful for catching misunderstandings before they become commits. Phase is auto-detected when omitted. |
 | `/vbw:research` | Standalone research task, decoupled from planning. For when you need answers but aren't ready to commit to a plan. |
-| `/vbw:milestone` | Start a new milestone with isolated state, independent phase numbering, and scoped roadmap. Optional `--branch` flag creates a git branch. For projects that have more than one thing to ship. |
-| `/vbw:switch` | Switch active milestone context and git branch. Checks for uncommitted changes before switching. |
-| `/vbw:audit` | Audit milestone completeness before shipping. 6-check matrix with PASS/WARN/FAIL results. WARN ships, FAIL blocks. |
+| `/vbw:audit` | Audit completion readiness. 6-check matrix with PASS/WARN/FAIL results. WARN ships, FAIL blocks. |
 | `/vbw:add-phase` | Append a new phase to the active roadmap. |
 | `/vbw:insert-phase` | Insert an urgent phase between existing ones with automatic renumbering. For when production is on fire. |
 | `/vbw:remove-phase` | Remove a future phase and renumber. Refuses to delete phases containing completed work, because even VBW has principles. |
