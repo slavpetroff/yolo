@@ -19,16 +19,15 @@ Read `${CLAUDE_PLUGIN_ROOT}/commands/{name}.md` and display: name, description, 
 
 ## Command Reference
 
-### Lifecycle (init -> new -> plan -> build -> ship)
+### Lifecycle (init -> implement -> plan -> execute -> archive)
 
 | Status | Command        | Description                                          |
 |--------|----------------|------------------------------------------------------|
 | ✓      | /vbw:init      | Set up environment and scaffold .vbw-planning directory |
-| ✓      | /vbw:new [desc]    | Define project — name, requirements, roadmap     |
+| ✓      | /vbw:implement [phase] | The one command. Smart router through the full lifecycle. |
 | ✓      | /vbw:plan [phase]  | Plan a phase via Lead agent (auto-detects phase) |
 | ✓      | /vbw:execute [phase] | Execute phase via Agent Teams (auto-detects phase)|
-| ✓      | /vbw:implement [phase] | Plan and execute a phase in one command (auto-detects phase) |
-| ✓      | /vbw:ship      | Archive milestone, tag repo, merge branch            |
+| ✓      | /vbw:archive   | Close out completed work and archive state           |
 
 ### Monitoring
 
@@ -61,12 +60,10 @@ Read `${CLAUDE_PLUGIN_ROOT}/commands/{name}.md` and display: name, description, 
 | ✓      | /vbw:assumptions [phase] | Surface Claude's assumptions (auto-detects phase) |
 | ✓      | /vbw:research  | Standalone research task                             |
 
-### Milestones & Phases
+### Phase Management
 
 | Status | Command           | Description                                       |
 |--------|-------------------|---------------------------------------------------|
-| ✓      | /vbw:milestone    | Start new milestone with isolated state            |
-| ✓      | /vbw:switch       | Switch active milestone (checks uncommitted work)  |
 | ✓      | /vbw:audit        | Audit milestone for shipping readiness             |
 | ✓      | /vbw:add-phase    | Add phase to end of roadmap                        |
 | ✓      | /vbw:insert-phase | Insert urgent phase with renumbering               |
@@ -89,19 +86,15 @@ Read `${CLAUDE_PLUGIN_ROOT}/commands/{name}.md` and display: name, description, 
 
 **Hooks:** Continuous verification runs automatically via PostToolUse, TaskCompleted, and TeammateIdle hooks. /vbw:qa is for deep, on-demand verification only.
 
-**Git Branches:** /vbw:milestone --branch creates `milestone/{slug}` branches. /vbw:ship merges back. /vbw:switch checks for uncommitted changes.
-
 **Skill-Hook Wiring:** Use /vbw:config to map skills to hook events (e.g., lint-fix on file writes).
 
 ## Getting Started
 
 ➜ Quick Start
   /vbw:init -- Set up environment and scaffold .vbw-planning
-  /vbw:new "My project" -- Define project, requirements, roadmap
-  /vbw:map -- Analyze codebase (brownfield) or skip (greenfield)
-  /vbw:implement -- Plan and execute in one step (auto-detects phase)
+  /vbw:implement -- Plan and execute (auto-detects everything)
   /vbw:qa -- Deep verify (auto-detects phase)
-  /vbw:ship -- Archive and tag
+  /vbw:archive -- Close out completed work
 
   Or use /vbw:plan + /vbw:execute separately for more control.
 
