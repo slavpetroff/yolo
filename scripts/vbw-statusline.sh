@@ -437,7 +437,7 @@ L3="$USAGE_LINE"
 
 # --- Line 4: session economy + GitHub ---
 
-L4="Model: ${D}${MODEL}${X}"
+L4="Model: ${D}${MODEL}${X} ${D}│${X} Cost: ${COST_FMT}"
 L4="$L4 ${D}│${X} Time: ${DUR_FMT} (API: ${API_DUR_FMT})"
 [ -n "$AGENT_LINE" ] && L4="$L4 ${D}│${X} ${AGENT_LINE}"
 if [ -n "$UPDATE_AVAIL" ]; then
