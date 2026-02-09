@@ -19,7 +19,7 @@ Active milestone:
 ## Guard
 
 1. **Not initialized:** Follow the Initialization Guard in `${CLAUDE_PLUGIN_ROOT}/references/shared-patterns.md`.
-2. **No roadmap:** If neither ACTIVE nor ROADMAP.md exists, STOP: "No milestones configured. Run /vbw:new or /vbw:milestone first."
+2. **No roadmap:** If neither ACTIVE nor ROADMAP.md exists, STOP: "No roadmap found. Run /vbw:implement to set up your project."
 
 ## Steps
 
@@ -69,7 +69,7 @@ If `--fix` present and issues found, suggest commands:
 
   {If PASS:}
   ➜ Next Up
-    /vbw:ship -- Ship this milestone
+    /vbw:archive -- Archive completed work
 
   {If FAIL:}
   ✗ Milestone not ready to ship
