@@ -1,9 +1,9 @@
 #!/bin/bash
 # VBW Status Line for Claude Code — 4/5-Line Dashboard
-# Line 1: [VBW] Phase N/M │ Plans: done/total (N this phase) │ Effort: X │ QA: pass │ repo:branch +2~3 ↑5
+# Line 1: [VBW] Phase N/M │ Plans: done/total (N this phase) │ Effort: X │ QA: pass │ repo:branch Files: +2~3 Commits: ↑5 Diff: +156 -23
 # Line 2: Context: ▓▓▓▓▓▓▓▓░░░░░░░░░░░░ 42% 84.0K/200K │ Tokens: 15.2K in  1.2K out │ Cache: 5.0K write  2.0K read
 # Line 3: Session: ██████████████████░░  6% ~2h13m │ Weekly: ███████░░░░░░░░░░░░░ 35% ~2d 23h │ Extra: ████████████████████ 96% $578/$600
-# Line 4: Model: Opus │ Time: 12m 34s (API: 23s) │ Diff: +156 -23 │ VBW 1.0.67 │ CC 1.0.11
+# Line 4: Model: Opus │ Time: 12m 34s (API: 23s) │ VBW 1.0.67 │ CC 1.0.11
 # Line 5: Team: build-team │ researcher ◆ │ tester ○ │ dev-1 ✓ │ Tasks: 3/5  (conditional)
 
 input=$(cat)
@@ -370,16 +370,17 @@ else
   L1="${C}${B}[VBW]${X} ${D}no project${X}"
 fi
 if [ -n "$BR" ]; then
-  GIT_IND=""
-  [ "${GIT_STAGED:-0}" -gt 0 ] 2>/dev/null && GIT_IND="${G}+${GIT_STAGED}${X}"
-  [ "${GIT_MODIFIED:-0}" -gt 0 ] 2>/dev/null && GIT_IND="${GIT_IND}${Y}~${GIT_MODIFIED}${X}"
   if [ -n "$GH_LINK" ]; then
     L1="$L1 ${D}│${X} ${GH_LINK}"
   else
     L1="$L1 ${D}│${X} $BR"
   fi
-  [ -n "$GIT_IND" ] && L1="$L1 $GIT_IND"
-  [ "${GIT_AHEAD:-0}" -gt 0 ] 2>/dev/null && L1="$L1 ${C}↑${GIT_AHEAD}${X}"
+  GIT_IND=""
+  [ "${GIT_STAGED:-0}" -gt 0 ] 2>/dev/null && GIT_IND="${G}+${GIT_STAGED}${X}"
+  [ "${GIT_MODIFIED:-0}" -gt 0 ] 2>/dev/null && GIT_IND="${GIT_IND}${Y}~${GIT_MODIFIED}${X}"
+  [ -n "$GIT_IND" ] && L1="$L1 ${D}Files:${X} $GIT_IND"
+  [ "${GIT_AHEAD:-0}" -gt 0 ] 2>/dev/null && L1="$L1 ${D}Commits:${X} ${C}↑${GIT_AHEAD}${X}"
+  L1="$L1 ${D}Diff:${X} ${G}+${ADDED}${X} ${R}-${REMOVED}${X}"
 fi
 
 # --- Line 2: context window ---
@@ -396,7 +397,6 @@ L3="$USAGE_LINE"
 
 L4="Model: ${D}${MODEL}${X}"
 L4="$L4 ${D}│${X} Time: ${DUR_FMT} (API: ${API_DUR_FMT})"
-L4="$L4 ${D}│${X} Diff: ${G}+${ADDED}${X} ${R}-${REMOVED}${X}"
 [ -n "$AGENT_LINE" ] && L4="$L4 ${D}│${X} ${AGENT_LINE}"
 L4="$L4 ${D}│${X} ${D}VBW ${_VER:-?}${X} ${D}│${X} ${D}CC ${VER}${X}"
 
