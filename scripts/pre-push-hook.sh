@@ -4,6 +4,23 @@ set -euo pipefail
 # Install: ln -sf ../../scripts/pre-push-hook.sh .git/hooks/pre-push
 # Bypass:  git push --no-verify
 
+# Version sync check: ensure all 4 version files are consistent
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+if [ -f "$ROOT/scripts/bump-version.sh" ]; then
+  VERIFY_OUTPUT=$(bash "$ROOT/scripts/bump-version.sh" --verify 2>&1) || {
+    echo ""
+    echo "ERROR: Push blocked -- version files are out of sync."
+    echo ""
+    echo "$VERIFY_OUTPUT" | grep -A 10 "MISMATCH"
+    echo ""
+    echo "  Run: bash scripts/bump-version.sh"
+    echo ""
+    exit 1
+  }
+fi
+
 while read -r local_ref local_sha remote_ref remote_sha; do
   # Skip tag pushes and deletes
   [[ "$local_sha" == "0000000000000000000000000000000000000000" ]] && continue
