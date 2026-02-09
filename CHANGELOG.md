@@ -2,6 +2,14 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.0.91] - 2026-02-09
+
+### Added
+
+- **`statusline`** -- hourly update check with visual indicator. When a newer VBW version is available, Line 4 turns yellow bold showing `VBW {current} → {latest} /vbw:update`. Cached 1 hour, single curl, zero overhead otherwise.
+
+---
+
 ## [1.0.90] - 2026-02-09
 
 ### Fixed
