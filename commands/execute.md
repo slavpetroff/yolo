@@ -38,7 +38,9 @@ Phase directories:
    4. If all planned phases are fully built: STOP and tell the user "All planned phases are built. Specify a phase to rebuild: `/vbw:execute N`"
 
 3. **Phase not planned:** If no PLAN.md files in .vbw-planning/phases/{phase-dir}/, STOP: "Phase {N} has no plans. Run /vbw:plan {N} first."
-4. **Phase already complete:** If ALL plans have SUMMARY.md, WARN: "Phase {N} already complete. Re-running creates new commits. Continue?"
+4. **Phase already complete:** If ALL plans have SUMMARY.md:
+   - At `cautious` or `standard` autonomy: WARN and ask: "Phase {N} already complete. Re-running creates new commits. Continue?"
+   - At `confident` or `dangerously-vibe` autonomy: display warning but auto-continue without asking.
 
 ## Steps
 
@@ -138,14 +140,20 @@ Spawn Dev teammates and assign tasks. The platform enforces execution ordering v
 - Wave tracking in `.execution-state.json` is informational (for display/logging), not controlling
 - If `--plan=NN`: create a single task with no dependencies (ignore dependency wiring)
 
-**Plan approval gate (effort-gated):**
-When PLAN_APPROVAL is `required` (Thorough effort only):
+**Plan approval gate (effort-gated, autonomy-gated):**
+
+Autonomy overrides the effort-based plan approval behavior:
+- At `cautious` autonomy: plan approval is required at **Thorough AND Balanced** effort (expands the gate)
+- At `standard` autonomy: plan approval is required at **Thorough only** (current default behavior)
+- At `confident` or `dangerously-vibe` autonomy: plan approval is **OFF** regardless of effort level
+
+When plan approval is active:
 - Spawn Dev teammates with `plan_mode_required` set
 - Each Dev enters read-only plan mode: it reads the PLAN.md, proposes its implementation approach, and waits for lead approval before writing any code
 - The lead reviews each Dev's proposed approach and approves (plan_approval_response with approve: true) or rejects with feedback (approve: false with content describing what to change)
 - This adds a platform-enforced review gate -- the Dev literally cannot make changes until approved
 
-When PLAN_APPROVAL is `off` (Balanced, Fast, Turbo):
+When plan approval is off:
 - Spawn Dev teammates without plan_mode_required
 - Devs begin implementation immediately upon receiving their task (existing behavior)
 

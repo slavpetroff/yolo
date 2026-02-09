@@ -93,7 +93,7 @@ Most Claude Code plugins were built for the subagent era, one main session spawn
 
 Agent Teams are [experimental with known limitations](https://code.claude.com/docs/en/agent-teams#limitations). VBW handles them so you don't have to:
 
-- **Session resumption.** Agent Teams teammates don't survive `/resume`. VBW's `/vbw:pause` saves full session state (including in-flight execution progress), and `/vbw:resume` creates a fresh team from saved state -- reconciling stale execution state by detecting tasks completed between pause and resume via SUMMARY.md files, auto-completing phases where all plans finished during the gap, and assigning only remaining work.
+- **Session resumption.** Agent Teams teammates don't survive `/resume`. VBW's `/vbw:resume` reads ground truth directly from `.vbw-planning/` -- STATE.md, ROADMAP.md, PLAN.md and SUMMARY.md files -- without requiring a prior `/vbw:pause`. It detects interrupted builds via `.execution-state.json`, reconciles stale execution state by detecting tasks completed between sessions via SUMMARY.md files, and suggests the right next action.
 
 - **Task status lag.** Teammates sometimes forget to mark tasks complete. VBW's `TaskCompleted` hook verifies task-related commits exist via keyword matching. The `TeammateIdle` hook runs a structural completion check (SUMMARY.md or conventional commit format) before any teammate goes idle.
 
@@ -372,10 +372,10 @@ Phase numbers are optional -- when omitted, VBW auto-detects the next phase base
 | `/vbw:fix` | Quick task in Turbo mode. One commit, no ceremony. For when the fix is obvious and you don't need six agents to add a missing comma. |
 | `/vbw:debug` | Systematic bug investigation via the Debugger agent. At Thorough effort with ambiguous bugs, spawns 3 parallel debugger teammates for competing hypothesis investigation. Hypothesis, evidence, root cause, fix. Like the scientific method, except it actually finds things. |
 | `/vbw:todo` | Add an item to a persistent backlog that survives across sessions. For all those "we should really..." thoughts that usually die in a terminal tab. |
-| `/vbw:pause` | Save full session context. For when biological needs interrupt your workflow. Or your laptop battery does. |
-| `/vbw:resume` | Restore previous session. Picks up exactly where you left off with full context. It remembers more about your project than you do. |
+| `/vbw:pause` | Save session notes for next time. State auto-persists in `.vbw-planning/` -- pause just lets you leave a sticky note for future you. |
+| `/vbw:resume` | Restore project context from `.vbw-planning/` ground truth. Reads state, roadmap, plans, and summaries directly -- no prior `/vbw:pause` needed. |
 | `/vbw:skills` | Browse and install community skills from skills.sh based on your project's tech stack. Detects your stack, suggests relevant skills, and installs them with one command. |
-| `/vbw:config` | View and toggle VBW settings: effort profiles, skill suggestions, auto-install behavior, and skill-hook wiring. |
+| `/vbw:config` | View and toggle VBW settings: effort profiles, autonomy levels (cautious/standard/confident/dangerously-vibe), skill suggestions, auto-install behavior, and skill-hook wiring. |
 | `/vbw:help` | Command reference with usage examples. You are reading its output's spiritual ancestor right now. |
 
 <br>

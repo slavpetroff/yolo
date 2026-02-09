@@ -182,7 +182,9 @@ Check the target phase directory for existing `*-PLAN.md` files.
 
 - **No plans exist (State 3):** Phase needs both planning and execution. Proceed to Planning step.
 - **Plans exist but not all have SUMMARY.md (State 4):** Phase is already planned. Skip to Execution step.
-- **All plans have SUMMARY.md:** Phase is fully built. WARN: "Phase {N} already implemented. Re-running will create new commits. Continue?"
+- **All plans have SUMMARY.md:** Phase is fully built.
+  - At `cautious` or `standard` autonomy: WARN and ask: "Phase {N} already implemented. Re-running will create new commits. Continue?"
+  - At `confident` or `dangerously-vibe` autonomy: display warning but auto-continue without asking.
 
 ### Planning step (State 3 only)
 
@@ -190,14 +192,32 @@ Check the target phase directory for existing `*-PLAN.md` files.
 
 Reference the full planning protocol from `@${CLAUDE_PLUGIN_ROOT}/commands/plan.md`.
 
+Display:
+```
+◆ Planning Phase {N}: {phase-name}
+  Effort: {level}
+```
+
 Execute the planning flow:
-1. Parse effort and resolve context.
-2. At **Turbo** effort: use the turbo shortcut (direct plan generation).
-3. At all other effort levels: spawn the Lead agent for research, decomposition, and self-review.
-4. Validate that PLAN.md files were produced.
-5. Display brief planning summary.
+1. Parse effort and resolve context. Display: `  ◆ Resolving context...`
+2. At **Turbo** effort: use the turbo shortcut (direct plan generation). Display: `  ◆ Turbo mode -- generating plan inline...`
+3. At all other effort levels: spawn the Lead agent for research, decomposition, and self-review. Display: `  ◆ Spawning Lead agent...`
+4. After Lead returns, display: `  ✓ Lead agent complete`
+5. Validate that PLAN.md files were produced. Display: `  ◆ Validating plan artifacts...`
+6. Display brief planning summary with plan count and wave structure.
 
 **Important:** Do NOT update STATE.md to "Planned". The implement command skips the intermediate "Planned" state and goes directly to "Built" after execution completes.
+
+Display: `✓ Planning complete -- transitioning to execution...`
+
+**Cautious gate (autonomy=cautious only):**
+
+If autonomy is `cautious`, STOP after planning and before execution:
+1. Display the plan summary (plan count, wave structure, key tasks)
+2. Ask: "Plans ready. Execute Phase {N}?" and wait for confirmation
+3. Only proceed to execution if the user confirms
+
+At all other autonomy levels (`standard`, `confident`, `dangerously-vibe`): auto-chain directly to execution as currently.
 
 ### Execution step
 
@@ -211,6 +231,17 @@ Execute the build flow:
 5. Update STATE.md: mark the phase as "Built".
 6. Update ROADMAP.md: mark completed plans.
 7. Clean up execution state.
+
+### Dangerously-vibe phase loop (autonomy=dangerously-vibe only)
+
+After the execution step completes and the phase summary is displayed:
+- If autonomy is `dangerously-vibe` AND more unbuilt phases exist:
+  1. Display: `◆ Phase {N} complete. Auto-continuing to Phase {N+1}...`
+  2. Re-evaluate state (loop back to State Detection)
+  3. Continue until State 5 (all phases complete) or an error guard halts execution
+- At all other autonomy levels (`cautious`, `standard`, `confident`): STOP after the phase as currently.
+
+**Error guards are NEVER affected by autonomy.** Missing roadmap, uninitialized project, and other hard stops always halt regardless of autonomy level.
 
 ## State 5: Completion (All Phases Done)
 

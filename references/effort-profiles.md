@@ -119,6 +119,21 @@ At Thorough effort, Dev teammates are spawned with `plan_mode_required`. This ac
 
 This is **platform-enforced**: the Dev literally cannot make file changes until the lead approves. This is strictly stronger than instruction-enforced constraints (per the two-tier enforcement framework from the v1.1 audit).
 
+**Autonomy overrides effort-based plan approval.** The `autonomy` config setting can expand or disable the plan approval gate regardless of effort level:
+
+| Effort Level | Default (standard) | cautious | confident / dangerously-vibe |
+|-------------|-------------------|----------|------------------------------|
+| Thorough    | required          | required | **OFF**                      |
+| Balanced    | off               | **required** | OFF                      |
+| Fast        | off               | off      | OFF                          |
+| Turbo       | off               | off      | OFF                          |
+
+- `cautious` expands plan approval to Balanced effort (more oversight)
+- `standard` uses the effort-based defaults shown above (current behavior)
+- `confident` and `dangerously-vibe` disable plan approval entirely (less friction)
+
+Rationale per effort level (at `standard` autonomy):
+
 | Effort Level | Plan Approval | Rationale |
 |-------------|---------------|-----------|
 | Thorough    | required      | Correctness over speed; review gate catches misinterpretation before code is written |

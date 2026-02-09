@@ -145,6 +145,13 @@ If effort = turbo: skip Lead agent. Read phase requirements from ROADMAP.md. Cre
 
 ### Step 3: Spawn Lead agent
 
+Display:
+```
+◆ Planning Phase {N}: {phase-name}
+  Effort: {level}
+  Spawning Lead agent...
+```
+
 Spawn vbw-lead as a subagent via the Task tool with thin context:
 
 ```
@@ -162,7 +169,11 @@ Output: Write PLAN.md files to .vbw-planning/phases/{phase-dir}/
 
 The Lead reads all files itself -- no content embedding in the task description.
 
+Display after Lead returns: `✓ Lead agent complete`
+
 ### Step 4: Validate Lead output
+
+Display: `◆ Validating plan artifacts...`
 
 Verify:
 - At least one PLAN.md exists in the phase directory

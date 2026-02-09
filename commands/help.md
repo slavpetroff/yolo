@@ -48,8 +48,8 @@ Read `${CLAUDE_PLUGIN_ROOT}/commands/{name}.md` and display: name, description, 
 
 | Status | Command        | Description                                          |
 |--------|----------------|------------------------------------------------------|
-| ✓      | /vbw:pause     | Save session context (Agent Teams not resumable)     |
-| ✓      | /vbw:resume    | Restore context, create NEW team from saved state    |
+| ✓      | /vbw:pause     | Save session notes for next time (state auto-persists) |
+| ✓      | /vbw:resume    | Restore project context from .vbw-planning/ state    |
 
 ### Codebase & Research
 

@@ -1,8 +1,8 @@
 ---
 name: pause
-description: Save current session context for later resumption.
+description: Save session notes for next time (state auto-persists).
 argument-hint: [notes]
-allowed-tools: Read, Write, Glob, Grep
+allowed-tools: Read, Write
 ---
 
 # VBW Pause: $ARGUMENTS
@@ -16,11 +16,6 @@ Active milestone:
 !`cat .vbw-planning/ACTIVE 2>/dev/null || echo "No active milestone (single-milestone mode)"`
 ```
 
-Current state:
-```
-!`head -40 .vbw-planning/STATE.md 2>/dev/null || echo "No state found"`
-```
-
 ## Guard
 
 1. **Not initialized:** Follow the Initialization Guard in `${CLAUDE_PLUGIN_ROOT}/references/shared-patterns.md`.
@@ -29,90 +24,49 @@ Current state:
 
 ### Step 1: Resolve paths
 
-If .vbw-planning/ACTIVE exists: use milestone-scoped RESUME_PATH, STATE_PATH, PHASES_DIR.
-Otherwise: use .vbw-planning/ defaults.
+If .vbw-planning/ACTIVE exists: use milestone-scoped RESUME_PATH.
+Otherwise: use .vbw-planning/RESUME.md.
 
-### Step 2: Gather session context
+### Step 2: Handle notes
 
-1. From STATE.md: current phase, plan progress, status
-2. From ROADMAP.md: current phase goal
-3. From phase directory: last completed SUMMARY.md, next pending PLAN.md
-4. From $ARGUMENTS: session notes (if provided)
-5. Current timestamp
-6. From .vbw-planning/.execution-state.json (if exists): execution status, current wave, completed/total plans, running plan titles
-
-### Step 3: Write RESUME.md
+**If $ARGUMENTS contains notes:**
 
 Write to RESUME_PATH:
 
 ```markdown
-# Session Resume
+# Session Notes
 
-**Paused:** {YYYY-MM-DD HH:MM}
-**Milestone:** {slug or "default"}
+**Saved:** {YYYY-MM-DD HH:MM}
 
-## Position
+{user's notes}
 
-**Phase:** {N} - {name}
-**Plan progress:** {completed}/{total} plans
-**Last completed:** Plan {NN}: {title}
-**Next pending:** Plan {NN}: {title}
-
-## Context
-
-**Phase goal:** {from ROADMAP.md}
-**Current status:** {from STATE.md}
-
-## Execution State
-
-{If .execution-state.json existed:}
-**Build status:** {status from execution-state}
-**Wave:** {wave}/{total_waves}
-**Plans completed:** {done count}/{total count}
-**Running plans:** {comma-separated titles of plans with status=running}
-**Note:** Agent Teams sessions are not resumable. On /vbw:resume, use /vbw:execute to restart the build from where it left off. Completed plans (with SUMMARY.md) will be skipped.
-
-{If no .execution-state.json:}
-**Build status:** No build in progress
-
-## Session Notes
-
-{User notes or "No notes."}
-
-## Resume Instructions
-
-1. Run `/vbw:resume` to restore this context
-2. {Specific next command}
+---
+*Run /vbw:resume to restore full project context.*
 ```
 
-Note: Agent Teams sessions are not resumable. On resume, a NEW team is created from saved state. Completed work is detected via SUMMARY.md files and git log.
+**If no notes provided:**
 
-### Step 4: Update STATE.md
+Do not write RESUME.md. Skip to confirmation.
 
-Update Session Continuity section: last session date, stopped-at description, resume file path.
-
-### Step 5: Present confirmation
+### Step 3: Present confirmation
 
 ```
 ╔═══════════════════════════════════════════╗
 ║  Session Paused                           ║
 ╚═══════════════════════════════════════════╝
 
-  Phase:    {N} - {name}
-  Progress: {completed}/{total} plans
-  Build:    {status} (wave {W}/{T}, {done}/{total} plans) -- only if execution-state existed
-  Saved to: {RESUME_PATH}
+  {If notes: "Notes saved to {RESUME_PATH}"}
 
-  {If notes: "Notes: {abbreviated}"}
+  State is always saved in .vbw-planning/.
+  Nothing to lose, nothing to remember.
 
 ➜ Next Up
-  /vbw:resume -- Restore this session
+  /vbw:resume -- Restore full project context
 ```
 
 ## Output Format
 
 Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md:
 - Double-line box for pause confirmation
-- Metrics Block for position
-- Next Up Block for resume hint
+- ➜ for Next Up block
 - No ANSI color codes

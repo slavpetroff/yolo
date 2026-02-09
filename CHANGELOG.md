@@ -2,6 +2,15 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.0.75] - 2026-02-09
+
+### Added
+
+- **Autonomy levels** — new `autonomy` config setting with 4 levels: `cautious` (stops between plan and execute, plan approval at Thorough+Balanced), `standard` (current default behavior), `confident` (skips "already complete" confirmations, disables plan approval), `dangerously-vibe` (loops ALL phases in a single `/vbw:implement`, no confirmations, no plan approval — only error guards stop). Configured via `/vbw:config` or `/vbw:config autonomy <level>`.
+- **Autonomy-effort interaction in EFRT-07** — plan approval gate now respects autonomy overrides: `cautious` expands plan approval to Balanced effort, `confident`/`dangerously-vibe` disable it entirely regardless of effort level.
+
+---
+
 ## [1.0.73] - 2026-02-09
 
 ### Added
