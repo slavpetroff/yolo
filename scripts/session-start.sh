@@ -140,6 +140,32 @@ if [ ! -f ".git/hooks/pre-push" ] && [ -f "$SCRIPT_DIR/install-hooks.sh" ]; then
   (bash "$SCRIPT_DIR/install-hooks.sh" 2>/dev/null) || true
 fi
 
+# --- Reconcile orphaned execution state ---
+EXEC_STATE="$PLANNING_DIR/.execution-state.json"
+if [ -f "$EXEC_STATE" ]; then
+  EXEC_STATUS=$(jq -r '.status // ""' "$EXEC_STATE" 2>/dev/null)
+  if [ "$EXEC_STATUS" = "running" ]; then
+    PHASE_NAME=$(jq -r '.phase_name // ""' "$EXEC_STATE" 2>/dev/null)
+    PHASE_NUM=$(jq -r '.phase // ""' "$EXEC_STATE" 2>/dev/null)
+    PHASE_DIR=""
+    if [ -n "$PHASE_NUM" ]; then
+      PHASE_DIR=$(ls -d "$PLANNING_DIR/phases/${PHASE_NUM}-"* 2>/dev/null | head -1)
+    fi
+    if [ -n "$PHASE_DIR" ] && [ -d "$PHASE_DIR" ]; then
+      PLAN_COUNT=$(jq -r '.plans | length' "$EXEC_STATE" 2>/dev/null)
+      SUMMARY_COUNT=$(ls "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+      if [ "${SUMMARY_COUNT:-0}" -ge "${PLAN_COUNT:-1}" ] && [ "${PLAN_COUNT:-0}" -gt 0 ]; then
+        # All plans have SUMMARY.md — build finished after crash
+        jq '.status = "complete"' "$EXEC_STATE" > "$PLANNING_DIR/.execution-state.json.tmp" && mv "$PLANNING_DIR/.execution-state.json.tmp" "$EXEC_STATE"
+        BUILD_STATE="complete (recovered)"
+      else
+        BUILD_STATE="interrupted (${SUMMARY_COUNT:-0}/${PLAN_COUNT:-0} plans)"
+      fi
+      UPDATE_MSG="${UPDATE_MSG} Build state: ${BUILD_STATE}."
+    fi
+  fi
+fi
+
 # --- Project state ---
 
 if [ ! -d "$PLANNING_DIR" ]; then
