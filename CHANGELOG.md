@@ -2,6 +2,14 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.0.93] - 2026-02-09
+
+### Changed
+
+- **`commands`** -- lazy reference loading (TAU-01). Cross-command `@`-references in `implement.md` and `init.md` replaced with deferred `Read` instructions so `plan.md`, `execute.md`, and `map.md` are only loaded when the model reaches the state that needs them. Removed unused STATE.md injections from `fix`, `todo`, and `debug` commands. Saves 200-500 tokens per invocation for states that don't use the deferred files.
+
+---
+
 ## [1.0.92] - 2026-02-09
 
 ### Changed
