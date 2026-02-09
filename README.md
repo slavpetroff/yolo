@@ -228,76 +228,55 @@ VBW operates on a simple loop that will feel familiar to anyone who's ever shipp
      │  Environment setup    │               │  Environment setup    │
      │  Scaffold             │               │  Scaffold             │
      │  Skills               │               │                       │
-     └──────────┬────────────┘               │  ⚠ Codebase detected  │
-                │                            │  Auto-chains:         │
-                │                            │    → /vbw:map         │
-                │                            │    → Skills (informed │
+     │                       │               │  ⚠ Codebase detected  │
+     │  Auto-chains:         │               │  Auto-chains:         │
+     │    → /vbw:implement   │               │    → /vbw:map         │
+     └──────────┬────────────┘               │    → Skills (informed │
                 │                            │      by map data)     │
                 │                            │    → /vbw:implement   │
                 │                            └──────────┬────────────┘
                 │                                       │
                 └───────────────────┬───────────────────┘
                                     │
-                                    │ Project defined
+                                    ▼
+                 ┌──────────────────────────────────────┐
+                 │  /vbw:implement                      │
+                 │  The one command — auto-detects:     │
+                 │                                      │
+                 │  No project?  → Bootstrap setup      │
+                 │  No phases?   → Scope & plan work    │
+                 │  Unplanned?   → Plan next phase      │
+                 │  Planned?     → Execute next phase   │
+                 │  All done?    → Suggest archive      │
+                 └──────────────────┬───────────────────┘
                                     │
-                   ┌────────────────┴────────────────┐
-                   │                                 │
-                   ▼                                 ▼
-      ┌──────────────────────┐      ┌──────────────────────────────┐
-      │ /vbw:discuss         │      │ /vbw:implement [phase]       │
-      │ Gather context       │─────▶│ Plan + execute in one step   │
-      │ before planning      │      │ Auto-detects what the        │
-      │ (optional)           │      │ phase needs                  │
-      └──────────────────────┘      └──────────────┬───────────────┘
-                                                   │
-                                    ┌──────────────┘
+                                    │  Or for more control:
+                                    │  /vbw:discuss (gather context)
+                                    │  /vbw:plan + /vbw:execute
                                     │
-                                    │  Or separately:
+                                    ▼
+                     ┌──────────────────────────────┐
+                     │  /vbw:qa [phase]             │
+                     │  Three-tier verification     │
+                     │  Goal-backward methodology   │
+                     │  Outputs: VERIFICATION.md    │
+                     └──────────────┬───────────────┘
                                     │
-                   ┌────────────────┴────────────────┐
-                   │                                 │
-                   ▼                                 │
-      ┌──────────────────────────────┐               │
-      │  /vbw:plan [phase]           │               │
-      │  Lead agent: researches,     │               │
-      │  decomposes, self-reviews    │               │
-      │  Outputs: PLAN.md per wave   │               │
-      └──────────────┬───────────────┘               │
-                     │                               │
-                     ▼                               │
-      ┌──────────────────────────────┐               │
-      │  /vbw:execute [phase]        │               │
-      │  Agent Team: Dev teammates   │               │
-      │  Per-plan dependency wiring  │               │
-      │  Hooks verify continuously   │               │
-      │  Outputs: SUMMARY.md         │               │
-      └──────────────┬───────────────┘               │
-                     │                               │
-                     └───────────────┬───────────────┘
-                                     │
-                                     ▼
-                      ┌──────────────────────────────┐
-                      │  /vbw:qa [phase]             │
-                      │  Three-tier verification     │
-                      │  Goal-backward methodology   │
-                      │  Outputs: VERIFICATION.md    │
-                      └──────────────┬───────────────┘
-                                     │
-                            ┌────────┴────────┐
-                            │  More phases?   │
-                            └────────┬────────┘
-                           yes │          │ no
-                               │          │
-                      ┌────────┘          └────────┐
-                      │                            │
-                      ▼                            ▼
-           ┌──────────────────┐        ┌──────────────────┐
-           │ Loop back to     │        │ /vbw:archive     │
-           │ /vbw:implement   │        │ Audits completion│
-           │ for next phase   │        │ Archives state   │
-           └──────────────────┘        │ Tags the release │
-                                       │ Work archived    │
-                                       └──────────────────┘
+                           ┌────────┴────────┐
+                           │  More phases?   │
+                           └────────┬────────┘
+                          yes │          │ no
+                              │          │
+                     ┌────────┘          └────────┐
+                     │                            │
+                     ▼                            ▼
+          ┌──────────────────┐        ┌──────────────────┐
+          │ Loop back to     │        │ /vbw:archive     │
+          │ /vbw:implement   │        │ Audits completion│
+          │ for next phase   │        │ Archives state   │
+          └──────────────────┘        │ Tags the release │
+                                      │ Work archived    │
+                                      └──────────────────┘
 ```
 
 <br>
