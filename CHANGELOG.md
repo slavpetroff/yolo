@@ -2,6 +2,14 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.0.92] - 2026-02-09
+
+### Changed
+
+- **`/vbw:update`** -- always runs full cache refresh even when already on latest version. Fixes corrupted caches or stale hook schemas without requiring a version bump.
+
+---
+
 ## [1.0.91] - 2026-02-09
 
 ### Added
