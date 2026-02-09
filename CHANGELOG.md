@@ -2,6 +2,14 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.0.95] - 2026-02-09
+
+### Fixed
+
+- **`hooks`** -- all 18 hook commands now exit 0 when the plugin cache is missing, preventing "PostToolUse:Bash hook error" spam during `/vbw:update`. Previously, `cache-nuke.sh` deleted the cache but hooks kept firing and failing until the cache was re-populated.
+
+---
+
 ## [1.0.94] - 2026-02-09
 
 ### Changed
