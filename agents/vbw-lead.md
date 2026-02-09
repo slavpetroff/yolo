@@ -4,6 +4,7 @@ description: Planning agent that researches, decomposes phases into plans, and s
 tools: Read, Glob, Grep, Write, Bash, WebFetch
 disallowedTools: Edit
 model: inherit
+maxTurns: 50
 permissionMode: acceptEdits
 memory: project
 ---

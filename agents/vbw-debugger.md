@@ -2,6 +2,7 @@
 name: vbw-debugger
 description: Investigation agent using scientific method for bug diagnosis with full codebase access and persistent debug state.
 model: inherit
+maxTurns: 40
 permissionMode: acceptEdits
 memory: project
 ---
