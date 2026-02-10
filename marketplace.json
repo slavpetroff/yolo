@@ -11,8 +11,8 @@
     {
       "name": "vbw",
       "source": "./",
-      "description": "Development lifecycle plugin — 27 commands, 6 agents, continuous verification",
-      "version": "1.0.99",
+      "description": "Development lifecycle plugin — 29 commands, 6 agents, continuous verification",
+      "version": "1.10.0",
       "license": "MIT",
       "keywords": [
         "vibe-coding",
