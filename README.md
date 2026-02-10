@@ -311,7 +311,7 @@ This is the one command. Run it, and VBW figures out what to do next:
 - **Plans ready but not built?** Dev teammates execute in parallel with atomic commits and continuous verification.
 - **Everything built?** It tells you and suggests wrapping up.
 
-You don't need to know which state your project is in. VBW knows. Just keep running `/vbw:implement` and it handles the rest — planning, building, verifying — one phase at a time. Or if you're feeling brave, set your autonomy to `dangerously-vibe` and it'll loop through every remaining phase without stopping.
+You don't need to know which state your project is in. VBW knows. Just keep running `/vbw:implement` and it handles the rest — planning, building, verifying — one phase at a time. Or if you're feeling brave, set your autonomy to `pure-vibe` and it'll loop through every remaining phase without stopping.
 
 ```
 /vbw:implement
@@ -407,7 +407,7 @@ Phase numbers are optional -- when omitted, VBW auto-detects the next phase base
 | `/vbw:pause` | Save session notes for next time. State auto-persists in `.vbw-planning/` -- pause just lets you leave a sticky note for future you. |
 | `/vbw:resume` | Restore project context from `.vbw-planning/` ground truth. Reads state, roadmap, plans, and summaries directly -- no prior `/vbw:pause` needed. |
 | `/vbw:skills` | Browse and install community skills from skills.sh based on your project's tech stack. Detects your stack, suggests relevant skills, and installs them with one command. |
-| `/vbw:config` | View and toggle VBW settings: effort profiles, autonomy levels (cautious/standard/confident/dangerously-vibe), skill suggestions, auto-install behavior, and skill-hook wiring. |
+| `/vbw:config` | View and toggle VBW settings: effort profiles, autonomy levels (cautious/standard/confident/pure-vibe), skill suggestions, auto-install behavior, and skill-hook wiring. |
 | `/vbw:help` | Command reference with usage examples. You are reading its output's spiritual ancestor right now. |
 
 <br>
@@ -555,16 +555,16 @@ Four levels, from "review everything" to "just build the whole thing while I get
 | **Cautious** | Stops between plan and execute. Plan approval at Thorough AND Balanced effort. All confirmations enforced. | First time on a codebase. Production-critical work. When you want to review every step before it happens. |
 | **Standard** | Auto-chains plan into execute within a phase. Plan approval at Thorough only. Stops between phases. The default. | Most work. You trust the plan but want to see results before continuing. |
 | **Confident** | Skips "already complete" confirmations. Plan approval OFF even at Thorough. QA warnings non-blocking. | Experienced with VBW, rebuilding known-good phases, iteration speed matters more than gate checks. |
-| **Dangerously-vibe** | Loops ALL remaining phases in a single `/vbw:implement`. No confirmations. No plan approval. Only error guards (missing roadmap, uninitialized project) stop execution. | When you genuinely want to walk away and come back to a finished project. Or when you've accepted that the machines are in charge now. |
+| **Pure Vibe** | Loops ALL remaining phases in a single `/vbw:implement`. No confirmations. No plan approval. Only error guards (missing roadmap, uninitialized project) stop execution. | When you want to walk away and come back to a finished project. Full autonomy with VBW's safety nets still active. |
 
 ```
 /vbw:config autonomy confident
-/vbw:config autonomy dangerously-vibe
+/vbw:config autonomy pure-vibe
 ```
 
-Autonomy interacts with effort profiles. At `cautious`, plan approval expands to cover Balanced effort (not just Thorough). At `confident` and `dangerously-vibe`, plan approval is disabled regardless of effort level. Error guards — missing roadmap, uninitialized project, missing plans — always halt at every level. Autonomy controls friction, not safety.
+Autonomy interacts with effort profiles. At `cautious`, plan approval expands to cover Balanced effort (not just Thorough). At `confident` and `pure-vibe`, plan approval is disabled regardless of effort level. Error guards — missing roadmap, uninitialized project, missing plans — always halt at every level. Autonomy controls friction, not safety.
 
-| Gate | Cautious | Standard | Confident | Dangerously-vibe |
+| Gate | Cautious | Standard | Confident | Pure Vibe |
 | :--- | :--- | :--- | :--- | :--- |
 | Plan to execute | Stop and ask | Auto-chain | Auto-chain | Auto-chain |
 | Between phases | Stop | Stop | Stop | Auto-loop |

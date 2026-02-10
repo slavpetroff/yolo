@@ -37,7 +37,7 @@ Phase directories:
 3. **Phase not planned:** If no PLAN.md files in .vbw-planning/phases/{phase-dir}/, STOP: "Phase {N} has no plans. Run /vbw:plan {N} first."
 4. **Phase already complete:** If ALL plans have SUMMARY.md:
    - At `cautious` or `standard` autonomy: WARN and ask: "Phase {N} already complete. Re-running creates new commits. Continue?"
-   - At `confident` or `dangerously-vibe` autonomy: display warning but auto-continue without asking.
+   - At `confident` or `pure-vibe` autonomy: display warning but auto-continue without asking.
 
 ## Steps
 
@@ -146,7 +146,7 @@ Spawn Dev teammates and assign tasks. The platform enforces execution ordering v
 Autonomy overrides the effort-based plan approval behavior:
 - At `cautious` autonomy: plan approval is required at **Thorough AND Balanced** effort (expands the gate)
 - At `standard` autonomy: plan approval is required at **Thorough only** (current default behavior)
-- At `confident` or `dangerously-vibe` autonomy: plan approval is **OFF** regardless of effort level
+- At `confident` or `pure-vibe` autonomy: plan approval is **OFF** regardless of effort level
 
 When plan approval is active:
 - Spawn Dev teammates with `plan_mode_required` set

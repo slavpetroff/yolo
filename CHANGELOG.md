@@ -59,7 +59,7 @@ All notable changes to VBW will be documented in this file.
 
 ### Changed
 
-- **`config`** -- default autonomy level changed from `dangerously-vibe` to `standard`. New installations now require plan approval and stop after each phase for review, giving users guardrails by default.
+- **`config`** -- default autonomy level changed from `pure-vibe` to `standard`. New installations now require plan approval and stop after each phase for review, giving users guardrails by default.
 
 ---
 
@@ -169,8 +169,8 @@ All notable changes to VBW will be documented in this file.
 
 ### Added
 
-- **Autonomy levels** — new `autonomy` config setting with 4 levels: `cautious` (stops between plan and execute, plan approval at Thorough+Balanced), `standard` (current default behavior), `confident` (skips "already complete" confirmations, disables plan approval), `dangerously-vibe` (loops ALL phases in a single `/vbw:implement`, no confirmations, no plan approval — only error guards stop). Configured via `/vbw:config` or `/vbw:config autonomy <level>`. Default: `dangerously-vibe`.
-- **Autonomy-effort interaction in EFRT-07** — plan approval gate now respects autonomy overrides: `cautious` expands plan approval to Balanced effort, `confident`/`dangerously-vibe` disable it entirely regardless of effort level.
+- **Autonomy levels** — new `autonomy` config setting with 4 levels: `cautious` (stops between plan and execute, plan approval at Thorough+Balanced), `standard` (current default behavior), `confident` (skips "already complete" confirmations, disables plan approval), `pure-vibe` (loops ALL phases in a single `/vbw:implement`, no confirmations, no plan approval — only error guards stop). Configured via `/vbw:config` or `/vbw:config autonomy <level>`. Default: `pure-vibe`.
+- **Autonomy-effort interaction in EFRT-07** — plan approval gate now respects autonomy overrides: `cautious` expands plan approval to Balanced effort, `confident`/`pure-vibe` disable it entirely regardless of effort level.
 - **Full Autonomy Levels section in README** — gate behavior table, per-level descriptions, and effort interaction docs.
 - **CLAUDE.md** — project-level instructions file for VBW's own development (rules, key decisions, installed skills, learned patterns, state).
 - **Lead agent progress display** — `vbw-lead.md` now emits `◆`/`✓` progress lines at each stage (Research, Decompose, Self-Review, Output) and per-plan confirmation lines.

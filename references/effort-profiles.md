@@ -79,7 +79,7 @@ This is **platform-enforced**: the Dev literally cannot make file changes until 
 
 **Autonomy overrides effort-based plan approval.** The `autonomy` config setting can expand or disable the plan approval gate regardless of effort level:
 
-| Effort Level | Default (standard) | cautious | confident / dangerously-vibe |
+| Effort Level | Default (standard) | cautious | confident / pure-vibe |
 |-------------|-------------------|----------|------------------------------|
 | Thorough    | required          | required | **OFF**                      |
 | Balanced    | off               | **required** | OFF                      |
@@ -88,7 +88,7 @@ This is **platform-enforced**: the Dev literally cannot make file changes until 
 
 - `cautious` expands plan approval to Balanced effort (more oversight)
 - `standard` uses the effort-based defaults shown above (current behavior)
-- `confident` and `dangerously-vibe` disable plan approval entirely (less friction)
+- `confident` and `pure-vibe` disable plan approval entirely (less friction)
 
 Rationale per effort level at `standard` autonomy:
 

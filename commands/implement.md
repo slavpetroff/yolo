@@ -157,7 +157,7 @@ Check the target phase directory for existing `*-PLAN.md` files.
 - **Plans exist but not all have SUMMARY.md (State 4):** Phase is already planned. Skip to Execution step.
 - **All plans have SUMMARY.md:** Phase is fully built.
   - At `cautious` or `standard` autonomy: WARN and ask: "Phase {N} already implemented. Re-running will create new commits. Continue?"
-  - At `confident` or `dangerously-vibe` autonomy: display warning but auto-continue without asking.
+  - At `confident` or `pure-vibe` autonomy: display warning but auto-continue without asking.
 
 ### Planning step (State 3 only)
 
@@ -190,7 +190,7 @@ If autonomy is `cautious`, STOP after planning and before execution:
 2. Ask: "Plans ready. Execute Phase {N}?" and wait for confirmation
 3. Only proceed to execution if the user confirms
 
-At all other autonomy levels (`standard`, `confident`, `dangerously-vibe`): auto-chain directly to execution as currently.
+At all other autonomy levels (`standard`, `confident`, `pure-vibe`): auto-chain directly to execution as currently.
 
 ### Execution step
 
@@ -205,10 +205,10 @@ Execute the build flow:
 6. Update ROADMAP.md: mark completed plans.
 7. Clean up execution state.
 
-### Dangerously-vibe phase loop (autonomy=dangerously-vibe only)
+### Pure-vibe phase loop (autonomy=pure-vibe only)
 
 After the execution step completes and the phase summary is displayed:
-- If autonomy is `dangerously-vibe` AND more unbuilt phases exist:
+- If autonomy is `pure-vibe` AND more unbuilt phases exist:
   1. Display: `◆ Phase {N} complete. Auto-continuing to Phase {N+1}...`
   2. Re-evaluate state (loop back to State Detection)
   3. Continue until State 5 (all phases complete) or an error guard halts execution
