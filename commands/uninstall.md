@@ -10,133 +10,49 @@ allowed-tools: Read, Write, Edit, Bash, Glob
 
 ## Context
 
-Settings file:
+Settings:
 ```
 !`cat ~/.claude/settings.json 2>/dev/null || echo "{}"`
 ```
-
-Project planning directory:
-```
-!`ls -d .vbw-planning 2>/dev/null && echo "EXISTS" || echo "NONE"`
-```
-
-CLAUDE.md:
-```
-!`ls CLAUDE.md 2>/dev/null && echo "EXISTS" || echo "NONE"`
-```
+Planning dir: `!`ls -d .vbw-planning 2>/dev/null && echo "EXISTS" || echo "NONE"``
+CLAUDE.md: `!`ls CLAUDE.md 2>/dev/null && echo "EXISTS" || echo "NONE"``
 
 ## Steps
 
 ### Step 1: Confirm intent
 
-Display:
-```
-╔══════════════════════════════════════════╗
-║  VBW Uninstall                           ║
-╚══════════════════════════════════════════╝
+Display Phase Banner "VBW Uninstall" explaining system-level config removal. Project files handled separately. Ask confirmation.
 
-This will remove all VBW system-level configuration.
-Project files (.vbw-planning/, CLAUDE.md) are handled separately.
-```
+### Step 2: Remove global commands
 
-Ask the user to confirm they want to proceed.
+If `~/.claude/commands/vbw/` exists: `rm -rf ~/.claude/commands/vbw/`. If parent now empty, remove it too. Display ✓.
 
-### Step 2: Remove global commands directory
+### Step 3: Clean statusLine
 
-If `~/.claude/commands/vbw/` exists:
-1. `rm -rf ~/.claude/commands/vbw/`
-2. Display "✓ Global commands removed (~/.claude/commands/vbw/)"
-
-If the `~/.claude/commands/` directory is now empty after removal, remove it too.
-
-If the directory doesn't exist, skip silently.
-
-### Step 3: Clean statusLine from settings.json
-
-Read `~/.claude/settings.json`. Check if the `statusLine` field exists and its `command` value (or string value) contains `vbw-statusline`.
-
-If it does:
-1. Remove the entire `statusLine` key from the JSON
-2. Write the file back
-3. Display "✓ Statusline removed from settings.json"
-
-If it doesn't contain `vbw-statusline`, skip: "○ Statusline is not VBW's — skipped"
-
-If `statusLine` doesn't exist, skip silently.
+Read `~/.claude/settings.json`. If statusLine contains `vbw-statusline`: remove entire statusLine key, display ✓. If not VBW's: "○ Statusline is not VBW's — skipped".
 
 ### Step 4: Clean Agent Teams env var
 
-Check if `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` exists in `~/.claude/settings.json`.
-
-If it does, ask:
-```
-○ Agent Teams is enabled in settings.json. This was set by VBW but
-  is a Claude Code feature that other tools may use.
-  Remove it?
-```
-
-If user approves: remove `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` from settings. If the `env` object is then empty, remove the `env` key entirely. Display "✓ Agent Teams setting removed"
-
-If user declines: display "○ Agent Teams setting kept"
+If `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` exists: ask user (it's a Claude Code feature other tools may use). Approved: remove (if env then empty, remove env key). Declined: "○ Agent Teams setting kept".
 
 ### Step 5: Project data
 
-If `.vbw-planning/` exists, ask:
-```
-○ Found .vbw-planning/ in this project.
-  This contains your project roadmap, requirements, and planning state.
-
-  a) Keep it (recommended — your planning data is preserved)
-  b) Delete it (permanently removes all VBW planning artifacts)
-```
-
-If user chooses delete: `rm -rf .vbw-planning/` and display "✓ .vbw-planning/ deleted"
-If user chooses keep: display "○ .vbw-planning/ preserved"
-
-If `.vbw-planning/` doesn't exist, skip silently.
+If `.vbw-planning/` exists: ask keep (recommended) or delete. Delete: `rm -rf .vbw-planning/`.
 
 ### Step 6: CLAUDE.md cleanup
 
-If `CLAUDE.md` exists at project root, ask:
+If CLAUDE.md exists: ask keep or delete.
+
+### Step 7: Summary
+
+Display Phase Banner "VBW Cleanup Complete" with ✓/○ per step. Then:
 ```
-○ Found CLAUDE.md with VBW content.
-
-  a) Keep it (other tools may use CLAUDE.md)
-  b) Delete it
-```
-
-If user chooses delete: remove the file. Display "✓ CLAUDE.md deleted"
-If user chooses keep: display "○ CLAUDE.md preserved"
-
-If `CLAUDE.md` doesn't exist, skip silently.
-
-### Step 6: Summary and next step
-
-Display:
-```
-╔══════════════════════════════════════════╗
-║  VBW Cleanup Complete                    ║
-╚══════════════════════════════════════════╝
-
-  {✓ or ○ for each step performed}
-
 ➜ Final Step
-  Run this command to remove the plugin:
-
   /plugin uninstall vbw@vbw-marketplace
-
-  Then optionally remove the marketplace:
-
-  /plugin marketplace remove vbw-marketplace
+  Then optionally: /plugin marketplace remove vbw-marketplace
 ```
-
-**IMPORTANT:** Do NOT run the plugin uninstall command yourself. The user must run it manually because `/vbw:uninstall` is part of the plugin — running the uninstall from within would remove itself mid-execution.
+**Do NOT run plugin uninstall yourself** — it would remove itself mid-execution.
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md:
-- Phase Banner (double-line box) for header and completion
-- File Checklist (✓ prefix) for completed cleanup steps
-- ○ for skipped items
-- Next Up Block for the final uninstall command
-- No ANSI color codes
+Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — Phase Banner (double-line box), ✓ completed, ○ skipped, Next Up, no ANSI.

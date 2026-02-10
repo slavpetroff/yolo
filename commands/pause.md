@@ -11,63 +11,18 @@ allowed-tools: Read, Write
 ## Context
 
 Working directory: `!`pwd``
-
-Active milestone:
-```
-!`cat .vbw-planning/ACTIVE 2>/dev/null || echo "No active milestone (single-milestone mode)"`
-```
+Active milestone: `!`cat .vbw-planning/ACTIVE 2>/dev/null || echo "No active milestone (single-milestone mode)"``
 
 ## Guard
 
-1. **Not initialized:** Follow the Initialization Guard in `${CLAUDE_PLUGIN_ROOT}/references/shared-patterns.md`.
+1. **Not initialized:** Follow Initialization Guard in `${CLAUDE_PLUGIN_ROOT}/references/shared-patterns.md`.
 
 ## Steps
 
-### Step 1: Resolve paths
-
-If .vbw-planning/ACTIVE exists: use milestone-scoped RESUME_PATH.
-Otherwise: use .vbw-planning/RESUME.md.
-
-### Step 2: Handle notes
-
-**If $ARGUMENTS contains notes:**
-
-Write to RESUME_PATH:
-
-```markdown
-# Session Notes
-
-**Saved:** {YYYY-MM-DD HH:MM}
-
-{user's notes}
-
----
-*Run /vbw:resume to restore full project context.*
-```
-
-**If no notes provided:**
-
-Do not write RESUME.md. Skip to confirmation.
-
-### Step 3: Present confirmation
-
-```
-╔═══════════════════════════════════════════╗
-║  Session Paused                           ║
-╚═══════════════════════════════════════════╝
-
-  {If notes: "Notes saved to {RESUME_PATH}"}
-
-  State is always saved in .vbw-planning/.
-  Nothing to lose, nothing to remember.
-
-➜ Next Up
-  /vbw:resume -- Restore full project context
-```
+1. **Resolve paths:** ACTIVE → milestone-scoped RESUME_PATH. Otherwise → .vbw-planning/RESUME.md.
+2. **Handle notes:** If $ARGUMENTS has notes: write RESUME.md with timestamp + notes + resume hint. If no notes: skip write.
+3. **Present:** Phase Banner "Session Paused". Show notes path if saved. "State is always saved in .vbw-planning/. Nothing to lose, nothing to remember." Next Up: /vbw:resume.
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md:
-- Double-line box for pause confirmation
-- ➜ for Next Up block
-- No ANSI color codes
+Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — double-line box, ➜ Next Up, no ANSI.

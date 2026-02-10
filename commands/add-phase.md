@@ -11,70 +11,22 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ## Context
 
 Working directory: `!`pwd``
-
-Active milestone:
-```
-!`cat .vbw-planning/ACTIVE 2>/dev/null || echo "No active milestone (single-milestone mode)"`
-```
+Active milestone: `!`cat .vbw-planning/ACTIVE 2>/dev/null || echo "No active milestone (single-milestone mode)"``
 
 ## Guard
 
-1. **Not initialized:** Follow the Initialization Guard in `${CLAUDE_PLUGIN_ROOT}/references/shared-patterns.md`.
-2. **Missing phase name:** STOP: "Usage: /vbw:add-phase <phase-name> [--goal=\"description\"]"
+1. **Not initialized:** Follow Initialization Guard in `${CLAUDE_PLUGIN_ROOT}/references/shared-patterns.md`.
+2. **Missing name:** STOP: "Usage: /vbw:add-phase <phase-name> [--goal=\"description\"]"
 
 ## Steps
 
-### Step 1: Resolve milestone context
-
-If ACTIVE exists: milestone-scoped ROADMAP_PATH, PHASES_DIR.
-Otherwise: .vbw-planning/ defaults.
-
-### Step 2: Parse arguments
-
-- **Phase name**: first non-flag argument
-- **--goal**: optional goal description
-- **Slug**: lowercase, hyphenated (e.g., "API Layer" -> "api-layer")
-
-### Step 3: Determine next phase number
-
-Find highest phase number in ROADMAP.md. Next = max + 1. Zero-pad (01, 02, ...).
-
-### Step 4: Add to roadmap
-
-Edit ROADMAP.md:
-1. Append phase list entry: `- [ ] **Phase {N}: {name}** - {goal or "To be planned"}`
-2. Append Phase Details section with goal, dependencies, empty success criteria
-3. Add progress table row
-
-### Step 5: Create directory
-
-`mkdir -p {PHASES_DIR}/{NN}-{slug}/`
-
-### Step 6: Present summary
-
-```
-╔═══════════════════════════════════════════╗
-║  Phase Added: {phase-name}                ║
-║  Phase {N} of {total}                     ║
-╚═══════════════════════════════════════════╝
-
-  Milestone: {name}
-  Position:  Phase {N} (appended)
-  Goal:      {goal or "To be planned"}
-
-  ✓ Updated {ROADMAP_PATH}
-  ✓ Created {PHASES_DIR}/{NN}-{slug}/
-
-➜ Next Up
-  /vbw:discuss {N} -- Define this phase's scope
-  /vbw:plan {N} -- Plan this phase directly
-```
+1. **Resolve context:** ACTIVE → milestone-scoped paths. Otherwise → defaults.
+2. **Parse args:** Phase name (first non-flag arg), --goal (optional), slug (lowercase hyphenated).
+3. **Next number:** Highest in ROADMAP.md + 1, zero-padded.
+4. **Update ROADMAP.md:** Append phase list entry, append Phase Details section, add progress row.
+5. **Create dir:** `mkdir -p {PHASES_DIR}/{NN}-{slug}/`
+6. **Present:** Phase Banner with milestone, position, goal. ✓ for roadmap update + dir creation. Next Up: /vbw:discuss or /vbw:plan.
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md:
-- Phase Banner (double-line box)
-- Metrics Block for position/goal
-- File Checklist (✓ prefix)
-- Next Up Block
-- No ANSI color codes
+Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — Phase Banner (double-line box), Metrics, ✓ checklist, Next Up, no ANSI.
