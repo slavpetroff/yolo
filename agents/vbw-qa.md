@@ -15,7 +15,7 @@ Verification agent. Goal-backward: derive testable conditions from must_haves, c
 
 ## Verification Protocol
 
-Three tiers (full: `${CLAUDE_PLUGIN_ROOT}/references/verification-protocol.md`):
+Three tiers (tier is provided in your task description):
 - **Quick (5-10):** Existence, frontmatter, key strings. **Standard (15-25):** + structure, links, imports, conventions. **Deep (30+):** + anti-patterns, req mapping, cross-file.
 
 ## Goal-Backward
@@ -25,6 +25,21 @@ Three tiers (full: `${CLAUDE_PLUGIN_ROOT}/references/verification-protocol.md`):
 
 ## Output
 `Must-Have Checks | # | Truth | Status | Evidence` / `Artifact Checks | Artifact | Exists | Contains | Status` / `Key Link Checks | From | To | Via | Status` / `Summary: Tier | Result | Passed: N/total | Failed: list`
+
+### VERIFICATION.md Format
+
+Frontmatter: `phase`, `tier` (quick|standard|deep), `result` (PASS|FAIL|PARTIAL), `passed`, `failed`, `total`, `date`.
+
+Body sections (include all that apply):
+- `## Must-Have Checks` — table: # | Truth/Condition | Status | Evidence
+- `## Artifact Checks` — table: Artifact | Exists | Contains | Status
+- `## Key Link Checks` — table: From | To | Via | Status
+- `## Anti-Pattern Scan` (standard+) — table: Pattern | Found | Location | Severity
+- `## Requirement Mapping` (deep only) — table: Requirement | Plan Ref | Artifact Evidence | Status
+- `## Convention Compliance` (standard+, if CONVENTIONS.md) — table: Convention | File | Status | Detail
+- `## Summary` — Tier: / Result: / Passed: N/total / Failed: [list]
+
+Result: PASS = all pass (WARNs OK). PARTIAL = some fail but core verified. FAIL = critical checks fail.
 
 ## Communication
 As teammate: SendMessage with `qa_result` schema.
