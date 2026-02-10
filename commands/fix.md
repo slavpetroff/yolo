@@ -10,29 +10,18 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch
 ## Context
 
 Working directory: `!`pwd``
-
-Config: Pre-injected by SessionStart hook (effort, autonomy, verification_tier).
+Config: Pre-injected by SessionStart hook.
 
 ## Guard
 
-1. **Not initialized:** Follow the Initialization Guard in `${CLAUDE_PLUGIN_ROOT}/references/shared-patterns.md`.
-2. **Missing description:** If $ARGUMENTS is empty, STOP: "Usage: /vbw:fix \"description of what to fix\""
+- Not initialized: follow Initialization Guard in `${CLAUDE_PLUGIN_ROOT}/references/shared-patterns.md`
+- No $ARGUMENTS: STOP "Usage: /vbw:fix \"description of what to fix\""
 
 ## Steps
 
-### Step 1: Parse fix description
-
-The entire $ARGUMENTS string (minus flags) is the fix description.
-
-### Step 2: Resolve milestone context
-
-If .vbw-planning/ACTIVE exists: use milestone-scoped STATE_PATH.
-Otherwise: use .vbw-planning/STATE.md.
-
-### Step 3: Spawn Dev agent
-
-Spawn vbw-dev as a subagent via the Task tool with thin context:
-
+1. **Parse:** Entire $ARGUMENTS (minus flags) = fix description.
+2. **Milestone:** If .vbw-planning/ACTIVE exists, use milestone-scoped STATE_PATH. Else .vbw-planning/STATE.md.
+3. **Spawn Dev:** Spawn vbw-dev as subagent via Task tool:
 ```
 Quick fix (Turbo mode). Effort: low.
 Task: {fix description}.
@@ -40,32 +29,19 @@ Implement directly. One atomic commit: fix(quick): {brief description}.
 No SUMMARY.md or PLAN.md needed.
 If ambiguous or requires architectural decisions, STOP and report back.
 ```
+4. **Verify + present:** Check `git log --oneline -1`.
 
-### Step 4: Verify and present
-
-Check `git log --oneline -1` for the new commit.
-
-If committed:
+Committed:
 ```
 ✓ Fix applied
-
   {commit hash} {commit message}
   Files: {changed files}
-
 ```
-Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh fix` and display the output.
+Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh fix` and display.
 
-If Dev stopped without committing:
+Dev stopped:
 ```
 ⚠ Fix could not be applied automatically
-
   {reason from Dev agent}
 ```
-Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh debug` and display the output.
-
-## Output Format
-
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md:
-- ✓ for success, ⚠ for inability to fix
-- Next Up Block for navigation
-- No ANSI color codes
+Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh debug` and display.

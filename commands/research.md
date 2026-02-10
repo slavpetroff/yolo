@@ -18,46 +18,21 @@ Current project:
 
 ## Guard
 
-1. **No topic:** If $ARGUMENTS is empty, STOP: "Usage: /vbw:research <topic> [--parallel]"
+- No $ARGUMENTS: STOP "Usage: /vbw:research <topic> [--parallel]"
 
 ## Steps
 
-### Step 1: Parse arguments
-
-- **Topic**: required, free text
-- **--parallel**: spawn multiple Scout agents on sub-topics
-
-### Step 2: Determine scope
-
-Single focused question = one Scout. Multi-faceted or --parallel = decompose into 2-4 sub-topics.
-
-### Step 3: Spawn Scout agent(s)
-
-Spawn vbw-scout as subagent(s) via Task tool with thin context:
-
+1. **Parse:** Topic (required). --parallel: spawn multiple Scouts on sub-topics.
+2. **Scope:** Single question = 1 Scout. Multi-faceted or --parallel = 2-4 sub-topics.
+3. **Spawn Scout:** Spawn vbw-scout as subagent(s) via Task tool:
 ```
 Research: {topic or sub-topic}.
 Project context: {tech stack, constraints from PROJECT.md if relevant}.
 Return structured findings.
 ```
-
-For parallel: spawn up to 4 Task calls simultaneously.
-
-**Scout model selection (effort-gated):**
-
-- At **Fast** or **Turbo** effort: include `Model: haiku` in each Scout's task description for cost efficiency.
-- At **Thorough** or **Balanced** effort: do not specify a model override -- Scouts inherit the session model (Opus) via their `model: inherit` agent config.
-
-### Step 4: Synthesize
-
-Single Scout: present directly.
-Parallel: merge overlapping findings, note contradictions, rank by confidence.
-
-### Step 5: Optionally persist
-
-Ask user: "Save findings? (y/n)"
-If yes: write to .vbw-planning/phases/{phase-dir}/RESEARCH.md or .vbw-planning/RESEARCH.md.
-
+Parallel: up to 4 simultaneous Tasks. Model: fast/turbo → `Model: haiku`; thorough/balanced → inherit session model.
+4. **Synthesize:** Single: present directly. Parallel: merge, note contradictions, rank by confidence.
+5. **Persist:** Ask "Save findings? (y/n)". If yes: write to .vbw-planning/phases/{phase-dir}/RESEARCH.md or .vbw-planning/RESEARCH.md.
 ```
 ➜ Next Up
   /vbw:plan {N} -- Plan using research findings
@@ -66,8 +41,4 @@ If yes: write to .vbw-planning/phases/{phase-dir}/RESEARCH.md or .vbw-planning/R
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md:
-- Single-line box for finding sections
-- ✓ high confidence, ○ medium, ⚠ low
-- Next Up Block
-- No ANSI color codes
+Per @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md: single-line box for findings, ✓ high / ○ medium / ⚠ low confidence, Next Up Block, no ANSI.
