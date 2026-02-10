@@ -8,6 +8,8 @@
   "visual_format": "unicode",
   "compaction_trigger": 130000,
   "max_tasks_per_plan": 5,
+  "agent_teams": true,
+  "branch_per_milestone": false,
   "plain_summary": true,
   "active_profile": "default",
   "custom_profiles": {}

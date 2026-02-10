@@ -34,16 +34,18 @@ Read .vbw-planning/config.json. Display current settings as a summary table, the
 
   Setting              Value        Description
   effort               balanced     Agent effort and cost/quality tradeoff
-  autonomy             pure-vibe  Confirmation gates and phase looping
+  autonomy             standard     Confirmation gates and phase looping
   auto_commit          true         Auto-commit after task completion
   verification_tier    standard     Default QA verification depth
   skill_suggestions    true         Suggest skills during init
   auto_install_skills  false        Auto-install without asking
   visual_format        unicode      Output formatting style
+  compaction_trigger   130000       Token count to trigger compaction
   max_tasks_per_plan   5            Max tasks per plan
   agent_teams          true         Use Agent Teams for parallel builds
   branch_per_milestone false        Auto-create git branch per milestone
   plain_summary        true         Show plain-language "What happened" after builds
+  active_profile       default      Current work profile (or "custom" if manually tweaked)
 
   Skill-Hook Mappings:
     {skill-name} -> {hook-event} on {matcher}
@@ -117,19 +119,22 @@ These mappings are referenced by hooks/hooks.json to invoke skills at the right 
 
 ## Settings Reference
 
-| Setting              | Type    | Values                       | Default  |
-|----------------------|---------|------------------------------|----------|
-| effort               | string  | thorough/balanced/fast/turbo                    | balanced |
-| autonomy             | string  | cautious/standard/confident/pure-vibe    | standard |
-| auto_commit          | boolean | true/false                                       | true     |
-| verification_tier    | string  | quick/standard/deep          | standard |
-| skill_suggestions    | boolean | true/false                   | true     |
-| auto_install_skills  | boolean | true/false                   | false    |
-| visual_format        | string  | unicode/ascii                | unicode  |
-| max_tasks_per_plan   | number  | 1-7                          | 5        |
-| agent_teams          | boolean | true/false                   | true     |
-| branch_per_milestone | boolean | true/false                   | false    |
-| plain_summary        | boolean | true/false                   | true     |
+| Setting              | Type    | Values                                | Default  |
+|----------------------|---------|---------------------------------------|----------|
+| effort               | string  | thorough/balanced/fast/turbo          | balanced |
+| autonomy             | string  | cautious/standard/confident/pure-vibe | standard |
+| auto_commit          | boolean | true/false                            | true     |
+| verification_tier    | string  | quick/standard/deep                   | standard |
+| skill_suggestions    | boolean | true/false                            | true     |
+| auto_install_skills  | boolean | true/false                            | false    |
+| visual_format        | string  | unicode/ascii                         | unicode  |
+| compaction_trigger   | number  | 50000-200000                          | 130000   |
+| max_tasks_per_plan   | number  | 1-7                                   | 5        |
+| agent_teams          | boolean | true/false                            | true     |
+| branch_per_milestone | boolean | true/false                            | false    |
+| plain_summary        | boolean | true/false                            | true     |
+| active_profile       | string  | profile name or "custom"              | default  |
+| custom_profiles      | object  | user-defined profiles (managed via /vbw:profile) | {}  |
 
 ## Output Format
 
