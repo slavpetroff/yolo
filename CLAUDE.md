@@ -7,7 +7,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 ## Active Context
 
 **Work:** No active work — all milestones complete
-**Last completed:** Performance Optimization (archived 2026-02-09, tag: milestone/performance-optimization)
+**Last completed:** GSD Isolation (archived 2026-02-10, tag: milestone/gsd-isolation)
 **Next action:** /vbw:implement to start new work
 
 ## VBW Rules
@@ -33,6 +33,9 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Remove `/vbw:new`, `/vbw:milestone`, `/vbw:switch` | 2026-02-09 | Absorbed into implement/plan |
 | Performance optimization: 3 phases | 2026-02-09 | Context diet → script offloading → agent cost controls |
 | Every optimization must have measured impact | 2026-02-09 | No changes for the sake of changes |
+| Three-layer GSD isolation | 2026-02-10 | CLAUDE.md + project CLAUDE.md + PreToolUse hard block |
+| Two marker files (.active-agent + .vbw-session) | 2026-02-10 | Avoids conflict with cost attribution; separate concerns |
+| GSD detection before consent prompt | 2026-02-10 | No noise for non-GSD users |
 
 ## Installed Skills
 
@@ -59,6 +62,8 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 - Scout→haiku, QA→sonnet gives 40-60% cost reduction without quality loss
 - Pre-computing state via scripts (phase-detect.sh) saves ~800 tokens per /vbw:implement
 - SessionStart `additionalContext` injection eliminates redundant STATE.md reads
+- Two-marker isolation: `.active-agent` for subagents, `.vbw-session` for commands — avoids false-positive blocking after subagent stop
+- `UserPromptSubmit` hook is the right place for command-level markers (fires before tool calls)
 
 ## Compact Instructions
 
