@@ -39,7 +39,7 @@ Stock teams load all command descriptions into every request, run every agent on
 | Agent model cost per phase | $2.78 | $1.59 | **43%** |
 | **Total coordination overhead** | **87,100 tokens** | **33,200 tokens** | **62%** |
 
-The three highest-impact optimizations: `disable-model-invocation` on 19 of 27 commands removes ~7,600 tokens from every API request; model routing sends Scout to Haiku (60x cheaper than Opus) and QA to Sonnet (5x cheaper); and shell pre-computation via `phase-detect.sh` and `session-start.sh` replaces 5-7 file reads with 22 pre-computed key-value pairs.
+The three highest-impact optimizations: `disable-model-invocation` on 19 of 29 commands removes ~7,600 tokens from every API request; model routing sends Scout to Haiku (60x cheaper than Opus) and QA to Sonnet (5x cheaper); and shell pre-computation via `phase-detect.sh` and `session-start.sh` replaces 5-7 file reads with 22 pre-computed key-value pairs.
 
 **What this means for your bill:**
 
@@ -81,7 +81,7 @@ Whether you're a seasoned engineer who wants to push the boundaries of what AI-a
 
 Inspired by **[Ralph](https://github.com/frankbria/ralph-claude-code)** and **[Get Shit Done](https://github.com/glittercowboy/get-shit-done)**, however, an entirely new architecture.
 
-VBW is a Claude Code plugin that bolts an actual development lifecycle onto your vibe coding sessions. It gives you 27 slash commands and 6 AI agents that handle planning, building, verifying, and archiving your code, so what you produce has at least a fighting chance of surviving a code review.
+VBW is a Claude Code plugin that bolts an actual development lifecycle onto your vibe coding sessions. It gives you 29 slash commands and 6 AI agents that handle planning, building, verifying, and archiving your code, so what you produce has at least a fighting chance of surviving a code review.
 
 You describe what you want. VBW breaks it into phases. Agents plan, write, and verify the code. Commits are atomic. Verification is goal-backward. State persists across sessions. It's the entire software development lifecycle, except you replaced the engineering team with a plugin and a prayer.
 
@@ -181,8 +181,9 @@ For the "I'll just prompt carefully" crowd.
 | Raw agent names in cost tracking | Workflow categories (Build/Plan/Verify) with efficiency insights |
 | Hook failure blocks your session | Universal hook wrapper -- errors logged, session always continues |
 | Install plugin, stare at blank screen | Branded welcome with single call to action on first run |
-| Memorize flags for each command | Consistent argument hints on all 27 commands with discoverable flags |
+| Memorize flags for each command | Consistent argument hints on all 29 commands with discoverable flags |
 | Change 3-4 settings to switch work mode | Work profiles: one command to switch between prototype, production, and yolo modes |
+| Conventions live as free text in CLAUDE.md | Structured conventions auto-detected from codebase, conflict-checked, QA-verified |
 
 <br>
 
@@ -430,7 +431,7 @@ Closed your terminal? Switched branches? Came back after a weekend of pretending
 >
 > **If you accidentally `/clear`**, run `/vbw:resume` immediately. It restores project context from ground truth files in `.vbw-planning/` — state, roadmap, plans, summaries — and tells you exactly where to pick up.
 
-> **For advanced users:** The [full command reference](#commands) below has 27 commands for granular control — `/vbw:plan` and `/vbw:execute` to separate planning from building, `/vbw:qa` for on-demand verification, `/vbw:debug` for systematic bug investigation, `/vbw:discuss` for pre-planning context gathering, and more. But you never *need* them. `/vbw:implement` handles the entire lifecycle on its own.
+> **For advanced users:** The [full command reference](#commands) below has 29 commands for granular control — `/vbw:plan` and `/vbw:execute` to separate planning from building, `/vbw:qa` for on-demand verification, `/vbw:debug` for systematic bug investigation, `/vbw:discuss` for pre-planning context gathering, and more. But you never *need* them. `/vbw:implement` handles the entire lifecycle on its own.
 
 <br>
 
@@ -478,6 +479,7 @@ Phase numbers are optional -- when omitted, VBW auto-detects the next phase base
 | `/vbw:skills` | Browse and install community skills from skills.sh based on your project's tech stack. Detects your stack, suggests relevant skills, and installs them with one command. |
 | `/vbw:config` | View and toggle VBW settings: effort profiles, autonomy levels (cautious/standard/confident/pure-vibe), plain-language summaries (`plain_summary`), skill suggestions, auto-install behavior, and skill-hook wiring. Detects profile drift and offers to save as new profile. |
 | `/vbw:profile` | Switch between work profiles or create custom ones. 4 built-in presets (default, prototype, production, yolo) change effort, autonomy, and verification in one command. Interactive profile creation for custom workflows. |
+| `/vbw:teach` | View, add, or manage project conventions. Auto-detected from codebase during init, manually teachable anytime. Shows what VBW already knows and warns about conflicts before adding. Conventions are injected into agent context via CLAUDE.md and verified by QA. |
 | `/vbw:help` | Command reference with usage examples. You are reading its output's spiritual ancestor right now. |
 
 <br>
@@ -661,7 +663,7 @@ Autonomy interacts with effort profiles. At `cautious`, plan approval expands to
 ```
 .claude-plugin/    Plugin manifest (plugin.json)
 agents/            6 agent definitions with native tool permissions
-commands/          27 slash commands (commands/*.md)
+commands/          29 slash commands (commands/*.md)
 config/            Default settings and stack-to-skill mappings
 hooks/             Plugin hooks for continuous verification
 scripts/           Hook handler scripts (security, validation, QA gates)
