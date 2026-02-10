@@ -1,17 +1,31 @@
 # Turbo Profile (EFRT-04)
 
-**Model:** Sonnet
-**Use when:** Quick fixes, config changes, obvious tasks, low-stakes edits.
+**Model:** Sonnet | **Use when:** Quick fixes, config changes, obvious tasks, low-stakes edits.
 
-## Agent Behavior
+## Matrix Row
 
-- **Scout:** skip -- not spawned.
-- **Architect:** skip -- not spawned.
-- **Lead:** skip -- not spawned. No planning step.
-- **Dev (low):** Direct execution with no research phase and no planning ceremony. Implement the minimal change. Brief commit messages. Skip non-essential verify checks. No edge case handling beyond the obvious.
-- **QA:** skip -- not spawned. No verification step. User judges output directly.
-- **Debugger (low):** Rapid fix-and-verify cycle. Single most likely hypothesis only. Targeted fix, confirm reproduction passes. Minimal report (root cause + fix only).
+| Agent | Level | Notes |
+|-------|-------|-------|
+| Lead | skip | Not spawned. No planning step |
+| Architect | skip | Not spawned |
+| Dev | low | Direct execution, no research, minimal change, brief commits |
+| QA | skip | Not spawned. User judges output directly |
+| Scout | skip | Not spawned |
+| Debugger | low | Single hypothesis, targeted fix, minimal report (root cause + fix) |
 
-## Plan Approval
+## Plan Approval (EFRT-07)
 
-Off at all autonomy levels. No lead agent at Turbo.
+| Autonomy | Gate |
+|----------|------|
+| All levels | OFF |
+
+No lead agent at Turbo; plan approval requires a lead.
+
+## Effort Parameter Mapping
+
+| Level | Behavior |
+|-------|----------|
+| low | Minimal reasoning, direct execution |
+| skip | Agent is not spawned at all |
+
+Per-invocation override: `--effort=turbo` overrides config default for one invocation (EFRT-05).

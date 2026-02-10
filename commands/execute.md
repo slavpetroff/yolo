@@ -46,7 +46,7 @@ Phase directories:
 - **--skip-qa** (optional): skip post-build verification
 - **--plan=NN** (optional): execute single plan, ignore wave grouping
 
-Effort → agent levels per `${CLAUDE_PLUGIN_ROOT}/references/effort-profiles.md`:
+Effort → agent levels:
 
 | Profile | DEV_EFFORT | QA_EFFORT | PLAN_APPROVAL | QA_TIMING |
 |---------|-----------|-----------|---------------|-----------|
