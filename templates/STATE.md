@@ -1,43 +1,21 @@
-<!-- VBW STATE TEMPLATE (ARTF-05) -- Session dashboard, auto-updated -->
-<!-- Updated after each plan completion and at checkpoints -->
+# State
 
-# Project State
+**Project:** {project-name}
 
-## Project Reference
-
-See: .vbw-planning/PROJECT.md (updated {date})
-
-**Core value:** {core-value-one-liner}
-**Current focus:** Phase {N} - {phase-name}
-
-## Current Position
-
+## Current Phase
 Phase: {current} of {total} ({phase-name})
-Plan: {current-plan} of {total-plans} in current phase
-Status: {Ready to plan | In progress | Phase complete}
-Last activity: {date} -- {description}
+Plans: {done}/{total}
+Progress: {N}%
+Status: {ready|active|complete}
 
-Progress: [{progress-bar}] {percentage}%
+## Decisions
+- {decision}
 
-## Accumulated Context
-
-### Decisions
-
-<!-- Recent decisions affecting current work -->
-- [{source}]: {decision-description}
-
-### Pending Todos
-
-<!-- Items to address in upcoming plans -->
+## Todos
 {todos-or-none}
 
-### Blockers/Concerns
+## Blockers
+{blockers-or-none}
 
-<!-- Active blockers or concerns to monitor -->
-- [{source}]: {description}
-
-## Session Continuity
-
-Last session: {date}
-Stopped at: {description}
-Resume file: {path-or-none}
+## Activity Log
+- {date}: {description}
