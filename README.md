@@ -23,6 +23,44 @@
 
 <br>
 
+## VBW Token Efficiency vs Stock Opus 4.6 Agent Teams
+
+VBW wraps Claude Code's native Agent Teams with 15 optimization mechanisms across 7 architectural layers -- shell pre-computation, model routing, context diet, compaction resilience, scope enforcement, structured coordination, and effort scaling. The result: same coordination capability, significantly fewer tokens burned on overhead.
+
+Stock teams load all command descriptions into every request, run every agent on Opus, coordinate via expensive message round-trips, and let each agent independently discover project state by reading the same files. VBW replaces all of that with 1,624 lines of bash that execute at zero model token cost, hardcoded model routing (Scout on Haiku, QA on Sonnet), disk-based coordination, and pre-computed state injection.
+
+| Category | Stock Agent Teams | VBW | Saving |
+| :--- | ---: | ---: | ---: |
+| Base context overhead | 10,800 tokens | 3,200 tokens | **70%** |
+| State computation per command | 1,300 tokens | 200 tokens | **85%** |
+| Agent coordination (x4 agents) | 16,000 tokens | 3,200 tokens | **80%** |
+| Compaction recovery | 5,000 tokens | 2,000 tokens | **60%** |
+| Context duplication (shared files) | 16,500 tokens | 5,000 tokens | **70%** |
+| Agent model cost per phase | $2.78 | $1.59 | **43%** |
+| **Total coordination overhead** | **87,100 tokens** | **33,200 tokens** | **62%** |
+
+The three highest-impact optimizations: `disable-model-invocation` on 19 of 27 commands removes ~7,600 tokens from every API request; model routing sends Scout to Haiku (60x cheaper than Opus) and QA to Sonnet (5x cheaper); and shell pre-computation via `phase-detect.sh` and `session-start.sh` replaces 5-7 file reads with 22 pre-computed key-value pairs.
+
+**What this means for your bill:**
+
+VBW's 42% total token reduction per phase means each phase burns fewer tokens on coordination overhead. For API users, that's direct dollar savings. For subscription plans, your rate limit budget stretches ~1.7x further -- equivalent to getting 70% more development capacity for the same price.
+
+| Scenario | Without VBW | With VBW | Impact |
+| :--- | ---: | ---: | ---: |
+| API: single project (10 phases) | ~$28 | ~$16 | **~$12 saved** |
+| API: active dev (20 phases/mo) | ~$56/mo | ~$32/mo | **~$24/mo saved (~$288/yr)** |
+| API: heavy dev (50 phases/mo) | ~$139/mo | ~$80/mo | **~$59/mo saved (~$714/yr)** |
+| Pro ($20/mo) | baseline capacity | ~1.7x phases per cycle | **worth ~$14/mo extra** |
+| Pro annual ($17/mo) | baseline capacity | ~1.7x phases per cycle | **worth ~$12/mo extra** |
+| Max 5x ($100/mo) | 5x Pro capacity | ~8.5x effective | **worth ~$70/mo extra** |
+| Max 20x ($200/mo) | 20x Pro capacity | ~34x effective | **worth ~$140/mo extra** |
+
+*API projections use the per-phase agent costs from the table above ($2.78 stock, $1.59 VBW). Subscription projections reflect equivalent capacity gain from the 62% overhead token reduction during development sessions -- each phase consumes fewer tokens from your quota, so you fit more work into the same rate limit window. Based on [current API pricing](https://claude.com/pricing).*
+
+Full analysis with methodology, per-mechanism breakdowns, architecture diagrams, and worked examples: **[VBW vs Stock Teams Token Analysis](docs/vbw-1-0-99-vs-stock-teams-token-analysis.md)**
+
+<br>
+
 ## Manifesto
 
 VBW is open source because the best tools are built by the people who use them.
@@ -53,6 +91,7 @@ Think of it as project management for the post-dignity era of software developme
 
 ## Table of Contents
 
+- [VBW Token Efficiency vs Stock Opus 4.6 Agent Teams](#vbw-token-efficiency-vs-stock-opus-46-agent-teams)
 - [Manifesto](#manifesto)
 - [Features](#features)
 - [Installation](#installation)
@@ -136,6 +175,22 @@ For the "I'll just prompt carefully" crowd.
 | "It works on my machine" | Goal-backward verification against success criteria |
 | Agents talk in free-form text | Structured JSON handoff schemas between agents |
 | Skills exist somewhere | Stack-aware skill discovery and auto-suggestion |
+| Generic "what now?" after every command | Context-aware next-action suggestions with plan IDs, phase names, staleness % |
+| Technical output only | Plain-language "What happened" summary after builds (toggleable) |
+
+<br>
+
+### Output that adapts to what just happened
+
+Every command ends with a "Next Up" block suggesting what to do next. These suggestions aren't static -- they read project state from disk and adapt:
+
+- After a build with zero deviations: prominently suggests `/vbw:archive`
+- After a failed QA: suggests `/vbw:fix` with the specific failing plan ID
+- After planning 5 plans at thorough effort: shows plan count and effort in the suggestion
+- When your codebase map is stale: injects `/vbw:map --incremental` with the staleness percentage
+- When phases remain: names the next phase instead of generic "continue building"
+
+Build reports also include a plain-language "What happened" summary -- 2-4 sentences explaining what was built, any deviations, and the QA outcome in plain English. No plan IDs, no wave numbers, no frontmatter jargon. Veterans can disable it with `/vbw:config plain_summary false`.
 
 <br>
 
@@ -407,7 +462,7 @@ Phase numbers are optional -- when omitted, VBW auto-detects the next phase base
 | `/vbw:pause` | Save session notes for next time. State auto-persists in `.vbw-planning/` -- pause just lets you leave a sticky note for future you. |
 | `/vbw:resume` | Restore project context from `.vbw-planning/` ground truth. Reads state, roadmap, plans, and summaries directly -- no prior `/vbw:pause` needed. |
 | `/vbw:skills` | Browse and install community skills from skills.sh based on your project's tech stack. Detects your stack, suggests relevant skills, and installs them with one command. |
-| `/vbw:config` | View and toggle VBW settings: effort profiles, autonomy levels (cautious/standard/confident/pure-vibe), skill suggestions, auto-install behavior, and skill-hook wiring. |
+| `/vbw:config` | View and toggle VBW settings: effort profiles, autonomy levels (cautious/standard/confident/pure-vibe), plain-language summaries (`plain_summary`), skill suggestions, auto-install behavior, and skill-hook wiring. |
 | `/vbw:help` | Command reference with usage examples. You are reading its output's spiritual ancestor right now. |
 
 <br>
