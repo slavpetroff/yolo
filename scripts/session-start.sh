@@ -11,6 +11,15 @@ fi
 PLANNING_DIR=".vbw-planning"
 UPDATE_MSG=""
 
+# --- First-run welcome (DXP-03) ---
+VBW_MARKER="$HOME/.claude/.vbw-welcomed"
+WELCOME_MSG=""
+if [ ! -f "$VBW_MARKER" ]; then
+  mkdir -p "$HOME/.claude" 2>/dev/null
+  touch "$VBW_MARKER" 2>/dev/null
+  WELCOME_MSG="FIRST RUN -- Display this welcome to the user verbatim: Welcome to VBW -- Vibe Better with Claude Code. You're not an engineer anymore. You're a prompt jockey with commit access. At least do it properly. Quick start: /vbw:implement -- describe your project and VBW handles the rest. Type /vbw:help for the full story. --- "
+fi
+
 # --- Update check (once per day, fail-silent) ---
 
 CACHE="/tmp/vbw-update-check-$(id -u)"
@@ -171,9 +180,9 @@ fi
 # --- Project state ---
 
 if [ ! -d "$PLANNING_DIR" ]; then
-  jq -n --arg update "$UPDATE_MSG" '{
+  jq -n --arg update "$UPDATE_MSG" --arg welcome "$WELCOME_MSG" '{
     "hookSpecificOutput": {
-      "additionalContext": ("No .vbw-planning/ directory found. Run /vbw:init to set up the project." + $update)
+      "additionalContext": ($welcome + "No .vbw-planning/ directory found. Run /vbw:init to set up the project." + $update)
     }
   }'
   exit 0
@@ -305,9 +314,9 @@ CTX="$CTX Progress: ${progress_pct}%."
 CTX="$CTX Config: effort=${config_effort}, autonomy=${config_autonomy}, auto_commit=${config_auto_commit}, verification=${config_verification}, agent_teams=${config_agent_teams}, max_tasks=${config_max_tasks}."
 CTX="$CTX Next: ${NEXT_ACTION}."
 
-jq -n --arg ctx "$CTX" --arg update "$UPDATE_MSG" '{
+jq -n --arg ctx "$CTX" --arg update "$UPDATE_MSG" --arg welcome "$WELCOME_MSG" '{
   "hookSpecificOutput": {
-    "additionalContext": ($ctx + $update)
+    "additionalContext": ($welcome + $ctx + $update)
   }
 }'
 
