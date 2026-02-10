@@ -16,17 +16,14 @@ Existing state:
 ```
 !`ls -la .vbw-planning 2>/dev/null || echo "No .vbw-planning directory"`
 ```
-
 Project files:
 ```
 !`ls package.json pyproject.toml Cargo.toml go.mod *.sln Gemfile build.gradle pom.xml 2>/dev/null || echo "No detected project files"`
 ```
-
-Installed skills:
+Skills:
 ```
 !`ls ~/.claude/skills/ 2>/dev/null || echo "No global skills"`
 ```
-
 ```
 !`ls .claude/skills/ 2>/dev/null || echo "No project skills"`
 ```
@@ -34,68 +31,43 @@ Installed skills:
 ## Guard
 
 1. **Already initialized:** If .vbw-planning/config.json exists, STOP: "VBW is already initialized. Use /vbw:config to modify settings or /vbw:implement to start building."
-2. **jq required:** Run `command -v jq` via Bash. If jq is not found, STOP with:
-   "VBW requires jq for its hook system. Install it:
-   - macOS: `brew install jq`
-   - Linux: `apt install jq` or `yum install jq`
-   - Manual: https://jqlang.github.io/jq/download/
-   Then re-run /vbw:init."
-   Do NOT proceed to Step 0 without jq.
-3. **Brownfield detection:** Check if the project already has source files. Try these in order, stop at the first that succeeds:
-   - **Git repo:** Run `git ls-files --error-unmatch . 2>/dev/null | head -5`. If it returns any files, BROWNFIELD=true.
-   - **No git / not initialized:** Use Glob to check for any files (`**/*.*`) excluding `.vbw-planning/`, `.claude/`, `node_modules/`, and `.git/`. If matches exist, BROWNFIELD=true.
-   Do not restrict detection to specific file extensions — shell scripts, config files, markdown, C++, Rust, CSS, HTML, and any other language all count.
+2. **jq required:** `command -v jq` via Bash. If missing, STOP: "VBW requires jq. Install: macOS `brew install jq`, Linux `apt install jq`, Manual: https://jqlang.github.io/jq/download/ — then re-run /vbw:init." Do NOT proceed without jq.
+3. **Brownfield detection:** Check for existing source files (stop at first match):
+   - Git repo: `git ls-files --error-unmatch . 2>/dev/null | head -5` — any output = BROWNFIELD=true
+   - No git: Glob `**/*.*` excluding `.vbw-planning/`, `.claude/`, `node_modules/`, `.git/` — any match = BROWNFIELD=true
+   - All file types count (shell, config, markdown, C++, Rust, CSS, etc.)
 
 ## Steps
 
 ### Step 0: Environment setup (settings.json)
 
-**CRITICAL: Complete this ENTIRE step — including writing settings.json — BEFORE moving to Step 1. Do NOT scaffold anything until Step 0 is fully resolved. Use AskUserQuestion to ask about Agent Teams and statusline. Wait for answers. Write settings.json. Only then proceed.**
+**CRITICAL: Complete ENTIRE step (including writing settings.json) BEFORE Step 1. Use AskUserQuestion for prompts. Wait for answers. Write settings.json. Only then proceed.**
 
-Read `~/.claude/settings.json` once (create `{}` if missing).
+Read `~/.claude/settings.json` (create `{}` if missing).
 
-**0a. Agent Teams check:**
+**0a. Agent Teams:** Check `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` == `"1"`.
+- Enabled: display "✓ Agent Teams — enabled", go to 0b
+- Not enabled: AskUserQuestion: "⚠ Agent Teams is not enabled\n\nVBW uses Agent Teams for parallel builds and codebase mapping.\nEnable it now?"
+  - Approved: set to `"1"`. Declined: display "○ Skipped."
 
-Check if `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is `"1"`. If already enabled, display "✓ Agent Teams — enabled" and move to 0b.
+**0b. Statusline:** Read `statusLine` (may be string or object with `command` field).
 
-If NOT enabled, ask the user (use AskUserQuestion):
-```
-⚠ Agent Teams is not enabled
+| State | Condition | Action |
+|-------|-----------|--------|
+| HAS_VBW | Value contains `vbw-statusline` | Display "✓ Statusline — installed", skip to 0c |
+| HAS_OTHER | Non-empty, no `vbw-statusline` | AskUserQuestion (mention replacement) |
+| EMPTY | Missing/null/empty | AskUserQuestion |
 
-VBW uses Agent Teams for parallel builds and codebase mapping.
-Enable it now?
-```
-
-If approved: set `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` to `"1"`.
-If declined: display "○ Skipped."
-
-**0b. Statusline check:**
-
-Check the `statusLine` field. It may be a string or an object with a `command` field. Handle both.
-
-Classify:
-- **HAS_VBW**: The value (string or object's `command`) contains `vbw-statusline` → display "✓ Statusline — installed" and skip to 0c
-- **HAS_OTHER**: Non-empty value that does NOT contain `vbw-statusline`
-- **EMPTY**: Field is missing, null, or empty
-
-If HAS_OTHER or EMPTY, ask the user (use AskUserQuestion):
-```
-○ VBW includes a custom status line showing phase progress, context usage,
-  cost, duration, and more — updated after every response. Install it?
-```
-(If HAS_OTHER, mention that a different statusline is currently configured and VBW's would replace it.)
+AskUserQuestion text: "○ VBW includes a custom status line showing phase progress, context usage, cost, duration, and more — updated after every response. Install it?" (If HAS_OTHER, mention existing statusline would be replaced.)
 
 If approved, set `statusLine` to:
 ```json
 {"type": "command", "command": "bash -c 'f=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/vbw-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"$f\" ] && exec bash \"$f\"'"}
 ```
-The object format with `type` and `command` is **required** by the settings schema; a plain string will fail validation silently.
-
+Object format with `type`+`command` is **required** — plain string fails silently.
 If declined: display "○ Skipped. Run /vbw:config to install it later."
 
-**0c. Write settings.json** if any changes were made (Agent Teams and/or statusline). Write all changes in a single file write.
-
-Display a summary of what was configured:
+**0c. Write settings.json** if changed (single write). Display summary:
 ```
 Environment setup complete:
   {✓ or ○} Agent Teams
@@ -106,62 +78,37 @@ Environment setup complete:
 
 Read each template from `${CLAUDE_PLUGIN_ROOT}/templates/` and write to .vbw-planning/:
 
-| Target                        | Source                                            |
-|-------------------------------|---------------------------------------------------|
-| .vbw-planning/PROJECT.md      | ${CLAUDE_PLUGIN_ROOT}/templates/PROJECT.md        |
-| .vbw-planning/REQUIREMENTS.md | ${CLAUDE_PLUGIN_ROOT}/templates/REQUIREMENTS.md   |
-| .vbw-planning/ROADMAP.md      | ${CLAUDE_PLUGIN_ROOT}/templates/ROADMAP.md        |
-| .vbw-planning/STATE.md        | ${CLAUDE_PLUGIN_ROOT}/templates/STATE.md          |
-| .vbw-planning/config.json     | ${CLAUDE_PLUGIN_ROOT}/config/defaults.json        |
+| Target | Source |
+|--------|--------|
+| .vbw-planning/PROJECT.md | ${CLAUDE_PLUGIN_ROOT}/templates/PROJECT.md |
+| .vbw-planning/REQUIREMENTS.md | ${CLAUDE_PLUGIN_ROOT}/templates/REQUIREMENTS.md |
+| .vbw-planning/ROADMAP.md | ${CLAUDE_PLUGIN_ROOT}/templates/ROADMAP.md |
+| .vbw-planning/STATE.md | ${CLAUDE_PLUGIN_ROOT}/templates/STATE.md |
+| .vbw-planning/config.json | ${CLAUDE_PLUGIN_ROOT}/config/defaults.json |
 
-Create `.vbw-planning/phases/` directory.
-
-Ensure config.json includes `"agent_teams": true`.
+Create `.vbw-planning/phases/`. Ensure config.json includes `"agent_teams": true`.
 
 ### Step 1.5: Install git hooks
 
-1. Check if this is a git repository by running `git rev-parse --git-dir` via Bash.
-2. If yes, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/install-hooks.sh` via Bash and capture stderr output.
-3. Display the result based on the output:
-   - If output contains "Installed": `✓ Git hooks installed (pre-push)`
-   - If output contains "already installed": `✓ Git hooks (already installed)`
-   - If the git check failed (not a git repo): `○ Git hooks skipped (not a git repository)`
+1. `git rev-parse --git-dir` — if not a git repo, display "○ Git hooks skipped (not a git repository)" and skip
+2. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/install-hooks.sh`, display based on output:
+   - Contains "Installed": `✓ Git hooks installed (pre-push)`
+   - Contains "already installed": `✓ Git hooks (already installed)`
 
 ### Step 1.7: GSD isolation (conditional)
 
-**1.7a. GSD detection:**
+**1.7a. Detection:** `[ -d "$HOME/.claude/commands/gsd" ] || [ -d ".planning" ]`
+- Neither true: GSD_DETECTED=false, display nothing, skip to Step 2
+- Either true: GSD_DETECTED=true, proceed to 1.7b
 
-Check if GSD is installed by testing two conditions (either triggers detection):
-1. Directory `~/.claude/commands/gsd/` exists (GSD global commands installed)
-2. Directory `.planning/` exists in the current project (GSD project initialized)
+**1.7b. Consent:** AskUserQuestion: "GSD detected. Enable plugin isolation?\n\nThis adds a PreToolUse hook that prevents GSD commands and agents from\nreading or writing files in .vbw-planning/. VBW commands are unaffected."
+Options: "Enable (Recommended)" / "Skip". If declined: "○ GSD isolation skipped", skip to Step 2.
 
-Run via Bash: `[ -d "$HOME/.claude/commands/gsd" ] || [ -d ".planning" ]`
-
-If NEITHER condition is true: set `GSD_DETECTED=false`, display nothing, skip to Step 2.
-
-If EITHER condition is true: set `GSD_DETECTED=true` and proceed to 1.7b.
-
-**1.7b. Consent prompt:**
-
-Ask the user (use AskUserQuestion):
-```
-GSD detected. Enable plugin isolation?
-
-This adds a PreToolUse hook that prevents GSD commands and agents from
-reading or writing files in .vbw-planning/. VBW commands are unaffected.
-```
-Options: "Enable (Recommended)" / "Skip"
-
-If declined: display "○ GSD isolation skipped" and skip to Step 2.
-
-**1.7c. Create isolation flag:**
-
-If approved:
-1. Create the flag file: `echo "enabled" > .vbw-planning/.gsd-isolation`
-2. Create the VBW session marker so the security filter allows VBW writes for the rest of this session: `echo "session" > .vbw-planning/.vbw-session`
-3. Create `.claude/` directory if it does not exist: `mkdir -p .claude`
-4. Write `.claude/CLAUDE.md` with the following exact content:
-
+**1.7c. Create isolation:** If approved:
+1. `echo "enabled" > .vbw-planning/.gsd-isolation`
+2. `echo "session" > .vbw-planning/.vbw-session`
+3. `mkdir -p .claude`
+4. Write `.claude/CLAUDE.md`:
 ```markdown
 ## Plugin Isolation
 
@@ -169,201 +116,87 @@ If approved:
 - VBW agents and commands MUST NOT read, write, glob, grep, or reference any files in `.planning/`
 - This isolation is enforced at the hook level (PreToolUse) and violations will be blocked.
 ```
+5. Display: `✓ GSD isolation enabled` + `✓ .vbw-planning/.gsd-isolation (flag)` + `✓ .claude/CLAUDE.md (instruction guard)`
 
-5. Display:
-```
-✓ GSD isolation enabled
-  ✓ .vbw-planning/.gsd-isolation (flag)
-  ✓ .claude/CLAUDE.md (instruction guard)
-```
-
-Set `GSD_ISOLATION_ENABLED=true` for use in Step 3.5.
+Set GSD_ISOLATION_ENABLED=true for Step 3.5.
 
 ### Step 2: Brownfield detection + discovery
 
-**2a. Brownfield detection and file count:**
+**2a.** If BROWNFIELD=true:
+- Count source files by extension (Glob), excluding .vbw-planning/, node_modules/, .git/, vendor/, dist/, build/, target/, .next/, __pycache__/, .venv/, coverage/
+- Store SOURCE_FILE_COUNT. Check for test files, CI/CD, Docker, monorepo indicators.
+- Add Codebase Profile to STATE.md.
 
-If BROWNFIELD=true:
-1. Count source files by extension (Glob), excluding `.vbw-planning/`, `node_modules/`, `.git/`, `vendor/`, `dist/`, `build/`, `target/`, `.next/`, `__pycache__/`, `.venv/`, `coverage/`.
-2. Store `SOURCE_FILE_COUNT` from this count.
-3. Check for test files, CI/CD, Docker, monorepo indicators.
-4. Add Codebase Profile section to STATE.md.
+**2b.** Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/detect-stack.sh "$(pwd)"`. Save full JSON. Display: `✓ Stack: {comma-separated detected_stack items}`
 
-**2b. Run detect-stack (foreground):**
+**2c. Codebase mapping (adaptive):**
+- Greenfield (BROWNFIELD=false): skip. Display: `○ Greenfield — skipping codebase mapping`
+- SOURCE_FILE_COUNT < 200: run map **inline** — read `${CLAUDE_PLUGIN_ROOT}/commands/map.md` and follow directly
+- SOURCE_FILE_COUNT >= 200: run map **in background** — display: `◆ Codebase mapping started in background ({SOURCE_FILE_COUNT} files)`
 
-Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/detect-stack.sh "$(pwd)"`.
-
-Save the full JSON result but do NOT display curated suggestions yet. Only display the detected stack:
-```
-  ✓ Stack: {comma-separated detected_stack items}
-```
-
-**2c. Launch codebase mapping (adaptive):**
-
-- If **greenfield** (BROWNFIELD=false): skip mapping entirely. Display: `○ Greenfield — skipping codebase mapping`
-- If `SOURCE_FILE_COUNT < 200`: run map **inline** (synchronous). Read `${CLAUDE_PLUGIN_ROOT}/commands/map.md` and follow it directly. Solo mode completes fast. Display per-document progress as the map command outputs it.
-- If `SOURCE_FILE_COUNT >= 200`: launch map **in background**. Read `${CLAUDE_PLUGIN_ROOT}/commands/map.md` and follow it as a background operation with Scout teammates. Display: `◆ Codebase mapping started in background ({SOURCE_FILE_COUNT} files)`
-
-**2d. find-skills bootstrap** — check `find_skills_available` from the detect-stack JSON result:
-
-- If `true`: display "✓ Skills.sh registry — available" and proceed to Step 3.
-- If `false`: ask the user with AskUserQuestion:
-```
-○ Skills.sh Registry
-
-VBW can search the Skills.sh registry (~2000 community skills) to find
-skills matching your project. This requires the find-skills meta-skill.
-Install it now?
-```
-Options: "Install (Recommended)" / "Skip"
-
-If approved: run `npx skills add vercel-labs/skills --skill find-skills -g -y` and display the result.
-If declined: display "○ Skipped. Run /vbw:skills later to search the registry."
+**2d. find-skills bootstrap:** Check `find_skills_available` from detect-stack JSON.
+- `true`: display "✓ Skills.sh registry — available"
+- `false`: AskUserQuestion: "○ Skills.sh Registry\n\nVBW can search the Skills.sh registry (~2000 community skills) to find\nskills matching your project. This requires the find-skills meta-skill.\nInstall it now?" Options: "Install (Recommended)" / "Skip"
+  - Approved: `npx skills add vercel-labs/skills --skill find-skills -g -y`
+  - Declined: "○ Skipped. Run /vbw:skills later to search the registry."
 
 ### Step 3: Convergence — augment and search
 
-**3a. Wait for mapping (if background):**
+**3a.** If map ran in background, wait for completion. Display `◆ Waiting for codebase mapping...` then `✓ Codebase mapped ({document-count} documents)`. If inline or skipped: proceed immediately.
 
-- If map ran inline (solo mode) or was skipped: proceed immediately.
-- If map ran in background: wait for it to complete. Display:
-  ```
-  ◆ Waiting for codebase mapping...
-  ```
-  Then when complete:
-  ```
-  ✓ Codebase mapped ({document-count} documents)
-  ```
+**3b.** If `.vbw-planning/codebase/STACK.md` exists, read it and merge additional stack components into detected_stack[].
 
-**3b. Augment with map data:**
+**3b2. Auto-detect conventions:** If `.vbw-planning/codebase/PATTERNS.md` exists:
+- Read PATTERNS.md, ARCHITECTURE.md, STACK.md, CONCERNS.md
+- Extract conventions per `${CLAUDE_PLUGIN_ROOT}/commands/teach.md` (Step R2)
+- Write `.vbw-planning/conventions.json`. Display: `✓ {count} conventions auto-detected from codebase`
 
-If `.vbw-planning/codebase/STACK.md` exists (mapping completed), read it to extract additional stack components that `detect-stack.sh` may have missed (e.g., frameworks detected through code analysis rather than manifest files). Merge these into `detected_stack[]`.
+If greenfield: write `{"conventions": []}`. Display: `○ Conventions — none yet (add with /vbw:teach)`
 
-**3b2. Auto-detect conventions from codebase map:**
+**3c. Parallel registry search** (if find-skills available): run `npx skills find "<stack-item>"` for ALL detected_stack items **in parallel** (multiple concurrent Bash calls). Deduplicate against installed skills. If detected_stack empty, search by project type. Display results with `(registry)` tag.
 
-If codebase mapping completed (`.vbw-planning/codebase/PATTERNS.md` exists):
+**3d. Unified skill prompt:** Combine curated (from 2b) + registry (from 3c) results into single AskUserQuestion multiSelect. Tag `(curated)` or `(registry)`. Max 4 options + "Skip". Install selected: `npx skills add <skill> -g -y`.
 
-1. Read these map documents: `PATTERNS.md`, `ARCHITECTURE.md`, `STACK.md`, `CONCERNS.md`
-2. Extract concrete, actionable conventions following the rules in `${CLAUDE_PLUGIN_ROOT}/commands/teach.md` (Step R2)
-3. Create `.vbw-planning/conventions.json` with the detected conventions
-4. Display: `✓ {count} conventions auto-detected from codebase`
-
-If mapping was skipped (greenfield): create an empty conventions file:
-```json
-{"conventions": []}
-```
-Display: `○ Conventions — none yet (add with /vbw:teach)`
-
-Convention auto-detection runs silently — no user prompts. The user can review, add, or modify conventions later via `/vbw:teach`.
-
-**3c. Parallel registry search** — if find-skills is available (either was already installed or just installed in 2d):
-
-- If `detected_stack[]` is non-empty (including any augmented items from 3b): run `npx skills find "<stack-item>"` for ALL detected stack items **in parallel** (use multiple concurrent Bash tool calls in the SAME message). Collect and deduplicate results against already-installed skills.
-- If `detected_stack[]` is empty: run a general search based on the project type (e.g., if there are .sh files, search "shell scripting"; if .md files dominate, search "documentation").
-- Display registry results with `(registry)` attribution.
-
-**3d. Unified skill prompt** — combine curated suggestions from detect-stack (saved in 2b) with registry results (from 3c) into a single AskUserQuestion using multiSelect. Tag each with `(curated)` or `(registry)`. Max 4 options. Include "Skip" as an option. For selected skills, run `npx skills add <skill> -g -y`.
-
-**3e. Write Skills section to STATE.md** — using the format from `${CLAUDE_PLUGIN_ROOT}/references/skill-discovery.md` (SKIL-05).
+**3e.** Write Skills section to STATE.md per `${CLAUDE_PLUGIN_ROOT}/references/skill-discovery.md` (SKIL-05).
 
 ### Step 3.5: Generate bootstrap CLAUDE.md
 
-Write a CLAUDE.md at the project root. This is auto-loaded by Claude Code into every session, so it ensures VBW conventions are enforced from the very first interaction — even before `/vbw:implement` defines the project.
+Write `CLAUDE.md` at project root (auto-loaded every session). /vbw:implement regenerates later with project content.
 
-`/vbw:implement` will later regenerate CLAUDE.md with project-specific content. This bootstrap version establishes behavioral rules only.
-
-Write the following to `CLAUDE.md` (adjust installed skills list from Step 3e):
-
+Template — write this verbatim, substituting `{...}` placeholders:
 ```markdown
 # VBW-Managed Project
-
 This project uses VBW (Vibe Better with Claude Code) for structured development.
-
 ## VBW Rules
-
 - **Always use VBW commands** for project work. Do not manually edit files in `.vbw-planning/`.
 - **Commit format:** `{type}({scope}): {description}` — types: feat, fix, test, refactor, perf, docs, style, chore.
 - **One commit per task.** Each task in a plan gets exactly one atomic commit.
 - **Never commit secrets.** Do not stage .env, .pem, .key, credentials, or token files.
 - **Plan before building.** Use /vbw:plan before /vbw:execute. Plans are the source of truth.
 - **Do not fabricate content.** Only use what the user explicitly states in project-defining flows.
-
 ## State
-
 - Planning directory: `.vbw-planning/`
 - Project not yet defined — run /vbw:implement to set up project identity and roadmap.
-
 ## Installed Skills
-
-{list installed skills from STATE.md Skills section, or "None" if empty}
-
+{list from STATE.md Skills section, or "None"}
 ## Project Conventions
-
-{If .vbw-planning/conventions.json has entries, list them:}
-These conventions are enforced during planning and verified during QA.
-
-- {rule} [{category}]
-- {rule} [{category}]
-
-{If no conventions: "None yet. Run /vbw:teach to add project conventions."}
-
+{If conventions.json has entries: "These conventions are enforced during planning and verified during QA." + bulleted list of rules}
+{If none: "None yet. Run /vbw:teach to add project conventions."}
 ## Commands
-
 Run /vbw:status for current progress.
 Run /vbw:help for all available commands.
-
-{include the following section ONLY if GSD_ISOLATION_ENABLED=true from Step 1.7}
-
+{ONLY if GSD_ISOLATION_ENABLED=true — include this section:}
 ## Plugin Isolation
-
 - GSD agents and commands MUST NOT read, write, glob, grep, or reference any files in `.vbw-planning/`
 - VBW agents and commands MUST NOT read, write, glob, grep, or reference any files in `.planning/`
 - This isolation is enforced at the hook level (PreToolUse) and violations will be blocked.
 ```
-
-Keep under 200 lines. Add `✓ CLAUDE.md` to the summary output.
+Keep under 200 lines. Add `✓ CLAUDE.md` to summary.
 
 ### Step 4: Present summary
 
-```
-╔══════════════════════════════════════════╗
-║  VBW Environment Initialized             ║
-╚══════════════════════════════════════════╝
-
-  ✓ .vbw-planning/PROJECT.md      (template)
-  ✓ .vbw-planning/REQUIREMENTS.md (template)
-  ✓ .vbw-planning/ROADMAP.md      (template)
-  ✓ .vbw-planning/STATE.md        (template)
-  ✓ .vbw-planning/config.json
-  ✓ .vbw-planning/phases/
-  ✓ CLAUDE.md                  (bootstrap)
-  {include next line only if GSD isolation was enabled during Step 1.7}
-  ✓ GSD isolation (3-layer defense)
-  {include next line only if statusline was installed during Step 0b}
-  ✓ Statusline (restart to activate)
-
-  {include Codebase block if mapping ran}
-  ✓ Codebase mapped ({document-count} documents)
-
-  {include Conventions line if conventions were detected}
-  ✓ {count} conventions auto-detected (review with /vbw:teach)
-
-  {include Skills block only if skills were discovered in Step 3}
-  Skills:
-    Installed: {count} ({names})
-    Stack:     {detected, including map-augmented items}
-  {✓ Skills.sh registry (available) — if find-skills is installed}
-  {○ Skills.sh registry (skipped) — if find-skills was declined or unavailable}
-```
-
-Then auto-launch `/vbw:implement` by reading `${CLAUDE_PLUGIN_ROOT}/commands/implement.md` and following it.
-
-If greenfield, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh init` and display the output.
+Display Phase Banner then file checklist (✓ for each created file), conditional lines for GSD isolation, statusline, codebase mapping, conventions, skills. Then auto-launch `/vbw:implement` by reading `${CLAUDE_PLUGIN_ROOT}/commands/implement.md` and following it. If greenfield, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh init` and display output.
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md:
-- Phase Banner (double-line box) for init completion
-- File Checklist (✓ prefix) for created files
-- ○ for pending items
-- Next Up Block for navigation
-- No ANSI color codes
+Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — Phase Banner (double-line box), File Checklist (✓), ○ for pending, Next Up Block, no ANSI color codes.

@@ -26,278 +26,150 @@ Phase directories:
 
 ## Guard
 
-1. **Not initialized:** Follow the Initialization Guard in `${CLAUDE_PLUGIN_ROOT}/references/shared-patterns.md`.
-
-2. **Auto-detect phase (if omitted):** If `$ARGUMENTS` does not contain an integer phase number (flags like `--effort` are still allowed):
-   1. Read `${CLAUDE_PLUGIN_ROOT}/references/phase-detection.md` and follow the **Resolve Phases Directory** section to determine the correct phases path.
-   2. Scan phase directories in numeric order. For each directory, check for `*-PLAN.md` and `*-SUMMARY.md` files. The first phase where `*-PLAN.md` files exist but at least one plan lacks a corresponding `*-SUMMARY.md` (matched by numeric prefix) is the target.
-   3. If found: announce "Auto-detected Phase {N} ({slug}) -- planned, not yet built" and proceed with that phase number.
-   4. If all planned phases are fully built: STOP and tell the user "All planned phases are built. Specify a phase to rebuild: `/vbw:execute N`"
-
-3. **Phase not planned:** If no PLAN.md files in .vbw-planning/phases/{phase-dir}/, STOP: "Phase {N} has no plans. Run /vbw:plan {N} first."
-4. **Phase already complete:** If ALL plans have SUMMARY.md:
-   - At `cautious` or `standard` autonomy: WARN and ask: "Phase {N} already complete. Re-running creates new commits. Continue?"
-   - At `confident` or `pure-vibe` autonomy: display warning but auto-continue without asking.
+1. **Not initialized:** Follow Initialization Guard in `${CLAUDE_PLUGIN_ROOT}/references/shared-patterns.md`.
+2. **Auto-detect phase (if omitted):** If no integer phase in $ARGUMENTS:
+   - Read `${CLAUDE_PLUGIN_ROOT}/references/phase-detection.md`, follow **Resolve Phases Directory**
+   - Scan phase dirs numerically. First phase with `*-PLAN.md` but missing `*-SUMMARY.md` = target
+   - Found: "Auto-detected Phase {N} ({slug}) -- planned, not yet built"
+   - All built: STOP "All planned phases are built. Specify a phase to rebuild: `/vbw:execute N`"
+3. **Phase not planned:** No PLAN.md in phase dir → STOP: "Phase {N} has no plans. Run /vbw:plan {N} first."
+4. **Phase already complete:** All plans have SUMMARY.md:
+   - cautious/standard autonomy: WARN + ask "Re-running creates new commits. Continue?"
+   - confident/pure-vibe: warn but auto-continue
 
 ## Steps
 
 ### Step 1: Parse arguments
 
-- **Phase number** (optional; auto-detected if omitted): integer matching `.vbw-planning/phases/{NN}-*`
-- **--effort** (optional): thorough|balanced|fast|turbo. Overrides config for this run only.
-- **--skip-qa** (optional): skip post-build deep verification
-- **--plan=NN** (optional): execute only one plan, ignore wave grouping
+- **Phase number** (optional; auto-detected): integer matching `.vbw-planning/phases/{NN}-*`
+- **--effort** (optional): thorough|balanced|fast|turbo — overrides config for this run
+- **--skip-qa** (optional): skip post-build verification
+- **--plan=NN** (optional): execute single plan, ignore wave grouping
 
-Map effort to agent levels per `${CLAUDE_PLUGIN_ROOT}/references/effort-profiles.md`:
+Effort → agent levels per `${CLAUDE_PLUGIN_ROOT}/references/effort-profiles.md`:
 
-| Profile  | DEV_EFFORT | QA_EFFORT | PLAN_APPROVAL | QA_TIMING  |
-|----------|------------|-----------|---------------|------------|
-| Thorough | high       | high      | required      | per-wave   |
-| Balanced | medium     | medium    | off           | per-wave   |
-| Fast     | medium     | low       | off           | post-build |
-| Turbo    | low        | skip      | off           | skip       |
+| Profile | DEV_EFFORT | QA_EFFORT | PLAN_APPROVAL | QA_TIMING |
+|---------|-----------|-----------|---------------|-----------|
+| Thorough | high | high | required | per-wave |
+| Balanced | medium | medium | off | per-wave |
+| Fast | medium | low | off | post-build |
+| Turbo | low | skip | off | skip |
 
-After resolving the effort level, read the corresponding profile for detailed agent behavior:
-- `${CLAUDE_PLUGIN_ROOT}/references/effort-profile-{profile}.md` (where {profile} is thorough, balanced, fast, or turbo)
-Do NOT read all four profile files -- only the active one.
+Read active profile only: `${CLAUDE_PLUGIN_ROOT}/references/effort-profile-{profile}.md`
 
 ### Step 2: Load plans and detect resume state
 
-1. Glob for `*-PLAN.md` in the phase directory. Read each plan's YAML frontmatter (plan, title, wave, depends_on, cross_phase_deps, autonomous, files_modified).
-2. Check for existing SUMMARY.md files -- these plans are already complete.
-3. Check `git log --oneline -20` for committed tasks matching this phase (crash recovery).
-4. Build list of remaining (uncompleted) plans. If `--plan=NN`, filter to that single plan.
-5. For partially-complete plans (SUMMARY.md with `status: partial`, or commits in git log but no SUMMARY.md): note the resume-from task number.
-6. **Crash recovery check:** If `.vbw-planning/.execution-state.json` exists with `"status": "running"`, a previous run crashed. Update its plan statuses to match current SUMMARY.md state before proceeding.
-7. **Write initial execution state** to `.vbw-planning/.execution-state.json`:
-
+1. Glob `*-PLAN.md` in phase dir. Read each plan's YAML frontmatter.
+2. Check existing SUMMARY.md files (complete plans).
+3. `git log --oneline -20` for committed tasks (crash recovery).
+4. Build remaining plans list. If `--plan=NN`, filter to that plan.
+5. Partially-complete plans: note resume-from task number.
+6. **Crash recovery:** If `.vbw-planning/.execution-state.json` exists with `"status": "running"`, update plan statuses to match current SUMMARY.md state.
+7. **Write execution state** to `.vbw-planning/.execution-state.json`:
 ```json
 {
-  "phase": {N},
-  "phase_name": "{slug}",
-  "status": "running",
-  "started_at": "{ISO 8601 timestamp}",
-  "wave": 1,
-  "total_waves": {max wave number from plans},
-  "plans": [
-    {"id": "{NN-MM}", "title": "{plan title}", "wave": {W}, "status": "pending|complete"}
-  ]
+  "phase": N, "phase_name": "{slug}", "status": "running",
+  "started_at": "{ISO 8601}", "wave": 1, "total_waves": N,
+  "plans": [{"id": "NN-MM", "title": "...", "wave": W, "status": "pending|complete"}]
 }
 ```
+Set completed plans (with SUMMARY.md) to `"complete"`, others to `"pending"`.
 
-Set already-completed plans (those with SUMMARY.md) to `"complete"`, all others to `"pending"`.
-
-8. **Cross-phase dependency validation (PWR-04):** For each uncompleted plan that has `cross_phase_deps` in its frontmatter, validate that every dependency is satisfied:
-   - Resolve the referenced phase directory (e.g., phase 2 → `.vbw-planning/phases/02-*/`)
-   - Find the referenced plan's SUMMARY.md (e.g., plan `02-03` → `02-03-SUMMARY.md`)
-   - Check that the SUMMARY.md exists and has `status: complete`
-   - If the artifact path is specified, verify the file exists on disk
-
-   If any dependency is unsatisfied, STOP with a clear error:
-   ```
-   Cross-phase dependency not met.
-
-   Plan {current-plan-id} depends on Phase {dep-phase}, Plan {dep-plan} ({reason}).
-   That plan's status: {failed|missing|not yet built}.
-
-   Fix: Run /vbw:implement {dep-phase} to build the dependency first.
-   ```
-
-   If all dependencies are satisfied, display: `✓ Cross-phase dependencies verified`
-   If no plans have `cross_phase_deps`, skip this step silently.
+8. **Cross-phase deps (PWR-04):** For each plan with `cross_phase_deps`:
+   - Verify referenced plan's SUMMARY.md exists with `status: complete`
+   - If artifact path specified, verify file exists
+   - Unsatisfied → STOP: "Cross-phase dependency not met. Plan {id} depends on Phase {P}, Plan {plan} ({reason}). Status: {failed|missing|not built}. Fix: Run /vbw:implement {P}"
+   - All satisfied: `✓ Cross-phase dependencies verified`
+   - No cross_phase_deps: skip silently
 
 ### Step 3: Create Agent Team and execute
 
-Create a build team.
+**Delegation directive (all except Turbo):**
+You are the team LEAD. NEVER implement tasks yourself.
+- Delegate ALL implementation to Dev teammates via TaskCreate
+- NEVER Write/Edit files in a plan's `files_modified` — only state files: STATE.md, ROADMAP.md, .execution-state.json, SUMMARY.md
+- If Dev fails: guidance via SendMessage, not takeover. If all Devs unavailable: create new Dev.
+- At Turbo: no team — Dev executes directly.
 
-**Delegation directive (all effort levels except Turbo):**
-
-You are the team LEAD, not a developer. Your role is to orchestrate, not implement.
-
-- NEVER implement plan tasks yourself -- delegate ALL implementation to Dev teammates via TaskCreate and task assignment
-- NEVER use Write or Edit to modify source code files, test files, or configuration files that are part of a plan's `files_modified` list
-- Your Write/Edit usage is LIMITED to state tracking files only: `.vbw-planning/STATE.md`, `.vbw-planning/ROADMAP.md`, `.vbw-planning/.execution-state.json`, and SUMMARY.md files
-- If a Dev teammate fails or gets stuck, help by providing guidance via SendMessage -- do not take over implementation
-- If all Dev teammates are unavailable, create a new Dev teammate rather than implementing yourself
-
-This is instruction-enforced (not platform-enforced). The platform cannot prevent the lead from using Write/Edit on source files. This directive exists as a defensive guardrail to maintain the separation between orchestration and implementation roles.
-
-Note: Anthropic's `delegate` permissionMode cannot be applied here because the lead is the main session, not a spawned agent. Skill frontmatter cannot change the main session's permissionMode at runtime.
-
-At Turbo effort, no team is created -- Dev executes directly without a lead.
-
-For each uncompleted plan, use TaskCreate to create a task with thin context:
-
+For each uncompleted plan, TaskCreate:
 ```
-For each uncompleted plan, use TaskCreate:
-
-TaskCreate:
-  subject: "Execute {NN-MM}: {plan-title}"
-  description: |
-    Execute all tasks in {PLAN_PATH}.
-    Effort: {DEV_EFFORT}. Working directory: {pwd}.
-    {If resuming: "Resume from Task {N}. Tasks 1-{N-1} already committed."}
-    {If autonomous: false: "This plan has checkpoints -- pause for user input."}
-  activeForm: "Executing {NN-MM}"
-
-After creating all tasks, wire dependencies using TaskUpdate:
-  - Read the `depends_on` field from each plan's YAML frontmatter
-  - For each plan with `depends_on` entries, find the task IDs of those dependency plans and wire them:
-    TaskUpdate(taskId, addBlockedBy: [task IDs of plans listed in depends_on])
-  - Plans with no `depends_on` (or empty list) start immediately with no blockedBy
-
-Example for 3 plans:
-  Task A (plan 04-01, depends_on: []) -- no blockedBy
-  Task B (plan 04-02, depends_on: []) -- no blockedBy
-  Task C (plan 04-03, depends_on: [04-01]) -- blockedBy: [Task A ID]
+subject: "Execute {NN-MM}: {plan-title}"
+description: |
+  Execute all tasks in {PLAN_PATH}.
+  Effort: {DEV_EFFORT}. Working directory: {pwd}.
+  {If resuming: "Resume from Task {N}. Tasks 1-{N-1} already committed."}
+  {If autonomous: false: "This plan has checkpoints -- pause for user input."}
+activeForm: "Executing {NN-MM}"
 ```
 
-Spawn Dev teammates and assign tasks. The platform enforces execution ordering via task dependencies:
-- Tasks are blockedBy their specific dependencies from the plan's `depends_on` frontmatter field
-- Plans with no `depends_on` start immediately when teammates are spawned
-- Plans with `depends_on` entries are held until those specific dependency tasks complete
-- Teammates are spawned for all plans, but dependent teammates will idle until their tasks unblock
-- Wave tracking in `.execution-state.json` is informational (for display/logging), not controlling
-- If `--plan=NN`: create a single task with no dependencies (ignore dependency wiring)
+Wire dependencies via TaskUpdate: read `depends_on` from each plan's frontmatter, add `addBlockedBy: [task IDs of dependency plans]`. Plans with empty depends_on start immediately.
+
+Spawn Dev teammates and assign tasks. Platform enforces execution ordering via task deps. If `--plan=NN`: single task, no dependencies.
 
 **Plan approval gate (effort-gated, autonomy-gated):**
 
-Autonomy overrides the effort-based plan approval behavior:
-- At `cautious` autonomy: plan approval is required at **Thorough AND Balanced** effort (expands the gate)
-- At `standard` autonomy: plan approval is required at **Thorough only** (current default behavior)
-- At `confident` or `pure-vibe` autonomy: plan approval is **OFF** regardless of effort level
+| Autonomy | Approval active at |
+|----------|-------------------|
+| cautious | Thorough + Balanced |
+| standard | Thorough only |
+| confident/pure-vibe | OFF |
 
-When plan approval is active:
-- Spawn Dev teammates with `plan_mode_required` set
-- Each Dev enters read-only plan mode: it reads the PLAN.md, proposes its implementation approach, and waits for lead approval before writing any code
-- The lead reviews each Dev's proposed approach and approves (plan_approval_response with approve: true) or rejects with feedback (approve: false with content describing what to change)
-- This adds a platform-enforced review gate -- the Dev literally cannot make changes until approved
+When active: spawn Devs with `plan_mode_required`. Dev reads PLAN.md, proposes approach, waits for lead approval. Lead approves/rejects via plan_approval_response.
+When off: Devs begin immediately.
 
-When plan approval is off:
-- Spawn Dev teammates without plan_mode_required
-- Devs begin implementation immediately upon receiving their task (existing behavior)
+**Teammate communication (effort-gated):** Schema ref: `${CLAUDE_PLUGIN_ROOT}/references/handoff-schemas.md`
 
-**Teammate communication protocol (effort-gated):**
+| Effort | Messages sent |
+|--------|--------------|
+| Thorough | blockers (dev_blocker), cross-cutting findings, progress (dev_progress), design debates to lead |
+| Balanced | blockers (dev_blocker), cross-cutting findings |
+| Fast | blockers only (dev_blocker) |
+| Turbo | N/A (no team) |
 
-Instruct Dev teammates to use SendMessage with structured JSON schemas for coordination. Schema reference: `${CLAUDE_PLUGIN_ROOT}/references/handoff-schemas.md`.
+Use targeted `message` not `broadcast`. Reserve broadcast for critical blocking issues only.
 
-- At **Thorough** or **Balanced** effort:
-  - **Blockers:** Use the `dev_blocker` schema when blocked by a dependency not yet available. The lead can prioritize or reassign.
-  - **Cross-cutting findings:** If implementing a task reveals something that affects another teammate's work (e.g., a shared interface changed, a dependency version conflict), message the affected teammate directly with a plain-text description.
-- At **Thorough** effort only, additionally:
-  - **Progress updates:** Use the `dev_progress` schema after completing each task (task name, commit hash, any concerns).
-  - **Design debates:** If a task's approach has architectural implications that could affect other plans, message the lead to discuss before implementing.
-- At **Fast** effort: instruct teammates to report blockers only using the `dev_blocker` schema. No cross-cutting findings, progress updates, or design debates.
-- At **Turbo** effort: no Agent Team exists, so no messaging directives apply.
+**Execution state updates:**
+- Task completion: update plan status in .execution-state.json (`"complete"` or `"failed"`)
+- Wave transition: update `"wave"` when first wave N+1 task starts
+- Use `jq` for atomic updates
 
-Use targeted `message` (not `broadcast`) for most communication. Reserve `broadcast` only for critical blocking issues affecting all teammates (e.g., a shared dependency is broken and all work should pause).
-
-**Update execution state at task and wave completions:**
-- **Task completion:** When a teammate completes (or fails), update the plan's status in `.vbw-planning/.execution-state.json` to "complete" (or "failed").
-- **Wave transition:** Wave transitions happen automatically -- when all wave N tasks complete, their wave N+1 dependents unblock. Update "wave" in the execution state JSON when you observe the first wave N+1 task starting.
-
-Use `jq` for atomic updates, e.g.: `jq '(.plans[] | select(.id == "03-01")).status = "complete"' .vbw-planning/.execution-state.json > .vbw-planning/.execution-state.json.tmp && mv .vbw-planning/.execution-state.json.tmp .vbw-planning/.execution-state.json`
-
-Hooks handle continuous verification:
-- PostToolUse validates SUMMARY.md structure on write
-- TaskCompleted verifies atomic commit exists
-- TeammateIdle runs quality gate before teammate stops
+Hooks handle continuous verification: PostToolUse validates SUMMARY.md, TaskCompleted verifies commits, TeammateIdle runs quality gate.
 
 ### Step 4: Post-build QA (optional)
 
-If `--skip-qa` or turbo: display "○ QA verification skipped ({reason})".
+If `--skip-qa` or turbo: "○ QA verification skipped ({reason})"
 
-**Per-wave QA (Thorough and Balanced effort, QA_TIMING = per-wave):**
+**Per-wave QA (Thorough/Balanced, QA_TIMING=per-wave):** After each wave completes, spawn QA concurrently with next wave's Dev work. QA receives only completed wave's PLAN.md + SUMMARY.md. After final wave, spawn integration QA covering all plans + cross-plan integration. Persist to `{phase-dir}/{phase}-VERIFICATION-wave{W}.md` and `{phase}-VERIFICATION.md`.
 
-After each wave's plans complete, spawn a QA subagent concurrently with the next wave's Dev work:
-
-```
-Verify completed wave {W} plans for phase {N}. Tier: {QA tier from effort}.
-Plans: {paths to completed wave's PLAN.md files}.
-Summaries: {paths to completed wave's SUMMARY.md files}.
-```
-
-- QA receives only the completed plans' PLAN.md + SUMMARY.md files, not the entire phase
-- QA runs concurrently with Dev teammates executing the next wave's plans
-- After the final wave completes, spawn a final QA pass covering cross-wave integration:
-
-```
-Final integration verification for phase {N}. Tier: {QA tier from effort}.
-Plans: {paths to ALL PLAN.md files}. Summaries: {paths to ALL SUMMARY.md files}.
-Phase success criteria: {from ROADMAP.md}.
-Focus on cross-plan integration, shared interfaces, and overall phase coherence.
-```
-
-Persist per-wave results to `{phase-dir}/{phase}-VERIFICATION-wave{W}.md`.
-Persist final integration results to `{phase-dir}/{phase}-VERIFICATION.md`.
-
-**Post-build QA (Fast effort, QA_TIMING = post-build):**
-
-Spawn QA as a subagent after ALL plans complete:
-
-```
-Verify phase {N}. Tier: {QA tier from effort}.
-Plans: {paths to PLAN.md files}. Summaries: {paths to SUMMARY.md files}.
-Phase success criteria: {from ROADMAP.md}.
-```
-
-Persist results to `{phase-dir}/{phase}-VERIFICATION.md`.
+**Post-build QA (Fast, QA_TIMING=post-build):** Spawn QA after ALL plans complete. Persist to `{phase-dir}/{phase}-VERIFICATION.md`.
 
 ### Step 5: Update state and present summary
 
-**Shutdown and cleanup (all effort levels except Turbo):**
+**Shutdown:** Follow Agent Teams Shutdown Protocol in `${CLAUDE_PLUGIN_ROOT}/references/shared-patterns.md`. Wait for TeamDelete before state updates.
 
-After all teammates have completed their tasks (or after all waves have finished), follow the Agent Teams Shutdown Protocol in `${CLAUDE_PLUGIN_ROOT}/references/shared-patterns.md`.
-
-Do not proceed to state updates until TeamDelete has succeeded.
-
-**Mark execution complete:** Update `.vbw-planning/.execution-state.json` — set `"status"` to `"complete"`. The statusline will auto-delete the file on next refresh, returning to normal display.
-
+**Mark complete:** Set .execution-state.json `"status"` to `"complete"` (statusline auto-deletes on next refresh).
 **Update STATE.md:** phase position, plan completion counts, effort used.
 **Update ROADMAP.md:** mark completed plans.
 
-Display using `${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md`:
-
+Display per @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md:
 ```
 ╔═══════════════════════════════════════════════╗
 ║  Phase {N}: {name} -- Built                   ║
 ╚═══════════════════════════════════════════════╝
 
   Plan Results:
-    ✓ Plan 01: {title}
-    ✓ Plan 02: {title}
-    ✗ Plan 03: {title} (failed)
+    ✓ Plan 01: {title}  /  ✗ Plan 03: {title} (failed)
 
   Metrics:
-    Plans:      {completed}/{total}
-    Effort:     {profile}
-    Deviations: {count from SUMMARYs}
+    Plans: {completed}/{total}  Effort: {profile}  Deviations: {count}
 
-  QA:         {PASS|PARTIAL|FAIL|skipped}
-
+  QA: {PASS|PARTIAL|FAIL|skipped}
 ```
 
-**"What happened" plain-language summary (NRW-02):**
+**"What happened" (NRW-02):** If config `plain_summary` is true (default), append 2-4 plain-English sentences between QA and Next Up. No jargon. Source from SUMMARY.md files + QA result. If false, skip.
 
-Check config `plain_summary`. If `true` (default), append a "What happened" block between QA and Next Up:
-
-```
-  What happened:
-    {2-4 sentences in plain English summarizing what was built, any
-    deviations, and the QA outcome. No jargon — no plan IDs, wave
-    numbers, or frontmatter references. Write as if explaining to
-    someone who has never seen VBW.}
-```
-
-Source the summary from SUMMARY.md files (task descriptions, deviations) and the QA result. Keep it under 4 sentences. If `plain_summary` is `false`, skip this block entirely.
-
-Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh execute {qa-result}` and display the output. Pass the QA result (pass/fail/partial/skipped) as the second argument.
+Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh execute {qa-result}` and display output.
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md:
-- Phase Banner (double-line box) for completion
-- Execution Progress symbols: ◆ running, ✓ complete, ✗ failed, ○ skipped
-- Metrics Block for stats
-- Next Up Block for navigation
-- No ANSI color codes
+Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — Phase Banner (double-line box), ◆ running, ✓ complete, ✗ failed, ○ skipped, Metrics Block, Next Up Block, no ANSI color codes.
