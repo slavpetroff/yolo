@@ -1,10 +1,10 @@
 #!/bin/bash
 # VBW Status Line for Claude Code — 4/5/6-Line Dashboard
 # Line 1: [VBW] Phase N/M │ Plans: done/total (N this phase) │ Effort: X │ QA: pass │ repo:branch Files: +2~3 Commits: ↑5 Diff: +156 -23
-# Line 2: Context: ▓▓▓▓▓▓▓▓░░░░░░░░░░░░ 42% 84.0K/200K │ Tokens: 15.2K in  1.2K out │ Cache: 5.0K write  2.0K read
+# Line 2: Context: ▓▓▓▓▓▓▓▓░░░░░░░░░░░░ 42% 84.0K/200K │ Tokens: 15.2K in  1.2K out │ Prompt Cache: 5.0K write  2.0K read
 # Line 3: Session: ██████████████████░░  6% ~2h13m │ Weekly: ███████░░░░░░░░░░░░░ 35% ~2d 23h │ Extra: ████████████████████ 96% $578/$600
 # Line 4: Model: Opus │ Cost: $1.53 │ Time: 12m 34s (API: 23s) │ VBW 1.0.67 │ CC 1.0.11
-# Line 5: Economy: Build $0.82 (70%) │ Plan $0.15 (13%) │ Verify $0.12 (10%) │ Cache: 85% hit │ $0.005/line │ QA heavy — try balanced  (conditional: cost > $0)
+# Line 5: Economy: Dev $0.82 (70%) │ Lead $0.15 (13%) │ QA $0.12 (10%) │ Other $0.08 (7%) │ Prompt Cache: 85% hit │ $0.005/line  (conditional: cost > $0)
 # Line 6: Team: build-team │ researcher ◆ │ tester ○ │ dev-1 ✓ │ Tasks: 3/5  (conditional, future)
 # Cache files: {prefix}-fast (5s), {prefix}-slow (60s), {prefix}-cost (per-render), {prefix}-ok (permanent)
 
@@ -430,7 +430,7 @@ fi
 
 L2="Context: ${BC}${CTX_BAR}${X} ${BC}${PCT}%${X} ${CTX_USED_FMT}/${CTX_SIZE_FMT}"
 L2="$L2 ${D}│${X} Tokens: ${IN_TOK_FMT} in  ${OUT_TOK_FMT} out"
-L2="$L2 ${D}│${X} Cache: ${CACHE_W_FMT} write  ${CACHE_R_FMT} read"
+L2="$L2 ${D}│${X} Prompt Cache: ${CACHE_W_FMT} write  ${CACHE_R_FMT} read"
 
 # --- Line 3: usage limits ---
 
@@ -451,43 +451,66 @@ fi
 
 L5=""
 if [ -f "$LEDGER_FILE" ] && jq empty "$LEDGER_FILE" 2>/dev/null; then
-  # Aggregate agents into workflow categories via single jq call
-  # Categories: build (dev), plan (lead, architect), verify (qa), other (rest)
-  IFS='|' read -r CAT_BUILD CAT_PLAN CAT_VERIFY CAT_OTHER ECON_TOTAL_CENTS <<< \
-    "$(jq -r '
-      def grp: if . == "dev" then "build"
-        elif . == "lead" or . == "architect" then "plan"
-        elif . == "qa" then "verify"
-        else "other" end;
-      to_entries | reduce .[] as $e (
-        {"build":0,"plan":0,"verify":0,"other":0};
-        .[$e.key | grp] += $e.value
-      ) | [.build, .plan, .verify, .other, (.build + .plan + .verify + .other)] | join("|")
-    ' "$LEDGER_FILE" 2>/dev/null)"
+  # Per-agent cost breakdown + total via single jq call
+  # Output: agent1:cents|agent2:cents|...|TOTAL:cents
+  AGENT_ENTRIES=$(jq -r '
+    to_entries | sort_by(-.value) |
+    (map("\(.key):\(.value)") + ["TOTAL:\(reduce .[].value as $v (0; . + $v))"])
+    | join("|")
+  ' "$LEDGER_FILE" 2>/dev/null)
 
-  ECON_TOTAL_CENTS=${ECON_TOTAL_CENTS:-0}
+  ECON_TOTAL_CENTS=0
+  # Extract total
+  for entry in $(echo "$AGENT_ENTRIES" | tr '|' ' '); do
+    key="${entry%%:*}"; val="${entry#*:}"
+    [ "$key" = "TOTAL" ] && ECON_TOTAL_CENTS="${val:-0}"
+  done
 
   if [ "$ECON_TOTAL_CENTS" -gt 0 ]; then
-    # Build a category display entry (modifies ECON_PARTS in caller scope)
-    _build_cat() {
-      local label="$1" cents="$2" color="$3"
-      [ "${cents:-0}" -eq 0 ] && return
-      local d=$((cents / 100)) f=$((cents % 100))
-      local cost_str=$(printf "\$%d.%02d" "$d" "$f")
-      local pct_str=""
-      [ "$ECON_TOTAL_CENTS" -gt 5 ] && pct_str=" ($((cents * 100 / ECON_TOTAL_CENTS))%)"
-      if [ -z "$ECON_PARTS" ]; then
-        ECON_PARTS="${color}${label}${X} ${cost_str}${pct_str}"
-      else
-        ECON_PARTS="$ECON_PARTS ${D}│${X} ${color}${label}${X} ${cost_str}${pct_str}"
-      fi
+    # Agent display colors
+    _agent_color() {
+      case "$1" in
+        dev) echo "$G" ;;
+        lead) echo "$C" ;;
+        architect) echo "$C" ;;
+        qa) echo "$Y" ;;
+        scout) echo "$D" ;;
+        debugger) echo "$R" ;;
+        *) echo "$D" ;;
+      esac
+    }
+
+    # Agent display names (capitalize)
+    _agent_label() {
+      case "$1" in
+        dev) echo "Dev" ;;
+        lead) echo "Lead" ;;
+        architect) echo "Architect" ;;
+        qa) echo "QA" ;;
+        scout) echo "Scout" ;;
+        debugger) echo "Debugger" ;;
+        other) echo "Other" ;;
+        *) echo "$1" ;;
+      esac
     }
 
     ECON_PARTS=""
-    _build_cat "Build" "${CAT_BUILD:-0}" "$G"
-    _build_cat "Plan" "${CAT_PLAN:-0}" "$C"
-    _build_cat "Verify" "${CAT_VERIFY:-0}" "$Y"
-    _build_cat "Other" "${CAT_OTHER:-0}" "$D"
+    for entry in $(echo "$AGENT_ENTRIES" | tr '|' ' '); do
+      key="${entry%%:*}"; val="${entry#*:}"
+      [ "$key" = "TOTAL" ] && continue
+      [ "${val:-0}" -eq 0 ] 2>/dev/null && continue
+      local_color=$(_agent_color "$key")
+      local_label=$(_agent_label "$key")
+      local_d=$((val / 100)); local_f=$((val % 100))
+      local_cost=$(printf "\$%d.%02d" "$local_d" "$local_f")
+      local_pct=""
+      [ "$ECON_TOTAL_CENTS" -gt 5 ] && local_pct=" ($((val * 100 / ECON_TOTAL_CENTS))%)"
+      if [ -z "$ECON_PARTS" ]; then
+        ECON_PARTS="${local_color}${local_label}${X} ${local_cost}${local_pct}"
+      else
+        ECON_PARTS="$ECON_PARTS ${D}│${X} ${local_color}${local_label}${X} ${local_cost}${local_pct}"
+      fi
+    done
 
     # Cache hit rate
     TOTAL_INPUT=$((IN_TOK + CACHE_W + CACHE_R))
@@ -510,23 +533,9 @@ if [ -f "$LEDGER_FILE" ] && jq empty "$LEDGER_FILE" 2>/dev/null; then
       CPL_STR=$(printf "\$%d.%03d/line" "$CPL_D" "$CPL_F")
     fi
 
-    # Efficiency insight — one brief actionable hint (PWR-05 intelligence)
-    INSIGHT=""
-    if [ "$CACHE_HIT_PCT" -lt 40 ] && [ "$ECON_TOTAL_CENTS" -gt 50 ]; then
-      INSIGHT="${R}↓ cache efficiency${X}"
-    elif [ "${CAT_VERIFY:-0}" -gt 0 ] && [ "$ECON_TOTAL_CENTS" -gt 20 ]; then
-      _vp=$((CAT_VERIFY * 100 / ECON_TOTAL_CENTS))
-      [ "$_vp" -gt 35 ] && INSIGHT="${Y}QA heavy — try balanced${X}"
-    fi
-    if [ -z "$INSIGHT" ] && [ "${CAT_PLAN:-0}" -gt 0 ] && [ "$ECON_TOTAL_CENTS" -gt 20 ]; then
-      _pp=$((CAT_PLAN * 100 / ECON_TOTAL_CENTS))
-      [ "$_pp" -gt 40 ] && INSIGHT="${Y}Plan heavy — try fast${X}"
-    fi
-
     L5="Economy: ${ECON_PARTS}"
-    L5="$L5 ${D}│${X} Cache: ${CACHE_COLOR}${CACHE_HIT_PCT}% hit${X}"
+    L5="$L5 ${D}│${X} Prompt Cache: ${CACHE_COLOR}${CACHE_HIT_PCT}% hit${X}"
     [ -n "$CPL_STR" ] && L5="$L5 ${D}│${X} ${CPL_STR}"
-    [ -n "$INSIGHT" ] && L5="$L5 ${D}│${X} ${INSIGHT}"
   fi
 fi
 

@@ -2,6 +2,15 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.10.1] - 2026-02-10
+
+### Changed
+
+- **Statusline Line 2** -- "Cache" renamed to "Prompt Cache" for clarity on context window line.
+- **Statusline Line 5 (Economy)** -- now shows per-agent cost breakdown (Dev, Lead, QA, Scout, Architect, Debugger, Other) sorted by cost descending, replacing the grouped workflow categories (Build, Plan, Verify). "Cache" also renamed to "Prompt Cache" on this line.
+
+---
+
 ## [1.0.99] - 2026-02-10
 
 ### Fixed
