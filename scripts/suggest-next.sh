@@ -65,7 +65,7 @@ if [ -d "$PLANNING_DIR" ]; then
     # Auto-migrate: add model_profile if missing
     if ! jq -e '.model_profile' "$PLANNING_DIR/config.json" >/dev/null 2>&1; then
       TMP=$(mktemp)
-      jq '. + {model_profile: "balanced", model_overrides: {}}' "$PLANNING_DIR/config.json" > "$TMP" && mv "$TMP" "$PLANNING_DIR/config.json"
+      jq '. + {model_profile: "quality", model_overrides: {}}' "$PLANNING_DIR/config.json" > "$TMP" && mv "$TMP" "$PLANNING_DIR/config.json"
     fi
     e=$(jq -r '.effort // "balanced"' "$PLANNING_DIR/config.json" 2>/dev/null)
     [ -n "$e" ] && [ "$e" != "null" ] && effort="$e"

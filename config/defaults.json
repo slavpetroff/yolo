@@ -14,6 +14,6 @@
   "plain_summary": true,
   "active_profile": "default",
   "custom_profiles": {},
-  "model_profile": "balanced",
+  "model_profile": "quality",
   "model_overrides": {}
 }
