@@ -53,9 +53,21 @@ while IFS= read -r line; do
   fi
 done <<< "$RECENT_COMMITS"
 
-# Decision: either structural indicator is sufficient
-if [ "$SUMMARY_OK" = true ] || [ "$FORMAT_MATCH" = true ]; then
-  exit 0
+# Decision logic
+if [ "$PLANS_TOTAL" -eq 0 ]; then
+  exit 0  # No plans, nothing to verify
+fi
+
+if [ "$SUMMARY_OK" = true ]; then
+  exit 0  # All summaries present
+fi
+
+# Plans exist with missing summaries.
+# FORMAT_MATCH gives a 1-plan grace period (Dev actively working on next plan).
+# 2+ missing summaries = accumulated gap, block even with good commits.
+SUMMARY_GAP=$(( PLANS_TOTAL - SUMMARIES_TOTAL ))
+if [ "$FORMAT_MATCH" = true ] && [ "$SUMMARY_GAP" -le 1 ]; then
+  exit 0  # Active work, at most 1 summary behind — allow
 fi
 
 echo "QA gate: SUMMARY.md gap detected ($SUMMARIES_TOTAL summaries for $PLANS_TOTAL plans)" >&2
