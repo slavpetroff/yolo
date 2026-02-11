@@ -38,6 +38,9 @@ else
   PRIORITIES="$PRIORITIES. This is an automatic compaction at context limit."
 fi
 
+# Write compaction marker for Dev re-read guard (REQ-14)
+date +%s > .vbw-planning/.compaction-marker 2>/dev/null || true
+
 jq -n --arg ctx "$PRIORITIES" '{
   "hookSpecificOutput": {
     "additionalContext": ("Compaction priorities: " + $ctx + " Re-read assigned files from disk after compaction.")
