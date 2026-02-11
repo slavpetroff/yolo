@@ -2,6 +2,16 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.10.9] - 2026-02-11
+
+### Fixed
+
+- **`hooks`** -- `qa-gate.sh` tiered SUMMARY.md gate: commit format match now only grants a 1-plan grace period; 2+ missing summaries block regardless. Replaces `||` logic where format match bypassed missing summaries entirely.
+- **`references`** -- `execute-protocol.md` Step 3b hardened to mandatory 4-step verification gate. No plan marked complete without verified SUMMARY.md.
+- **`docs`** -- README TeammateIdle hook description updated to reflect tiered gate. CHANGELOG execute.md references corrected to execute-protocol.md. qa-gate.sh comments fixed (GSD → conventional).
+
+---
+
 ## [1.10.8] - 2026-02-11
 
 ### Added
@@ -25,8 +35,8 @@ All notable changes to VBW will be documented in this file.
 ### Fixed
 
 - **`hooks`** -- `pre-push-hook.sh` restored to actual validation logic (was replaced by delegator wrapper causing infinite recursion).
-- **`hooks`** -- `qa-gate.sh` tightened from any-recent-summary heuristic to structural plan-vs-summary count. Prevents missing SUMMARY.md from being masked by sibling plan completions.
-- **`commands`** -- `execute.md` Step 3b added: SUMMARY.md verification gate after Dev completion. Ensures every plan produces its summary before proceeding to QA.
+- **`hooks`** -- `qa-gate.sh` tightened to tiered SUMMARY.md gate. Commit format match now only grants a 1-plan grace period; 2+ missing summaries block regardless. Replaces previous `||` logic where format match could bypass missing summaries entirely.
+- **`references`** -- `execute-protocol.md` Step 3b hardened: SUMMARY.md verification gate is now a mandatory 4-step checkpoint after Dev completion. No plan marked complete without verified SUMMARY.md.
 
 ### Removed
 

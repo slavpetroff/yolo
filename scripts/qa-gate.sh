@@ -31,7 +31,7 @@ NOW=$(date +%s 2>/dev/null) || exit 0
 TWO_HOURS=7200
 
 # Structural Check 2: Commit format
-# Check if recent commits (last 10, within 2 hours) match GSD conventional format
+# Check if recent commits (last 10, within 2 hours) match conventional format
 FORMAT_MATCH=false
 RECENT_COMMITS=$(git log --oneline -10 --format="%ct %s" 2>/dev/null) || exit 0
 [ -z "$RECENT_COMMITS" ] && exit 0
@@ -44,7 +44,7 @@ while IFS= read -r line; do
   if [ -n "$COMMIT_TS" ] && [ "$COMMIT_TS" -gt 0 ] 2>/dev/null; then
     AGE=$(( NOW - COMMIT_TS ))
     if [ "$AGE" -le "$TWO_HOURS" ]; then
-      # Check for GSD conventional commit format: type(XX-YY):
+      # Check for conventional commit format: type(XX-YY):
       if echo "$COMMIT_MSG" | grep -qE '^(feat|fix|refactor|docs|test|chore)\([0-9]{2}-[0-9]{2}\):'; then
         FORMAT_MATCH=true
         break

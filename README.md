@@ -139,7 +139,7 @@ Agent Teams are [experimental with known limitations](https://code.claude.com/do
 
 - **Session resumption.** Agent Teams teammates don't survive `/resume`. VBW's `/vbw:resume` reads ground truth directly from `.vbw-planning/` -- STATE.md, ROADMAP.md, PLAN.md and SUMMARY.md files -- without requiring a prior `/vbw:pause`. It detects interrupted builds via `.execution-state.json`, reconciles stale execution state by detecting tasks completed between sessions via SUMMARY.md files, and suggests the right next action.
 
-- **Task status lag.** Teammates sometimes forget to mark tasks complete. VBW's `TaskCompleted` hook verifies task-related commits exist via keyword matching. The `TeammateIdle` hook runs a structural completion check (SUMMARY.md or conventional commit format) before any teammate goes idle.
+- **Task status lag.** Teammates sometimes forget to mark tasks complete. VBW's `TaskCompleted` hook verifies task-related commits exist via keyword matching. The `TeammateIdle` hook runs a tiered SUMMARY.md gate — all summaries present passes immediately, conventional commit format only grants a 1-plan grace period, and 2+ missing summaries block regardless.
 
 - **Shutdown coordination.** Claude Code's platform handles teammate cleanup when sessions end. VBW's hooks ensure verification runs before teammates go idle.
 
@@ -488,7 +488,7 @@ Here's when each one shows up to work:
   │                     hooks, updates execution state                            │
   │    SubagentStart ── Writes active agent marker for cost attribution           │
   │    SubagentStop ─── Validates SUMMARY.md structure on subagent completion     │
-  │    TeammateIdle ─── Structural completion gate (SUMMARY.md or commit format)  │
+  │    TeammateIdle ─── Tiered SUMMARY.md gate (1-plan grace, 2+ gap blocks)     │
   │    TaskCompleted ── Verifies task-related commit via keyword matching         │
   │                                                                               │
   │  Security                                                                     │
