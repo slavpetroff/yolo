@@ -128,9 +128,12 @@ Display: `✓ Phase discovery complete ({N} questions answered)`
 Read `${CLAUDE_PLUGIN_ROOT}/commands/plan.md` (Phase Planning Mode section). Display `◆ Planning Phase {N}: {phase-name}  Effort: {level}`
 
 1. Resolve context. If `{phase}-CONTEXT.md` exists in phase dir (from Phase Discovery or `/vbw:discuss`), include its path in Lead agent context. Display: `◆ Resolving context...`
-2. Turbo: direct plan generation inline. Display: `◆ Turbo mode -- generating plan inline...`
-3. Other efforts: spawn Lead agent with context including CONTEXT.md path. Display: `◆ Spawning Lead agent...` → `✓ Lead agent complete`
-4. Validate PLAN.md files produced. Display brief summary.
+2. **Compile context (REQ-11):** If `config_context_compiler=true` from Context block above, run:
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {next_phase} lead {phases_dir}`
+   If successful, include `{phase-dir}/.context-lead.md` path in Lead agent context (replaces listing Roadmap, Requirements, State individually). If failed, proceed without — Lead reads files directly.
+3. Turbo: direct plan generation inline. Display: `◆ Turbo mode -- generating plan inline...`
+4. Other efforts: spawn Lead agent with context including CONTEXT.md path and .context-lead.md path (if compiled). Display: `◆ Spawning Lead agent...` → `✓ Lead agent complete`
+5. Validate PLAN.md files produced. Display brief summary.
 
 Do NOT update STATE.md to "Planned" — implement skips to "Built" after execution.
 Display: `✓ Planning complete -- transitioning to execution...`
@@ -140,6 +143,12 @@ Display: `✓ Planning complete -- transitioning to execution...`
 ### Execution step
 
 Read `${CLAUDE_PLUGIN_ROOT}/commands/execute.md` for full protocol.
+
+1.5. **Compile context:** If `config_context_compiler=true`, run:
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {next_phase} dev {phases_dir}`
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {next_phase} qa {phases_dir}`
+   Include compiled context paths in Dev and QA task descriptions (execute.md will use them). If failed, proceed without.
+
 1. Parse effort, load plans
 2. Detect resume state from SUMMARY.md + git log
 3. Create Agent Team, execute with Dev teammates
