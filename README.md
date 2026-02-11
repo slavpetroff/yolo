@@ -25,39 +25,39 @@
 
 ## VBW Token Efficiency vs Stock Opus 4.6 Agent Teams
 
-VBW wraps Claude Code's native Agent Teams with 15 optimization mechanisms across 7 architectural layers -- shell pre-computation, model routing, context diet, compaction resilience, scope enforcement, structured coordination, and effort scaling. On top of that, aggressive content compression (v1.10.1) cut every instruction file by 50%+. The result: same coordination capability, ~75% fewer tokens burned on overhead.
+VBW wraps Claude Code's native Agent Teams with 18 optimization mechanisms across 8 architectural layers -- shell pre-computation, model routing, context diet, deterministic context routing, compaction resilience, scope enforcement, structured coordination, and effort scaling. Aggressive content compression (v1.10.2) cut every instruction file by 50%+, and the Context Compiler (v1.10.7) routes only role-relevant content to each agent via pre-compiled context files. The result: same coordination capability, ~86% fewer tokens burned on overhead.
 
-Stock teams load all command descriptions into every request, run every agent on Opus, coordinate via expensive message round-trips, and let each agent independently discover project state by reading the same files. VBW replaces all of that with 2,858 lines of bash that execute at zero model token cost, hardcoded model routing (Scout on Haiku, QA on Sonnet), disk-based coordination, pre-computed state injection, and terse compressed instructions across all 29 commands, 6 agents, and 8 reference files.
+Stock teams load all command descriptions into every request, run every agent on Opus, coordinate via expensive message round-trips, and let each agent independently discover project state by reading the same files. VBW replaces all of that with 3,065 lines of bash that execute at zero model token cost, hardcoded model routing (Scout on Haiku, QA on Sonnet), disk-based coordination, pre-computed state injection, deterministic context compilation, and terse compressed instructions across all 29 commands, 6 agents, and 9 reference files.
 
 | Category | Stock Agent Teams | VBW | Saving |
 | :--- | ---: | ---: | ---: |
-| Base context overhead | 10,800 tokens | 1,820 tokens | **83%** |
+| Base context overhead | 10,800 tokens | 1,840 tokens | **83%** |
 | State computation per command | 1,300 tokens | 200 tokens | **85%** |
-| Agent coordination (x4 agents) | 16,000 tokens | 2,100 tokens | **87%** |
-| Compaction recovery | 5,000 tokens | 2,000 tokens | **60%** |
-| Context duplication (shared files) | 16,500 tokens | 3,200 tokens | **81%** |
-| Agent model cost per phase | $2.78 | $1.59 | **43%** |
-| **Total coordination overhead** | **87,100 tokens** | **21,500 tokens** | **75%** |
+| Agent coordination (x4 agents) | 16,000 tokens | 1,200 tokens | **93%** |
+| Compaction recovery | 5,000 tokens | 700 tokens | **86%** |
+| Context duplication (shared files) | 16,500 tokens | 800 tokens | **95%** |
+| Agent model cost per phase | $2.78 | $1.40 | **50%** |
+| **Total coordination overhead** | **87,100 tokens** | **12,100 tokens** | **86%** |
 
-The four highest-impact optimizations: `disable-model-invocation` on 19 of 29 commands removes ~9,000 tokens from every API request (compressed commands are smaller to begin with); content compression cut commands 53%, agents 47%, and references 72% across the board; model routing sends Scout to Haiku (60x cheaper than Opus) and QA to Sonnet (5x cheaper); and shell pre-computation via `phase-detect.sh` and `session-start.sh` replaces 5-7 file reads with 22 pre-computed key-value pairs.
+The five highest-impact optimizations: `compile-context.sh` produces role-specific context files so each agent loads only what its role needs (Lead gets filtered requirements, Dev gets phase goal + conventions, QA gets verification targets); `disable-model-invocation` on 19 of 29 commands removes ~9,000 tokens from every API request; content compression cut commands 53%, agents 47%, and references 72%; model routing sends Scout to Haiku (60x cheaper than Opus) and QA to Sonnet (5x cheaper); and shell pre-computation via `phase-detect.sh` and `session-start.sh` replaces 5-7 file reads with 22 pre-computed key-value pairs.
 
 **What this means for your bill:**
 
-VBW's 54% total token reduction per phase means each phase burns roughly half the tokens on coordination overhead. For API users, that's direct dollar savings. For subscription plans, your rate limit budget stretches ~2.2x further -- equivalent to getting 120% more development capacity for the same price.
+VBW's ~60% total token reduction per phase means each phase burns roughly 40% of the tokens stock teams would use. For API users, that's direct dollar savings. For subscription plans, your rate limit budget stretches ~2.5x further -- equivalent to getting 150% more development capacity for the same price.
 
 | Scenario | Without VBW | With VBW | Impact |
 | :--- | ---: | ---: | ---: |
-| API: single project (10 phases) | ~$28 | ~$16 | **~$12 saved** |
-| API: active dev (20 phases/mo) | ~$56/mo | ~$32/mo | **~$24/mo saved (~$288/yr)** |
-| API: heavy dev (50 phases/mo) | ~$139/mo | ~$80/mo | **~$59/mo saved (~$714/yr)** |
-| Pro ($20/mo) | baseline capacity | ~2.2x phases per cycle | **120% more work done** |
-| Pro annual ($17/mo) | baseline capacity | ~2.2x phases per cycle | **120% more work done** |
-| Max 5x ($100/mo) | 5x Pro capacity | ~11x vs base Pro | **120% more work done** |
-| Max 20x ($200/mo) | 20x Pro capacity | ~44x vs base Pro | **120% more work done** |
+| API: single project (10 phases) | ~$28 | ~$14 | **~$14 saved** |
+| API: active dev (20 phases/mo) | ~$56/mo | ~$28/mo | **~$28/mo saved (~$336/yr)** |
+| API: heavy dev (50 phases/mo) | ~$139/mo | ~$70/mo | **~$69/mo saved (~$828/yr)** |
+| Pro ($20/mo) | baseline capacity | ~2.5x phases per cycle | **150% more work done** |
+| Pro annual ($17/mo) | baseline capacity | ~2.5x phases per cycle | **150% more work done** |
+| Max 5x ($100/mo) | 5x Pro capacity | ~12.5x vs base Pro | **150% more work done** |
+| Max 20x ($200/mo) | 20x Pro capacity | ~50x vs base Pro | **150% more work done** |
 
-*API projections use the per-phase agent costs from the table above ($2.78 stock, $1.59 VBW). Subscription plans have a flat fee — VBW doesn't change what you pay, but each phase burns 54% fewer overhead tokens, so you fit ~2.2x more phases into the same rate limit budget. Based on [current API pricing](https://claude.com/pricing).*
+*API projections use the per-phase agent costs from the table above ($2.78 stock, $1.40 VBW). Subscription plans have a flat fee — VBW doesn't change what you pay, but each phase burns ~60% fewer overhead tokens, so you fit ~2.5x more phases into the same rate limit budget. Based on [current API pricing](https://claude.com/pricing).*
 
-Full analysis: **[VBW vs Stock Teams Token Analysis](docs/vbw-1-10-2-vs-stock-agent-teams-token-analysis.md)** 
+Full analysis: **[VBW v1.10.7 Context Compiler Token Analysis](docs/vbw-1-10-7-context-compiler-token-analysis.md)** | Previous: **[VBW v1.10.2 Token Analysis](docs/vbw-1-10-2-vs-stock-agent-teams-token-analysis.md)** 
 <br>
 
 ## Manifesto
