@@ -15,24 +15,23 @@ allowed-tools: Read, Glob
 
 ## Commands
 
-**Lifecycle:** ✓ init (scaffold) · ✓ implement (smart router) · ✓ plan (Lead agent) · ✓ execute (Agent Teams) · ✓ archive (close out)
+**Lifecycle:** ✓ init (scaffold) · ✓ vibe (smart router -- plan, execute, discuss, archive, and more)
 **Monitoring:** ✓ status (dashboard) · ✓ qa (deep verify)
 **Quick Actions:** ✓ fix (quick fix) · ✓ debug (investigation) · ✓ todo (backlog)
 **Session:** ✓ pause (save notes) · ✓ resume (restore context)
-**Codebase:** ✓ map (Scout analysis) · ✓ discuss (pre-plan context) · ✓ assumptions (surface assumptions) · ✓ research (standalone)
-**Phases:** ✓ audit (readiness) · ✓ add-phase (append) · ✓ insert-phase (renumber) · ✓ remove-phase (renumber)
+**Codebase:** ✓ map (Scout analysis) · ✓ research (standalone)
 **Config:** ✓ skills (community skills) · ✓ config (settings) · ✓ help (this) · ✓ whats-new (changelog) · ✓ update (version) · ✓ uninstall (removal)
 
 ## Architecture
 
-- /vbw:execute creates Dev team for parallel plans. /vbw:map creates Scout team. Session IS the lead.
+- /vbw:vibe --execute creates Dev team for parallel plans. /vbw:map creates Scout team. Session IS the lead.
 - Continuous verification via PostToolUse, TaskCompleted, TeammateIdle hooks. /vbw:qa is on-demand.
 - /vbw:config maps skills to hook events (skill-hook wiring).
 
 ## Getting Started
 
-➜ /vbw:init -> /vbw:implement -> /vbw:qa -> /vbw:archive
-Or /vbw:plan + /vbw:execute for control. `/vbw:help <command>` for details.
+➜ /vbw:init -> /vbw:vibe -> /vbw:vibe --archive
+`/vbw:help <command>` for details.
 
 ## Output Format
 
