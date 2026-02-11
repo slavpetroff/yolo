@@ -273,3 +273,21 @@ FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
 ### Pure-Vibe Phase Loop
 
 After Execute mode completes (autonomy=pure-vibe only): if more unbuilt phases exist, auto-continue to next phase (Plan + Execute). Loop until `next_phase_state=all_done` or error. Other autonomy levels: STOP after phase.
+
+## Output Format
+
+Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md for all output.
+
+Per-mode output:
+- **Bootstrap:** project-defined banner + transition to scoping
+- **Scope:** phases-created summary + STOP
+- **Discuss:** ✓ for captured answers, Next Up Block
+- **Assumptions:** numbered list, ✓ confirmed, ✗ corrected, ○ expanded, Next Up
+- **Plan:** Phase Banner (double-line box), plan list with waves/tasks, Effort, Next Up
+- **Execute:** Phase Banner, plan results (✓/✗), Metrics (plans, effort, deviations), QA result, "What happened" (NRW-02), Next Up
+- **Add/Insert/Remove Phase:** Phase Banner, ✓ checklist, Next Up
+- **Archive:** Phase Banner, Metrics (phases, tasks, commits, reqs, deviations), archive path, tag, branch, memory status, Next Up
+
+Rules: Phase Banner (double-line box), ◆ running, ✓ complete, ✗ failed, ○ skipped, Metrics Block, Next Up Block, no ANSI color codes.
+
+Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh vibe {result}` for Next Up suggestions.
