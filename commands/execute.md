@@ -147,6 +147,10 @@ Use targeted `message` not `broadcast`. Reserve broadcast for critical blocking 
 
 Hooks handle continuous verification: PostToolUse validates SUMMARY.md, TaskCompleted verifies commits, TeammateIdle runs quality gate.
 
+### Step 3b: Verify SUMMARY.md before proceeding
+
+When a Dev teammate reports plan completion (task marked completed), verify the expected SUMMARY.md exists at `{phase_dir}/{plan_id}-SUMMARY.md` before moving to QA. If missing, send the Dev a message: "Write {plan_id}-SUMMARY.md using the template at templates/SUMMARY.md. Include commit hashes, tasks completed, files modified, and any deviations." Wait for confirmation before proceeding. If the Dev is unavailable, write it yourself from git log and the PLAN.md.
+
 ### Step 4: Post-build QA (optional)
 
 If `--skip-qa` or turbo: "○ QA verification skipped ({reason})"

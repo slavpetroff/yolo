@@ -7,26 +7,28 @@ set -u
 # Read stdin to get task context
 INPUT=$(cat 2>/dev/null) || exit 0
 
-# Structural Check 1: SUMMARY.md existence
-# Check if any *-SUMMARY.md in .vbw-planning/phases/*/ was modified within last 2 hours
-RECENT_SUMMARY=false
+# Structural Check 1: SUMMARY.md completeness
+# Count plans vs summaries — if a phase has more plans than summaries
+# and recent commits exist, a summary is likely missing
+SUMMARY_OK=false
+PLANS_TOTAL=0
+SUMMARIES_TOTAL=0
+
+for phase_dir in .vbw-planning/phases/*/; do
+  [ -d "$phase_dir" ] || continue
+  PLANS=$(ls -1 "$phase_dir"*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
+  SUMMARIES=$(ls -1 "$phase_dir"*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+  PLANS_TOTAL=$(( PLANS_TOTAL + PLANS ))
+  SUMMARIES_TOTAL=$(( SUMMARIES_TOTAL + SUMMARIES ))
+done
+
+# If all plans have summaries, or no plans exist, structural check passes
+if [ "$PLANS_TOTAL" -eq 0 ] || [ "$SUMMARIES_TOTAL" -ge "$PLANS_TOTAL" ]; then
+  SUMMARY_OK=true
+fi
+
 NOW=$(date +%s 2>/dev/null) || exit 0
 TWO_HOURS=7200
-
-for summary_file in .vbw-planning/phases/*/*-SUMMARY.md; do
-  [ -f "$summary_file" ] || continue
-
-  # Get file modification time (macOS vs Linux)
-  FILE_MTIME=$(stat -f %m "$summary_file" 2>/dev/null || stat -c %Y "$summary_file" 2>/dev/null) || continue
-
-  if [ -n "$FILE_MTIME" ] && [ "$FILE_MTIME" -gt 0 ] 2>/dev/null; then
-    AGE=$(( NOW - FILE_MTIME ))
-    if [ "$AGE" -le "$TWO_HOURS" ]; then
-      RECENT_SUMMARY=true
-      break
-    fi
-  fi
-done
 
 # Structural Check 2: Commit format
 # Check if recent commits (last 10, within 2 hours) match GSD conventional format
@@ -52,9 +54,9 @@ while IFS= read -r line; do
 done <<< "$RECENT_COMMITS"
 
 # Decision: either structural indicator is sufficient
-if [ "$RECENT_SUMMARY" = true ] || [ "$FORMAT_MATCH" = true ]; then
+if [ "$SUMMARY_OK" = true ] || [ "$FORMAT_MATCH" = true ]; then
   exit 0
 fi
 
-echo "QA gate: no structural completion indicators found (no recent SUMMARY.md, no conventional commits)" >&2
+echo "QA gate: SUMMARY.md gap detected ($SUMMARIES_TOTAL summaries for $PLANS_TOTAL plans)" >&2
 exit 2
