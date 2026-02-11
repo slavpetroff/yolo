@@ -26,7 +26,7 @@ The pre-push hook is required — it prevents pushing without a version bump (se
 ```
 .claude-plugin/    Plugin manifest (plugin.json)
 agents/            6 agent definitions with native tool permissions
-commands/          27 slash commands (commands/*.md)
+commands/          20 slash commands (commands/*.md)
 config/            Default settings and stack-to-skill mappings
 hooks/             Plugin hooks (hooks.json)
 scripts/           Hook handler scripts
@@ -53,7 +53,7 @@ Key conventions:
 Good candidates:
 
 - Bug fixes in hook scripts or commands
-- New slash commands that fit the lifecycle model (plan, build, verify, ship)
+- New slash commands that fit the lifecycle model (init, vibe, verify, release)
 - Improvements to agent definitions or tool permissions
 - Stack-to-skill mappings in `config/`
 - Template improvements
