@@ -97,8 +97,9 @@ You are the team LEAD. NEVER implement tasks yourself.
 - At Turbo: no team — Dev executes directly.
 
 **Context compilation (REQ-11):** If `config_context_compiler=true` from Context block above, before creating Dev tasks run:
-`bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} dev {phases_dir}`
+`bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} dev {phases_dir} {plan_path}`
 This produces `{phase-dir}/.context-dev.md` with phase goal and conventions.
+The plan_path argument enables skill bundling: compile-context.sh reads skills_used from the plan's frontmatter and bundles referenced SKILL.md content into .context-dev.md. If the plan has no skills_used, this is a no-op.
 If compilation fails, proceed without it — Dev reads files directly.
 
 For each uncompleted plan, TaskCreate:
