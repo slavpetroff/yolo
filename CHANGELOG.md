@@ -2,6 +2,14 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- **`statusline`** -- distinguish auth expired from network failure in usage limits. Previously, both a stale OAuth token (401/403) and a network timeout showed the same "fetch failed" message. Now shows "auth expired (run /login)" for auth failures, keeping "fetch failed (retry in 60s)" for actual network issues.
+
+---
+
 ## [1.10.12] - 2026-02-11
 
 ### Fixed

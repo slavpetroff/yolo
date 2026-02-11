@@ -212,10 +212,12 @@ if ! cache_fresh "$SLOW_CF" 60; then
   EXTRA_ENABLED=0; EXTRA_PCT=-1; EXTRA_USED_C=0; EXTRA_LIMIT_C=0; FETCH_OK="noauth"
 
   if [ -n "$OAUTH_TOKEN" ]; then
-    USAGE_RAW=$(curl -s --max-time 3 \
+    HTTP_CODE=$(curl -s -o /tmp/vbw-usage-body-"${_UID}" -w '%{http_code}' --max-time 3 \
       -H "Authorization: Bearer ${OAUTH_TOKEN}" \
       -H "anthropic-beta: oauth-2025-04-20" \
-      "https://api.anthropic.com/api/oauth/usage" 2>/dev/null)
+      "https://api.anthropic.com/api/oauth/usage" 2>/dev/null) || HTTP_CODE="000"
+    USAGE_RAW=$(cat /tmp/vbw-usage-body-"${_UID}" 2>/dev/null)
+    rm -f /tmp/vbw-usage-body-"${_UID}" 2>/dev/null
 
     if [ -n "$USAGE_RAW" ] && echo "$USAGE_RAW" | jq -e '.five_hour' >/dev/null 2>&1; then
       IFS='|' read -r FIVE_PCT FIVE_EPOCH WEEK_PCT WEEK_EPOCH SONNET_PCT \
@@ -237,7 +239,11 @@ if ! cache_fresh "$SLOW_CF" 60; then
         ' 2>/dev/null)"
       FETCH_OK="ok"
     else
-      FETCH_OK="fail"
+      if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ]; then
+        FETCH_OK="auth"
+      else
+        FETCH_OK="fail"
+      fi
     fi
   fi
 
@@ -326,6 +332,8 @@ if [ "$FETCH_OK" = "ok" ]; then
     EXTRA_LIMIT_D="$((EXTRA_LIMIT_C / 100)).$( printf '%02d' $((EXTRA_LIMIT_C % 100)) )"
     USAGE_LINE="$USAGE_LINE ${D}│${X} Extra: $(progress_bar "${EXTRA_PCT}" 20) ${EXTRA_PCT}% \$${EXTRA_USED_D}/\$${EXTRA_LIMIT_D}"
   fi
+elif [ "$FETCH_OK" = "auth" ]; then
+  USAGE_LINE="${D}Limits: auth expired (run /login)${X}"
 elif [ "$FETCH_OK" = "fail" ]; then
   USAGE_LINE="${D}Limits: fetch failed (retry in 60s)${X}"
 else
