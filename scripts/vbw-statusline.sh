@@ -144,8 +144,14 @@ if ! cache_fresh "$FAST_CF" 5; then
     PH=$(grep -m1 "^Phase:" .vbw-planning/STATE.md | grep -oE '[0-9]+' | head -1)
     TT=$(grep -m1 "^Phase:" .vbw-planning/STATE.md | grep -oE '[0-9]+' | tail -1)
   fi
-  [ -f ".vbw-planning/config.json" ] && \
+  if [ -f ".vbw-planning/config.json" ]; then
+    # Auto-migrate: add model_profile if missing
+    if ! jq -e '.model_profile' .vbw-planning/config.json >/dev/null 2>&1; then
+      TMP=$(mktemp)
+      jq '. + {model_profile: "balanced", model_overrides: {}}' .vbw-planning/config.json > "$TMP" && mv "$TMP" .vbw-planning/config.json
+    fi
     EF=$(jq -r '.effort // "balanced"' .vbw-planning/config.json 2>/dev/null)
+  fi
   if git rev-parse --git-dir >/dev/null 2>&1; then
     BR=$(git branch --show-current 2>/dev/null)
     GH_URL=$(git remote get-url origin 2>/dev/null | sed 's|git@github.com:|https://github.com/|' | sed 's|\.git$||' | sed 's|https://[^@]*@|https://|')
