@@ -6,6 +6,7 @@
   "skill_suggestions": true,
   "auto_install_skills": false,
   "discovery_questions": true,
+  "context_compiler": true,
   "visual_format": "unicode",
   "max_tasks_per_plan": 5,
   "agent_teams": true,

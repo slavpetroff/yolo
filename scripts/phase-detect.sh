@@ -32,6 +32,7 @@ else
   echo "config_verification_tier=standard"
   echo "config_agent_teams=false"
   echo "config_max_tasks_per_plan=5"
+  echo "config_context_compiler=true"
   echo "has_codebase_map=false"
   echo "brownfield=false"
   echo "execution_state=none"
@@ -148,6 +149,7 @@ CFG_VERIFICATION_TIER="standard"
 CFG_AGENT_TEAMS="false"
 CFG_MAX_TASKS="5"
 CFG_COMPACTION="130000"
+CFG_CONTEXT_COMPILER="true"
 
 if [ "$JQ_AVAILABLE" = true ] && [ -f "$CONFIG_FILE" ]; then
   CFG_EFFORT=$(jq -r '.effort // "balanced"' "$CONFIG_FILE" 2>/dev/null)
@@ -156,6 +158,7 @@ if [ "$JQ_AVAILABLE" = true ] && [ -f "$CONFIG_FILE" ]; then
   CFG_VERIFICATION_TIER=$(jq -r '.verification_tier // "standard"' "$CONFIG_FILE" 2>/dev/null)
   CFG_AGENT_TEAMS=$(jq -r '.agent_teams // false' "$CONFIG_FILE" 2>/dev/null)
   CFG_MAX_TASKS=$(jq -r '.max_tasks_per_plan // 5' "$CONFIG_FILE" 2>/dev/null)
+  CFG_CONTEXT_COMPILER=$(jq -r '.context_compiler // true' "$CONFIG_FILE" 2>/dev/null)
 fi
 
 echo "config_effort=$CFG_EFFORT"
@@ -164,6 +167,7 @@ echo "config_auto_commit=$CFG_AUTO_COMMIT"
 echo "config_verification_tier=$CFG_VERIFICATION_TIER"
 echo "config_agent_teams=$CFG_AGENT_TEAMS"
 echo "config_max_tasks_per_plan=$CFG_MAX_TASKS"
+echo "config_context_compiler=$CFG_CONTEXT_COMPILER"
 
 # --- Codebase map status ---
 if [ -f "$PLANNING_DIR/codebase/META.md" ]; then
