@@ -86,6 +86,32 @@ CONTRACT
   echo "$output" | jq -e '.errors[0]' | grep -q "contract file not found"
 }
 
+@test "two-phase: rejects when no evidence provided" {
+  cd "$TEST_TEMP_DIR"
+  create_passing_contract
+  run bash "$SCRIPTS_DIR/two-phase-complete.sh" "1-1-T1" 1 1 ".vbw-planning/.contracts/1-1.json"
+  [ "$status" -eq 2 ]
+  echo "$output" | jq -e '.result == "rejected"'
+  echo "$output" | jq -e '.errors[] | select(contains("no evidence"))'
+}
+
+@test "two-phase: rejects when files_modified outside allowed_paths" {
+  cd "$TEST_TEMP_DIR"
+  create_passing_contract
+  run bash "$SCRIPTS_DIR/two-phase-complete.sh" "1-1-T1" 1 1 ".vbw-planning/.contracts/1-1.json" "files_modified=bad/path.js" "some evidence"
+  [ "$status" -eq 2 ]
+  echo "$output" | jq -e '.result == "rejected"'
+  echo "$output" | jq -e '.errors[] | select(contains("outside allowed_paths"))'
+}
+
+@test "two-phase: passes when files_modified within allowed_paths" {
+  cd "$TEST_TEMP_DIR"
+  create_passing_contract
+  run bash "$SCRIPTS_DIR/two-phase-complete.sh" "1-1-T1" 1 1 ".vbw-planning/.contracts/1-1.json" "files_modified=src/a.js" "feature works"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.result == "confirmed"'
+}
+
 # --- Artifact registry ---
 
 @test "artifact-registry: register creates entry" {

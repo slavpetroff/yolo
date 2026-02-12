@@ -79,6 +79,46 @@ teardown() {
   [ -z "$output" ]
 }
 
+@test "lease-lock: exits non-zero on conflict when v2_hard_gates=true" {
+  cd "$TEST_TEMP_DIR"
+  jq '.v3_lease_locks = true | .v2_hard_gates = true' .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
+    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  bash "$SCRIPTS_DIR/lease-lock.sh" acquire other-task file1.sh >/dev/null 2>&1
+  run bash "$SCRIPTS_DIR/lease-lock.sh" acquire new-task file1.sh
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"conflict_blocked"* ]]
+}
+
+@test "lease-lock: exits 0 on conflict when v2_hard_gates=false" {
+  cd "$TEST_TEMP_DIR"
+  jq '.v3_lease_locks = true | .v2_hard_gates = false' .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
+    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  bash "$SCRIPTS_DIR/lease-lock.sh" acquire other-task file1.sh >/dev/null 2>&1
+  run bash "$SCRIPTS_DIR/lease-lock.sh" acquire new-task file1.sh
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"acquired"* ]]
+}
+
+@test "lease-lock: query returns lock info" {
+  cd "$TEST_TEMP_DIR"
+  jq '.v3_lease_locks = true' .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
+    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  bash "$SCRIPTS_DIR/lease-lock.sh" acquire test-task file1.sh >/dev/null
+  run bash "$SCRIPTS_DIR/lease-lock.sh" query test-task
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.task_id == "test-task"'
+  echo "$output" | jq -e '.files | length == 1'
+}
+
+@test "lease-lock: query returns no_lock when absent" {
+  cd "$TEST_TEMP_DIR"
+  jq '.v3_lease_locks = true' .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
+    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  run bash "$SCRIPTS_DIR/lease-lock.sh" query nonexistent
+  [ "$status" -eq 0 ]
+  [ "$output" = "no_lock" ]
+}
+
 # --- recover-state.sh tests ---
 
 @test "recover-state: reconstructs state from event log and summaries" {
