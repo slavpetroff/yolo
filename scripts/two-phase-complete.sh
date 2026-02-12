@@ -35,9 +35,15 @@ PLAN="$3"
 CONTRACT_PATH="$4"
 shift 4
 
-# Collect evidence from remaining args
+# Collect evidence from remaining args; extract files_modified if present
 EVIDENCE=""
+FILES_MODIFIED=""
 for arg in "$@"; do
+  case "$arg" in
+    files_modified=*)
+      FILES_MODIFIED="${arg#files_modified=}"
+      ;;
+  esac
   if [ -n "$EVIDENCE" ]; then
     EVIDENCE="${EVIDENCE}, ${arg}"
   else
@@ -64,15 +70,42 @@ if [ ! -f "$CONTRACT_PATH" ]; then
   add_error "contract file not found: ${CONTRACT_PATH}"
   CHECKS_TOTAL=1
 else
-  # Check must_haves: verify each exists as a testable condition
+  # Check must_haves: require non-empty evidence (REQ-03)
   MUST_HAVES=$(jq -r '.must_haves // [] | .[]' "$CONTRACT_PATH" 2>/dev/null) || MUST_HAVES=""
   if [ -n "$MUST_HAVES" ]; then
     while IFS= read -r mh; do
       [ -z "$mh" ] && continue
       CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
-      # Must-haves are declarative — mark as checked (actual verification is via checks below)
-      CHECKS_PASSED=$((CHECKS_PASSED + 1))
+      if [ -z "$EVIDENCE" ] || [ "$EVIDENCE" = "none" ]; then
+        add_error "no evidence provided for must_have: ${mh}"
+      else
+        CHECKS_PASSED=$((CHECKS_PASSED + 1))
+      fi
     done <<< "$MUST_HAVES"
+  fi
+
+  # Validate files_modified against allowed_paths (REQ-03)
+  if [ -n "$FILES_MODIFIED" ]; then
+    ALLOWED_PATHS=$(jq -r '.allowed_paths // [] | .[]' "$CONTRACT_PATH" 2>/dev/null) || ALLOWED_PATHS=""
+    if [ -n "$ALLOWED_PATHS" ]; then
+      IFS=',' read -ra FM_ARRAY <<< "$FILES_MODIFIED"
+      for fmod in "${FM_ARRAY[@]}"; do
+        [ -z "$fmod" ] && continue
+        CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
+        IN_SCOPE=false
+        while IFS= read -r allowed; do
+          [ -z "$allowed" ] && continue
+          case "$fmod" in
+            "$allowed"|"$allowed"/*) IN_SCOPE=true; break ;;
+          esac
+        done <<< "$ALLOWED_PATHS"
+        if [ "$IN_SCOPE" = "true" ]; then
+          CHECKS_PASSED=$((CHECKS_PASSED + 1))
+        else
+          add_error "files_modified outside allowed_paths: ${fmod}"
+        fi
+      done
+    fi
   fi
 
   # Run verification_checks: each is a shell command that must exit 0
