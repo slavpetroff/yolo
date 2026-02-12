@@ -39,7 +39,7 @@ If remote == old: display "✓ Already at latest (v{old_version}). Refreshing ca
 ```bash
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/cache-nuke.sh
 ```
-Removes CLAUDE_DIR/plugins/cache/vbw-marketplace/vbw/, CLAUDE_DIR/commands/vbw/, /tmp/vbw-* for pristine update.
+Removes CLAUDE_DIR/plugins/cache/vbw-marketplace/vbw/ and /tmp/vbw-* for pristine update.
 
 ### Step 5: Perform update
 
