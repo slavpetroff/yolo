@@ -109,6 +109,26 @@ Hooks handle continuous verification: PostToolUse validates SUMMARY.md, TaskComp
 - At phase end: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/collect-metrics.sh execute_phase_complete {phase} plans_completed={N} total_tasks={N} total_commits={N} deviations={N}`
 All metrics calls should be `2>/dev/null || true` — never block execution.
 
+**V3 Contract-Lite (REQ-10):** If `v3_contract_lite=true` in config:
+- **Once per plan (before first task):** Generate contract sidecar:
+  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/generate-contract.sh {plan_path} 2>/dev/null || true`
+  This produces `.vbw-planning/.contracts/{phase}-{plan}.json` with allowed_paths and must_haves.
+- **Before each task:** Validate task start:
+  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-contract.sh start {contract_path} {task_number} 2>/dev/null || true`
+- **After each task:** Validate modified files against contract:
+  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-contract.sh end {contract_path} {task_number} {modified_files...} 2>/dev/null || true`
+  Where `{modified_files}` comes from `git diff --name-only HEAD~1` after the task's commit.
+- Violations are advisory only (logged to metrics, not blocking).
+
+**V3 Lock-Lite (REQ-11):** If `v3_lock_lite=true` in config:
+- **Before each task:** Acquire lock with claimed files:
+  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lock-lite.sh acquire {task_id} {claimed_files...} 2>/dev/null || true`
+  Where `{task_id}` is `{phase}-{plan}-T{N}` and `{claimed_files}` from the task's **Files:** list.
+- **After each task (or on failure):** Release lock:
+  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lock-lite.sh release {task_id} 2>/dev/null || true`
+- Conflicts are advisory only (logged to metrics, not blocking).
+- Lock cleanup: at phase end, `rm -f .vbw-planning/.locks/*.lock 2>/dev/null || true`.
+
 ### Step 3b: SUMMARY.md verification gate (mandatory)
 
 **This is a hard gate. Do NOT proceed to QA or mark a plan as complete in .execution-state.json without verifying its SUMMARY.md.**
