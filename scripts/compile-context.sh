@@ -55,6 +55,33 @@ if [ "$PHASE_REQS" != "Not available" ] && [ -n "$PHASE_REQS" ]; then
   REQ_PATTERN=$(echo "$PHASE_REQS" | tr ',' '\n' | sed 's/^ *//' | sed 's/ *$//' | paste -sd '|' -) || true
 fi
 
+# --- V3: Context cache check (REQ-07) ---
+V3_CACHE_ENABLED=false
+CACHE_HASH=""
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_PATH="${PLANNING_DIR}/config.json"
+
+if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
+  V3_CACHE_ENABLED=$(jq -r '.v3_context_cache // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
+fi
+
+if [ "$V3_CACHE_ENABLED" = "true" ] && [ -f "${SCRIPT_DIR}/cache-context.sh" ]; then
+  CACHE_RESULT=$(bash "${SCRIPT_DIR}/cache-context.sh" "$PHASE" "$ROLE" "$CONFIG_PATH" "$PLAN_PATH" 2>/dev/null || echo "miss nohash")
+  CACHE_STATUS=$(echo "$CACHE_RESULT" | cut -d' ' -f1)
+  CACHE_HASH=$(echo "$CACHE_RESULT" | cut -d' ' -f2)
+
+  if [ "$CACHE_STATUS" = "hit" ]; then
+    CACHED_PATH=$(echo "$CACHE_RESULT" | cut -d' ' -f3)
+    OUTPUT_PATH="${PHASE_DIR}/.context-${ROLE}.md"
+    cp "$CACHED_PATH" "$OUTPUT_PATH" 2>/dev/null || true
+    if [ -f "$OUTPUT_PATH" ]; then
+      echo "$OUTPUT_PATH"
+      exit 0
+    fi
+    # Fallthrough: if copy failed, compile fresh
+  fi
+fi
+
 # --- Role-specific output ---
 case "$ROLE" in
   lead)
@@ -221,5 +248,12 @@ case "$ROLE" in
     exit 1
     ;;
 esac
+
+# --- V3: Cache the compiled result ---
+if [ "$V3_CACHE_ENABLED" = "true" ] && [ -n "$CACHE_HASH" ] && [ "$CACHE_HASH" != "nohash" ]; then
+  CACHE_DIR="${PLANNING_DIR}/.cache/context"
+  mkdir -p "$CACHE_DIR" 2>/dev/null || true
+  cp "${PHASE_DIR}/.context-${ROLE}.md" "${CACHE_DIR}/${CACHE_HASH}.md" 2>/dev/null || true
+fi
 
 echo "${PHASE_DIR}/.context-${ROLE}.md"
