@@ -13,6 +13,9 @@ node_modules/
 # Claude Code local settings
 .claude/settings.local.json
 
+# GitHub Copilot instructions
+.github/copilot-instructions.md
+
 # OS
 .DS_Store
 Thumbs.db
