@@ -20,8 +20,13 @@ PLAN_PATH="${4:-}"
 PHASE_NUM=$(echo "$PHASE" | sed 's/^0*//')
 if [ -z "$PHASE_NUM" ]; then PHASE_NUM="0"; fi
 
-# --- Find phase directory ---
+# --- Find phase directory (with zero-pad normalization) ---
 PHASE_DIR=$(find "$PHASES_DIR" -maxdepth 1 -type d -name "${PHASE}-*" 2>/dev/null | head -1)
+if [ -z "$PHASE_DIR" ]; then
+  # Try zero-padded version: "1" -> "01"
+  PADDED=$(printf "%02d" "$PHASE" 2>/dev/null || echo "$PHASE")
+  PHASE_DIR=$(find "$PHASES_DIR" -maxdepth 1 -type d -name "${PADDED}-*" 2>/dev/null | head -1)
+fi
 if [ -z "$PHASE_DIR" ]; then
   echo "Phase ${PHASE} directory not found" >&2
   exit 1
@@ -155,8 +160,64 @@ case "$ROLE" in
     } > "${PHASE_DIR}/.context-qa.md"
     ;;
 
+  scout)
+    {
+      echo "## Phase ${PHASE} Research Context"
+      echo ""
+      echo "### Goal"
+      echo "$PHASE_GOAL"
+      echo ""
+      echo "### Requirements (${PHASE_REQS})"
+      if [ -n "$REQ_PATTERN" ] && [ -f "$PLANNING_DIR/REQUIREMENTS.md" ]; then
+        grep -E "($REQ_PATTERN)" "$PLANNING_DIR/REQUIREMENTS.md" 2>/dev/null || echo "No matching requirements found"
+      else
+        echo "No matching requirements found"
+      fi
+    } > "${PHASE_DIR}/.context-scout.md"
+    ;;
+
+  debugger)
+    {
+      echo "## Phase ${PHASE} Debug Context"
+      echo ""
+      echo "### Goal"
+      echo "$PHASE_GOAL"
+      echo ""
+      echo "### Recent Activity"
+      if [ -f "$PLANNING_DIR/STATE.md" ]; then
+        ACTIVITY=$(sed -n '/^## Activity/,/^## [A-Z]/p' "$PLANNING_DIR/STATE.md" 2>/dev/null | sed '$d' | tail -n +2) || true
+        if [ -n "$ACTIVITY" ]; then
+          echo "$ACTIVITY"
+        else
+          echo "None"
+        fi
+      else
+        echo "None"
+      fi
+    } > "${PHASE_DIR}/.context-debugger.md"
+    ;;
+
+  architect)
+    {
+      echo "## Phase ${PHASE} Architecture Context"
+      echo ""
+      echo "### Goal"
+      echo "$PHASE_GOAL"
+      echo ""
+      echo "### Success Criteria"
+      echo "$PHASE_SUCCESS"
+      echo ""
+      echo "### Full Requirements"
+      if [ -f "$PLANNING_DIR/REQUIREMENTS.md" ]; then
+        cat "$PLANNING_DIR/REQUIREMENTS.md"
+      else
+        echo "No requirements file found"
+      fi
+    } > "${PHASE_DIR}/.context-architect.md"
+    ;;
+
   *)
-    echo "Unknown role: $ROLE. Valid roles: lead, dev, qa" >&2
+    echo "Unknown role: $ROLE. Valid roles: lead, dev, qa, scout, debugger, architect" >&2
     exit 1
     ;;
 esac
