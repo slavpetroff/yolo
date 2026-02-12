@@ -103,6 +103,36 @@ AskUserQuestion with 2 questions:
 
 Store selections in variables `DEBUGGER_MODEL`, `ARCHITECT_MODEL`.
 
+**Apply Individual Overrides:**
+
+Ensure model_overrides object exists:
+```bash
+if ! jq -e '.model_overrides' .vbw-planning/config.json >/dev/null 2>&1; then
+  jq '.model_overrides = {}' .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+fi
+```
+
+Apply each agent override:
+```bash
+jq ".model_overrides.lead = \"$LEAD_MODEL\"" .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+echo "✓ Model override: lead ➜ $LEAD_MODEL"
+
+jq ".model_overrides.dev = \"$DEV_MODEL\"" .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+echo "✓ Model override: dev ➜ $DEV_MODEL"
+
+jq ".model_overrides.qa = \"$QA_MODEL\"" .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+echo "✓ Model override: qa ➜ $QA_MODEL"
+
+jq ".model_overrides.scout = \"$SCOUT_MODEL\"" .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+echo "✓ Model override: scout ➜ $SCOUT_MODEL"
+
+jq ".model_overrides.debugger = \"$DEBUGGER_MODEL\"" .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+echo "✓ Model override: debugger ➜ $DEBUGGER_MODEL"
+
+jq ".model_overrides.architect = \"$ARCHITECT_MODEL\"" .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+echo "✓ Model override: architect ➜ $ARCHITECT_MODEL"
+```
+
 **Step 3:** Apply changes to config.json. Display ✓ per changed setting with ➜. No changes: "✓ No changes made."
 
 **Step 4: Profile drift detection** — if effort/autonomy/verification_tier changed:
