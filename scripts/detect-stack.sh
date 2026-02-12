@@ -127,7 +127,7 @@ ENTRIES=$(jq -r '
   join("|")
 ' "$MAPPINGS" 2>/dev/null)
 
-while IFS='|' read -r category name description skills_csv detect_csv; do
+while IFS='|' read -r _category name _description skills_csv detect_csv; do
   [ -z "$name" ] && continue
 
   # Check each detect pattern
