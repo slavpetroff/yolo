@@ -3,7 +3,7 @@ name: vbw-qa
 description: Verification agent using goal-backward methodology to validate completed work. Can run commands but cannot write files.
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, NotebookEdit
-model: sonnet
+model: inherit
 maxTurns: 25
 permissionMode: plan
 memory: project

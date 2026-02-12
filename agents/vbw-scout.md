@@ -3,7 +3,7 @@ name: vbw-scout
 description: Research agent for web searches, doc lookups, and codebase scanning. Read-only, no file modifications.
 tools: Read, Grep, Glob, WebSearch, WebFetch
 disallowedTools: Write, Edit, NotebookEdit, Bash
-model: haiku
+model: inherit
 maxTurns: 15
 permissionMode: plan
 memory: project
