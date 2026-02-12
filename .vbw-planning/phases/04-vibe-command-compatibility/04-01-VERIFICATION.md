@@ -122,33 +122,81 @@ This triggers fresh state detection, routing to Scope mode (since PROJECT.md now
 
 **B1.5 (lines 109-118):** Reads `discovery_questions` and `active_profile` from config.
 
-Force-skip logic (line 118):
+```markdown
+- **B1.5: Discovery Depth** -- Read `discovery_questions` and `active_profile` from config. Map profile to depth:
+
+  | Profile | Depth | Questions |
+  |---------|-------|-----------|
+  | yolo | skip | 0 |
+  | prototype | quick | 1-2 |
+  | default | standard | 3-5 |
+  | production | thorough | 5-8 |
+
+  If `discovery_questions=false`: force depth=skip. Store DISCOVERY_DEPTH for B2.
 ```
-If `discovery_questions=false`: force depth=skip. Store DISCOVERY_DEPTH for B2.
-```
-Verified: When config sets `discovery_questions=false`, DISCOVERY_DEPTH is set to `skip` regardless of profile.
+
+**Verification:**
+- Config read: Step reads both `discovery_questions` (boolean flag) and `active_profile` (string) from `.vbw-planning/config.json`
+- Force-skip logic (line 118): When `discovery_questions=false`, DISCOVERY_DEPTH is set to `skip` **regardless of profile setting**
+- Override behavior: User preference (discovery_questions flag) takes precedence over profile default
 
 ### Profile-to-Depth Mapping
 
-**Table at lines 111-116:**
+**Mapping table (lines 111-116):**
 
-| Profile | Depth | Questions |
-|---------|-------|-----------|
-| yolo | skip | 0 |
-| prototype | quick | 1-2 |
-| default | standard | 3-5 |
-| production | thorough | 5-8 |
+| Profile | Depth | Questions | Behavior |
+|---------|-------|-----------|----------|
+| yolo | skip | 0 | No discovery questions, minimal static questions only |
+| prototype | quick | 1-2 | 1 scenario round, 1 checklist round |
+| default | standard | 3-5 | 2 scenario rounds, 1-2 checklist rounds |
+| production | thorough | 5-8 | 3-4 scenario rounds, 2-3 checklist rounds |
 
-Verified: B1.5 reads `active_profile` from config and maps it to discovery depth. B2 (lines 120-131) branches on DISCOVERY_DEPTH to determine question behavior.
+**Verification:**
+- B1.5 reads `active_profile` from config
+- Maps profile string to depth value via table
+- Stores DISCOVERY_DEPTH variable for B2 consumption
+- If profile not recognized, falls back to `default` (standard depth)
 
 ### Discovery Branching
 
-**B2 (lines 120-131):**
-- If `depth=skip`: Ask 2 minimal static questions, create empty `discovery.json`
-- If `depth=quick/standard/thorough`: Read discovery-protocol.md and follow adaptive questioning flow
-- All paths call bootstrap-requirements.sh with discovery.json input
+**B2 (lines 120-131):** REQUIREMENTS.md generation behavior depends on DISCOVERY_DEPTH value.
 
-Verified: Config settings flow through B1.5 → DISCOVERY_DEPTH → B2 branching logic.
+**Branch 1: Skip depth (lines 121-122):**
+```markdown
+- **If skip:** Ask 2 minimal static questions via AskUserQuestion: (1) "What are the must-have features?" (2) "Who will use this?" Create `.vbw-planning/discovery.json` with `{"answered":[],"inferred":[]}`.
+```
+- Triggers when: `discovery_questions=false` OR `active_profile=yolo`
+- Behavior: 2 hardcoded questions, no discovery protocol
+- Output: Empty discovery.json structure
+
+**Branch 2: Quick/Standard/Thorough depth (lines 123-127):**
+```markdown
+- **If quick/standard/thorough:** Read `${CLAUDE_PLUGIN_ROOT}/references/discovery-protocol.md`. Follow Bootstrap Discovery flow:
+  1. Analyze user's description for domain, scale, users, complexity signals
+  2. Round 1 -- Scenarios: Generate scenario questions per protocol. Present as AskUserQuestion with descriptive options. Count: quick=1, standard=2, thorough=3-4
+  3. Round 2 -- Checklists: Based on Round 1 answers, generate targeted pick-many questions with `multiSelect: true`. Count: quick=1, standard=1-2, thorough=2-3
+  4. Synthesize answers into `.vbw-planning/discovery.json` with `answered[]` and `inferred[]` (questions=friendly, requirements=precise)
+```
+- Triggers when: `discovery_questions=true` (or not set) AND `active_profile` in {prototype, default, production}
+- Behavior: Delegates to discovery-protocol.md for adaptive questioning
+- Question counts vary by depth level
+- Output: Populated discovery.json with answered and inferred arrays
+
+**Common path (line 129-130):**
+Both branches converge on calling bootstrap-requirements.sh:
+```markdown
+- **After discovery (all depths):** Call:
+  ```
+  bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-requirements.sh .vbw-planning/REQUIREMENTS.md .vbw-planning/discovery.json
+  ```
+```
+
+**Verification:**
+- Config settings flow through B1.5 → DISCOVERY_DEPTH → B2 branching
+- discovery_questions=false overrides profile setting (always skip)
+- discovery_questions=true respects profile mapping
+- All branches produce discovery.json and call bootstrap-requirements.sh
+- No hardcoded depth values; all driven by config
 
 ## Structural Isolation
 
