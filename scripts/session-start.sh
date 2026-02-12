@@ -19,6 +19,44 @@ if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ]; then
   fi
 fi
 
+# Auto-migrate .claude/CLAUDE.md to root CLAUDE.md (VBW projects only)
+if [ -d "$PLANNING_DIR" ] && [ ! -f "$PLANNING_DIR/.claude-md-migrated" ]; then
+  if [ -f ".claude/CLAUDE.md" ]; then
+    if [ ! -f "CLAUDE.md" ]; then
+      # Scenario A: .claude/CLAUDE.md only → move to root
+      mv ".claude/CLAUDE.md" "CLAUDE.md"
+    else
+      # Scenario B: both exist — extract non-VBW content from guard
+      EXTRACTED=$(awk '
+        BEGIN { skip = 0 }
+        /^## (Active Context|VBW Rules|Key Decisions|Installed Skills|Project Conventions|Commands|Plugin Isolation)$/ { skip = 1; next }
+        /^## / { skip = 0 }
+        /^# / && !/^## / { next }
+        /^\*\*Core value:\*\*/ { next }
+        !skip { print }
+      ' ".claude/CLAUDE.md")
+      if echo "$EXTRACTED" | grep -q '[^[:space:]]'; then
+        # Has user content — merge into root before VBW sections
+        FIRST_VBW=$(grep -nE '^## (Active Context|VBW Rules|Key Decisions|Installed Skills|Project Conventions|Commands|Plugin Isolation)$' "CLAUDE.md" | head -1 | cut -d: -f1)
+        TMP=$(mktemp)
+        if [ -n "${FIRST_VBW:-}" ]; then
+          head -n $((FIRST_VBW - 1)) "CLAUDE.md" > "$TMP"
+          echo "$EXTRACTED" >> "$TMP"
+          echo "" >> "$TMP"
+          tail -n +"$FIRST_VBW" "CLAUDE.md" >> "$TMP"
+        else
+          cat "CLAUDE.md" > "$TMP"
+          echo "" >> "$TMP"
+          echo "$EXTRACTED" >> "$TMP"
+        fi
+        mv "$TMP" "CLAUDE.md"
+      fi
+      rm ".claude/CLAUDE.md"
+    fi
+  fi
+  touch "$PLANNING_DIR/.claude-md-migrated"
+fi
+
 # Clean compaction marker at session start (fresh-session guarantee, REQ-15)
 rm -f "$PLANNING_DIR/.compaction-marker" 2>/dev/null
 

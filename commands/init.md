@@ -384,6 +384,8 @@ If SKIP_INFERENCE=false (confirmed/corrected inference data):
   - If CLAUDE.md does not exist yet, omit the last argument
 - Display: `✓ CLAUDE.md`
 
+**Note:** VBW always writes root `CLAUDE.md`, never `.claude/CLAUDE.md`. Existing `.claude/CLAUDE.md` files from older versions are auto-migrated to root on session start.
+
 **7g. Cleanup temporary files:**
 - Remove `.vbw-planning/discovery.json`, `.vbw-planning/phases.json`, `.vbw-planning/inference.json`, `.vbw-planning/gsd-inference.json` (if they exist)
 - These are intermediate build artifacts, not project state

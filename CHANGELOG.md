@@ -4,6 +4,10 @@ All notable changes to VBW will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **`session-start`** -- auto-migration of `.claude/CLAUDE.md` to root `CLAUDE.md` for existing VBW projects. Three scenarios handled: move (guard-only → root), merge (user content extracted and inserted before VBW sections in root), no-op (root already exists, no guard). Gated on `.vbw-planning/` existence with `.claude-md-migrated` idempotency marker.
+
 ### Changed
 
 - **`isolation`** -- consolidated to single `CLAUDE.md`. Removed redundant `.claude/CLAUDE.md` guard file (identical content already embedded in root `CLAUDE.md` via `generate_plugin_isolation_section()`). Removed `--write-isolation-guard` mode from `bootstrap-claude.sh`. GSD isolation defense model simplified from three-layer to two-layer: root `CLAUDE.md` Plugin Isolation instructions + `security-filter.sh` PreToolUse hard block.
