@@ -267,7 +267,38 @@ Display Phase Banner then file checklist (✓ for each created file).
 - If GSD_IMPORTED=true: Display "✓ GSD project archived ({file count} files, indexed)" where file count = `find .vbw-planning/gsd-archive -type f | wc -l`, then display sub-bullet: "  • Index: .vbw-planning/gsd-archive/INDEX.json"
 - If .planning exists but GSD_IMPORTED=false: Display "○ GSD import skipped"
 
-Then show conditional lines for GSD isolation, statusline, codebase mapping, conventions, skills. Then auto-launch `/vbw:vibe` by reading `${CLAUDE_PLUGIN_ROOT}/commands/vibe.md` and following it. If greenfield, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh init` and display output.
+Then show conditional lines for GSD isolation, statusline, codebase mapping, conventions, skills.
+
+<!-- Auto-bootstrap flow begins here — seamless continuation from infrastructure setup -->
+
+### Step 5: Scenario detection
+
+Display transition message: `◆ Infrastructure complete. Defining project...`
+
+Detect the initialization scenario based on flags set in earlier steps:
+
+1. **GREENFIELD:** BROWNFIELD=false (set in Guard step). No existing codebase to infer from.
+2. **GSD_MIGRATION:** `.vbw-planning/gsd-archive/` directory exists (created in Step 0.5). Has GSD work history to import.
+3. **BROWNFIELD:** BROWNFIELD=true AND `.vbw-planning/codebase/` directory exists (created in Step 2c mapping). Has codebase context to infer from.
+4. **HYBRID:** BROWNFIELD=true but `.vbw-planning/codebase/` does not exist. Edge case — should not occur after Step 2c, but handle gracefully by treating as GREENFIELD.
+
+Check conditions in order (GSD_MIGRATION first since a GSD project may also be brownfield):
+
+```
+if [ -d .vbw-planning/gsd-archive ]; then SCENARIO=GSD_MIGRATION
+elif [ "$BROWNFIELD" = "true" ] && [ -d .vbw-planning/codebase ]; then SCENARIO=BROWNFIELD
+elif [ "$BROWNFIELD" = "true" ]; then SCENARIO=HYBRID
+else SCENARIO=GREENFIELD
+fi
+```
+
+Display the detected scenario:
+- GREENFIELD: `○ Scenario: Greenfield — new project`
+- BROWNFIELD: `◆ Scenario: Brownfield — existing codebase detected`
+- GSD_MIGRATION: `◆ Scenario: GSD Migration — importing work history`
+- HYBRID: `○ Scenario: Hybrid — treating as greenfield (no mapping)`
+
+No user interaction in this step. Proceed immediately to Step 6.
 
 ## Output Format
 
