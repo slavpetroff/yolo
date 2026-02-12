@@ -4,6 +4,9 @@ set -u
 # Exit 2 = block completion, Exit 0 = allow
 # Exit 0 on ANY error (fail-open: never block legitimate work)
 
+# Only apply to VBW contexts
+[ ! -d ".vbw-planning" ] && exit 0
+
 # Read stdin to get task context
 INPUT=$(cat 2>/dev/null) || exit 0
 
