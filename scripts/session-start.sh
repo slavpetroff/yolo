@@ -17,6 +17,11 @@ if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ]; then
     TMP=$(mktemp)
     jq '. + {model_profile: "quality", model_overrides: {}}' "$PLANNING_DIR/config.json" > "$TMP" && mv "$TMP" "$PLANNING_DIR/config.json"
   fi
+  # V2 enforcement flags migration
+  if ! jq -e '.v2_hard_contracts' "$PLANNING_DIR/config.json" >/dev/null 2>&1; then
+    TMP=$(mktemp)
+    jq '. + {v2_hard_contracts: false, v2_hard_gates: false}' "$PLANNING_DIR/config.json" > "$TMP" && mv "$TMP" "$PLANNING_DIR/config.json"
+  fi
 fi
 
 # Clean compaction marker at session start (fresh-session guarantee, REQ-15)
