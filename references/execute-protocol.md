@@ -72,6 +72,8 @@ Wire dependencies via TaskUpdate: read `depends_on` from each plan's frontmatter
 
 Spawn Dev teammates and assign tasks. Platform enforces execution ordering via task deps. If `--plan=NN`: single task, no dependencies.
 
+**Blocked agent notification (mandatory):** When a Dev teammate completes a plan (task marked completed + SUMMARY.md verified), check if any other tasks have `blockedBy` containing that completed task's ID. For each newly-unblocked task, send its assigned Dev a message: "Blocking task {id} complete. Your task is now unblocked — proceed with execution." This ensures blocked agents resume without manual intervention.
+
 **Plan approval gate (effort-gated, autonomy-gated):**
 
 | Autonomy | Approval active at |
