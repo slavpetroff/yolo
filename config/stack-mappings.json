@@ -123,6 +123,33 @@
       "description": "Storybook component development"
     }
   },
+  "mobile": {
+    "ios-swift": {
+      "detect": ["Package.swift", "*.xcodeproj", "*.xcworkspace"],
+      "skills": ["swift-skill"],
+      "description": "iOS/Swift native"
+    },
+    "swiftui": {
+      "detect": ["Package.swift"],
+      "skills": ["swift-skill"],
+      "description": "SwiftUI framework"
+    },
+    "android-kotlin": {
+      "detect": ["build.gradle.kts", "build.gradle", "settings.gradle"],
+      "skills": ["android-skill"],
+      "description": "Android/Kotlin native"
+    },
+    "flutter": {
+      "detect": ["pubspec.yaml", "lib/main.dart"],
+      "skills": ["flutter-skill"],
+      "description": "Flutter cross-platform"
+    },
+    "react-native": {
+      "detect": ["package.json:react-native", "app.json"],
+      "skills": ["react-native-skill"],
+      "description": "React Native cross-platform"
+    }
+  },
   "devops": {
     "docker": {
       "detect": ["Dockerfile", "docker-compose.yml", "docker-compose.yaml"],

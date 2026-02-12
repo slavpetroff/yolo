@@ -104,6 +104,10 @@ check_pattern() {
     if [ -e "$PROJECT_DIR/$pattern" ]; then
       return 0
     fi
+    # Recursive detection: check subdirectories up to depth 4
+    if find "$PROJECT_DIR" -maxdepth 4 -name "$(basename "$pattern")" -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/vendor/*' -print -quit 2>/dev/null | grep -q .; then
+      return 0
+    fi
     return 1
   fi
 }
