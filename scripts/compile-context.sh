@@ -102,7 +102,7 @@ case "$ROLE" in
       fi
       echo ""
       # Count total reqs for awareness
-      TOTAL_REQS=$(grep -c '^\- \[' "$PLANNING_DIR/REQUIREMENTS.md" 2>/dev/null || echo "0")
+      TOTAL_REQS=$(grep -c '^\- \[' "$PLANNING_DIR/REQUIREMENTS.md" 2>/dev/null) || TOTAL_REQS=0
       MATCHED_REQS=0
       if [ "$PHASE_REQS" != "Not available" ] && [ -n "$PHASE_REQS" ]; then
         MATCHED_REQS=$(echo "$PHASE_REQS" | tr ',' '\n' | wc -l | tr -d ' ')
@@ -122,6 +122,13 @@ case "$ROLE" in
         fi
       else
         echo "None"
+      fi
+      # --- V3: Include RESEARCH.md if present ---
+      RESEARCH_FILE=$(find "$PHASE_DIR" -maxdepth 1 -name "*-RESEARCH.md" -print -quit 2>/dev/null || true)
+      if [ -n "$RESEARCH_FILE" ] && [ -f "$RESEARCH_FILE" ]; then
+        echo ""
+        echo "### Research Findings"
+        cat "$RESEARCH_FILE"
       fi
     } > "${PHASE_DIR}/.context-lead.md"
     ;;
@@ -156,6 +163,13 @@ case "$ROLE" in
             fi
           done <<< "$SKILLS"
         fi
+      fi
+      # --- V3: Include RESEARCH.md if present ---
+      RESEARCH_FILE=$(find "$PHASE_DIR" -maxdepth 1 -name "*-RESEARCH.md" -print -quit 2>/dev/null || true)
+      if [ -n "$RESEARCH_FILE" ] && [ -f "$RESEARCH_FILE" ]; then
+        echo ""
+        echo "### Research Findings"
+        cat "$RESEARCH_FILE"
       fi
     } > "${PHASE_DIR}/.context-dev.md"
     ;;
