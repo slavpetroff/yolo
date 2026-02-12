@@ -21,10 +21,11 @@ fi
 
 # Auto-migrate .claude/CLAUDE.md to root CLAUDE.md (VBW projects only)
 if [ -d "$PLANNING_DIR" ] && [ ! -f "$PLANNING_DIR/.claude-md-migrated" ]; then
+  CLAUDE_MIGRATE_OK=true
   if [ -f ".claude/CLAUDE.md" ]; then
     if [ ! -f "CLAUDE.md" ]; then
       # Scenario A: .claude/CLAUDE.md only → move to root
-      mv ".claude/CLAUDE.md" "CLAUDE.md"
+      mv ".claude/CLAUDE.md" "CLAUDE.md" || CLAUDE_MIGRATE_OK=false
     else
       # Scenario B: both exist — extract non-VBW content from guard
       EXTRACTED=$(awk '
@@ -49,12 +50,16 @@ if [ -d "$PLANNING_DIR" ] && [ ! -f "$PLANNING_DIR/.claude-md-migrated" ]; then
           echo "" >> "$TMP"
           echo "$EXTRACTED" >> "$TMP"
         fi
-        mv "$TMP" "CLAUDE.md"
+        mv "$TMP" "CLAUDE.md" || CLAUDE_MIGRATE_OK=false
       fi
-      rm ".claude/CLAUDE.md"
+      if [ "$CLAUDE_MIGRATE_OK" = true ]; then
+        rm ".claude/CLAUDE.md" || CLAUDE_MIGRATE_OK=false
+      fi
     fi
   fi
-  touch "$PLANNING_DIR/.claude-md-migrated"
+  if [ "$CLAUDE_MIGRATE_OK" = true ]; then
+    touch "$PLANNING_DIR/.claude-md-migrated"
+  fi
 fi
 
 # Clean compaction marker at session start (fresh-session guarantee, REQ-15)
