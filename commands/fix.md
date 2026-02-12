@@ -21,7 +21,11 @@ Config: Pre-injected by SessionStart hook.
 
 1. **Parse:** Entire $ARGUMENTS (minus flags) = fix description.
 2. **Milestone:** If .vbw-planning/ACTIVE exists, use milestone-scoped STATE_PATH. Else .vbw-planning/STATE.md.
-3. **Spawn Dev:** Spawn vbw-dev as subagent via Task tool:
+3. **Spawn Dev:** Resolve model first:
+```bash
+DEV_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+```
+Spawn vbw-dev as subagent via Task tool with `model: "${DEV_MODEL}"`:
 ```
 Quick fix (Turbo mode). Effort: low.
 Task: {fix description}.
