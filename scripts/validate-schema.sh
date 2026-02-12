@@ -26,6 +26,22 @@ fi
 
 [ ! -f "$FILE_PATH" ] && { echo "invalid: file not found"; exit 0; }
 
+# Contract is JSON, not frontmatter — validate separately
+if [ "$SCHEMA_TYPE" = "contract" ]; then
+  if command -v jq &>/dev/null; then
+    for field in phase plan task_count allowed_paths; do
+      if ! jq -e ".$field" "$FILE_PATH" &>/dev/null; then
+        echo "invalid: missing $field"
+        exit 0
+      fi
+    done
+    echo "valid"
+  else
+    echo "valid"
+  fi
+  exit 0
+fi
+
 # Extract frontmatter between --- delimiters
 FRONTMATTER=$(awk '
   BEGIN { count=0 }
@@ -42,21 +58,6 @@ case "$SCHEMA_TYPE" in
     ;;
   summary)
     REQUIRED="phase plan title status tasks_completed tasks_total"
-    ;;
-  contract)
-    # Contract is JSON, not frontmatter — validate differently
-    if command -v jq &>/dev/null; then
-      for field in phase plan task_count allowed_paths; do
-        if ! jq -e ".$field" "$FILE_PATH" &>/dev/null; then
-          echo "invalid: missing $field"
-          exit 0
-        fi
-      done
-      echo "valid"
-    else
-      echo "valid"
-    fi
-    exit 0
     ;;
   *)
     echo "valid"
