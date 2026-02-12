@@ -171,6 +171,19 @@ Hooks handle continuous verification: PostToolUse validates SUMMARY.md, TaskComp
 - At plan failure: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh plan_end {phase} {plan} status=failed 2>/dev/null || true`
 - On error: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh error {phase} {plan} message={error_summary} 2>/dev/null || true`
 
+**V2 Full Event Types (REQ-09, REQ-10):** If `v3_event_log=true` in config, emit all 11 V2 event types at correct lifecycle points:
+- `phase_planned`: at plan completion (after Lead writes PLAN.md): `log-event.sh phase_planned {phase}`
+- `task_created`: when task is defined in plan: `log-event.sh task_created {phase} {plan} task_id={id}`
+- `task_claimed`: when Dev starts a task: `log-event.sh task_claimed {phase} {plan} task_id={id} role=dev`
+- `task_started`: when task execution begins: `log-event.sh task_started {phase} {plan} task_id={id}`
+- `artifact_written`: after writing/modifying a file: `log-event.sh artifact_written {phase} {plan} path={file} task_id={id}`
+  - Also register in artifact registry: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/artifact-registry.sh register {file} {event_id} {phase} {plan}`
+- `gate_passed` / `gate_failed`: already emitted by hard-gate.sh
+- `task_completed_candidate`: emitted by two-phase-complete.sh
+- `task_completed_confirmed`: emitted by two-phase-complete.sh after validation
+- `task_blocked`: already emitted by auto-repair.sh
+- `task_reassigned`: when task is re-assigned to different agent: `log-event.sh task_reassigned {phase} {plan} task_id={id} from={old} to={new}`
+
 **V3 Snapshot — per-plan checkpoint (REQ-18):** If `v3_snapshot_resume=true` in config:
 - After each plan completes (SUMMARY.md verified):
   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/snapshot-resume.sh save {phase} 2>/dev/null || true`
@@ -237,7 +250,23 @@ All metrics calls should be `2>/dev/null || true` — never block execution.
 - Check for expired leases before acquiring: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh check {task_id} {claimed_files...} 2>/dev/null || true`
 - If both `v3_lease_locks` and `v3_lock_lite` are true, lease-lock takes precedence.
 
-### Step 3b: SUMMARY.md verification gate (mandatory)
+### Step 3b: V2 Two-Phase Completion (REQ-09)
+
+**If `v2_two_phase_completion=true` in config:**
+
+After each task commit (and after post-task gates pass), run two-phase completion:
+```bash
+RESULT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/two-phase-complete.sh {task_id} {phase} {plan} {contract_path} {evidence...})
+```
+- If `result=confirmed`: proceed to next task.
+- If `result=rejected`: treat as gate failure — attempt auto-repair (re-run checks), then escalate blocker if still failing.
+- Artifact registration: after each file write during task execution, register the artifact:
+  ```bash
+  bash ${CLAUDE_PLUGIN_ROOT}/scripts/artifact-registry.sh register {file_path} {event_id} {phase} {plan}
+  ```
+- When `v2_two_phase_completion=false`: skip (direct task completion as before).
+
+### Step 3c: SUMMARY.md verification gate (mandatory)
 
 **This is a hard gate. Do NOT proceed to QA or mark a plan as complete in .execution-state.json without verifying its SUMMARY.md.**
 
