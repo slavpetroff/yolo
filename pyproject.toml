@@ -1,0 +1,9 @@
+[project]
+name = "vibe-better-with-claude-code-yolo"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "llm-tldr>=1.5.2",
+]

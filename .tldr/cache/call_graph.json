@@ -1,0 +1,14 @@
+{
+  "edges": [
+    {
+      "from_file": "main.py",
+      "from_func": "<module>",
+      "to_file": "main.py",
+      "to_func": "main"
+    }
+  ],
+  "languages": [
+    "python"
+  ],
+  "timestamp": 1770972925.4042282
+}
