@@ -35,18 +35,33 @@ mk_config() {
 
 # --- Default config (all enabled, parallel) ---
 
-@test "default config: all depts enabled, parallel workflow" {
-  # No config file = defaults
+@test "no config file: defaults to backend_only" {
+  # No config file = backend_only (matches jq fallback)
   run_resolve "$TEST_WORKDIR/nonexistent.json"
   assert_success
-  assert_output --partial "multi_dept=true"
-  assert_output --partial "workflow=parallel"
-  assert_output --partial "active_depts=backend,frontend,uiux"
-  assert_output --partial "leads_to_spawn=ux-lead|fe-lead,lead"
-  assert_output --partial "spawn_order=wave"
-  assert_output --partial "owner_active=true"
-  assert_output --partial "fe_active=true"
-  assert_output --partial "ux_active=true"
+  assert_output --partial "multi_dept=false"
+  assert_output --partial "workflow=backend_only"
+  assert_output --partial "active_depts=backend"
+  assert_output --partial "leads_to_spawn=lead"
+  assert_output --partial "spawn_order=single"
+  assert_output --partial "owner_active=false"
+  assert_output --partial "fe_active=false"
+  assert_output --partial "ux_active=false"
+}
+
+@test "no-config and empty-config produce identical output" {
+  # No config file
+  run_resolve "$TEST_WORKDIR/nonexistent.json"
+  assert_success
+  local no_config_output="$output"
+
+  # Empty config file
+  mkdir -p "$TEST_WORKDIR/.yolo-planning"
+  echo '{}' > "$TEST_WORKDIR/.yolo-planning/config.json"
+  run_resolve
+  assert_success
+
+  assert_equal "$no_config_output" "$output"
 }
 
 # --- Backend-only mode ---

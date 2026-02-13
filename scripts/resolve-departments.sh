@@ -26,15 +26,15 @@ set -euo pipefail
 CONFIG="${1:-.yolo-planning/config.json}"
 
 if [ ! -f "$CONFIG" ]; then
-  # Default: full mode (all departments, parallel workflow)
-  echo "multi_dept=true"
-  echo "workflow=parallel"
-  echo "active_depts=backend,frontend,uiux"
-  echo "leads_to_spawn=ux-lead|fe-lead,lead"
-  echo "spawn_order=wave"
-  echo "owner_active=true"
-  echo "fe_active=true"
-  echo "ux_active=true"
+  # Default: backend only (matches jq fallback when config has no department keys)
+  echo "multi_dept=false"
+  echo "workflow=backend_only"
+  echo "active_depts=backend"
+  echo "leads_to_spawn=lead"
+  echo "spawn_order=single"
+  echo "owner_active=false"
+  echo "fe_active=false"
+  echo "ux_active=false"
   exit 0
 fi
 
