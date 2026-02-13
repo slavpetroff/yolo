@@ -2,6 +2,43 @@
 
 JSON-structured SendMessage schemas with `type` discriminator. Receivers: `JSON.parse` content; fall back to plain text on parse failure.
 
+## `critique_result` (Critic -> Lead)
+
+Brainstorm and gap-analysis findings for a phase, produced before architecture begins.
+
+```json
+{
+  "type": "critique_result",
+  "phase": "01",
+  "findings": 7,
+  "critical": 1,
+  "major": 3,
+  "minor": 3,
+  "categories": ["gap", "risk", "improvement", "question"],
+  "artifact": "phases/01-auth/critique.jsonl",
+  "committed": false
+}
+```
+
+Note: Critic has no Write tool — returns findings to Lead who writes critique.jsonl and commits.
+
+## `test_plan_result` (Tester -> Lead)
+
+TDD RED phase test authoring results.
+
+```json
+{
+  "type": "test_plan_result",
+  "plan_id": "01-01",
+  "tasks_tested": 3,
+  "tasks_skipped": 1,
+  "total_tests": 12,
+  "all_red": true,
+  "artifact": "phases/01-auth/test-plan.jsonl",
+  "committed": true
+}
+```
+
 ## `architecture_design` (Architect -> Lead)
 
 Architecture decisions and system design for a phase.
@@ -62,6 +99,24 @@ Escalation when blocked and cannot proceed.
   "blocker": "Dependency module from plan 01-01 not yet committed",
   "needs": "01-01 to complete first",
   "attempted": ["Checked git log for 01-01 commits — none found"]
+}
+```
+
+## `code_review_changes` (Senior -> Dev)
+
+Exact fix instructions when code review requests changes. Dev MUST follow these instructions precisely — no creative interpretation.
+
+```json
+{
+  "type": "code_review_changes",
+  "plan_id": "01-01",
+  "cycle": 1,
+  "changes": [
+    {"f": "src/auth.ts", "ln": 42, "issue": "Missing error propagation", "fix": "Add throw after logging"},
+    {"f": "src/auth.ts", "ln": 78, "issue": "Hardcoded timeout", "fix": "Use AUTH_TIMEOUT from config"}
+  ],
+  "must_fix": ["src/auth.ts:42", "src/auth.ts:78"],
+  "rerun_tests": true
 }
 ```
 
@@ -183,5 +238,100 @@ Escalation when agent cannot resolve an issue within their authority.
   "evidence": ["Token refresh requires server-side session"],
   "recommendation": "Re-evaluate stateless design decision",
   "severity": "blocking | major | minor"
+}
+```
+
+---
+
+## Cross-Department Schemas
+
+Used when multiple departments are active (`departments.frontend` or `departments.uiux` = true).
+
+## `design_handoff` (UX Lead -> Frontend Lead + Backend Lead)
+
+UI/UX design artifacts ready for Frontend consumption. Produced after UI/UX 10-step workflow completes.
+
+```json
+{
+  "type": "design_handoff",
+  "phase": "01",
+  "department": "uiux",
+  "artifacts": {
+    "design_tokens": "phases/01-auth/design-tokens.jsonl",
+    "component_specs": "phases/01-auth/component-specs.jsonl",
+    "user_flows": "phases/01-auth/user-flows.jsonl"
+  },
+  "ready_components": ["LoginForm", "AuthProvider", "TokenDisplay"],
+  "deferred": ["PasswordReset"],
+  "acceptance_criteria": ["All components pass A11y audit", "Design tokens cover all states"],
+  "status": "complete"
+}
+```
+
+## `api_contract` (Frontend Lead <-> Backend Lead)
+
+API contract negotiation between Frontend and Backend. Bidirectional.
+
+```json
+{
+  "type": "api_contract",
+  "direction": "frontend_to_backend | backend_to_frontend",
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "request": {"email": "string", "password": "string"},
+      "response": {"token": "string", "user": "object"}
+    }
+  ],
+  "status": "proposed | agreed | implemented"
+}
+```
+
+## `department_result` (Department Lead -> Owner)
+
+Department completion report sent to Owner for final sign-off.
+
+```json
+{
+  "type": "department_result",
+  "department": "backend | frontend | uiux",
+  "phase": "01",
+  "result": "PASS | PARTIAL | FAIL",
+  "plans_completed": 3,
+  "plans_total": 3,
+  "qa_result": "PASS",
+  "security_result": "PASS",
+  "tdd_coverage": "red_green"
+}
+```
+
+## `owner_review` (Owner -> Leads, after critique review)
+
+Owner's critique review with department priorities and dispatch order.
+
+```json
+{
+  "type": "owner_review",
+  "phase": "01",
+  "departments_needed": ["backend", "frontend", "uiux"],
+  "dispatch_order": ["uiux", "frontend", "backend"],
+  "priorities": ["UX must define design tokens before frontend starts"],
+  "risks": ["Backend API changes may invalidate frontend component specs"]
+}
+```
+
+## `owner_signoff` (Owner -> All Leads, final decision)
+
+Owner's final phase decision after all departments complete.
+
+```json
+{
+  "type": "owner_signoff",
+  "phase": "01",
+  "decision": "SHIP | HOLD",
+  "departments_approved": ["backend", "frontend", "uiux"],
+  "integration_qa": "PASS",
+  "notes": ""
 }
 ```
