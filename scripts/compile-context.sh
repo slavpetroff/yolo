@@ -107,6 +107,76 @@ get_requirements() {
   fi
 }
 
+# --- Token budget per role (chars/4 ≈ tokens) ---
+get_budget() {
+  case "$1" in
+    architect)  echo 5000 ;;
+    lead)       echo 3000 ;;
+    senior)     echo 4000 ;;
+    dev)        echo 2000 ;;
+    qa)         echo 2000 ;;
+    qa-code)    echo 3000 ;;
+    security)   echo 3000 ;;
+    scout)      echo 1000 ;;
+    debugger)   echo 3000 ;;
+    *)          echo 3000 ;;
+  esac
+}
+
+estimate_tokens() {
+  local file="$1"
+  local chars
+  chars=$(wc -c < "$file" | tr -d ' ')
+  echo $(( chars / 4 ))
+}
+
+# Truncation step 1: conventions tag-only (drop rule text after comma)
+truncate_conventions_tag_only() {
+  local file="$1"
+  local tmp="${file}.trunc.$$"
+  sed 's/^\(  [a-z_-]*\),.*/\1/' "$file" > "$tmp" 2>/dev/null && mv "$tmp" "$file" || rm -f "$tmp"
+}
+
+# Truncation step 2: requirements ID-only (drop title after comma)
+truncate_reqs_id_only() {
+  local file="$1"
+  local tmp="${file}.trunc.$$"
+  # Lines under "reqs:" section: "  REQ-NN,title" → "  REQ-NN"
+  sed '/^reqs:/,/^[^ ]/{s/^\(  REQ-[0-9]*\),.*/\1/;}' "$file" > "$tmp" 2>/dev/null && mv "$tmp" "$file" || rm -f "$tmp"
+}
+
+# Truncation step 3: drop prose content, keep section headings
+truncate_headings_only() {
+  local file="$1"
+  local tmp="${file}.trunc.$$"
+  # Keep lines that are section headers (no leading space) or metadata, drop indented content
+  awk '/^[^ ]/ || /^$/ { print }' "$file" > "$tmp" 2>/dev/null && mv "$tmp" "$file" || rm -f "$tmp"
+}
+
+enforce_budget() {
+  local file="$1"
+  local budget="$2"
+  local tokens
+
+  tokens=$(estimate_tokens "$file")
+  [ "$tokens" -le "$budget" ] && return 0
+
+  # Step 1: conventions tag-only
+  truncate_conventions_tag_only "$file"
+  tokens=$(estimate_tokens "$file")
+  [ "$tokens" -le "$budget" ] && return 0
+
+  # Step 2: requirements ID-only
+  truncate_reqs_id_only "$file"
+  tokens=$(estimate_tokens "$file")
+  [ "$tokens" -le "$budget" ] && return 0
+
+  # Step 3: headings-only
+  truncate_headings_only "$file"
+}
+
+BUDGET=$(get_budget "$ROLE")
+
 # --- Role-specific TOON output ---
 case "$ROLE" in
   architect)
@@ -336,4 +406,10 @@ case "$ROLE" in
     ;;
 esac
 
-echo "${PHASE_DIR}/.ctx-${ROLE}.toon"
+# --- Enforce token budget ---
+OUTPUT_FILE="${PHASE_DIR}/.ctx-${ROLE}.toon"
+if [ -f "$OUTPUT_FILE" ]; then
+  enforce_budget "$OUTPUT_FILE" "$BUDGET"
+fi
+
+echo "$OUTPUT_FILE"

@@ -23,8 +23,11 @@ WARNING=""
 # Check: /vbw:vibe --execute when no PLAN.md exists
 if echo "$PROMPT" | grep -q '/vbw:vibe.*--execute'; then
   CURRENT_PHASE=""
-  if [ -f "$PLANNING_DIR/STATE.md" ]; then
-    CURRENT_PHASE=$(grep -m1 "^## Current Phase" "$PLANNING_DIR/STATE.md" | sed 's/.*Phase[: ]*//' | tr -d ' ')
+  if [ -f "$PLANNING_DIR/state.json" ] && command -v jq >/dev/null 2>&1; then
+    CURRENT_PHASE=$(jq -r '.ph // ""' "$PLANNING_DIR/state.json" 2>/dev/null)
+    [ "$CURRENT_PHASE" != "null" ] && [ -n "$CURRENT_PHASE" ] && CURRENT_PHASE=$(printf '%02d' "$CURRENT_PHASE")
+  elif [ -f "$PLANNING_DIR/STATE.md" ]; then
+    CURRENT_PHASE=$(grep -m1 "Current Phase" "$PLANNING_DIR/STATE.md" 2>/dev/null | grep -oE '[0-9]+' | head -1)
   fi
 
   if [ -n "$CURRENT_PHASE" ]; then

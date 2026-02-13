@@ -183,6 +183,22 @@ if git ls-files --error-unmatch . 2>/dev/null | head -1 | grep -q .; then
 fi
 echo "brownfield=$BROWNFIELD"
 
+# --- State from state.json ---
+STATE_JSON="$PLANNING_DIR/state.json"
+if [ -f "$STATE_JSON" ] && [ "$JQ_AVAILABLE" = true ]; then
+  echo "current_phase=$(jq -r '.ph // ""' "$STATE_JSON" 2>/dev/null)"
+  echo "total_phases=$(jq -r '.tt // ""' "$STATE_JSON" 2>/dev/null)"
+  echo "workflow_status=$(jq -r '.st // ""' "$STATE_JSON" 2>/dev/null)"
+  echo "workflow_step=$(jq -r '.step // ""' "$STATE_JSON" 2>/dev/null)"
+  echo "progress=$(jq -r '.pr // 0' "$STATE_JSON" 2>/dev/null)"
+else
+  echo "current_phase="
+  echo "total_phases="
+  echo "workflow_status="
+  echo "workflow_step="
+  echo "progress=0"
+fi
+
 # --- Execution state ---
 EXEC_STATE_FILE="$PLANNING_DIR/.execution-state.json"
 EXEC_STATE="none"

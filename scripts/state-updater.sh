@@ -1,6 +1,6 @@
 #!/bin/bash
 set -u
-# PostToolUse: Auto-update STATE.md, ROADMAP.md + .execution-state.json on PLAN/SUMMARY writes
+# PostToolUse: Auto-update STATE.md, state.json, ROADMAP.md + .execution-state.json on PLAN/SUMMARY writes
 # Non-blocking, fail-open (always exit 0)
 
 update_state_md() {
@@ -104,6 +104,53 @@ update_model_profile() {
   fi
 }
 
+update_state_json() {
+  local phase_dir="$1"
+  local state_json=".vbw-planning/state.json"
+
+  [ -f "$state_json" ] || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+
+  local dirname phase_num plan_count summary_count pct phases_dir total status
+  dirname=$(basename "$phase_dir")
+  phase_num=$(echo "$dirname" | sed 's/^\([0-9]*\).*/\1/' | sed 's/^0*//')
+  [ -z "$phase_num" ] && return 0
+
+  plan_count=$(ls -1 "$phase_dir"/*.plan.jsonl "$phase_dir"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
+  summary_count=$(ls -1 "$phase_dir"/*.summary.jsonl "$phase_dir"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+
+  # Compute overall progress across all phases
+  phases_dir=$(dirname "$phase_dir")
+  total=0
+  local total_plans=0 total_summaries=0
+  for dir in $(ls -d "$phases_dir"/*/ 2>/dev/null | sort); do
+    total=$((total + 1))
+    total_plans=$((total_plans + $(ls -1 "$dir"*.plan.jsonl "$dir"*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')))
+    total_summaries=$((total_summaries + $(ls -1 "$dir"*.summary.jsonl "$dir"*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')))
+  done
+
+  if [ "$total_plans" -gt 0 ]; then
+    pct=$(( (total_summaries * 100) / total_plans ))
+  else
+    pct=0
+  fi
+
+  # Determine status
+  status=$(jq -r '.st // "planning"' "$state_json" 2>/dev/null)
+  if [ "$total_plans" -gt 0 ] && [ "$total_summaries" -eq "$total_plans" ]; then
+    status="complete"
+  elif [ "$total_summaries" -gt 0 ]; then
+    status="executing"
+  elif [ "$total_plans" -gt 0 ]; then
+    status="executing"
+  fi
+
+  local tmp="${state_json}.tmp.$$"
+  jq --argjson ph "$phase_num" --argjson tt "$total" --argjson pr "$pct" --arg st "$status" \
+    '.ph = $ph | .tt = $tt | .pr = $pr | .st = $st' "$state_json" > "$tmp" 2>/dev/null && \
+    mv "$tmp" "$state_json" 2>/dev/null || rm -f "$tmp" 2>/dev/null
+}
+
 advance_phase() {
   local phase_dir="$1"
   local state_md=".vbw-planning/STATE.md"
@@ -144,13 +191,27 @@ advance_phase() {
   [ "$total" -eq 0 ] && return 0
 
   local tmp="${state_md}.tmp.$$"
+  local state_json=".vbw-planning/state.json"
   if [ "$all_done" = true ]; then
     sed "s/^Status: .*/Status: complete/" "$state_md" > "$tmp" 2>/dev/null && \
       mv "$tmp" "$state_md" 2>/dev/null || rm -f "$tmp" 2>/dev/null
+    # Update state.json to complete
+    if [ -f "$state_json" ] && command -v jq >/dev/null 2>&1; then
+      local jtmp="${state_json}.tmp.$$"
+      jq '.st = "complete" | .pr = 100' "$state_json" > "$jtmp" 2>/dev/null && \
+        mv "$jtmp" "$state_json" 2>/dev/null || rm -f "$jtmp" 2>/dev/null
+    fi
   elif [ -n "$next_num" ]; then
     sed "s/^Phase: .*/Phase: ${next_num} of ${total} (${next_name})/" "$state_md" | \
       sed "s/^Status: .*/Status: ready/" > "$tmp" 2>/dev/null && \
       mv "$tmp" "$state_md" 2>/dev/null || rm -f "$tmp" 2>/dev/null
+    # Advance state.json to next phase
+    if [ -f "$state_json" ] && command -v jq >/dev/null 2>&1; then
+      local jtmp="${state_json}.tmp.$$"
+      jq --argjson ph "$next_num" --argjson tt "$total" '.ph = $ph | .tt = $tt | .st = "planning" | .step = "plan"' \
+        "$state_json" > "$jtmp" 2>/dev/null && \
+        mv "$jtmp" "$state_json" 2>/dev/null || rm -f "$jtmp" 2>/dev/null
+    fi
   fi
 }
 
@@ -161,6 +222,7 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null)
 if echo "$FILE_PATH" | grep -qE 'phases/[^/]+/[0-9]+-[0-9]+\.plan\.jsonl$' || echo "$FILE_PATH" | grep -qE 'phases/[^/]+/[0-9]+-[0-9]+-PLAN\.md$'; then
   update_state_md "$(dirname "$FILE_PATH")"
   update_roadmap "$(dirname "$FILE_PATH")"
+  update_state_json "$(dirname "$FILE_PATH")"
   # Status: ready → active when a plan is written
   _sm=".vbw-planning/STATE.md"
   if [ -f "$_sm" ] && grep -q '^Status: ready' "$_sm" 2>/dev/null; then
@@ -238,6 +300,7 @@ jq --arg phase "$PHASE" --arg plan "$PLAN" --arg status "$STATUS" '
 
 update_state_md "$(dirname "$FILE_PATH")"
 update_roadmap "$(dirname "$FILE_PATH")"
+update_state_json "$(dirname "$FILE_PATH")"
 update_model_profile
 advance_phase "$(dirname "$FILE_PATH")"
 

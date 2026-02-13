@@ -1,0 +1,1 @@
+{"p":"01","n":"01","t":"Auth middleware","s":"complete","dt":"2026-02-13","tc":2,"tt":2,"ch":["abc1234","def5678"],"fm":["src/middleware/auth.ts","tests/auth.test.ts"],"dv":[],"built":["JWT auth middleware with RS256 verification","4 auth test cases covering all token states"]}

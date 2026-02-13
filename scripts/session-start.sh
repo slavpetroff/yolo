@@ -229,30 +229,35 @@ if [ -f "$CONFIG_FILE" ]; then
   config_max_tasks=$(jq -r '.max_tasks_per_plan // 5' "$CONFIG_FILE" 2>/dev/null)
 fi
 
-# --- Parse STATE.md ---
-STATE_FILE="$MILESTONE_DIR/STATE.md"
+# --- Parse state.json (preferred) or STATE.md (fallback) ---
+STATE_JSON="$MILESTONE_DIR/state.json"
+STATE_MD="$MILESTONE_DIR/STATE.md"
 phase_pos="unknown"
 phase_total="unknown"
 phase_name="unknown"
 phase_status="unknown"
 progress_pct="0"
-if [ -f "$STATE_FILE" ]; then
-  # Extract "Phase: N of M (name)" from "Phase: 1 of 3 (Context Diet)"
-  phase_line=$(grep -m1 "^Phase:" "$STATE_FILE" 2>/dev/null || true)
+if [ -f "$STATE_JSON" ] && command -v jq >/dev/null 2>&1; then
+  phase_pos=$(jq -r '.ph // "unknown"' "$STATE_JSON" 2>/dev/null)
+  phase_total=$(jq -r '.tt // "unknown"' "$STATE_JSON" 2>/dev/null)
+  phase_status=$(jq -r '.st // "unknown"' "$STATE_JSON" 2>/dev/null)
+  progress_pct=$(jq -r '.pr // 0' "$STATE_JSON" 2>/dev/null)
+  # Derive phase name from directory
+  if [ -n "$phase_pos" ] && [ "$phase_pos" != "unknown" ]; then
+    phase_dir_match=$(ls -d "$PLANNING_DIR/phases/$(printf '%02d' "$phase_pos")-"* 2>/dev/null | head -1)
+    if [ -n "$phase_dir_match" ]; then
+      phase_name=$(basename "$phase_dir_match" | sed 's/^[0-9]*-//' | tr '-' ' ')
+    fi
+  fi
+elif [ -f "$STATE_MD" ]; then
+  # Fallback: parse STATE.md (less reliable but backward-compat)
+  phase_line=$(grep -m1 "Current Phase" "$STATE_MD" 2>/dev/null || true)
   if [ -n "$phase_line" ]; then
-    phase_pos=$(echo "$phase_line" | sed 's/Phase: *\([0-9]*\).*/\1/')
-    phase_total=$(echo "$phase_line" | sed 's/.*of *\([0-9]*\).*/\1/')
-    phase_name=$(echo "$phase_line" | sed -n 's/.*(\(.*\))/\1/p')
+    phase_pos=$(echo "$phase_line" | grep -oE '[0-9]+' | head -1)
   fi
-  # Extract status line
-  status_line=$(grep -m1 "^Status:" "$STATE_FILE" 2>/dev/null || true)
-  if [ -n "$status_line" ]; then
-    phase_status=$(echo "$status_line" | sed 's/Status: *//')
-  fi
-  # Extract progress percentage
-  progress_line=$(grep -m1 "^Progress:" "$STATE_FILE" 2>/dev/null || true)
+  progress_line=$(grep -m1 "Progress" "$STATE_MD" 2>/dev/null || true)
   if [ -n "$progress_line" ]; then
-    progress_pct=$(echo "$progress_line" | grep -o '[0-9]*%' | tr -d '%')
+    progress_pct=$(echo "$progress_line" | grep -oE '[0-9]+' | head -1)
   fi
 fi
 : "${phase_pos:=unknown}"

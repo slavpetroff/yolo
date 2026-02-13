@@ -1,0 +1,6 @@
+{"tier":"standard","r":"PASS","ps":5,"fl":0,"tt":5,"dt":"2026-02-13"}
+{"c":"JWT validation on all /api routes","r":"pass","ev":"grep confirms verifyToken in route middleware","cat":"must_have"}
+{"c":"src/middleware/auth.ts exports verifyToken","r":"pass","ev":"file exists, export found","cat":"artifact"}
+{"c":"Tests cover valid/expired/missing/malformed tokens","r":"pass","ev":"4 test cases pass","cat":"must_have"}
+{"c":"No hardcoded secrets","r":"pass","ev":"grep -r for secret patterns: clean","cat":"anti_pattern"}
+{"c":"Commits follow type(scope): desc","r":"pass","ev":"git log confirms conventional commits","cat":"convention"}

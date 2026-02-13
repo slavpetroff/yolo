@@ -140,9 +140,12 @@ FAST_CF="${_CACHE}-fast"
 if ! cache_fresh "$FAST_CF" 5; then
   PH=""; TT=""; EF="balanced"; MP="quality"; BR=""
   PD=0; PT=0; PPD=0; QA="--"; GH_URL=""
-  if [ -f ".vbw-planning/STATE.md" ]; then
-    PH=$(grep -m1 "^Phase:" .vbw-planning/STATE.md | grep -oE '[0-9]+' | head -1)
-    TT=$(grep -m1 "^Phase:" .vbw-planning/STATE.md | grep -oE '[0-9]+' | tail -1)
+  if [ -f ".vbw-planning/state.json" ]; then
+    PH=$(jq -r '.ph // ""' .vbw-planning/state.json 2>/dev/null)
+    TT=$(jq -r '.tt // ""' .vbw-planning/state.json 2>/dev/null)
+  elif [ -f ".vbw-planning/STATE.md" ]; then
+    PH=$(grep -m1 "Current Phase" .vbw-planning/STATE.md 2>/dev/null | grep -oE '[0-9]+' | head -1)
+    TT=$(grep -c "^\- \*\*Phase" .vbw-planning/STATE.md 2>/dev/null || echo "")
   fi
   if [ -f ".vbw-planning/config.json" ]; then
     # Auto-migrate: add model_profile if missing

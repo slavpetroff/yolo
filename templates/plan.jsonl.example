@@ -1,0 +1,3 @@
+{"p":"01","n":"01","t":"Auth middleware","w":1,"d":[],"xd":[],"mh":{"tr":["JWT validation on all /api routes"],"ar":[{"p":"src/middleware/auth.ts","pv":"exports verifyToken","c":"grep"}],"kl":[]},"obj":"Implement JWT auth middleware","sk":[],"fm":["src/middleware/auth.ts","tests/auth.test.ts"],"auto":true}
+{"id":"T1","tp":"auto","a":"Create auth middleware","f":["src/middleware/auth.ts"],"v":"Tests pass, 401 on bad token","done":"Middleware exports verifyToken, tests pass","spec":""}
+{"id":"T2","tp":"auto","a":"Write auth tests","f":["tests/auth.test.ts"],"v":"All 4 cases pass","done":"4 test cases: valid, expired, missing, malformed","spec":""}
