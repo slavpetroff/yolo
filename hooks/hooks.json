@@ -84,11 +84,21 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" department-guard.sh; exit 0'",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "SubagentStart": [
       {
-        "matcher": "vbw-lead|vbw-dev|vbw-qa|vbw-scout|vbw-debugger|vbw-architect",
+        "matcher": "vbw-",
         "hooks": [
           {
             "type": "command",
@@ -100,7 +110,7 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "vbw-lead|vbw-dev|vbw-qa|vbw-scout|vbw-debugger|vbw-architect",
+        "matcher": "vbw-",
         "hooks": [
           {
             "type": "command",
@@ -110,7 +120,7 @@
         ]
       },
       {
-        "matcher": "vbw-lead|vbw-dev|vbw-qa|vbw-scout|vbw-debugger|vbw-architect",
+        "matcher": "vbw-",
         "hooks": [
           {
             "type": "command",

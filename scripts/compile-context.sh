@@ -3,7 +3,9 @@ set -euo pipefail
 
 # compile-context.sh <phase-number> <role> [phases-dir] [plan-path]
 # Produces .ctx-{role}.toon in the phase directory with role-specific context.
-# Roles: architect, lead, senior, dev, qa, qa-code, security, debugger
+# Roles: architect, lead, senior, dev, qa, qa-code, security, debugger, critic, tester, owner
+# Department roles: fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code
+#                   ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code
 # Exit 0 on success, exit 1 when phase directory not found.
 
 if [ $# -lt 2 ]; then
@@ -16,6 +18,25 @@ ROLE="$2"
 PHASES_DIR="${3:-.vbw-planning/phases}"
 PLANNING_DIR=".vbw-planning"
 PLAN_PATH="${4:-}"
+
+# --- Extract department and base role from role name ---
+# fe-dev → DEPT=fe, BASE_ROLE=dev; ux-architect → DEPT=ux, BASE_ROLE=architect
+# architect → DEPT=backend, BASE_ROLE=architect; owner → DEPT=shared, BASE_ROLE=owner
+case "$ROLE" in
+  fe-*) DEPT="fe"; BASE_ROLE="${ROLE#fe-}" ;;
+  ux-*) DEPT="ux"; BASE_ROLE="${ROLE#ux-}" ;;
+  owner) DEPT="shared"; BASE_ROLE="owner" ;;
+  *) DEPT="backend"; BASE_ROLE="$ROLE" ;;
+esac
+
+# --- Resolve department-specific architecture file ---
+get_arch_file() {
+  case "$DEPT" in
+    fe)      echo "$PHASE_DIR/fe-architecture.toon" ;;
+    ux)      echo "$PHASE_DIR/ux-architecture.toon" ;;
+    *)       echo "$PHASE_DIR/architecture.toon" ;;
+  esac
+}
 
 # Strip leading zeros for ROADMAP matching (ROADMAP uses "Phase 2:", not "Phase 02:")
 PHASE_NUM=$(echo "$PHASE" | sed 's/^0*//')
@@ -67,13 +88,7 @@ get_research() {
   local research_file="$PHASE_DIR/research.jsonl"
   if [ -f "$research_file" ]; then
     echo "research:"
-    while IFS= read -r line; do
-      local q; q=$(echo "$line" | jq -r '.q // .query // empty' 2>/dev/null) || true
-      local finding; finding=$(echo "$line" | jq -r '.finding // empty' 2>/dev/null) || true
-      if [ -n "$q" ] && [ -n "$finding" ]; then
-        echo "  - $q: $finding"
-      fi
-    done < "$research_file"
+    jq -r 'select((.q // .query // empty) != "" and (.finding // empty) != "") | "  - \(.q // .query): \(.finding)"' "$research_file" 2>/dev/null || true
   fi
 }
 
@@ -82,14 +97,7 @@ get_decisions() {
   local decisions_file="$PHASE_DIR/decisions.jsonl"
   if [ -f "$decisions_file" ]; then
     echo "decisions:"
-    while IFS= read -r line; do
-      agent=$(echo "$line" | jq -r '.agent // empty' 2>/dev/null) || true
-      dec=$(echo "$line" | jq -r '.dec // empty' 2>/dev/null) || true
-      reason=$(echo "$line" | jq -r '.reason // empty' 2>/dev/null) || true
-      if [ -n "$dec" ]; then
-        echo "  ${agent}: ${dec} (${reason})"
-      fi
-    done < "$decisions_file"
+    jq -r 'select((.dec // empty) != "") | "  \(.agent // ""): \(.dec) (\(.reason // ""))"' "$decisions_file" 2>/dev/null || true
   fi
 }
 
@@ -124,25 +132,29 @@ get_requirements() {
 }
 
 # --- Token budget per role (chars/4 ≈ tokens) ---
+# Uses BASE_ROLE for department agents (fe-dev → dev budget, ux-architect → architect budget)
 get_budget() {
   case "$1" in
-    architect)  echo 5000 ;;
-    lead)       echo 3000 ;;
-    senior)     echo 4000 ;;
-    dev)        echo 2000 ;;
-    qa)         echo 2000 ;;
-    qa-code)    echo 3000 ;;
-    security)   echo 3000 ;;
-    scout)      echo 1000 ;;
-    debugger)   echo 3000 ;;
-    *)          echo 3000 ;;
+    architect|fe-architect|ux-architect)  echo 5000 ;;
+    lead|fe-lead|ux-lead)                 echo 3000 ;;
+    senior|fe-senior|ux-senior)           echo 4000 ;;
+    dev|fe-dev|ux-dev)                    echo 2000 ;;
+    qa|fe-qa|ux-qa)                       echo 2000 ;;
+    qa-code|fe-qa-code|ux-qa-code)        echo 3000 ;;
+    security)                             echo 3000 ;;
+    scout)                                echo 1000 ;;
+    debugger)                             echo 3000 ;;
+    critic)                               echo 4000 ;;
+    tester|fe-tester|ux-tester)           echo 3000 ;;
+    owner)                                echo 3000 ;;
+    *)                                    echo 3000 ;;
   esac
 }
 
 estimate_tokens() {
   local file="$1"
   local chars
-  chars=$(wc -c < "$file" | tr -d ' ')
+  chars=$(( $(wc -c < "$file") ))
   echo $(( chars / 4 ))
 }
 
@@ -192,13 +204,22 @@ enforce_budget() {
 }
 
 BUDGET=$(get_budget "$ROLE")
+ARCH_FILE=$(get_arch_file)
 
-# --- Role-specific TOON output ---
-case "$ROLE" in
+# --- Department-aware header (adds department tag to context) ---
+emit_header() {
+  echo "phase: $PHASE"
+  echo "goal: $PHASE_GOAL"
+  if [ "$DEPT" != "backend" ]; then
+    echo "department: $DEPT"
+  fi
+}
+
+# --- Role-specific TOON output (uses BASE_ROLE for routing, ROLE for filename) ---
+case "$BASE_ROLE" in
   architect)
     {
-      echo "phase: $PHASE"
-      echo "goal: $PHASE_GOAL"
+      emit_header
       echo ""
       get_requirements
       echo ""
@@ -207,26 +228,30 @@ case "$ROLE" in
       # Include codebase mapping summaries if available
       if [ -d "$PLANNING_DIR/codebase" ]; then
         echo "codebase:"
-        for f in INDEX.md ARCHITECTURE.md PATTERNS.md CONCERNS.md; do
+        for f in index.jsonl architecture.jsonl patterns.jsonl concerns.jsonl; do
           if [ -f "$PLANNING_DIR/codebase/$f" ]; then
             echo "  @$PLANNING_DIR/codebase/$f"
           fi
         done
       fi
       echo ""
+      # For FE architect: include UX handoff if available
+      if [ "$DEPT" = "fe" ] && [ -f "$PHASE_DIR/design-handoff.jsonl" ]; then
+        echo "design_handoff: @$PHASE_DIR/design-handoff.jsonl"
+      fi
+      echo ""
       echo "success_criteria: $PHASE_SUCCESS"
-    } > "${PHASE_DIR}/.ctx-architect.toon"
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
   lead)
     {
-      echo "phase: $PHASE"
-      echo "goal: $PHASE_GOAL"
+      emit_header
       echo ""
-      # Architecture summary if available
-      if [ -f "$PHASE_DIR/architecture.toon" ]; then
+      # Architecture summary if available (department-specific)
+      if [ -f "$ARCH_FILE" ]; then
         echo "architecture:"
-        head -5 "$PHASE_DIR/architecture.toon" | sed 's/^/  /'
+        head -5 "$ARCH_FILE" | sed 's/^/  /'
       fi
       echo ""
       get_requirements
@@ -242,26 +267,45 @@ case "$ROLE" in
         fi
       fi
       echo ""
+      # For FE lead: include UX handoff and API contracts
+      if [ "$DEPT" = "fe" ]; then
+        if [ -f "$PHASE_DIR/design-handoff.jsonl" ]; then
+          echo "design_handoff: @$PHASE_DIR/design-handoff.jsonl"
+        fi
+        if [ -f "$PHASE_DIR/api-contracts.jsonl" ]; then
+          echo "api_contracts: @$PHASE_DIR/api-contracts.jsonl"
+        fi
+      fi
+      echo ""
       echo "success_criteria: $PHASE_SUCCESS"
-    } > "${PHASE_DIR}/.ctx-lead.toon"
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
   senior)
     {
-      echo "phase: $PHASE"
-      echo "goal: $PHASE_GOAL"
+      emit_header
       echo ""
-      # Full architecture context
-      if [ -f "$PHASE_DIR/architecture.toon" ]; then
+      # Full architecture context (department-specific)
+      if [ -f "$ARCH_FILE" ]; then
         echo "architecture:"
-        cat "$PHASE_DIR/architecture.toon" | sed 's/^/  /'
+        sed 's/^/  /' "$ARCH_FILE"
       fi
       echo ""
       get_requirements
       echo ""
       # Codebase patterns for spec enrichment
-      if [ -f "$PLANNING_DIR/codebase/PATTERNS.md" ]; then
-        echo "patterns: @$PLANNING_DIR/codebase/PATTERNS.md"
+      if [ -f "$PLANNING_DIR/codebase/patterns.jsonl" ]; then
+        echo "patterns: @$PLANNING_DIR/codebase/patterns.jsonl"
+      fi
+      echo ""
+      # For FE senior: include design tokens and component specs
+      if [ "$DEPT" = "fe" ]; then
+        if [ -f "$PHASE_DIR/design-tokens.jsonl" ]; then
+          echo "design_tokens: @$PHASE_DIR/design-tokens.jsonl"
+        fi
+        if [ -f "$PHASE_DIR/component-specs.jsonl" ]; then
+          echo "component_specs: @$PHASE_DIR/component-specs.jsonl"
+        fi
       fi
       echo ""
       # Conventions for code review
@@ -271,29 +315,24 @@ case "$ROLE" in
         echo "conventions[${CONV_COUNT}]{tag,rule}:"
         echo "$CONVENTIONS"
       fi
-    } > "${PHASE_DIR}/.ctx-senior.toon"
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
   dev)
     {
-      echo "phase: $PHASE"
-      echo "goal: $PHASE_GOAL"
+      emit_header
       echo ""
       # Plan tasks with specs (the Dev's primary input)
       if [ -n "$PLAN_PATH" ] && [ -f "$PLAN_PATH" ]; then
         # Extract tasks from plan.jsonl (skip header line)
         TASK_COUNT=$(tail -n +2 "$PLAN_PATH" | wc -l | tr -d ' ')
         echo "tasks[${TASK_COUNT}]{id,action,files,done,spec}:"
-        tail -n +2 "$PLAN_PATH" | while IFS= read -r line; do
-          id=$(echo "$line" | jq -r '.id // empty' 2>/dev/null) || true
-          action=$(echo "$line" | jq -r '.a // empty' 2>/dev/null) || true
-          files=$(echo "$line" | jq -r '.f // [] | join(";")' 2>/dev/null) || true
-          done_crit=$(echo "$line" | jq -r '.done // empty' 2>/dev/null) || true
-          spec=$(echo "$line" | jq -r '.spec // empty' 2>/dev/null) || true
-          if [ -n "$id" ]; then
-            echo "  ${id},${action},${files},${done_crit},${spec}"
-          fi
-        done
+        tail -n +2 "$PLAN_PATH" | jq -r 'select((.id // empty) != "") | "  \(.id),\(.a // ""),\(.f // [] | join(";")),\(.done // ""),\(.spec // "")"' 2>/dev/null || true
+      fi
+      echo ""
+      # For FE dev: include design tokens reference
+      if [ "$DEPT" = "fe" ] && [ -f "$PHASE_DIR/design-tokens.jsonl" ]; then
+        echo "design_tokens: @$PHASE_DIR/design-tokens.jsonl"
       fi
       echo ""
       # Conventions (compact)
@@ -317,17 +356,23 @@ case "$ROLE" in
           done <<< "$SKILLS"
         fi
       fi
-    } > "${PHASE_DIR}/.ctx-dev.toon"
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
   qa)
     {
-      echo "phase: $PHASE"
-      echo "goal: $PHASE_GOAL"
+      emit_header
       echo ""
       echo "success_criteria: $PHASE_SUCCESS"
       echo ""
       get_requirements
+      echo ""
+      # For FE QA: include design compliance context
+      if [ "$DEPT" = "fe" ]; then
+        if [ -f "$PHASE_DIR/component-specs.jsonl" ]; then
+          echo "component_specs: @$PHASE_DIR/component-specs.jsonl"
+        fi
+      fi
       echo ""
       # Conventions to check
       CONVENTIONS=$(get_conventions)
@@ -336,13 +381,12 @@ case "$ROLE" in
         echo "conventions[${CONV_COUNT}]{tag,rule}:"
         echo "$CONVENTIONS"
       fi
-    } > "${PHASE_DIR}/.ctx-qa.toon"
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
   qa-code)
     {
-      echo "phase: $PHASE"
-      echo "goal: $PHASE_GOAL"
+      emit_header
       echo ""
       # Files modified (from summary.jsonl files in phase dir)
       echo "files_to_check:"
@@ -363,13 +407,64 @@ case "$ROLE" in
       fi
       echo ""
       get_research
-    } > "${PHASE_DIR}/.ctx-qa-code.toon"
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
+    ;;
+
+  tester)
+    {
+      emit_header
+      echo ""
+      # Enriched plan tasks with test specs (the Tester's primary input)
+      if [ -n "$PLAN_PATH" ] && [ -f "$PLAN_PATH" ]; then
+        TASK_COUNT=$(tail -n +2 "$PLAN_PATH" | wc -l | tr -d ' ')
+        echo "tasks[${TASK_COUNT}]{id,action,files,done,spec,test_spec}:"
+        tail -n +2 "$PLAN_PATH" | jq -r 'select((.id // empty) != "") | "  \(.id),\(.a // ""),\(.f // [] | join(";")),\(.done // ""),\(.spec // ""),\(.ts // "")"' 2>/dev/null || true
+      fi
+      echo ""
+      # Codebase patterns for test conventions
+      if [ -f "$PLANNING_DIR/codebase/patterns.jsonl" ]; then
+        echo "patterns: @$PLANNING_DIR/codebase/patterns.jsonl"
+      fi
+      echo ""
+      # Conventions for test structure
+      CONVENTIONS=$(get_conventions)
+      if [ -n "$CONVENTIONS" ]; then
+        CONV_COUNT=$(echo "$CONVENTIONS" | wc -l | tr -d ' ')
+        echo "conventions[${CONV_COUNT}]{tag,rule}:"
+        echo "$CONVENTIONS"
+      fi
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
+    ;;
+
+  owner)
+    {
+      emit_header
+      echo ""
+      get_requirements
+      echo ""
+      echo "success_criteria: $PHASE_SUCCESS"
+      echo ""
+      # Department results if available
+      echo "departments:"
+      for dept_result in "$PHASE_DIR"/*department-result*.jsonl; do
+        if [ -f "$dept_result" ]; then
+          jq -r '"  \(.dept // ""): \(.r // "")"' "$dept_result" 2>/dev/null || true
+        fi
+      done
+      echo ""
+      # Cross-department overview
+      if [ -f "$PHASE_DIR/design-handoff.jsonl" ]; then
+        echo "design_handoff: @$PHASE_DIR/design-handoff.jsonl"
+      fi
+      if [ -f "$PHASE_DIR/api-contracts.jsonl" ]; then
+        echo "api_contracts: @$PHASE_DIR/api-contracts.jsonl"
+      fi
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
   security)
     {
-      echo "phase: $PHASE"
-      echo "goal: $PHASE_GOAL"
+      emit_header
       echo ""
       # Files modified (from summary.jsonl files)
       echo "files_to_audit:"
@@ -388,13 +483,12 @@ case "$ROLE" in
           echo "  $manifest"
         fi
       done
-    } > "${PHASE_DIR}/.ctx-security.toon"
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
   debugger)
     {
-      echo "phase: $PHASE"
-      echo "goal: $PHASE_GOAL"
+      emit_header
       echo ""
       get_research
       echo ""
@@ -407,19 +501,48 @@ case "$ROLE" in
       # Gaps if any exist
       if [ -f "$PHASE_DIR/gaps.jsonl" ]; then
         echo "known_gaps:"
-        while IFS= read -r line; do
-          desc=$(echo "$line" | jq -r '.desc // empty' 2>/dev/null) || true
-          sev=$(echo "$line" | jq -r '.sev // empty' 2>/dev/null) || true
-          if [ -n "$desc" ]; then
-            echo "  ${sev}: ${desc}"
-          fi
-        done < "$PHASE_DIR/gaps.jsonl"
+        jq -r 'select((.desc // empty) != "") | "  \(.sev // ""): \(.desc)"' "$PHASE_DIR/gaps.jsonl" 2>/dev/null || true
       fi
-    } > "${PHASE_DIR}/.ctx-debugger.toon"
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
+    ;;
+
+  critic)
+    {
+      emit_header
+      echo ""
+      get_requirements
+      echo ""
+      get_research
+      echo ""
+      # Include codebase mapping summaries if available
+      if [ -d "$PLANNING_DIR/codebase" ]; then
+        echo "codebase:"
+        for f in index.jsonl architecture.jsonl patterns.jsonl concerns.jsonl; do
+          if [ -f "$PLANNING_DIR/codebase/$f" ]; then
+            echo "  @$PLANNING_DIR/codebase/$f"
+          fi
+        done
+      fi
+      echo ""
+      # Project context for gap analysis
+      if [ -f "$PLANNING_DIR/PROJECT.md" ]; then
+        echo "project: @$PLANNING_DIR/PROJECT.md"
+      fi
+      echo ""
+      echo "success_criteria: $PHASE_SUCCESS"
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
+    ;;
+
+  scout)
+    {
+      emit_header
+      echo ""
+      get_requirements
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
   *)
-    echo "Unknown role: $ROLE. Valid roles: architect, lead, senior, dev, qa, qa-code, security, debugger" >&2
+    echo "Unknown role: $ROLE (base: $BASE_ROLE). Valid base roles: architect, lead, senior, dev, qa, qa-code, security, debugger, critic, tester, owner, scout" >&2
     exit 1
     ;;
 esac
