@@ -7,7 +7,7 @@ VBW spawns 6 specialized agents (Lead, Dev, QA, Scout, Debugger, Architect) via 
 
 ## Preset Profiles
 
-### Quality
+### Quality (default)
 **Use when:** Architecture decisions, production-critical work, anything embarrassing to get wrong.
 
 | Agent | Model | Rationale |
@@ -21,7 +21,7 @@ VBW spawns 6 specialized agents (Lead, Dev, QA, Scout, Debugger, Architect) via 
 
 **Est. cost per phase:** ~$2.80 (baseline)
 
-### Balanced (default)
+### Balanced
 **Use when:** Standard development work, most phases.
 
 | Agent | Model | Rationale |

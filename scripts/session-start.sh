@@ -10,6 +10,7 @@ fi
 
 PLANNING_DIR=".vbw-planning"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Auto-migrate config if .vbw-planning exists
 if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ]; then
@@ -129,7 +130,6 @@ fi
 
 if [ ! -f "$CACHE" ] || [ $((NOW - MT)) -gt 86400 ]; then
   # Get installed version from plugin.json next to this script
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
   LOCAL_VER=$(jq -r '.version // "0.0.0"' "$SCRIPT_DIR/../.claude-plugin/plugin.json" 2>/dev/null)
 
   # Fetch latest version from GitHub (3s timeout)

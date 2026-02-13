@@ -26,7 +26,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Decision | Date | Rationale |
 |----------|------|-----------|
 | 3 preset profiles (quality/balanced/budget) | 2026-02-11 | Covers 95% of use cases; overrides handle edge cases |
-| Balanced as default (Sonnet + Haiku for Scout) | 2026-02-11 | Good quality/cost tradeoff for most projects |
+| Quality as default (Opus + Sonnet QA + Haiku Scout) | 2026-02-11 | Maximum reasoning for critical work; changed from balanced in v1.10.15 |
 | Model profile integrated into /vbw:config | 2026-02-11 | One config interface, not separate command |
 | Pass explicit model param to Task tool | 2026-02-11 | Session /model doesn't propagate to subagents |
 | Hard delete old commands (no aliases, no deprecation) | 2026-02-11 | Zero technical debt; CHANGELOG documents the change |

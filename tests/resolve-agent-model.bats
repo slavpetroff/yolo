@@ -55,7 +55,7 @@ teardown() {
   # First call populates cache
   run bash "$SCRIPTS_DIR/resolve-agent-model.sh" dev "$TEST_TEMP_DIR/.vbw-planning/config.json" "$CONFIG_DIR/model-profiles.json"
   [ "$status" -eq 0 ]
-  [ "$output" = "sonnet" ]
+  [ "$output" = "opus" ]
 
   # Verify cache file exists
   MTIME=$(stat -f %m "$TEST_TEMP_DIR/.vbw-planning/config.json" 2>/dev/null || stat -c %Y "$TEST_TEMP_DIR/.vbw-planning/config.json" 2>/dev/null)

@@ -316,6 +316,8 @@ echo "✓ Model override: $AGENT ➜ $MODEL"
 | plain_summary | boolean | true/false | true |
 | active_profile | string | profile name or "custom" | default |
 | custom_profiles | object | user-defined profiles | {} |
+| model_profile | string | quality/balanced/budget | quality |
+| model_overrides | object | agent-to-model map | {} |
 | context_compiler | boolean | true/false | true |
 | v3_delta_context | boolean | true/false | false |
 | v3_context_cache | boolean | true/false | false |

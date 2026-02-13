@@ -19,7 +19,7 @@ All notable changes to VBW will be documented in this file.
 - **`token-budget`** -- extended argument parsing for contract path and task number. Per-task budget computation with complexity scoring. Escalation config added to `config/token-budgets.json`.
 - **`detect-stack`** -- expanded coverage for Python, Rust, Go, Elixir, Java, .NET, Rails, Laravel, Spring. 4 new manifest file detections.
 - **`control-plane`** -- `context_compiler` default harmonized from `false` to `true` to match phase-detect.sh and defaults.json.
-- **`config`** -- all 20 V2/V3 feature flags enabled by default in project config. 15 flags added (lock_lite, validation_gates, smart_routing, event_log, schema_validation, snapshot_resume, lease_locks, event_recovery, monorepo_routing, hard_contracts, hard_gates, typed_protocol, role_isolation, two_phase_completion, token_budgets).
+- **`config`** -- all 20 V2/V3 feature flags available in project config (default: off, enable via `/vbw:config`). 15 flags added to migration: lock_lite, validation_gates, smart_routing, event_log, schema_validation, snapshot_resume, lease_locks, event_recovery, monorepo_routing, hard_contracts, hard_gates, typed_protocol, role_isolation, two_phase_completion, token_budgets.
 
 ### Fixed
 
@@ -87,8 +87,8 @@ All notable changes to VBW will be documented in this file.
 - **`vibe`** -- Phase Banner displays active model profile during Plan and Execute modes.
 - **`execute-protocol`** -- agent spawn messages include model name in parentheses format: "◆ Spawning {agent} ({model})...".
 - **`model-routing`** -- agent model resolution helper script (`scripts/resolve-agent-model.sh`) with hybrid architecture pattern: commands read config, helper handles merge/override logic.
-- **`init`** -- new projects seeded with `model_profile: "balanced"` in config.json.
-- **`session-start`, `suggest-next`, `statusline`** -- auto-migration adds `model_profile: "balanced"` to existing projects without the field.
+- **`init`** -- new projects seeded with `model_profile: "quality"` in config.json.
+- **`session-start`, `suggest-next`, `statusline`** -- auto-migration adds `model_profile: "quality"` to existing projects without the field.
 
 ### Changed
 
