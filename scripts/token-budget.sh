@@ -47,9 +47,68 @@ if [ "$ENABLED" != "true" ]; then
   exit 0
 fi
 
-# Load budget for role
+# Compute per-task budget from contract metadata and complexity tiers
+compute_task_budget() {
+  local contract_path="$1"
+  local role="$2"
+  local budgets_path="$3"
+
+  # Check per_task_budget_enabled
+  local enabled
+  enabled=$(jq -r '.task_complexity.per_task_budget_enabled // false' "$budgets_path" 2>/dev/null) || enabled="false"
+  [ "$enabled" != "true" ] && return 1
+
+  # Read contract metadata
+  [ ! -f "$contract_path" ] && return 1
+  local must_haves_count allowed_paths_count depends_on_count
+  must_haves_count=$(jq '.must_haves | length' "$contract_path" 2>/dev/null) || must_haves_count=0
+  allowed_paths_count=$(jq '.allowed_paths | length' "$contract_path" 2>/dev/null) || allowed_paths_count=0
+  depends_on_count=$(jq '.depends_on | length' "$contract_path" 2>/dev/null) || depends_on_count=0
+
+  # Read weights
+  local mh_w files_w dep_w
+  mh_w=$(jq -r '.task_complexity.must_haves_weight // 1' "$budgets_path" 2>/dev/null) || mh_w=1
+  files_w=$(jq -r '.task_complexity.files_weight // 2' "$budgets_path" 2>/dev/null) || files_w=2
+  dep_w=$(jq -r '.task_complexity.dependency_weight // 3' "$budgets_path" 2>/dev/null) || dep_w=3
+
+  # Compute complexity score
+  local score
+  score=$(( (must_haves_count * mh_w) + (allowed_paths_count * files_w) + (depends_on_count * dep_w) ))
+
+  # Find matching tier
+  local multiplier
+  multiplier=$(jq -r --argjson s "$score" '
+    .task_complexity.tiers
+    | map(select(.min_score <= $s and .max_score >= $s))
+    | .[0].multiplier // 1.0
+  ' "$budgets_path" 2>/dev/null) || multiplier="1.0"
+
+  # Get base role budget
+  local base_budget
+  base_budget=$(jq -r --arg r "$role" '.budgets[$r].max_lines // 0' "$budgets_path" 2>/dev/null) || base_budget=0
+  [ "$base_budget" -eq 0 ] 2>/dev/null && return 1
+
+  # Compute task budget (integer arithmetic via awk for float multiply)
+  local task_budget
+  task_budget=$(awk "BEGIN {printf \"%.0f\", $base_budget * $multiplier}") || return 1
+
+  echo "$task_budget"
+  return 0
+}
+
+# Load budget: per-task from contract, or per-role fallback
 MAX_LINES=0
-if [ -f "$BUDGETS_PATH" ]; then
+BUDGET_SOURCE="role"
+if [ -n "$CONTRACT_PATH" ] && [ -f "$CONTRACT_PATH" ] && [ -f "$BUDGETS_PATH" ]; then
+  TASK_BUDGET=$(compute_task_budget "$CONTRACT_PATH" "$ROLE" "$BUDGETS_PATH" 2>/dev/null) || TASK_BUDGET=""
+  if [ -n "$TASK_BUDGET" ] && [ "$TASK_BUDGET" -gt 0 ] 2>/dev/null; then
+    MAX_LINES="$TASK_BUDGET"
+    BUDGET_SOURCE="task"
+  fi
+fi
+
+# Fallback to per-role budget
+if [ "$MAX_LINES" -eq 0 ] && [ -f "$BUDGETS_PATH" ]; then
   MAX_LINES=$(jq -r --arg r "$ROLE" '.budgets[$r].max_lines // 0' "$BUDGETS_PATH" 2>/dev/null || echo "0")
 fi
 
@@ -92,7 +151,8 @@ fi
 
 if [ "$METRICS_ENABLED" = "true" ] && [ -f "${SCRIPT_DIR}/collect-metrics.sh" ]; then
   bash "${SCRIPT_DIR}/collect-metrics.sh" token_overage 0 \
-    "role=${ROLE}" "lines_total=${LINE_COUNT}" "lines_max=${MAX_LINES}" "lines_truncated=${OVERAGE}" 2>/dev/null || true
+    "role=${ROLE}" "lines_total=${LINE_COUNT}" "lines_max=${MAX_LINES}" \
+    "lines_truncated=${OVERAGE}" "budget_source=${BUDGET_SOURCE}" 2>/dev/null || true
 fi
 
 # Output truncation notice to stderr
