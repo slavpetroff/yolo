@@ -156,11 +156,11 @@ if [ "$JQ_AVAILABLE" = true ] && [ -f "$CONFIG_FILE" ]; then
   eval "$(jq -r '
     "CFG_EFFORT=\(.effort // "balanced")",
     "CFG_AUTONOMY=\(.autonomy // "standard")",
-    "CFG_AUTO_COMMIT=\(.auto_commit // true)",
+    "CFG_AUTO_COMMIT=\(if .auto_commit == null then true else .auto_commit end)",
     "CFG_VERIFICATION_TIER=\(.verification_tier // "standard")",
-    "CFG_AGENT_TEAMS=\(.agent_teams // false)",
+    "CFG_AGENT_TEAMS=\(if .agent_teams == null then true else .agent_teams end)",
     "CFG_MAX_TASKS=\(.max_tasks_per_plan // 5)",
-    "CFG_CONTEXT_COMPILER=\(.context_compiler // true)"
+    "CFG_CONTEXT_COMPILER=\(if .context_compiler == null then true else .context_compiler end)"
   ' "$CONFIG_FILE" 2>/dev/null)" || true
 fi
 

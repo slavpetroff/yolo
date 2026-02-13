@@ -17,28 +17,36 @@ if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ]; then
     TMP=$(mktemp)
     jq '. + {model_profile: "quality", model_overrides: {}}' "$PLANNING_DIR/config.json" > "$TMP" && mv "$TMP" "$PLANNING_DIR/config.json"
   fi
-  # V2 enforcement flags migration
-  if ! jq -e 'has("v2_hard_contracts")' "$PLANNING_DIR/config.json" >/dev/null 2>&1; then
-    TMP=$(mktemp)
-    jq '. + {v2_hard_contracts: false, v2_hard_gates: false, v2_typed_protocol: false}' "$PLANNING_DIR/config.json" > "$TMP" && mv "$TMP" "$PLANNING_DIR/config.json"
-  elif ! jq -e 'has("v2_typed_protocol")' "$PLANNING_DIR/config.json" >/dev/null 2>&1; then
-    TMP=$(mktemp)
-    jq '. + {v2_typed_protocol: false}' "$PLANNING_DIR/config.json" > "$TMP" && mv "$TMP" "$PLANNING_DIR/config.json"
-  fi
-  # V2 role isolation flag migration
-  if ! jq -e 'has("v2_role_isolation")' "$PLANNING_DIR/config.json" >/dev/null 2>&1; then
-    TMP=$(mktemp)
-    jq '. + {v2_role_isolation: false}' "$PLANNING_DIR/config.json" > "$TMP" && mv "$TMP" "$PLANNING_DIR/config.json"
-  fi
-  # V2 two-phase completion flag migration
-  if ! jq -e 'has("v2_two_phase_completion")' "$PLANNING_DIR/config.json" >/dev/null 2>&1; then
-    TMP=$(mktemp)
-    jq '. + {v2_two_phase_completion: false}' "$PLANNING_DIR/config.json" > "$TMP" && mv "$TMP" "$PLANNING_DIR/config.json"
-  fi
-  # V2 token budgets flag migration
-  if ! jq -e 'has("v2_token_budgets")' "$PLANNING_DIR/config.json" >/dev/null 2>&1; then
-    TMP=$(mktemp)
-    jq '. + {v2_token_budgets: false}' "$PLANNING_DIR/config.json" > "$TMP" && mv "$TMP" "$PLANNING_DIR/config.json"
+  # Comprehensive feature flag migration — single pass adds all missing flags
+  # Canonical flag list from config/defaults.json. All default to false for existing users.
+  TMP=$(mktemp)
+  if jq '
+    . +
+    (if has("context_compiler") then {} else {context_compiler: true} end) +
+    (if has("v3_delta_context") then {} else {v3_delta_context: false} end) +
+    (if has("v3_context_cache") then {} else {v3_context_cache: false} end) +
+    (if has("v3_plan_research_persist") then {} else {v3_plan_research_persist: false} end) +
+    (if has("v3_metrics") then {} else {v3_metrics: false} end) +
+    (if has("v3_contract_lite") then {} else {v3_contract_lite: false} end) +
+    (if has("v3_lock_lite") then {} else {v3_lock_lite: false} end) +
+    (if has("v3_validation_gates") then {} else {v3_validation_gates: false} end) +
+    (if has("v3_smart_routing") then {} else {v3_smart_routing: false} end) +
+    (if has("v3_event_log") then {} else {v3_event_log: false} end) +
+    (if has("v3_schema_validation") then {} else {v3_schema_validation: false} end) +
+    (if has("v3_snapshot_resume") then {} else {v3_snapshot_resume: false} end) +
+    (if has("v3_lease_locks") then {} else {v3_lease_locks: false} end) +
+    (if has("v3_event_recovery") then {} else {v3_event_recovery: false} end) +
+    (if has("v3_monorepo_routing") then {} else {v3_monorepo_routing: false} end) +
+    (if has("v2_hard_contracts") then {} else {v2_hard_contracts: false} end) +
+    (if has("v2_hard_gates") then {} else {v2_hard_gates: false} end) +
+    (if has("v2_typed_protocol") then {} else {v2_typed_protocol: false} end) +
+    (if has("v2_role_isolation") then {} else {v2_role_isolation: false} end) +
+    (if has("v2_two_phase_completion") then {} else {v2_two_phase_completion: false} end) +
+    (if has("v2_token_budgets") then {} else {v2_token_budgets: false} end)
+  ' "$PLANNING_DIR/config.json" > "$TMP" 2>/dev/null; then
+    mv "$TMP" "$PLANNING_DIR/config.json"
+  else
+    rm -f "$TMP"
   fi
 fi
 
@@ -51,13 +59,26 @@ if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ] && command -v jq
   jq -r '
     "VBW_EFFORT=\(.effort // "balanced")",
     "VBW_AUTONOMY=\(.autonomy // "standard")",
+    "VBW_CONTEXT_COMPILER=\(if .context_compiler == null then true else .context_compiler end)",
+    "VBW_V3_DELTA_CONTEXT=\(.v3_delta_context // false)",
+    "VBW_V3_CONTEXT_CACHE=\(.v3_context_cache // false)",
+    "VBW_V3_PLAN_RESEARCH_PERSIST=\(.v3_plan_research_persist // false)",
+    "VBW_V3_METRICS=\(.v3_metrics // false)",
+    "VBW_V3_CONTRACT_LITE=\(.v3_contract_lite // false)",
+    "VBW_V3_LOCK_LITE=\(.v3_lock_lite // false)",
+    "VBW_V3_VALIDATION_GATES=\(.v3_validation_gates // false)",
+    "VBW_V3_SMART_ROUTING=\(.v3_smart_routing // false)",
+    "VBW_V3_EVENT_LOG=\(.v3_event_log // false)",
+    "VBW_V3_SCHEMA_VALIDATION=\(.v3_schema_validation // false)",
+    "VBW_V3_SNAPSHOT_RESUME=\(.v3_snapshot_resume // false)",
+    "VBW_V3_LEASE_LOCKS=\(.v3_lease_locks // false)",
+    "VBW_V3_EVENT_RECOVERY=\(.v3_event_recovery // false)",
+    "VBW_V3_MONOREPO_ROUTING=\(.v3_monorepo_routing // false)",
     "VBW_V2_HARD_CONTRACTS=\(.v2_hard_contracts // false)",
     "VBW_V2_HARD_GATES=\(.v2_hard_gates // false)",
-    "VBW_V3_EVENT_LOG=\(.v3_event_log // false)",
-    "VBW_V3_METRICS=\(.v3_metrics // false)",
-    "VBW_V3_CONTEXT_CACHE=\(.v3_context_cache // false)",
-    "VBW_V3_DELTA_CONTEXT=\(.v3_delta_context // false)",
+    "VBW_V2_TYPED_PROTOCOL=\(.v2_typed_protocol // false)",
     "VBW_V2_ROLE_ISOLATION=\(.v2_role_isolation // false)",
+    "VBW_V2_TWO_PHASE_COMPLETION=\(.v2_two_phase_completion // false)",
     "VBW_V2_TOKEN_BUDGETS=\(.v2_token_budgets // false)"
   ' "$PLANNING_DIR/config.json" > "$VBW_CONFIG_CACHE" 2>/dev/null || true
 fi
@@ -285,9 +306,9 @@ config_max_tasks="5"
 if [ -f "$CONFIG_FILE" ]; then
   config_effort=$(jq -r '.effort // "balanced"' "$CONFIG_FILE" 2>/dev/null)
   config_autonomy=$(jq -r '.autonomy // "standard"' "$CONFIG_FILE" 2>/dev/null)
-  config_auto_commit=$(jq -r '.auto_commit // true' "$CONFIG_FILE" 2>/dev/null)
+  config_auto_commit=$(jq -r 'if .auto_commit == null then true else .auto_commit end' "$CONFIG_FILE" 2>/dev/null)
   config_verification=$(jq -r '.verification_tier // "standard"' "$CONFIG_FILE" 2>/dev/null)
-  config_agent_teams=$(jq -r '.agent_teams // true' "$CONFIG_FILE" 2>/dev/null)
+  config_agent_teams=$(jq -r 'if .agent_teams == null then true else .agent_teams end' "$CONFIG_FILE" 2>/dev/null)
   config_max_tasks=$(jq -r '.max_tasks_per_plan // 5' "$CONFIG_FILE" 2>/dev/null)
 fi
 

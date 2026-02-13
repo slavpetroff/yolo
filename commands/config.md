@@ -316,6 +316,7 @@ echo "✓ Model override: $AGENT ➜ $MODEL"
 | plain_summary | boolean | true/false | true |
 | active_profile | string | profile name or "custom" | default |
 | custom_profiles | object | user-defined profiles | {} |
+| context_compiler | boolean | true/false | true |
 | v3_delta_context | boolean | true/false | false |
 | v3_context_cache | boolean | true/false | false |
 | v3_plan_research_persist | boolean | true/false | false |
@@ -330,6 +331,12 @@ echo "✓ Model override: $AGENT ➜ $MODEL"
 | v3_lease_locks | boolean | true/false | false |
 | v3_event_recovery | boolean | true/false | false |
 | v3_monorepo_routing | boolean | true/false | false |
+| v2_hard_contracts | boolean | true/false | false |
+| v2_hard_gates | boolean | true/false | false |
+| v2_typed_protocol | boolean | true/false | false |
+| v2_role_isolation | boolean | true/false | false |
+| v2_two_phase_completion | boolean | true/false | false |
+| v2_token_budgets | boolean | true/false | false |
 
 ## Output Format
 

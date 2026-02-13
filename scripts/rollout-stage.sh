@@ -64,7 +64,7 @@ fi
 
 # --- Count completed phases ---
 COMPLETED_PHASES=0
-REQUIRE_CLEAN=$(jq -r '.advancement.require_clean_phases // true' "$STAGES_PATH" 2>/dev/null || echo "true")
+REQUIRE_CLEAN=$(jq -r 'if .advancement.require_clean_phases == null then true else .advancement.require_clean_phases end' "$STAGES_PATH" 2>/dev/null || echo "true")
 COUNT_EVENT=$(jq -r '.advancement.count_event // "phase_end"' "$STAGES_PATH" 2>/dev/null || echo "phase_end")
 
 if [ -f "$EVENTS_FILE" ]; then

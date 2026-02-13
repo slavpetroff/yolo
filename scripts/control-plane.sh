@@ -78,7 +78,7 @@ if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
   V3_LOCK_LITE=$(jq -r '.v3_lock_lite // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
   V3_LEASE_LOCKS=$(jq -r '.v3_lease_locks // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
   V2_HARD_GATES=$(jq -r '.v2_hard_gates // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
-  CONTEXT_COMPILER=$(jq -r '.context_compiler // true' "$CONFIG_PATH" 2>/dev/null || echo "true")
+  CONTEXT_COMPILER=$(jq -r 'if .context_compiler == null then true else .context_compiler end' "$CONFIG_PATH" 2>/dev/null || echo "true")
   V2_TOKEN_BUDGETS=$(jq -r '.v2_token_budgets // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
 fi
 
