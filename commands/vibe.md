@@ -143,7 +143,17 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
             5. Add "None of these" option
             6. Record selected items to discovery.json with category "table_stakes", tier "table_stakes"
             If RESEARCH_AVAILABLE=false: Skip to thread-following checklists (Round 3+ logic).
-          - **Round 3+ (Checklists - Thread-Following):** Generate checklist questions that BUILD ON previous round answers. Read discovery.json.answered[] for prior rounds. Identify gaps or follow-ups using these patterns: (1) If Round N-1 answer was vague: ask concrete follow-up, (2) If Round N-1 revealed complexity: ask edge case questions, (3) If Round N-1 mentioned integration: ask about auth, error handling, data flow, (4) If Round N-1 suggested scale: ask about performance, caching, limits. Check discovery.json.answered[] to avoid duplicate questions (skip categories already covered). Format: Generate targeted pick-many questions with `multiSelect: true`. Mark user-identified features as tier "differentiators".
+          - **Round 3 (Thread-Following Checklist):** Generate checklist questions that BUILD ON previous round answers. Read discovery.json.answered[] for prior rounds. Identify gaps or follow-ups using these patterns: (1) If Round N-1 answer was vague: ask concrete follow-up, (2) If Round N-1 revealed complexity: ask edge case questions, (3) If Round N-1 mentioned integration: ask about auth, error handling, data flow, (4) If Round N-1 suggested scale: ask about performance, caching, limits. Check discovery.json.answered[] to avoid duplicate questions (skip categories already covered). Format: Generate targeted pick-many questions with `multiSelect: true`. Mark user-identified features as tier "differentiators".
+          - **Round 4 (Differentiator Identification):** After 2-3 rounds of checklists, explicitly ask about competitive advantage:
+            "What makes your project different from existing solutions?"
+            Present as AskUserQuestion with context-aware options:
+            - "It does [X] better than competitors" (where X comes from prior answers)
+            - "It targets a different audience: [Y]" (where Y is inferred from users/scale answers)
+            - "It combines features that don't exist together: [Z]"
+            - "Let me explain..."
+            Record answer to discovery.json with category "differentiators", tier "differentiators".
+            Mark these features as competitive advantages during requirement synthesis.
+          - **Round 5+ (Additional Thread-Following):** Continue thread-following pattern from Round 3. Mark user-identified features as tier "differentiators".
        b. Present questions via AskUserQuestion
        c. **Pitfall relevance scoring (Round 2 → Round 3 transition):** After Round 2 completes, if RESEARCH_AVAILABLE=true and domain-research.md contains ## Common Pitfalls section:
           1. Read all pitfalls from domain-research.md
