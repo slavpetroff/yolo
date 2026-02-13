@@ -449,6 +449,7 @@ if [ "$V3_CACHE_ENABLED" = "true" ] && [ -n "$CACHE_HASH" ] && [ "$CACHE_HASH" !
   CACHE_DIR="${PLANNING_DIR}/.cache/context"
   if mkdir -p "$CACHE_DIR" 2>/dev/null; then
     cp "${PHASE_DIR}/.context-${ROLE}.md" "${CACHE_DIR}/${CACHE_HASH}.md" 2>/dev/null || echo "V3 fallback: cache write failed for ${ROLE}" >&2
+    update_context_index "$CACHE_HASH" "${CACHE_DIR}/${CACHE_HASH}.md" "$ROLE" "$PHASE"
   else
     echo "V3 fallback: could not create cache dir" >&2
   fi
