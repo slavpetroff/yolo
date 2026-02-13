@@ -6,10 +6,10 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** No active milestone
-**Last shipped:** Init Auto-Bootstrap — 4 phases, 6 plans, 28 tasks, 29 commits. Transformed /vbw:init into intelligent, context-aware initialization with brownfield inference, GSD history extraction, confirmation UX, and shared bootstrap scripts.
+**Work:** Company-Grade Engineering Workflow (5 phases)
+**Last shipped:** Init Auto-Bootstrap — 4 phases, 6 plans, 28 tasks, 29 commits.
 **Previous:** Granular Model Config — 2 phases, 2 plans, 6 tasks, 6 commits
-**Next action:** Run /vbw:vibe to start a new milestone, or /vbw:status to review progress
+**Next action:** Phase 1 design locked. Continue implementation of company hierarchy agents and 8-step workflow.
 
 ## VBW Rules
 
@@ -34,6 +34,11 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | NL parsing via prompt instructions, not code | 2026-02-11 | Zero maintenance; model improvements are free |
 | Confirmation gates mandatory (except --yolo) | 2026-02-11 | NL misinterpretation risk → always confirm before acting |
 | Per-project memory only | 2026-02-10 | Get basics right first, cross-project learning deferred |
+| Company hierarchy: Architect → Lead → Senior → Dev | 2026-02-13 | Mirrors real engineering org, each level distills scope |
+| JSONL abbreviated keys for agent artifacts | 2026-02-13 | 85-93% token savings vs Markdown, jq-parseable |
+| TOON for compiled context, MD for user-facing only | 2026-02-13 | Agents read TOON natively, humans read Markdown |
+| 8-step workflow per phase | 2026-02-13 | Architecture → Plan → Design Review → Implement → Code Review → QA → Security → Sign-off |
+| Commit every artifact immediately | 2026-02-13 | Survives exit, enables resume from any point |
 
 ## Installed Skills
 
@@ -47,7 +52,7 @@ These conventions are enforced during planning and verified during QA.
 - Agents named vbw-{role}.md in agents/ [naming]
 - Scripts are kebab-case .sh files in scripts/ [naming]
 - Phase directories follow {NN}-{slug}/ pattern [naming]
-- Plan files named {NN}-{MM}-PLAN.md, summaries {NN}-{MM}-SUMMARY.md [naming]
+- Plan files named {NN-MM}.plan.jsonl, summaries {NN-MM}.summary.jsonl [naming]
 - Commits follow {type}({scope}): {desc} format, one commit per task [style]
 - Stage files individually with git add, never git add . or git add -A [style]
 - Shell scripts use set -u minimum, set -euo pipefail for critical scripts [style]

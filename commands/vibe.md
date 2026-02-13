@@ -152,13 +152,24 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
 
 **Guard:** PROJECT.md exists but `phase_count=0`.
 
+**Delegation:** Scope delegates to the Architect agent (vbw-architect) for phase decomposition. See `references/company-hierarchy.md` for hierarchy.
+
 **Steps:**
-1. Load context: PROJECT.md, REQUIREMENTS.md. If `.vbw-planning/codebase/` exists, read INDEX.md + ARCHITECTURE.md.
-2. If $ARGUMENTS (excl. flags) provided, use as scope. Else ask: "What do you want to build?" Show uncovered requirements as suggestions.
-3. Decompose into 3-5 phases (name, goal, success criteria). Each independently plannable. Map REQ-IDs.
-4. Write ROADMAP.md. Create `.vbw-planning/phases/{NN}-{slug}/` dirs.
-5. Update STATE.md: Phase 1, status "Pending planning".
-6. Display "Scoping complete. {N} phases created." STOP -- do not auto-continue to planning.
+1. Load context: PROJECT.md, REQUIREMENTS.md (or reqs.jsonl). If `.vbw-planning/codebase/` exists, note available mapping docs.
+2. If $ARGUMENTS (excl. flags) provided, use as scope description. Else ask: "What do you want to build?" Show uncovered requirements as suggestions.
+3. Resolve Architect model:
+   ```bash
+   ARCHITECT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   ```
+4. Spawn vbw-architect as subagent via Task tool with:
+   - model: "${ARCHITECT_MODEL}"
+   - Mode: "scoping"
+   - Provide: PROJECT.md, REQUIREMENTS.md, codebase/ mapping paths, user scope description
+   - Display: `◆ Spawning Architect (${ARCHITECT_MODEL}) for scoping...`
+5. Architect decomposes into 3-5 phases (name, goal, success criteria, mapped REQ-IDs, dependencies). Writes ROADMAP.md and creates phase dirs.
+6. Display: `✓ Architect complete — scoping done`
+7. Update STATE.md: Phase 1, status "Pending planning".
+8. Display "Scoping complete. {N} phases created." STOP -- do not auto-continue to planning.
 
 ### Mode: Discuss
 
@@ -222,14 +233,14 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
 
 ### Mode: Execute
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` and follow its instructions.
+Read `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` and follow its 8-step company workflow (Architecture → Planning → Design Review → Implementation → Code Review → QA → Security → Sign-off). See `references/company-hierarchy.md` for agent hierarchy.
 
 This mode delegates entirely to the protocol file. Before reading:
-1. **Parse arguments:** Phase number (auto-detect if omitted), --effort, --skip-qa, --plan=NN.
+1. **Parse arguments:** Phase number (auto-detect if omitted), --effort, --skip-qa, --skip-security, --plan=NN.
 2. **Run execute guards:**
    - Not initialized: STOP "Run /vbw:init first."
-   - No PLAN.md in phase dir: STOP "Phase {N} has no plans. Run `/vbw:vibe --plan {N}` first."
-   - All plans have SUMMARY.md: cautious/standard -> WARN + confirm; confident/pure-vibe -> warn + auto-continue.
+   - No plan files in phase dir: STOP "Phase {N} has no plans. Run `/vbw:vibe --plan {N}` first."
+   - All plans have summary.jsonl: cautious/standard -> WARN + confirm; confident/pure-vibe -> warn + auto-continue.
 3. **Compile context:** If `config_context_compiler=true`, run:
    - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} dev {phases_dir} {plan_path}`
    - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} qa {phases_dir}`

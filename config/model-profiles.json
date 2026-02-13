@@ -3,24 +3,33 @@
     "lead": "opus",
     "dev": "opus",
     "qa": "sonnet",
+    "qa-code": "sonnet",
     "scout": "haiku",
     "debugger": "opus",
-    "architect": "opus"
+    "architect": "opus",
+    "senior": "opus",
+    "security": "sonnet"
   },
   "balanced": {
     "lead": "sonnet",
     "dev": "sonnet",
     "qa": "sonnet",
+    "qa-code": "sonnet",
     "scout": "haiku",
     "debugger": "sonnet",
-    "architect": "sonnet"
+    "architect": "opus",
+    "senior": "opus",
+    "security": "sonnet"
   },
   "budget": {
     "lead": "sonnet",
     "dev": "sonnet",
     "qa": "haiku",
+    "qa-code": "haiku",
     "scout": "haiku",
     "debugger": "sonnet",
-    "architect": "sonnet"
+    "architect": "sonnet",
+    "senior": "sonnet",
+    "security": "haiku"
   }
 }

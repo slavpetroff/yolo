@@ -2,161 +2,216 @@
 
 Loaded on demand by /vbw:vibe Execute mode. Not a user-facing command.
 
-### Step 2: Load plans and detect resume state
+Implements the 8-step company-grade engineering workflow. See `references/company-hierarchy.md` for full hierarchy and `references/artifact-formats.md` for JSONL schemas.
 
-1. Glob `*-PLAN.md` in phase dir. Read each plan's YAML frontmatter.
-2. Check existing SUMMARY.md files (complete plans).
+## Pre-Execution
+
+1. **Parse arguments:** Phase number (auto-detect if omitted), --effort, --skip-qa, --skip-security, --plan=NN.
+2. **Run execute guards:**
+   - Not initialized: STOP "Run /vbw:init first."
+   - No plans in phase dir: STOP "Phase {N} has no plans. Run `/vbw:vibe --plan {N}` first."
+   - All plans have summary.jsonl: cautious/standard → WARN + confirm; confident/pure-vibe → warn + continue.
+3. **Resolve models for all agents:**
+   ```bash
+   ARCHITECT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   SENIOR_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh senior .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   DEV_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   QA_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   QA_CODE_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa-code .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   SECURITY_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh security .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   ```
+
+### Step 1: Architecture (Architect Agent)
+
+**Guard:** Skip if architecture.toon already exists in phase directory.
+
+1. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} architect {phases_dir}`
+2. Spawn vbw-architect with Task tool:
+   - model: "${ARCHITECT_MODEL}"
+   - Provide: reqs.jsonl (or REQUIREMENTS.md), codebase/ mapping, research.jsonl (if exists)
+   - Include compiled context: `{phase-dir}/.ctx-architect.toon`
+3. Display: `◆ Spawning Architect (${ARCHITECT_MODEL})...` → `✓ Architecture complete`
+4. Verify: architecture.toon exists in phase directory.
+5. Architect commits: `docs({phase}): architecture design`
+
+### Step 2: Load Plans and Detect Resume State
+
+1. Glob `*.plan.jsonl` in phase dir. Read each plan header (line 1, parse with jq).
+2. Check existing summary.jsonl files (complete plans).
 3. `git log --oneline -20` for committed tasks (crash recovery).
 4. Build remaining plans list. If `--plan=NN`, filter to that plan.
 5. Partially-complete plans: note resume-from task number.
-6. **Crash recovery:** If `.vbw-planning/.execution-state.json` exists with `"status": "running"`, update plan statuses to match current SUMMARY.md state.
+6. **Crash recovery:** If `.vbw-planning/.execution-state.json` exists with `"status": "running"`, reconcile plan statuses with summary.jsonl state.
 7. **Write execution state** to `.vbw-planning/.execution-state.json`:
-```json
-{
-  "phase": N, "phase_name": "{slug}", "status": "running",
-  "started_at": "{ISO 8601}", "wave": 1, "total_waves": N,
-  "plans": [{"id": "NN-MM", "title": "...", "wave": W, "status": "pending|complete"}]
-}
-```
-Set completed plans (with SUMMARY.md) to `"complete"`, others to `"pending"`.
-
-8. **Cross-phase deps (PWR-04):** For each plan with `cross_phase_deps`:
-   - Verify referenced plan's SUMMARY.md exists with `status: complete`
+   ```json
+   {
+     "phase": N, "phase_name": "{slug}", "status": "running",
+     "started_at": "{ISO 8601}", "step": "planning", "wave": 1, "total_waves": N,
+     "plans": [{"id": "NN-MM", "title": "...", "wave": W, "status": "pending|complete"}]
+   }
+   ```
+   Commit: `chore(state): execution state phase {N}`
+8. **Cross-phase deps:** For each plan with `xd` (cross_phase_deps):
+   - Verify referenced plan's summary.jsonl exists with `s: complete`
    - If artifact path specified, verify file exists
-   - Unsatisfied → STOP: "Cross-phase dependency not met. Plan {id} depends on Phase {P}, Plan {plan} ({reason}). Status: {failed|missing|not built}. Fix: Run /vbw:vibe {P}"
+   - Unsatisfied → STOP with fix instructions
    - All satisfied: `✓ Cross-phase dependencies verified`
-   - No cross_phase_deps: skip silently
 
-### Step 3: Create Agent Team and execute
+### Step 3: Design Review (Senior Agent)
 
-**Delegation directive (all except Turbo):**
-You are the team LEAD. NEVER implement tasks yourself.
-- Delegate ALL implementation to Dev teammates via TaskCreate
-- NEVER Write/Edit files in a plan's `files_modified` — only state files: STATE.md, ROADMAP.md, .execution-state.json, SUMMARY.md
-- If Dev fails: guidance via SendMessage, not takeover. If all Devs unavailable: create new Dev.
-- At Turbo: no team — Dev executes directly.
+**Delegation directive:** You are the Lead. NEVER implement tasks yourself.
 
-**Context compilation (REQ-11):** If `config_context_compiler=true` from Context block above, before creating Dev tasks run:
-`bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} dev {phases_dir} {plan_path}`
-This produces `{phase-dir}/.context-dev.md` with phase goal and conventions.
-The plan_path argument enables skill bundling: compile-context.sh reads skills_used from the plan's frontmatter and bundles referenced SKILL.md content into .context-dev.md. If the plan has no skills_used, this is a no-op.
-If compilation fails, proceed without it — Dev reads files directly.
+1. Update execution state: `"step": "design_review"`
+2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} senior {phases_dir}`
+3. For each plan.jsonl without enriched specs (tasks missing `spec` field):
+   - Spawn vbw-senior with Task tool:
+     - model: "${SENIOR_MODEL}"
+     - Mode: "design_review"
+     - Provide: plan.jsonl path, architecture.toon path, compiled context
+   - Display: `◆ Spawning Senior for design review ({plan})...`
+4. Senior reads plan, researches codebase, enriches each task with `spec` field.
+5. Senior commits enriched plan: `docs({phase}): enrich plan {NN-MM} specs`
+6. Verify: all tasks in plan.jsonl have non-empty `spec` field.
 
-**Model resolution:** Resolve models for Dev and QA agents:
-```bash
-DEV_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-if [ $? -ne 0 ]; then echo "$DEV_MODEL" >&2; exit 1; fi
+### Step 4: Implementation (Dev Agents)
 
-QA_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-if [ $? -ne 0 ]; then echo "$QA_MODEL" >&2; exit 1; fi
-```
+1. Update execution state: `"step": "implementation"`
+2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} dev {phases_dir} {plan_path}`
+3. For each uncompleted plan, TaskCreate:
+   ```
+   subject: "Execute {NN-MM}: {plan-title}"
+   description: |
+     Execute all tasks in {PLAN_PATH}.
+     Effort: {DEV_EFFORT}. Working directory: {pwd}.
+     Phase context: {phase-dir}/.ctx-dev.toon (if compiled)
+     {If resuming: "Resume from Task {N}. Tasks 1-{N-1} already committed."}
+   activeForm: "Executing {NN-MM}"
+   ```
+   **CRITICAL:** Pass `model: "${DEV_MODEL}"` to Task tool.
+4. Wire dependencies via TaskUpdate: `addBlockedBy` from plan `d` (depends_on) field.
+5. Spawn Dev teammates and assign tasks.
+6. Display: `◆ Spawning Dev (${DEV_MODEL})...`
 
-For each uncompleted plan, TaskCreate:
-```
-subject: "Execute {NN-MM}: {plan-title}"
-description: |
-  Execute all tasks in {PLAN_PATH}.
-  Effort: {DEV_EFFORT}. Working directory: {pwd}.
-  Model: ${DEV_MODEL}
-  Phase context: {phase-dir}/.context-dev.md (if compiled)
-  {If resuming: "Resume from Task {N}. Tasks 1-{N-1} already committed."}
-  {If autonomous: false: "This plan has checkpoints -- pause for user input."}
-activeForm: "Executing {NN-MM}"
-```
+**Dev escalation chain:** Dev → Senior (not Lead). If Dev sends `dev_blocker`, route to Senior.
 
-Display: `◆ Spawning Dev teammate (${DEV_MODEL})...`
+**Summary verification gate (mandatory):**
+When Dev reports completion:
+1. Verify `{phase_dir}/{plan_id}.summary.jsonl` exists with valid JSONL.
+2. If missing: message Dev to write it. If unavailable: write from git log.
+3. Only after verification: mark plan `"complete"` in .execution-state.json.
 
-**CRITICAL:** Pass `model: "${DEV_MODEL}"` parameter to the Task tool invocation when spawning Dev teammates.
+### Step 5: Code Review (Senior Agent)
 
-Wire dependencies via TaskUpdate: read `depends_on` from each plan's frontmatter, add `addBlockedBy: [task IDs of dependency plans]`. Plans with empty depends_on start immediately.
+1. Update execution state: `"step": "code_review"`
+2. For each completed plan:
+   - Spawn vbw-senior with Task tool:
+     - model: "${SENIOR_MODEL}"
+     - Mode: "code_review"
+     - Provide: plan.jsonl path, git diff of plan commits
+   - Display: `◆ Spawning Senior for code review ({plan})...`
+3. Senior reviews code, produces code-review.jsonl.
+4. If `r: "changes_requested"`:
+   - Route changes to Dev via Senior's instructions.
+   - Dev fixes, Senior re-reviews. Max 2 cycles.
+   - After cycle 2: escalate to Lead for decision.
+5. Senior commits: `docs({phase}): code review {NN-MM}`
+6. Verify: code-review.jsonl exists with `r: "approve"`.
 
-Spawn Dev teammates and assign tasks. Platform enforces execution ordering via task deps. If `--plan=NN`: single task, no dependencies.
+### Step 6: QA (QA Lead + QA Code)
 
-**Plan approval gate (effort-gated, autonomy-gated):**
+If `--skip-qa` or turbo: `○ QA skipped ({reason})`
 
-| Autonomy | Approval active at |
-|----------|-------------------|
-| cautious | Thorough + Balanced |
-| standard | Thorough only |
-| confident/pure-vibe | OFF |
+1. Update execution state: `"step": "qa"`
+2. **Tier resolution:** turbo=skip, fast=quick, balanced=standard, thorough=deep.
+3. Compile context:
+   - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} qa {phases_dir}`
+   - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} qa-code {phases_dir}`
 
-When active: spawn Devs with `plan_mode_required`. Dev reads PLAN.md, proposes approach, waits for lead approval. Lead approves/rejects via plan_approval_response.
-When off: Devs begin immediately.
+**QA Lead (plan-level):**
+4. Spawn vbw-qa:
+   - model: "${QA_MODEL}"
+   - Provide: plan.jsonl files, summary.jsonl files, compiled context
+   - Tier: {tier}
+5. QA Lead produces verification.jsonl. Commits: `docs({phase}): verification results`
 
-**Teammate communication (effort-gated):** Schema ref: `${CLAUDE_PLUGIN_ROOT}/references/handoff-schemas.md`
+**QA Code (code-level):**
+6. Spawn vbw-qa-code:
+   - model: "${QA_CODE_MODEL}"
+   - Provide: summary.jsonl (for file list), compiled context
+   - Tier: {tier}
+7. QA Code runs tests, lint, patterns. Produces qa-code.jsonl. Commits: `docs({phase}): code quality review`
 
-| Effort | Messages sent |
-|--------|--------------|
-| Thorough | blockers (dev_blocker), cross-cutting findings, progress (dev_progress), design debates to lead |
-| Balanced | blockers (dev_blocker), cross-cutting findings |
-| Fast | blockers only (dev_blocker) |
-| Turbo | N/A (no team) |
+**Result handling:**
+- Both PASS → Step 7 (or Step 8 if security disabled)
+- QA Lead FAIL → remediation plan → Senior re-specs → Dev fixes → re-verify (max 2 cycles)
+- QA Code FAIL → gaps.jsonl → Dev fixes → QA Code re-verify (max 2 cycles)
+- 2x FAIL → Senior architectural review
+- 3x FAIL → escalate to Architect for design re-evaluation
 
-Use targeted `message` not `broadcast`. Reserve broadcast for critical blocking issues only.
+### Step 7: Security Audit (optional)
 
-**Execution state updates:**
-- Task completion: update plan status in .execution-state.json (`"complete"` or `"failed"`)
-- Wave transition: update `"wave"` when first wave N+1 task starts
-- Use `jq` for atomic updates
+If `--skip-security` or config `security_audit` != true: `○ Security audit skipped`
 
-Hooks handle continuous verification: PostToolUse validates SUMMARY.md, TaskCompleted verifies commits, TeammateIdle runs quality gate.
+1. Update execution state: `"step": "security"`
+2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} security {phases_dir}`
+3. Spawn vbw-security:
+   - model: "${SECURITY_MODEL}"
+   - Provide: summary.jsonl (file list), compiled context
+4. Security produces security-audit.jsonl. Commits: `docs({phase}): security audit`
+5. If `r: "FAIL"`: **HARD STOP**. Display findings. Only user `--force` overrides.
+6. If `r: "WARN"`: display warnings, continue.
+7. If `r: "PASS"`: continue.
 
-### Step 3b: SUMMARY.md verification gate (mandatory)
+### Step 8: Sign-off (Lead)
 
-**This is a hard gate. Do NOT proceed to QA or mark a plan as complete in .execution-state.json without verifying its SUMMARY.md.**
+1. Update execution state: `"step": "signoff"`
+2. Review all artifacts:
+   - code-review.jsonl: all approved?
+   - verification.jsonl: PASS or PARTIAL (with accepted gaps)?
+   - qa-code.jsonl: PASS?
+   - security-audit.jsonl: PASS or WARN?
+3. Decision:
+   - All good → SHIP (mark phase complete)
+   - Issues remain → HOLD (generate remediation instructions)
+4. **Shutdown teammates:** Send shutdown to each, wait for approval, clean up.
+5. **Update state:**
+   - .execution-state.json: `"status": "complete"`, `"step": "signoff"`
+   - ROADMAP.md: mark phase complete
+   - Commit: `chore(state): phase {N} complete`
+6. Display per `@${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md`:
+   ```
+   ╔═══════════════════════════════════════════════╗
+   ║  Phase {N}: {name} — Built                    ║
+   ╚═══════════════════════════════════════════════╝
 
-When a Dev teammate reports plan completion (task marked completed):
-1. **Check:** Verify `{phase_dir}/{plan_id}-SUMMARY.md` exists and contains commit hashes, task statuses, and files modified.
-2. **If missing or incomplete:** Send the Dev a message: "Write {plan_id}-SUMMARY.md using the template at templates/SUMMARY.md. Include commit hashes, tasks completed, files modified, and any deviations." Wait for confirmation before proceeding.
-3. **If Dev is unavailable:** Write it yourself from `git log --oneline` and the PLAN.md.
-4. **Only after SUMMARY.md is verified:** Update plan status to `"complete"` in .execution-state.json and proceed.
+     Plan Results:
+       ✓ Plan 01: {title}  /  ✗ Plan 03: {title} (failed)
 
-### Step 4: Post-build QA (optional)
+     Metrics:
+       Plans: {completed}/{total}  Effort: {profile}
+       Code Review: {approve/changes}  QA: {PASS|PARTIAL|FAIL}
+       Security: {PASS|WARN|FAIL|skipped}
 
-If `--skip-qa` or turbo: "○ QA verification skipped ({reason})"
+     Deviations: {count}
+   ```
+7. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh execute {qa-result}`
 
-**Tier resolution:** Map effort to tier: turbo=skip (already handled), fast=quick, balanced=standard, thorough=deep. Override: if >15 requirements or last phase before ship, force Deep.
+## Execution State Transitions
 
-**Context compilation:** If `config_context_compiler=true`, before spawning QA run:
-`bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} qa {phases_dir}`
-This produces `{phase-dir}/.context-qa.md` with phase goal, success criteria, requirements to verify, and conventions.
-If compilation fails, proceed without it.
+| Step | state.step | Commits |
+|------|-----------|---------|
+| Architecture | architecture | architecture.toon |
+| Load Plans | planning | .execution-state.json |
+| Design Review | design_review | enriched plan.jsonl |
+| Implementation | implementation | source code + summary.jsonl |
+| Code Review | code_review | code-review.jsonl |
+| QA | qa | verification.jsonl + qa-code.jsonl |
+| Security | security | security-audit.jsonl |
+| Sign-off | signoff | state.json + ROADMAP.md |
 
-Display: `◆ Spawning QA agent (${QA_MODEL})...`
-
-**Per-wave QA (Thorough/Balanced, QA_TIMING=per-wave):** After each wave completes, spawn QA concurrently with next wave's Dev work. QA receives only completed wave's PLAN.md + SUMMARY.md + "Phase context: {phase-dir}/.context-qa.md (if compiled). Model: ${QA_MODEL}. Your verification tier is {tier}. Run {5-10|15-25|30+} checks per the tier definitions in your agent protocol." After final wave, spawn integration QA covering all plans + cross-plan integration. Persist to `{phase-dir}/{phase}-VERIFICATION-wave{W}.md` and `{phase}-VERIFICATION.md`.
-
-**Post-build QA (Fast, QA_TIMING=post-build):** Spawn QA after ALL plans complete. Include in task description: "Phase context: {phase-dir}/.context-qa.md (if compiled). Model: ${QA_MODEL}. Your verification tier is {tier}. Run {5-10|15-25|30+} checks per the tier definitions in your agent protocol." Persist to `{phase-dir}/{phase}-VERIFICATION.md`.
-
-**CRITICAL:** Pass `model: "${QA_MODEL}"` parameter to the Task tool invocation when spawning QA agents.
-
-### Step 5: Update state and present summary
-
-**Shutdown:** Send shutdown to each teammate, wait for approval, re-request if rejected, then TeamDelete. Wait for TeamDelete before state updates.
-
-**Mark complete:** Set .execution-state.json `"status"` to `"complete"` (statusline auto-deletes on next refresh).
-**Update STATE.md:** phase position, plan completion counts, effort used.
-**Update ROADMAP.md:** mark completed plans.
-
-Display per @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md:
-```
-╔═══════════════════════════════════════════════╗
-║  Phase {N}: {name} -- Built                   ║
-╚═══════════════════════════════════════════════╝
-
-  Plan Results:
-    ✓ Plan 01: {title}  /  ✗ Plan 03: {title} (failed)
-
-  Metrics:
-    Plans: {completed}/{total}  Effort: {profile}  Model Profile: {profile}  Deviations: {count}
-
-  QA: {PASS|PARTIAL|FAIL|skipped}
-```
-
-**"What happened" (NRW-02):** If config `plain_summary` is true (default), append 2-4 plain-English sentences between QA and Next Up. No jargon. Source from SUMMARY.md files + QA result. If false, skip.
-
-Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh execute {qa-result}` and display output.
+Each transition commits .execution-state.json so resume works on exit.
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — Phase Banner (double-line box), ◆ running, ✓ complete, ✗ failed, ○ skipped, Metrics Block, Next Up Block, no ANSI color codes.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — Phase Banner, ◆ running, ✓ complete, ✗ failed, ○ skipped, no ANSI color codes.
