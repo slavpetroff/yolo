@@ -410,6 +410,45 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
    Present selected questions via AskUserQuestion following REQ-C2 constraint (2-4 options per question).
    Follow existing AskUserQuestion patterns: single-select for scenarios, multiSelect for checklists.
 
+   **Scope creep detection (after each answer):**
+   After user responds to each question, check the answer text for out-of-scope feature mentions:
+
+   a. **Feature extraction:** Parse user's answer text for capability/feature keywords (nouns and noun phrases that suggest features):
+      - Look for patterns: "dashboard", "API", "notifications", "reports", "analytics", "authentication", "admin panel", "search", "export", "import", "integration", "sync", "automation", "scheduling", etc.
+      - Extract 2-4 word phrases that describe capabilities (e.g., "user authentication", "real-time sync", "data export")
+
+   b. **Boundary matching:** For each extracted feature mention:
+      - Check if it appears in current phase's goal/requirements (from phase boundary map, case-insensitive keyword matching)
+      - If YES (in current phase): skip, it's in scope
+      - If NO (not in current phase): check if it appears in OTHER phases' goals/requirements
+      - Match logic: case-insensitive substring match or keyword overlap
+      - If feature text appears in another phase's boundary: flag as potential scope creep
+
+   c. **Suggested phase identification:** When scope creep flagged:
+      - Identify which other phase(s) contain the matched keyword
+      - Store: original mention text, matched keyword, target phase number, target phase name
+      - If feature matches multiple other phases: pick the earliest phase number
+
+   d. **Single-mention redirect:** If scope creep detected for current answer:
+      - Trigger gentle redirect (Step 5a, below) ONCE per feature mention
+      - Non-blocking: conversation continues regardless of user's choice
+      - Store deferred ideas for later capture (Step 6 and Step 7)
+
+   **5a. Gentle redirect with defer offer (triggered by scope creep detection):**
+   When step 5 scope creep detection flags a feature mention, present redirect via AskUserQuestion:
+
+   Wording (per REQ-08): "[Feature X] sounds like a new capability — that could be its own phase. Want me to note it for later?"
+
+   Options:
+   - "Note it for later — add to Deferred Ideas"
+   - "Include in this phase — it's part of the scope"
+
+   User choice handling:
+   - **"Note it for later"**: Store deferred idea with metadata (original mention, suggested phase, user decision="deferred"). Append to CONTEXT.md Deferred Ideas section (Step 6) and record to discovery.json (Step 7).
+   - **"Include in this phase"**: Record decision (user decision="included"), no CONTEXT.md append. Feature is treated as in-scope, continue question flow.
+
+   Single redirect per detected feature. Non-blocking: continue to next question after user responds.
+
 6. Write `.vbw-planning/phases/{phase-dir}/{phase}-CONTEXT.md` with sections: User Vision, Essential Features, Technical Preferences, Boundaries, Acceptance Criteria, Decisions Made, Deferred Ideas (append-only section for scope creep captures).
 
 7. Update `.vbw-planning/discovery.json`: append each question+answer to `answered[]` with extended schema including phase type metadata:
