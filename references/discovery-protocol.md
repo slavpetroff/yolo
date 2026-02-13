@@ -58,6 +58,27 @@ Round 2+ questions build on previous answers rather than following a fixed scrip
 
 Check `discovery.json.answered[]` before generating questions to avoid duplicates. Each answer records its round number for thread analysis.
 
+### Keep-Exploring Gate
+
+After each question round, offer the user control over depth:
+
+**Rounds 1-3 (equal encouragement):**
+```
+We've covered [topic]. What would you like to do?
+  A) Keep exploring — I have more to share
+  B) Move on — I'm ready for the next step
+```
+
+**Round 4+ (soft nudge):**
+```
+We've covered quite a bit about your project. What would you like to do?
+  A) Keep exploring — there's more I want to discuss
+  B) Move on — I think we have enough
+  C) Skip to requirements — I'm ready to build
+```
+
+The profile depth (quick/standard/thorough) sets the MINIMUM rounds, not a hard cap. Users can continue as long as they choose "Keep exploring."
+
 ## Mixed Question Format
 
 ### Research-Informed Question Generation
