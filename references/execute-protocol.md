@@ -13,15 +13,9 @@ Implements the 10-step company-grade engineering workflow. See `references/compa
    - All plans have summary.jsonl: cautious/standard → WARN + confirm; confident/pure-yolo → warn + continue.
 3. **Resolve models for all agents:**
    ```bash
-   CRITIC_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh critic .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   ARCHITECT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   SENIOR_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh senior .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   TESTER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh tester .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   DEV_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   QA_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   QA_CODE_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa-code .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   SECURITY_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh security .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   for role in critic architect lead senior tester dev qa qa-code security; do
+     eval "${role^^}_MODEL=\$(bash \${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh $role .yolo-planning/config.json \${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)"
+   done
    ```
 
 ### Context Scoping Protocol (MANDATORY)
@@ -331,15 +325,20 @@ In addition to standard pre-execution (resolve models for Steps 1-10 above):
    ```bash
    # Owner (always for multi-dept)
    OWNER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh owner .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+
    # Frontend agents (if fe_active=true)
-   FE_LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-lead ...)
-   FE_ARCHITECT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-architect ...)
-   FE_SENIOR_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-senior ...)
-   FE_TESTER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-tester ...)
-   FE_DEV_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-dev ...)
-   FE_QA_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-qa ...)
-   FE_QA_CODE_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-qa-code ...)
-   # UI/UX agents (if ux_active=true) — same pattern with ux- prefix
+   if [[ "$fe_active" == "true" ]]; then
+     for role in architect lead senior tester dev qa qa-code; do
+       eval "FE_${role^^}_MODEL=\$(bash \${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-$role .yolo-planning/config.json \${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)"
+     done
+   fi
+
+   # UI/UX agents (if ux_active=true)
+   if [[ "$ux_active" == "true" ]]; then
+     for role in architect lead senior tester dev qa qa-code; do
+       eval "UX_${role^^}_MODEL=\$(bash \${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh ux-$role .yolo-planning/config.json \${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)"
+     done
+   fi
    ```
 
 2. **Validate department readiness:**
