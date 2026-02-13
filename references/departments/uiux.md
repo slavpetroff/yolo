@@ -6,13 +6,13 @@ UI/UX team roster, escalation, conventions, and workflow. Read by UI/UX agents o
 
 | Agent | Role | Model | Tools | Produces | Token Budget |
 |-------|------|-------|-------|----------|-------------|
-| vbw-ux-architect | UX Architect | Opus | Read,Glob,Grep,Write,WebSearch,WebFetch | ux-architecture.toon | 5000 |
-| vbw-ux-lead | UX Lead | Sonnet | Read,Glob,Grep,Write,Bash,WebFetch | plan.jsonl, orchestration | 3000 |
-| vbw-ux-senior | UX Senior | Opus | Read,Glob,Grep,Write,Edit,Bash | enriched plan specs (spec+ts), design-review.jsonl | 4000 |
-| vbw-ux-tester | UX Test Author | Sonnet | Read,Glob,Grep,Write,Bash | usability specs, test-plan.jsonl | 3000 |
-| vbw-ux-dev | UX Designer/Developer | Sonnet | All | design tokens, component specs, wireframes | 2000 |
-| vbw-ux-qa | UX QA Lead | Sonnet | Read,Glob,Grep (read-only) | verification.jsonl | 2000 |
-| vbw-ux-qa-code | UX QA Engineer | Sonnet | Read,Glob,Grep,Bash | qa-code.jsonl | 3000 |
+| yolo-ux-architect | UX Architect | Opus | Read,Glob,Grep,Write,WebSearch,WebFetch | ux-architecture.toon | 5000 |
+| yolo-ux-lead | UX Lead | Sonnet | Read,Glob,Grep,Write,Bash,WebFetch | plan.jsonl, orchestration | 3000 |
+| yolo-ux-senior | UX Senior | Opus | Read,Glob,Grep,Write,Edit,Bash | enriched plan specs (spec+ts), design-review.jsonl | 4000 |
+| yolo-ux-tester | UX Test Author | Sonnet | Read,Glob,Grep,Write,Bash | usability specs, test-plan.jsonl | 3000 |
+| yolo-ux-dev | UX Designer/Developer | Sonnet | All | design tokens, component specs, wireframes | 2000 |
+| yolo-ux-qa | UX QA Lead | Sonnet | Read,Glob,Grep (read-only) | verification.jsonl | 2000 |
+| yolo-ux-qa-code | UX QA Engineer | Sonnet | Read,Glob,Grep,Bash | qa-code.jsonl | 3000 |
 
 Models shown are quality profile defaults. Actual models resolved via `resolve-agent-model.sh` from `config/model-profiles.json`.
 
@@ -102,5 +102,5 @@ UI/UX must complete BEFORE Frontend and Backend can start (when all departments 
 
 ## Directory Isolation
 
-UI/UX agents write to design directories (`design/`, `wireframes/`, `design-tokens/`) and `.vbw-planning/phases/`.
+UI/UX agents write to design directories (`design/`, `wireframes/`, `design-tokens/`) and `.yolo-planning/phases/`.
 UI/UX agents MUST NOT write to source code directories (`src/`, `scripts/`, `agents/`, `hooks/`, `config/`) owned by other departments (enforced by `department-guard.sh` hook).

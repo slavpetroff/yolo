@@ -101,26 +101,26 @@ setup() {
 # --- Agent cross-department awareness ---
 
 @test "FE lead agent references design-handoff" {
-  run grep "design.handoff" "$AGENTS_DIR/vbw-fe-lead.md"
+  run grep "design.handoff" "$AGENTS_DIR/yolo-fe-lead.md"
   assert_success
 }
 
 @test "FE lead agent references api-contracts" {
-  run grep "api.contract" "$AGENTS_DIR/vbw-fe-lead.md"
+  run grep "api.contract" "$AGENTS_DIR/yolo-fe-lead.md"
   assert_success
 }
 
 @test "UX lead agent references design-handoff" {
-  run grep "design.handoff" "$AGENTS_DIR/vbw-ux-lead.md"
+  run grep "design.handoff" "$AGENTS_DIR/yolo-ux-lead.md"
   assert_success
 }
 
 @test "UX dev agent produces design-tokens" {
-  run grep "design-tokens" "$AGENTS_DIR/vbw-ux-dev.md"
+  run grep "design-tokens" "$AGENTS_DIR/yolo-ux-dev.md"
   assert_success
 }
 
 @test "owner agent references department results" {
-  run grep -i "department.*result" "$AGENTS_DIR/vbw-owner.md"
+  run grep -i "department.*result" "$AGENTS_DIR/yolo-owner.md"
   assert_success
 }

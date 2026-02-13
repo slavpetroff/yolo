@@ -1,0 +1,8 @@
+{"id":"REQ-01","t":"Lifecycle management (bootstrap/scope/plan/execute/verify/archive)","pri":"must","st":"open","ac":""}
+{"id":"REQ-02","t":"20 slash commands for structured development","pri":"must","st":"open","ac":""}
+{"id":"REQ-03","t":"6 specialized agents (Lead, Dev, QA, Scout, Debugger, Architect)","pri":"must","st":"open","ac":""}
+{"id":"REQ-04","t":"16-hook pipeline with graceful degradation","pri":"must","st":"open","ac":""}
+{"id":"REQ-05","t":"Brownfield/greenfield detection and codebase mapping","pri":"must","st":"open","ac":""}
+{"id":"REQ-06","t":"Convention enforcement via hooks and QA","pri":"must","st":"open","ac":""}
+{"id":"REQ-07","t":"Model profile management (quality/balanced/budget)","pri":"must","st":"open","ac":""}
+{"id":"REQ-08","t":"Context compilation with role-specific routing","pri":"must","st":"open","ac":""}

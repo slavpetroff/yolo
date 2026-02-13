@@ -25,24 +25,24 @@ if echo "$FILE_PATH" | grep -qE '\.env$|\.env\.|\.pem$|\.key$|\.cert$|\.p12$|\.p
   exit 2
 fi
 
-# Block GSD's .planning/ directory when VBW is actively running.
-# Only enforce when VBW markers are present (session or agent), so GSD can
-# still write to its own directory when VBW is not the active caller.
-if echo "$FILE_PATH" | grep -qF '.planning/' && ! echo "$FILE_PATH" | grep -qF '.vbw-planning/'; then
-  if [ -f ".vbw-planning/.active-agent" ] || [ -f ".vbw-planning/.vbw-session" ]; then
-    echo "Blocked: .planning/ is managed by GSD, not VBW ($FILE_PATH)" >&2
+# Block GSD's .planning/ directory when YOLO is actively running.
+# Only enforce when YOLO markers are present (session or agent), so GSD can
+# still write to its own directory when YOLO is not the active caller.
+if echo "$FILE_PATH" | grep -qF '.planning/' && ! echo "$FILE_PATH" | grep -qF '.yolo-planning/'; then
+  if [ -f ".yolo-planning/.active-agent" ] || [ -f ".yolo-planning/.yolo-session" ]; then
+    echo "Blocked: .planning/ is managed by GSD, not YOLO ($FILE_PATH)" >&2
     exit 2
   fi
 fi
 
-# Block .vbw-planning/ when GSD isolation is enabled and no VBW markers present.
-# .gsd-isolation = opt-in flag created during /vbw:init consent flow.
-# .active-agent = VBW subagent is running (managed by agent-start.sh / agent-stop.sh).
-# .vbw-session = VBW command is active (managed by prompt-preflight.sh / session-stop.sh).
-if echo "$FILE_PATH" | grep -qF '.vbw-planning/'; then
-  if [ -f ".vbw-planning/.gsd-isolation" ]; then
-    if [ ! -f ".vbw-planning/.active-agent" ] && [ ! -f ".vbw-planning/.vbw-session" ]; then
-      echo "Blocked: .vbw-planning/ is isolated from non-VBW access ($FILE_PATH)" >&2
+# Block .yolo-planning/ when GSD isolation is enabled and no YOLO markers present.
+# .gsd-isolation = opt-in flag created during /yolo:init consent flow.
+# .active-agent = YOLO subagent is running (managed by agent-start.sh / agent-stop.sh).
+# .yolo-session = YOLO command is active (managed by prompt-preflight.sh / session-stop.sh).
+if echo "$FILE_PATH" | grep -qF '.yolo-planning/'; then
+  if [ -f ".yolo-planning/.gsd-isolation" ]; then
+    if [ ! -f ".yolo-planning/.active-agent" ] && [ ! -f ".yolo-planning/.yolo-session" ]; then
+      echo "Blocked: .yolo-planning/ is isolated from non-YOLO access ($FILE_PATH)" >&2
       exit 2
     fi
   fi

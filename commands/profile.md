@@ -6,18 +6,18 @@ argument-hint: "[profile-name | save | delete <name>]"
 allowed-tools: Read, Write, Edit
 ---
 
-# VBW Profile $ARGUMENTS
+# YOLO Profile $ARGUMENTS
 
 ## Context
 
 Config:
 ```
-!`cat .vbw-planning/config.json 2>/dev/null || echo "No config found -- run /vbw:init first"`
+!`cat .yolo-planning/config.json 2>/dev/null || echo "No config found -- run /yolo:init first"`
 ```
 
 ## Guard
 
-If no .vbw-planning/ dir: STOP "Run /vbw:init first." (check `.vbw-planning/config.json`)
+If no .yolo-planning/ dir: STOP "Run /yolo:init first." (check `.yolo-planning/config.json`)
 
 ## Built-in Profiles
 
@@ -26,7 +26,7 @@ If no .vbw-planning/ dir: STOP "Run /vbw:init first." (check `.vbw-planning/conf
 | default | balanced | standard | standard | 3-5 questions | Fresh install baseline |
 | prototype | fast | confident | quick | 1-2 quick | Rapid iteration |
 | production | thorough | cautious | deep | 5-8 thorough | Production code |
-| yolo | turbo | pure-vibe | skip | skip | No guardrails |
+| yolo | turbo | pure-yolo | skip | skip | No guardrails |
 
 ## Behavior
 
@@ -41,7 +41,7 @@ If no .vbw-planning/ dir: STOP "Run /vbw:init first." (check `.vbw-planning/conf
 **S1.** AskUserQuestion: "From current settings" (use current values) | "From scratch" (pick each)
 **S2.** If "From scratch", 3 AskUserQuestions:
 - Effort: thorough | balanced | fast | turbo
-- Autonomy: cautious | standard | confident | pure-vibe
+- Autonomy: cautious | standard | confident | pure-yolo
 - Verification: quick | standard | deep | skip
 
 **S3.** AskUserQuestion for name: suggest 2-3 contextual names + user can type own.
@@ -57,4 +57,4 @@ Built-in: "⚠ Cannot delete built-in profile." Not found: "⚠ Profile not foun
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — single-line box, ✓ success, ⚠ errors, ➜ transitions, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — single-line box, ✓ success, ⚠ errors, ➜ transitions, no ANSI.

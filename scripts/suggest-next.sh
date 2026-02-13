@@ -2,7 +2,7 @@
 # suggest-next.sh — Context-aware Next Up suggestions (ADP-03)
 #
 # Usage: suggest-next.sh <command> [result]
-#   command: the VBW command that just ran (implement, qa, plan, execute, fix, etc.)
+#   command: the YOLO command that just ran (implement, qa, plan, execute, fix, etc.)
 #   result:  optional outcome (pass, fail, partial, complete, skipped)
 #
 # Output: Formatted ➜ Next Up block with 2-3 contextual suggestions.
@@ -21,7 +21,7 @@ set -eo pipefail
 
 CMD="${1:-}"
 RESULT="${2:-}"
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 
 # --- State detection ---
 has_planning=false
@@ -201,7 +201,7 @@ suggest() {
 
 case "$CMD" in
   init)
-    suggest "/vbw:vibe -- Define your project and start building"
+    suggest "/yolo:go -- Define your project and start building"
     ;;
 
   vibe|implement|execute)
@@ -209,30 +209,30 @@ case "$CMD" in
       fail)
         if [ -n "$failing_plan_ids" ]; then
           first_fail=$(echo "$failing_plan_ids" | awk '{print $1}')
-          suggest "/vbw:fix -- Fix plan $first_fail (failed verification)"
+          suggest "/yolo:fix -- Fix plan $first_fail (failed verification)"
         else
-          suggest "/vbw:fix -- Fix the failing checks"
+          suggest "/yolo:fix -- Fix the failing checks"
         fi
-        suggest "/vbw:qa -- Re-run verification after fixing"
+        suggest "/yolo:qa -- Re-run verification after fixing"
         ;;
       partial)
         if [ -n "$failing_plan_ids" ]; then
           first_fail=$(echo "$failing_plan_ids" | awk '{print $1}')
-          suggest "/vbw:fix -- Fix plan $first_fail (partial failure)"
+          suggest "/yolo:fix -- Fix plan $first_fail (partial failure)"
         else
-          suggest "/vbw:fix -- Address partial failures"
+          suggest "/yolo:fix -- Address partial failures"
         fi
         if [ "$all_done" != true ]; then
-          suggest "/vbw:vibe -- Continue to next phase"
+          suggest "/yolo:go -- Continue to next phase"
         fi
         ;;
       *)
         if [ "$all_done" = true ]; then
           if [ "$deviation_count" -eq 0 ]; then
-            suggest "/vbw:vibe --archive -- All phases complete, zero deviations"
+            suggest "/yolo:go --archive -- All phases complete, zero deviations"
           else
-            suggest "/vbw:vibe --archive -- Archive completed work ($deviation_count deviation(s) logged)"
-            suggest "/vbw:qa -- Review before archiving"
+            suggest "/yolo:go --archive -- Archive completed work ($deviation_count deviation(s) logged)"
+            suggest "/yolo:qa -- Review before archiving"
           fi
         elif [ -n "$next_unbuilt" ] || [ -n "$next_unplanned" ]; then
           target="${next_unbuilt:-$next_unplanned}"
@@ -243,16 +243,16 @@ case "$CMD" in
               pn=$(basename "$dir" | sed 's/[^0-9].*//')
               if [ "$pn" = "$target" ]; then
                 tname=$(basename "$dir" | sed 's/^[0-9]*-//')
-                suggest "/vbw:vibe -- Continue to Phase $target: $(fmt_phase_name "$tname")"
+                suggest "/yolo:go -- Continue to Phase $target: $(fmt_phase_name "$tname")"
                 break
               fi
             done
           else
-            suggest "/vbw:vibe -- Continue to next phase"
+            suggest "/yolo:go -- Continue to next phase"
           fi
         fi
         if [ "$RESULT" = "skipped" ]; then
-          suggest "/vbw:qa -- Verify completed work"
+          suggest "/yolo:qa -- Verify completed work"
         fi
         ;;
     esac
@@ -260,9 +260,9 @@ case "$CMD" in
 
   plan)
     if [ "$active_phase_plans" -gt 0 ]; then
-      suggest "/vbw:vibe -- Execute $active_phase_plans plans ($effort effort)"
+      suggest "/yolo:go -- Execute $active_phase_plans plans ($effort effort)"
     else
-      suggest "/vbw:vibe -- Execute the planned phase"
+      suggest "/yolo:go -- Execute the planned phase"
     fi
     ;;
 
@@ -271,9 +271,9 @@ case "$CMD" in
       pass)
         if [ "$all_done" = true ]; then
           if [ "$deviation_count" -eq 0 ]; then
-            suggest "/vbw:vibe --archive -- All phases complete, zero deviations"
+            suggest "/yolo:go --archive -- All phases complete, zero deviations"
           else
-            suggest "/vbw:vibe --archive -- Archive completed work ($deviation_count deviation(s) logged)"
+            suggest "/yolo:go --archive -- Archive completed work ($deviation_count deviation(s) logged)"
           fi
         else
           target="${next_unbuilt:-$next_unplanned}"
@@ -283,66 +283,66 @@ case "$CMD" in
               pn=$(basename "$dir" | sed 's/[^0-9].*//')
               if [ "$pn" = "$target" ]; then
                 tname=$(basename "$dir" | sed 's/^[0-9]*-//')
-                suggest "/vbw:vibe -- Continue to Phase $target: $(fmt_phase_name "$tname")"
+                suggest "/yolo:go -- Continue to Phase $target: $(fmt_phase_name "$tname")"
                 break
               fi
             done
           else
-            suggest "/vbw:vibe -- Continue to next phase"
+            suggest "/yolo:go -- Continue to next phase"
           fi
         fi
         ;;
       fail)
         if [ -n "$failing_plan_ids" ]; then
           first_fail=$(echo "$failing_plan_ids" | awk '{print $1}')
-          suggest "/vbw:fix -- Fix plan $first_fail (failed QA)"
+          suggest "/yolo:fix -- Fix plan $first_fail (failed QA)"
         else
-          suggest "/vbw:fix -- Fix the failing checks"
+          suggest "/yolo:fix -- Fix the failing checks"
         fi
         ;;
       partial)
         if [ -n "$failing_plan_ids" ]; then
           first_fail=$(echo "$failing_plan_ids" | awk '{print $1}')
-          suggest "/vbw:fix -- Fix plan $first_fail (partial failure)"
+          suggest "/yolo:fix -- Fix plan $first_fail (partial failure)"
         else
-          suggest "/vbw:fix -- Address partial failures"
+          suggest "/yolo:fix -- Address partial failures"
         fi
-        suggest "/vbw:vibe -- Continue despite warnings"
+        suggest "/yolo:go -- Continue despite warnings"
         ;;
       *)
-        suggest "/vbw:vibe -- Continue building"
+        suggest "/yolo:go -- Continue building"
         ;;
     esac
     ;;
 
   fix)
-    suggest "/vbw:qa -- Verify the fix"
-    suggest "/vbw:vibe -- Continue building"
+    suggest "/yolo:qa -- Verify the fix"
+    suggest "/yolo:go -- Continue building"
     ;;
 
   debug)
-    suggest "/vbw:fix -- Apply the fix"
-    suggest "/vbw:vibe -- Continue building"
+    suggest "/yolo:fix -- Apply the fix"
+    suggest "/yolo:go -- Continue building"
     ;;
 
   config)
     if [ "$has_project" = true ]; then
-      suggest "/vbw:status -- View project state"
+      suggest "/yolo:status -- View project state"
     else
-      suggest "/vbw:vibe -- Define your project and start building"
+      suggest "/yolo:go -- Define your project and start building"
     fi
     ;;
 
   archive)
-    suggest "/vbw:vibe -- Start new work"
+    suggest "/yolo:go -- Start new work"
     ;;
 
   status)
     if [ "$all_done" = true ]; then
       if [ "$deviation_count" -eq 0 ]; then
-        suggest "/vbw:vibe --archive -- All phases complete, zero deviations"
+        suggest "/yolo:go --archive -- All phases complete, zero deviations"
       else
-        suggest "/vbw:vibe --archive -- Archive completed work"
+        suggest "/yolo:go --archive -- Archive completed work"
       fi
     elif [ -n "$next_unbuilt" ] || [ -n "$next_unplanned" ]; then
       target="${next_unbuilt:-$next_unplanned}"
@@ -351,37 +351,37 @@ case "$CMD" in
         pn=$(basename "$dir" | sed 's/[^0-9].*//')
         if [ "$pn" = "$target" ]; then
           tname=$(basename "$dir" | sed 's/^[0-9]*-//')
-          suggest "/vbw:vibe -- Continue Phase $target: $(fmt_phase_name "$tname")"
+          suggest "/yolo:go -- Continue Phase $target: $(fmt_phase_name "$tname")"
           break
         fi
       done
     else
-      suggest "/vbw:vibe -- Start building"
+      suggest "/yolo:go -- Start building"
     fi
     ;;
 
   map)
-    suggest "/vbw:vibe -- Start building"
-    suggest "/vbw:status -- View project state"
+    suggest "/yolo:go -- Start building"
+    suggest "/yolo:status -- View project state"
     ;;
 
   discuss|assumptions)
-    suggest "/vbw:vibe --plan -- Plan this phase"
-    suggest "/vbw:vibe -- Plan and execute in one flow"
+    suggest "/yolo:go --plan -- Plan this phase"
+    suggest "/yolo:go -- Plan and execute in one flow"
     ;;
 
   resume)
-    suggest "/vbw:vibe -- Continue building"
-    suggest "/vbw:status -- View current progress"
+    suggest "/yolo:go -- Continue building"
+    suggest "/yolo:status -- View current progress"
     ;;
 
   *)
     # Fallback for help, whats-new, update, etc.
     if [ "$has_project" = true ]; then
-      suggest "/vbw:vibe -- Continue building"
-      suggest "/vbw:status -- View project progress"
+      suggest "/yolo:go -- Continue building"
+      suggest "/yolo:status -- View project progress"
     else
-      suggest "/vbw:vibe -- Start a new project"
+      suggest "/yolo:go -- Start a new project"
     fi
     ;;
 esac
@@ -392,9 +392,9 @@ case "$CMD" in
   *)
     if [ "$has_project" = true ] && [ "$phase_count" -gt 0 ]; then
       if [ "$map_exists" = false ]; then
-        suggest "/vbw:map -- Map your codebase for better planning"
+        suggest "/yolo:map -- Map your codebase for better planning"
       elif [ "$map_staleness" -gt 30 ]; then
-        suggest "/vbw:map --incremental -- Codebase map is ${map_staleness}% stale"
+        suggest "/yolo:map --incremental -- Codebase map is ${map_staleness}% stale"
       fi
     fi
     ;;

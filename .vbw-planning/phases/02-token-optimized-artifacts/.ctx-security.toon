@@ -1,0 +1,7 @@
+phase: 02
+goal: Migrate all agent-facing artifacts from Markdown to JSONL with abbreviated keys. Implement TOON compiled context. Create state.json to replace STATE.md for machines. Token budget enforcement in compile-context.sh.
+
+files_to_audit:
+
+dependency_files:
+  pyproject.toml

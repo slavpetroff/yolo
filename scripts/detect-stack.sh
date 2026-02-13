@@ -1,6 +1,6 @@
 #!/bin/bash
 # detect-stack.sh — Detect project tech stack and recommend skills
-# Called by /vbw:init Step 3 and /vbw:skills to avoid 50+ inline tool calls.
+# Called by /yolo:init Step 3 and /yolo:skills to avoid 50+ inline tool calls.
 # Reads stack-mappings.json, checks project files, outputs JSON.
 #
 # Usage: bash detect-stack.sh [project-dir]
@@ -42,32 +42,32 @@ ALL_INSTALLED="$INSTALLED_GLOBAL,$INSTALLED_PROJECT,$INSTALLED_AGENTS"
 # --- Read manifest files once ---
 PKG_JSON=""
 if [ -f "$PROJECT_DIR/package.json" ]; then
-  PKG_JSON=$(cat "$PROJECT_DIR/package.json" 2>/dev/null)
+  PKG_JSON=$(<"$PROJECT_DIR/package.json")
 fi
 
 REQUIREMENTS_TXT=""
 if [ -f "$PROJECT_DIR/requirements.txt" ]; then
-  REQUIREMENTS_TXT=$(cat "$PROJECT_DIR/requirements.txt" 2>/dev/null)
+  REQUIREMENTS_TXT=$(<"$PROJECT_DIR/requirements.txt")
 fi
 
 PYPROJECT_TOML=""
 if [ -f "$PROJECT_DIR/pyproject.toml" ]; then
-  PYPROJECT_TOML=$(cat "$PROJECT_DIR/pyproject.toml" 2>/dev/null)
+  PYPROJECT_TOML=$(<"$PROJECT_DIR/pyproject.toml")
 fi
 
 GEMFILE=""
 if [ -f "$PROJECT_DIR/Gemfile" ]; then
-  GEMFILE=$(cat "$PROJECT_DIR/Gemfile" 2>/dev/null)
+  GEMFILE=$(<"$PROJECT_DIR/Gemfile")
 fi
 
 CARGO_TOML=""
 if [ -f "$PROJECT_DIR/Cargo.toml" ]; then
-  CARGO_TOML=$(cat "$PROJECT_DIR/Cargo.toml" 2>/dev/null)
+  CARGO_TOML=$(<"$PROJECT_DIR/Cargo.toml")
 fi
 
 GO_MOD=""
 if [ -f "$PROJECT_DIR/go.mod" ]; then
-  GO_MOD=$(cat "$PROJECT_DIR/go.mod" 2>/dev/null)
+  GO_MOD=$(<"$PROJECT_DIR/go.mod")
 fi
 
 # --- Check a single detect pattern ---

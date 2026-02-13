@@ -6,7 +6,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch
 disable-model-invocation: true
 ---
 
-# VBW Vibe: $ARGUMENTS
+# YOLO Vibe: $ARGUMENTS
 
 ## Context
 
@@ -19,7 +19,7 @@ Pre-computed state (via phase-detect.sh):
 
 Config:
 ```
-!`cat .vbw-planning/config.json 2>/dev/null || echo "No config found"`
+!`cat .yolo-planning/config.json 2>/dev/null || echo "No config found"`
 ```
 
 ## Input Parsing
@@ -85,11 +85,11 @@ Every mode triggers confirmation via AskUserQuestion before executing, with cont
 
 ### Mode: Init Redirect
 
-If `planning_dir_exists=false`: display "Run /vbw:init first to set up your project." STOP.
+If `planning_dir_exists=false`: display "Run /yolo:init first to set up your project." STOP.
 
 ### Mode: Bootstrap
 
-**Guard:** `.vbw-planning/` exists but no PROJECT.md.
+**Guard:** `.yolo-planning/` exists but no PROJECT.md.
 
 **Critical Rules (non-negotiable):**
 - NEVER fabricate content. Only use what the user explicitly states.
@@ -97,14 +97,14 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
 - No silent assumptions -- ask follow-ups for gaps.
 - Phases come from the user, not you.
 
-**Constraints:** Do NOT explore/scan codebase (that's /vbw:map). Use existing `.vbw-planning/codebase/` if present.
+**Constraints:** Do NOT explore/scan codebase (that's /yolo:map). Use existing `.yolo-planning/codebase/` if present.
 
 **Brownfield detection:** `git ls-files` or Glob check for existing code.
 
 **Steps:**
 - **B1: PROJECT.md** -- If $ARGUMENTS provided (excluding flags), use as description. Otherwise ask name + core purpose. Then call:
   ```
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-project.sh .vbw-planning/PROJECT.md "$NAME" "$DESCRIPTION"
+  bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-project.sh .yolo-planning/PROJECT.md "$NAME" "$DESCRIPTION"
   ```
 - **B1.5: Discovery Depth** -- Read `discovery_questions` and `active_profile` from config. Map profile to depth:
 
@@ -118,26 +118,26 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
   If `discovery_questions=false`: force depth=skip. Store DISCOVERY_DEPTH for B2.
 
 - **B2: REQUIREMENTS.md (Discovery)** -- Behavior depends on DISCOVERY_DEPTH:
-  - **If skip:** Ask 2 minimal static questions via AskUserQuestion: (1) "What are the must-have features?" (2) "Who will use this?" Create `.vbw-planning/discovery.json` with `{"answered":[],"inferred":[]}`.
+  - **If skip:** Ask 2 minimal static questions via AskUserQuestion: (1) "What are the must-have features?" (2) "Who will use this?" Create `.yolo-planning/discovery.json` with `{"answered":[],"inferred":[]}`.
   - **If quick/standard/thorough:** Read `${CLAUDE_PLUGIN_ROOT}/references/discovery-protocol.md`. Follow Bootstrap Discovery flow:
     1. Analyze user's description for domain, scale, users, complexity signals
     2. Round 1 -- Scenarios: Generate scenario questions per protocol. Present as AskUserQuestion with descriptive options. Count: quick=1, standard=2, thorough=3-4
     3. Round 2 -- Checklists: Based on Round 1 answers, generate targeted pick-many questions with `multiSelect: true`. Count: quick=1, standard=1-2, thorough=2-3
-    4. Synthesize answers into `.vbw-planning/discovery.json` with `answered[]` and `inferred[]` (questions=friendly, requirements=precise)
+    4. Synthesize answers into `.yolo-planning/discovery.json` with `answered[]` and `inferred[]` (questions=friendly, requirements=precise)
   - **Wording rules (all depths):** No jargon. Plain language. Concrete situations. Cause and effect. Assume user is not a developer.
   - **After discovery (all depths):** Call:
     ```
-    bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-requirements.sh .vbw-planning/REQUIREMENTS.md .vbw-planning/discovery.json
+    bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-requirements.sh .yolo-planning/REQUIREMENTS.md .yolo-planning/discovery.json
     ```
 
-- **B3: ROADMAP.md** -- Suggest 3-5 phases from requirements. If `.vbw-planning/codebase/` exists, read INDEX.md, PATTERNS.md, ARCHITECTURE.md, CONCERNS.md. Each phase: name, goal, mapped reqs, success criteria. Write phases JSON to temp file, then call:
+- **B3: ROADMAP.md** -- Suggest 3-5 phases from requirements. If `.yolo-planning/codebase/` exists, read INDEX.md, PATTERNS.md, ARCHITECTURE.md, CONCERNS.md. Each phase: name, goal, mapped reqs, success criteria. Write phases JSON to temp file, then call:
   ```
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-roadmap.sh .vbw-planning/ROADMAP.md "$PROJECT_NAME" /tmp/vbw-phases.json
+  bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-roadmap.sh .yolo-planning/ROADMAP.md "$PROJECT_NAME" /tmp/yolo-phases.json
   ```
   Script handles ROADMAP.md generation and phase directory creation.
 - **B4: STATE.md** -- Extract project name, milestone name, and phase count from earlier steps. Call:
   ```
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-state.sh .vbw-planning/STATE.md "$PROJECT_NAME" "$MILESTONE_NAME" "$PHASE_COUNT"
+  bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-state.sh .yolo-planning/STATE.md "$PROJECT_NAME" "$MILESTONE_NAME" "$PHASE_COUNT"
   ```
   Script handles today's date, Phase 1 status, empty decisions, and 0% progress.
 - **B5: Brownfield summary** -- If BROWNFIELD=true AND no codebase/: count files by ext, check tests/CI/Docker/monorepo, add Codebase Profile to STATE.md.
@@ -145,23 +145,23 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
   ```
   bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-claude.sh CLAUDE.md "$PROJECT_NAME" "$CORE_VALUE" [CLAUDE.md]
   ```
-  Script handles: new file generation (heading + core value + VBW sections), existing file preservation (replaces only VBW-managed sections: Active Context, VBW Rules, Key Decisions, Installed Skills, Project Conventions, Commands, Plugin Isolation; preserves all other content). Omit the fourth argument if no existing CLAUDE.md. Max 200 lines.
+  Script handles: new file generation (heading + core value + YOLO sections), existing file preservation (replaces only YOLO-managed sections: Active Context, YOLO Rules, Key Decisions, Installed Skills, Project Conventions, Commands, Plugin Isolation; preserves all other content). Omit the fourth argument if no existing CLAUDE.md. Max 200 lines.
 - **B7: Transition** -- Display "Bootstrap complete. Transitioning to scoping..." Re-evaluate state, route to next match.
 
 ### Mode: Scope
 
 **Guard:** PROJECT.md exists but `phase_count=0`.
 
-**Delegation:** Scope delegates to the Architect agent (vbw-architect) for phase decomposition. See `references/company-hierarchy.md` for hierarchy.
+**Delegation:** Scope delegates to the Architect agent (yolo-architect) for phase decomposition. See `references/company-hierarchy.md` for hierarchy.
 
 **Steps:**
-1. Load context: PROJECT.md, REQUIREMENTS.md (or reqs.jsonl). If `.vbw-planning/codebase/` exists, note available mapping docs.
+1. Load context: PROJECT.md, REQUIREMENTS.md (or reqs.jsonl). If `.yolo-planning/codebase/` exists, note available mapping docs.
 2. If $ARGUMENTS (excl. flags) provided, use as scope description. Else ask: "What do you want to build?" Show uncovered requirements as suggestions.
 3. Resolve Architect model:
    ```bash
-   ARCHITECT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   ARCHITECT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
    ```
-4. Spawn vbw-architect as subagent via Task tool with:
+4. Spawn yolo-architect as subagent via Task tool with:
    - model: "${ARCHITECT_MODEL}"
    - Mode: "scoping"
    - Provide: PROJECT.md, REQUIREMENTS.md, codebase/ mapping paths, user scope description
@@ -174,13 +174,13 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
 ### Mode: Discuss
 
 **Guard:** Initialized, phase exists in roadmap.
-**Phase auto-detection:** First phase without `*.plan.jsonl`. All planned: STOP "All phases planned. Specify: `/vbw:vibe --discuss N`"
+**Phase auto-detection:** First phase without `*.plan.jsonl`. All planned: STOP "All phases planned. Specify: `/yolo:vibe --discuss N`"
 
 **Steps:**
 1. Load phase goal, requirements, success criteria, dependencies from ROADMAP.md.
 2. Ask 3-5 phase-specific questions across: essential features, technical preferences, boundaries, dependencies, acceptance criteria.
-3. Write `.vbw-planning/phases/{phase-dir}/{phase}-CONTEXT.md` with sections: User Vision, Essential Features, Technical Preferences, Boundaries, Acceptance Criteria, Decisions Made.
-4. Update `.vbw-planning/discovery.json`: append each question+answer to `answered[]` (category, phase, date), extract inferences to `inferred[]`.
+3. Write `.yolo-planning/phases/{phase-dir}/{phase}-CONTEXT.md` with sections: User Vision, Essential Features, Technical Preferences, Boundaries, Acceptance Criteria, Decisions Made.
+4. Update `.yolo-planning/discovery.json`: append each question+answer to `answered[]` (category, phase, date), extract inferences to `inferred[]`.
 5. Show summary, ask for corrections. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh vibe`.
 
 ### Mode: Assumptions
@@ -192,12 +192,12 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
 1. Load context: ROADMAP.md, REQUIREMENTS.md, PROJECT.md, STATE.md, CONTEXT.md (if exists), codebase signals.
 2. Generate 5-10 assumptions by impact: scope (included/excluded), technical (implied approaches), ordering (sequencing), dependency (prior phases), user preference (defaults without stated preference).
 3. Gather feedback per assumption: "Confirm, correct, or expand?" Confirm=proceed, Correct=user provides answer, Expand=user adds nuance.
-4. Present grouped by status (confirmed/corrected/expanded). This mode does NOT write files. For persistence: "Run `/vbw:vibe --discuss {N}` to capture as CONTEXT.md." Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh vibe`.
+4. Present grouped by status (confirmed/corrected/expanded). This mode does NOT write files. For persistence: "Run `/yolo:vibe --discuss {N}` to capture as CONTEXT.md." Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh vibe`.
 
 ### Mode: Plan
 
 **Guard:** Initialized, roadmap exists, phase exists.
-**Phase auto-detection:** First phase without `*.plan.jsonl`. All planned: STOP "All phases planned. Specify phase: `/vbw:vibe --plan N`"
+**Phase auto-detection:** First phase without `*.plan.jsonl`. All planned: STOP "All phases planned. Specify phase: `/yolo:vibe --plan N`"
 
 **Steps:**
 1. **Parse args:** Phase number (optional, auto-detected), --effort (optional, falls back to config).
@@ -207,19 +207,19 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
 5. **Other efforts:**
    - Resolve Lead model:
      ```bash
-     LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+     LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
      if [ $? -ne 0 ]; then
        echo "$LEAD_MODEL" >&2
        exit 1
      fi
      ```
-   - Spawn vbw-lead as subagent via Task tool with compiled context (or full file list as fallback).
+   - Spawn yolo-lead as subagent via Task tool with compiled context (or full file list as fallback).
    - **CRITICAL:** Add `model: "${LEAD_MODEL}"` parameter to the Task tool invocation.
    - Display `◆ Spawning Lead agent...` -> `✓ Lead agent complete`.
 6. **Validate output:** Verify plan.jsonl files exist with valid JSONL (each line parses with jq). Check header has p, n, t, w, mh fields. Check wave deps acyclic.
 7. **Present:** Update STATE.md (phase position, plan count, status=Planned). Resolve model profile:
    ```bash
-   MODEL_PROFILE=$(jq -r '.model_profile // "balanced"' .vbw-planning/config.json)
+   MODEL_PROFILE=$(jq -r '.model_profile // "balanced"' .yolo-planning/config.json)
    ```
    Display Phase Banner with plan list, effort level, and model profile:
    ```
@@ -233,22 +233,22 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
 
 ### Mode: Execute
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` and follow its 8-step company workflow (Architecture → Planning → Design Review → Implementation → Code Review → QA → Security → Sign-off). See `references/company-hierarchy.md` for agent hierarchy.
+Read `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` and follow its 10-step company workflow (Critique → Architecture → Planning → Design Review → Test Authoring RED → Implementation → Code Review → QA → Security → Sign-off). See `references/company-hierarchy.md` for agent hierarchy.
 
 This mode delegates entirely to the protocol file. Before reading:
 1. **Parse arguments:** Phase number (auto-detect if omitted), --effort, --skip-qa, --skip-security, --plan=NN.
 2. **Run execute guards:**
-   - Not initialized: STOP "Run /vbw:init first."
-   - No `*.plan.jsonl` files in phase dir: STOP "Phase {N} has no plans. Run `/vbw:vibe --plan {N}` first."
+   - Not initialized: STOP "Run /yolo:init first."
+   - No `*.plan.jsonl` files in phase dir: STOP "Phase {N} has no plans. Run `/yolo:vibe --plan {N}` first."
    - All plans have `*.summary.jsonl`: cautious/standard -> WARN + confirm; confident/pure-vibe -> warn + auto-continue.
 3. **Compile context:** If `config_context_compiler=true`, compile context for each agent role as needed per the protocol steps. Include `.ctx-{role}.toon` paths in agent task descriptions.
 
-Then Read the protocol file and execute the 8-step workflow as written.
+Then Read the protocol file and execute the 10-step workflow as written.
 
 ### Mode: Add Phase
 
 **Guard:** Initialized. Requires phase name in $ARGUMENTS.
-Missing name: STOP "Usage: `/vbw:vibe --add <phase-name>`"
+Missing name: STOP "Usage: `/yolo:vibe --add <phase-name>`"
 
 **Steps:**
 1. Resolve context: ACTIVE -> milestone-scoped paths, otherwise defaults.
@@ -256,12 +256,12 @@ Missing name: STOP "Usage: `/vbw:vibe --add <phase-name>`"
 3. Next number: highest in ROADMAP.md + 1, zero-padded.
 4. Update ROADMAP.md: append phase list entry, append Phase Details section, add progress row.
 5. Create dir: `mkdir -p {PHASES_DIR}/{NN}-{slug}/`
-6. Present: Phase Banner with milestone, position, goal. Checklist for roadmap update + dir creation. Next Up: `/vbw:vibe --discuss` or `/vbw:vibe --plan`.
+6. Present: Phase Banner with milestone, position, goal. Checklist for roadmap update + dir creation. Next Up: `/yolo:vibe --discuss` or `/yolo:vibe --plan`.
 
 ### Mode: Insert Phase
 
 **Guard:** Initialized. Requires position + name.
-Missing args: STOP "Usage: `/vbw:vibe --insert <position> <phase-name>`"
+Missing args: STOP "Usage: `/yolo:vibe --insert <position> <phase-name>`"
 Invalid position (out of range 1 to max+1): STOP with valid range.
 Inserting before completed phase: WARN + confirm.
 
@@ -277,7 +277,7 @@ Inserting before completed phase: WARN + confirm.
 ### Mode: Remove Phase
 
 **Guard:** Initialized. Requires phase number.
-Missing number: STOP "Usage: `/vbw:vibe --remove <phase-number>`"
+Missing number: STOP "Usage: `/yolo:vibe --remove <phase-number>`"
 Not found: STOP "Phase {N} not found."
 Has work (plan.jsonl or summary.jsonl): STOP "Phase {N} has artifacts. Remove plans first."
 Completed ([x] in roadmap): STOP "Cannot remove completed Phase {N}."
@@ -294,7 +294,7 @@ Completed ([x] in roadmap): STOP "Cannot remove completed Phase {N}."
 ### Mode: Archive
 
 **Guard:** Initialized, roadmap exists.
-No roadmap: STOP "No milestones configured. Run `/vbw:vibe` to bootstrap."
+No roadmap: STOP "No milestones configured. Run `/yolo:vibe` to bootstrap."
 No work (no `*.summary.jsonl` files): STOP "Nothing to ship."
 
 **Pre-gate audit (unless --skip-audit or --force):**
@@ -311,11 +311,11 @@ FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
 1. Resolve context: ACTIVE -> milestone-scoped paths. No ACTIVE -> SLUG="default", root paths.
 2. Parse args: --tag=vN.N.N (custom tag), --no-tag (skip), --force (skip audit).
 3. Compute summary: from ROADMAP (phases), summary.jsonl files (tasks/commits/deviations via jq), REQUIREMENTS.md or reqs.jsonl (satisfied count).
-4. Archive: `mkdir -p .vbw-planning/milestones/`. Move roadmap, state, phases to milestones/{SLUG}/. Write SHIPPED.md. Delete stale RESUME.md.
+4. Archive: `mkdir -p .yolo-planning/milestones/`. Move roadmap, state, phases to milestones/{SLUG}/. Write SHIPPED.md. Delete stale RESUME.md.
 5. Git branch merge: if `milestone/{SLUG}` branch exists, merge --no-ff. Conflict -> abort, warn. No branch -> skip.
 6. Git tag: unless --no-tag, `git tag -a {tag} -m "Shipped milestone: {name}"`. Default: `milestone/{SLUG}`.
 7. Update ACTIVE: remaining milestones -> set ACTIVE to first. None -> remove ACTIVE.
-8. Regenerate CLAUDE.md: update Active Context, remove shipped refs. Preserve non-VBW content — only replace VBW-managed sections, keep user's own sections intact.
+8. Regenerate CLAUDE.md: update Active Context, remove shipped refs. Preserve non-YOLO content — only replace YOLO-managed sections, keep user's own sections intact.
 9. Present: Phase Banner with metrics (phases, tasks, commits, requirements, deviations), archive path, tag, branch status, memory status. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh vibe`.
 
 ### Pure-Vibe Phase Loop
@@ -324,7 +324,7 @@ After Execute mode completes (autonomy=pure-vibe only): if more unbuilt phases e
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md for all output.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md for all output.
 
 Per-mode output:
 - **Bootstrap:** project-defined banner + transition to scoping

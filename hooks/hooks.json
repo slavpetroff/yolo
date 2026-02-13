@@ -1,6 +1,6 @@
 {
-  "description": "VBW quality gates and continuous verification",
-  "_note": "All hooks route through hook-wrapper.sh for graceful degradation (DXP-01). The wrapper resolves the target script from the plugin cache, logs failures to .vbw-planning/.hook-errors.log, and always exits 0. No hook can break a session.",
+  "description": "YOLO quality gates and continuous verification",
+  "_note": "All hooks route through hook-wrapper.sh for graceful degradation (DXP-01). The wrapper resolves the target script from the plugin cache, logs failures to .yolo-planning/.hook-errors.log, and always exits 0. No hook can break a session.",
   "hooks": {
     "PostToolUse": [
       {
@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-summary.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-summary.sh; exit 0'",
             "timeout": 15
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-frontmatter.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-frontmatter.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-commit.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-commit.sh; exit 0'",
             "timeout": 10
           }
         ]
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" skill-hook-dispatch.sh PostToolUse; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" skill-hook-dispatch.sh PostToolUse; exit 0'",
             "timeout": 10
           }
         ]
@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" state-updater.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" state-updater.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -60,7 +60,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" security-filter.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" security-filter.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -70,7 +70,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" skill-hook-dispatch.sh PreToolUse; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" skill-hook-dispatch.sh PreToolUse; exit 0'",
             "timeout": 10
           }
         ]
@@ -80,7 +80,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" file-guard.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" file-guard.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -90,7 +90,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" department-guard.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" department-guard.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -98,11 +98,11 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "vbw-",
+        "matcher": "yolo-",
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" agent-start.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" agent-start.sh; exit 0'",
             "timeout": 3
           }
         ]
@@ -110,21 +110,21 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "vbw-",
+        "matcher": "yolo-",
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-summary.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-summary.sh; exit 0'",
             "timeout": 15
           }
         ]
       },
       {
-        "matcher": "vbw-",
+        "matcher": "yolo-",
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" agent-stop.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" agent-stop.sh; exit 0'",
             "timeout": 3
           }
         ]
@@ -135,7 +135,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" qa-gate.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" qa-gate.sh; exit 0'",
             "timeout": 30
           }
         ]
@@ -146,7 +146,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" task-verify.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" task-verify.sh; exit 0'",
             "timeout": 15
           }
         ]
@@ -157,7 +157,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" session-start.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" session-start.sh; exit 0'",
             "timeout": 10
           }
         ]
@@ -166,7 +166,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" map-staleness.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" map-staleness.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -176,7 +176,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" post-compact.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" post-compact.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -187,7 +187,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" compaction-instructions.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" compaction-instructions.sh; exit 0'",
             "timeout": 10
           }
         ]
@@ -198,7 +198,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" session-stop.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" session-stop.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -209,7 +209,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" prompt-preflight.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" prompt-preflight.sh; exit 0'",
             "timeout": 3
           }
         ]
@@ -220,7 +220,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" notification-log.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" notification-log.sh; exit 0'",
             "timeout": 3
           }
         ]

@@ -3,7 +3,7 @@ set -u
 # Pre-compute all project state for implement.md and other commands.
 # Output: key=value pairs on stdout, one per line. Exit 0 always.
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 
 # --- jq availability ---
 JQ_AVAILABLE=false
@@ -99,8 +99,8 @@ if [ -d "$PHASES_DIR" ]; then
       NUM=$(echo "$DIRNAME" | sed 's/^\([0-9]*\).*/\1/')
 
       # Count plan and summary files (JSONL format or legacy PLAN.md)
-      P_COUNT=$(ls "$DIR"*.plan.jsonl "$DIR"*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-      S_COUNT=$(ls "$DIR"*.summary.jsonl "$DIR"*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+      P_COUNT=$(find "$DIR" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
+      S_COUNT=$(find "$DIR" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
 
       if [ "$P_COUNT" -eq 0 ]; then
         # Needs plan and execute
@@ -158,16 +158,21 @@ CFG_APPROVAL_QA_FAIL="false"
 CFG_APPROVAL_SECURITY_WARN="false"
 
 if [ "$JQ_AVAILABLE" = true ] && [ -f "$CONFIG_FILE" ]; then
-  CFG_EFFORT=$(jq -r '.effort // "balanced"' "$CONFIG_FILE" 2>/dev/null)
-  CFG_AUTONOMY=$(jq -r '.autonomy // "standard"' "$CONFIG_FILE" 2>/dev/null)
-  CFG_AUTO_COMMIT=$(jq -r '.auto_commit // true' "$CONFIG_FILE" 2>/dev/null)
-  CFG_VERIFICATION_TIER=$(jq -r '.verification_tier // "standard"' "$CONFIG_FILE" 2>/dev/null)
-  CFG_AGENT_TEAMS=$(jq -r '.agent_teams // false' "$CONFIG_FILE" 2>/dev/null)
-  CFG_MAX_TASKS=$(jq -r '.max_tasks_per_plan // 5' "$CONFIG_FILE" 2>/dev/null)
-  CFG_CONTEXT_COMPILER=$(jq -r '.context_compiler // true' "$CONFIG_FILE" 2>/dev/null)
-  CFG_SECURITY_AUDIT=$(jq -r '.security_audit // false' "$CONFIG_FILE" 2>/dev/null)
-  CFG_APPROVAL_QA_FAIL=$(jq -r '.approval_gates.qa_fail // false' "$CONFIG_FILE" 2>/dev/null)
-  CFG_APPROVAL_SECURITY_WARN=$(jq -r '.approval_gates.security_warn // false' "$CONFIG_FILE" 2>/dev/null)
+  IFS='|' read -r CFG_EFFORT CFG_AUTONOMY CFG_AUTO_COMMIT CFG_VERIFICATION_TIER \
+    CFG_AGENT_TEAMS CFG_MAX_TASKS CFG_CONTEXT_COMPILER CFG_SECURITY_AUDIT \
+    CFG_APPROVAL_QA_FAIL CFG_APPROVAL_SECURITY_WARN <<< \
+    "$(jq -r '[
+      (.effort // "balanced"),
+      (.autonomy // "standard"),
+      (.auto_commit // true | tostring),
+      (.verification_tier // "standard"),
+      (.agent_teams // false | tostring),
+      (.max_tasks_per_plan // 5 | tostring),
+      (.context_compiler // true | tostring),
+      (.security_audit // false | tostring),
+      (.approval_gates.qa_fail // false | tostring),
+      (.approval_gates.security_warn // false | tostring)
+    ] | join("|")' "$CONFIG_FILE" 2>/dev/null)"
 fi
 
 echo "config_effort=$CFG_EFFORT"
@@ -198,11 +203,13 @@ echo "brownfield=$BROWNFIELD"
 # --- State from state.json ---
 STATE_JSON="$PLANNING_DIR/state.json"
 if [ -f "$STATE_JSON" ] && [ "$JQ_AVAILABLE" = true ]; then
-  echo "current_phase=$(jq -r '.ph // ""' "$STATE_JSON" 2>/dev/null)"
-  echo "total_phases=$(jq -r '.tt // ""' "$STATE_JSON" 2>/dev/null)"
-  echo "workflow_status=$(jq -r '.st // ""' "$STATE_JSON" 2>/dev/null)"
-  echo "workflow_step=$(jq -r '.step // ""' "$STATE_JSON" 2>/dev/null)"
-  echo "progress=$(jq -r '.pr // 0' "$STATE_JSON" 2>/dev/null)"
+  IFS='|' read -r _ph _tt _st _step _pr <<< \
+    "$(jq -r '[(.ph // ""), (.tt // ""), (.st // ""), (.step // ""), (.pr // 0 | tostring)] | join("|")' "$STATE_JSON" 2>/dev/null)"
+  echo "current_phase=$_ph"
+  echo "total_phases=$_tt"
+  echo "workflow_status=$_st"
+  echo "workflow_step=$_step"
+  echo "progress=$_pr"
 else
   echo "current_phase="
   echo "total_phases="

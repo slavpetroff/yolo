@@ -3,22 +3,26 @@
   "autonomy": "standard",
   "auto_commit": true,
   "verification_tier": "standard",
-  "skill_suggestions": true,
-  "auto_install_skills": false,
-  "discovery_questions": true,
   "context_compiler": true,
   "visual_format": "unicode",
   "max_tasks_per_plan": 5,
   "agent_teams": true,
   "branch_per_milestone": false,
   "plain_summary": true,
-  "active_profile": "default",
-  "custom_profiles": {},
   "model_profile": "quality",
   "model_overrides": {},
   "security_audit": false,
   "approval_gates": {
     "qa_fail": false,
-    "security_warn": false
-  }
+    "security_warn": false,
+    "code_review": false,
+    "manual_qa": false
+  },
+  "departments": {
+    "backend": true,
+    "frontend": false,
+    "uiux": false
+  },
+  "department_workflow": "backend_only",
+  "cross_team_handoff": true
 }

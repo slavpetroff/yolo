@@ -37,8 +37,8 @@ After standard pre-execution:
    ```
 
 3. **Validate department readiness:**
-   - If `departments.frontend` true: verify all 7 `vbw-fe-*.md` agent files exist
-   - If `departments.uiux` true: verify all 7 `vbw-ux-*.md` agent files exist
+   - If `departments.frontend` true: verify all 7 `yolo-fe-*.md` agent files exist
+   - If `departments.uiux` true: verify all 7 `yolo-ux-*.md` agent files exist
    - Verify `references/departments/{dept}.md` exists for each active department
    - Verify `references/cross-team-protocol.md` exists if multiple departments active
 
@@ -48,7 +48,7 @@ After standard pre-execution:
 
 If Owner is active (multiple departments):
 1. Run shared Critic as normal (Step 1 from execute-protocol.md).
-2. Spawn vbw-owner with `owner_review` mode:
+2. Spawn yolo-owner with `owner_review` mode:
    - model: "${OWNER_MODEL}"
    - Input: critique.jsonl, reqs.jsonl, department config
 3. Owner determines department priorities and dispatch order.

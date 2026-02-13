@@ -26,8 +26,8 @@ if [ -f "$ROOT/scripts/bump-version.sh" ]; then
   }
 fi
 
-# This repository does not use the VBW VERSION + bump-version.sh workflow.
-# If those files are absent, skip the VBW hook so pushes aren't blocked.
+# This repository does not use the YOLO VERSION + bump-version.sh workflow.
+# If those files are absent, skip the YOLO hook so pushes aren't blocked.
 if [ ! -f "$ROOT/VERSION" ] && [ ! -f "$ROOT/scripts/bump-version.sh" ]; then
   exit 0
 fi

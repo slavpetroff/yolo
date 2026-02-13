@@ -10,12 +10,12 @@ setup() {
   mk_test_workdir
   SUT="$SCRIPTS_DIR/compile-context.sh"
 
-  # Set up .vbw-planning with phase dir, ROADMAP, conventions
-  mkdir -p "$TEST_WORKDIR/.vbw-planning/phases/01-setup"
-  mkdir -p "$TEST_WORKDIR/.vbw-planning/codebase"
+  # Set up .yolo-planning with phase dir, ROADMAP, conventions
+  mkdir -p "$TEST_WORKDIR/.yolo-planning/phases/01-setup"
+  mkdir -p "$TEST_WORKDIR/.yolo-planning/codebase"
 
   # Minimal ROADMAP.md
-  cat > "$TEST_WORKDIR/.vbw-planning/ROADMAP.md" <<'EOF'
+  cat > "$TEST_WORKDIR/.yolo-planning/ROADMAP.md" <<'EOF'
 # Roadmap
 
 ## Phase 1: Setup
@@ -28,11 +28,11 @@ setup() {
 EOF
 
   # Conventions file
-  cat > "$TEST_WORKDIR/.vbw-planning/conventions.json" <<'EOF'
+  cat > "$TEST_WORKDIR/.yolo-planning/conventions.json" <<'EOF'
 {"conventions":[{"tag":"naming","rule":"Use kebab-case for files"},{"tag":"style","rule":"One commit per task"}]}
 EOF
 
-  PHASES_DIR="$TEST_WORKDIR/.vbw-planning/phases"
+  PHASES_DIR="$TEST_WORKDIR/.yolo-planning/phases"
 }
 
 # Helper: run compile-context from test workdir
@@ -144,8 +144,8 @@ run_cc() {
 # --- Codebase JSONL references ---
 
 @test "architect role references codebase JSONL files" {
-  cp "$FIXTURES_DIR/codebase/index.jsonl" "$TEST_WORKDIR/.vbw-planning/codebase/index.jsonl"
-  cp "$FIXTURES_DIR/codebase/patterns.jsonl" "$TEST_WORKDIR/.vbw-planning/codebase/patterns.jsonl"
+  cp "$FIXTURES_DIR/codebase/index.jsonl" "$TEST_WORKDIR/.yolo-planning/codebase/index.jsonl"
+  cp "$FIXTURES_DIR/codebase/patterns.jsonl" "$TEST_WORKDIR/.yolo-planning/codebase/patterns.jsonl"
   run_cc 01 architect
   assert_success
   local ctx="$PHASES_DIR/01-setup/.ctx-architect.toon"
@@ -155,7 +155,7 @@ run_cc() {
 }
 
 @test "critic role references codebase JSONL files" {
-  cp "$FIXTURES_DIR/codebase/index.jsonl" "$TEST_WORKDIR/.vbw-planning/codebase/index.jsonl"
+  cp "$FIXTURES_DIR/codebase/index.jsonl" "$TEST_WORKDIR/.yolo-planning/codebase/index.jsonl"
   run_cc 01 critic
   assert_success
   local ctx="$PHASES_DIR/01-setup/.ctx-critic.toon"
@@ -164,7 +164,7 @@ run_cc() {
 }
 
 @test "senior role references patterns JSONL" {
-  cp "$FIXTURES_DIR/codebase/patterns.jsonl" "$TEST_WORKDIR/.vbw-planning/codebase/patterns.jsonl"
+  cp "$FIXTURES_DIR/codebase/patterns.jsonl" "$TEST_WORKDIR/.yolo-planning/codebase/patterns.jsonl"
   run_cc 01 senior
   assert_success
   local ctx="$PHASES_DIR/01-setup/.ctx-senior.toon"

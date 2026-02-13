@@ -3,7 +3,7 @@
 # Output: key-value pairs on stdout. Exit 0 always.
 set -euo pipefail
 
-META=".vbw-planning/codebase/META.md"
+META=".yolo-planning/codebase/META.md"
 
 # No map
 if [[ ! -f "$META" ]]; then
@@ -36,7 +36,7 @@ if ! git cat-file -e "$git_hash" 2>/dev/null; then
   echo "total: $file_count"
   echo "since: $mapped_at"
   if ! [ -t 1 ]; then
-    echo "{\"hookSpecificOutput\":{\"additionalContext\":\"Codebase map is stale (100% files changed). Run /vbw:map --incremental to refresh.\"}}"
+    echo "{\"hookSpecificOutput\":{\"additionalContext\":\"Codebase map is stale (100% files changed). Run /yolo:map --incremental to refresh.\"}}"
   fi
   exit 0
 fi
@@ -61,5 +61,5 @@ echo "since: $mapped_at"
 
 # When called as a SessionStart hook (stdout is not a terminal), output hookSpecificOutput
 if [[ "$status" == "stale" ]] && ! [ -t 1 ]; then
-  echo "{\"hookSpecificOutput\":{\"additionalContext\":\"Codebase map is stale (${staleness}% files changed). Run /vbw:map --incremental to refresh.\"}}"
+  echo "{\"hookSpecificOutput\":{\"additionalContext\":\"Codebase map is stale (${staleness}% files changed). Run /yolo:map --incremental to refresh.\"}}"
 fi

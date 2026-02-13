@@ -1,6 +1,6 @@
-# Contributing to VBW
+# Contributing to YOLO
 
-Thanks for considering a contribution. VBW is a Claude Code plugin, so the conventions are slightly different from a typical codebase.
+Thanks for considering a contribution. YOLO is a Claude Code plugin, so the conventions are slightly different from a typical codebase.
 
 ## Prerequisites
 
@@ -13,13 +13,13 @@ Thanks for considering a contribution. VBW is a Claude Code plugin, so the conve
 Clone the repo, install the git hooks, and load it as a local plugin:
 
 ```bash
-git clone https://github.com/yidakee/vibe-better-with-claude-code-vbw.git
-cd vibe-better-with-claude-code-vbw
+git clone https://github.com/slavpetroff/yolo.git
+cd yolo
 bash scripts/install-hooks.sh
 claude --plugin-dir .
 ```
 
-The pre-push hook is required — it prevents pushing without a version bump (see Version Management below). All `/vbw:*` commands will be available. Restart Claude Code to pick up changes.
+The pre-push hook is required — it prevents pushing without a version bump (see Version Management below). All `/yolo:*` commands will be available. Restart Claude Code to pick up changes.
 
 ## Project Structure
 
@@ -37,7 +37,7 @@ assets/            Images and static files
 
 Key conventions:
 
-- **Commands** live in `commands/*.md`. The plugin name (`vbw`) auto-prefixes them, so `commands/init.md` becomes `/vbw:init`. Don't duplicate the prefix.
+- **Commands** live in `commands/*.md`. The plugin name (`yolo`) auto-prefixes them, so `commands/init.md` becomes `/yolo:init`. Don't duplicate the prefix.
 - **Agents** in `agents/` use YAML frontmatter for tool permissions enforced by the platform.
 - **Hooks** in `hooks/hooks.json` reference scripts via `${CLAUDE_PLUGIN_ROOT}/scripts/`.
 
@@ -46,7 +46,7 @@ Key conventions:
 1. **Fork the repo** and create a feature branch from `main`.
 2. **Test locally** with `claude --plugin-dir .` before submitting.
 3. **Keep commits atomic** -- one logical change per commit.
-4. **Match the existing tone** in command descriptions and user-facing text. VBW is direct, dry, and self-aware. It doesn't use corporate language or unnecessary enthusiasm.
+4. **Match the existing tone** in command descriptions and user-facing text. YOLO is direct, dry, and self-aware. It doesn't use corporate language or unnecessary enthusiasm.
 
 ## What to Contribute
 
@@ -61,7 +61,7 @@ Good candidates:
 Less good candidates:
 
 - Rewrites of the core lifecycle flow without prior discussion
-- Features that require dependencies or build steps (VBW is zero-dependency by design)
+- Features that require dependencies or build steps (YOLO is zero-dependency by design)
 - Changes that break the effort profile system
 
 ## Pull Request Process
@@ -74,7 +74,7 @@ Less good candidates:
 
 ## Version Management
 
-VBW keeps the version in sync across four files:
+YOLO keeps the version in sync across four files:
 
 | File | Field |
 |------|-------|
@@ -123,7 +123,7 @@ If you forget, the hook blocks the push and tells you what to do. Use `git push 
 bash scripts/install-hooks.sh
 ```
 
-> **Note:** If you use VBW, the hook is auto-installed by `/vbw:init` and on session start. Manual installation is only needed for contributors not using VBW.
+> **Note:** If you use YOLO, the hook is auto-installed by `/yolo:init` and on session start. Manual installation is only needed for contributors not using YOLO.
 
 ## Code Style
 
@@ -133,7 +133,7 @@ bash scripts/install-hooks.sh
 
 ## Reporting Bugs
 
-Use the [bug report template](https://github.com/yidakee/vibe-better-with-claude-code-vbw/issues/new?template=bug_report.md). Include your Claude Code version, the command that failed, and any error output.
+Use the [bug report template](https://github.com/slavpetroff/yolo/issues/new?template=bug_report.md). Include your Claude Code version, the command that failed, and any error output.
 
 ## License
 

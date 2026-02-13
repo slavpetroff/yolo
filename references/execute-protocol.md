@@ -1,6 +1,6 @@
-# VBW Execution Protocol
+# YOLO Execution Protocol
 
-Loaded on demand by /vbw:vibe Execute mode. Not a user-facing command.
+Loaded on demand by /yolo:go Execute mode. Not a user-facing command.
 
 Implements the 10-step company-grade engineering workflow. See `references/company-hierarchy.md` for full hierarchy and `references/artifact-formats.md` for JSONL schemas.
 
@@ -8,20 +8,20 @@ Implements the 10-step company-grade engineering workflow. See `references/compa
 
 1. **Parse arguments:** Phase number (auto-detect if omitted), --effort, --skip-qa, --skip-security, --plan=NN.
 2. **Run execute guards:**
-   - Not initialized: STOP "Run /vbw:init first."
-   - No plans in phase dir: STOP "Phase {N} has no plans. Run `/vbw:vibe --plan {N}` first."
-   - All plans have summary.jsonl: cautious/standard → WARN + confirm; confident/pure-vibe → warn + continue.
+   - Not initialized: STOP "Run /yolo:init first."
+   - No plans in phase dir: STOP "Phase {N} has no plans. Run `/yolo:go --plan {N}` first."
+   - All plans have summary.jsonl: cautious/standard → WARN + confirm; confident/pure-yolo → warn + continue.
 3. **Resolve models for all agents:**
    ```bash
-   CRITIC_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh critic .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   ARCHITECT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   SENIOR_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh senior .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   TESTER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh tester .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   DEV_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   QA_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   QA_CODE_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa-code .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   SECURITY_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh security .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   CRITIC_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh critic .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   ARCHITECT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   SENIOR_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh senior .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   TESTER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh tester .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   DEV_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   QA_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   QA_CODE_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa-code .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   SECURITY_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh security .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
    ```
 
 ### Step 1: Critique / Brainstorm (Critic Agent)
@@ -29,7 +29,7 @@ Implements the 10-step company-grade engineering workflow. See `references/compa
 **Guard:** Skip if `--effort=turbo` or critique.jsonl already exists in phase directory.
 
 1. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} critic {phases_dir}`
-2. Spawn vbw-critic with Task tool:
+2. Spawn yolo-critic with Task tool:
    - model: "${CRITIC_MODEL}"
    - Provide: reqs.jsonl (or REQUIREMENTS.md), PROJECT.md, codebase/ mapping, research.jsonl (if exists)
    - Include compiled context: `{phase-dir}/.ctx-critic.toon`
@@ -45,7 +45,7 @@ Implements the 10-step company-grade engineering workflow. See `references/compa
 **Guard:** Skip if architecture.toon already exists in phase directory.
 
 1. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} architect {phases_dir}`
-2. Spawn vbw-architect with Task tool:
+2. Spawn yolo-architect with Task tool:
    - model: "${ARCHITECT_MODEL}"
    - Provide: reqs.jsonl (or REQUIREMENTS.md), codebase/ mapping, research.jsonl (if exists), critique.jsonl (if exists)
    - Include compiled context: `{phase-dir}/.ctx-architect.toon`
@@ -60,8 +60,8 @@ Implements the 10-step company-grade engineering workflow. See `references/compa
 3. `git log --oneline -20` for committed tasks (crash recovery).
 4. Build remaining plans list. If `--plan=NN`, filter to that plan.
 5. Partially-complete plans: note resume-from task number.
-6. **Crash recovery:** If `.vbw-planning/.execution-state.json` exists with `"status": "running"`, reconcile plan statuses with summary.jsonl state.
-7. **Write execution state** to `.vbw-planning/.execution-state.json`:
+6. **Crash recovery:** If `.yolo-planning/.execution-state.json` exists with `"status": "running"`, reconcile plan statuses with summary.jsonl state.
+7. **Write execution state** to `.yolo-planning/.execution-state.json`:
    ```json
    {
      "phase": N, "phase_name": "{slug}", "status": "running",
@@ -83,7 +83,7 @@ Implements the 10-step company-grade engineering workflow. See `references/compa
 1. Update execution state: `"step": "design_review"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} senior {phases_dir}`
 3. For each plan.jsonl without enriched specs (tasks missing `spec` field):
-   - Spawn vbw-senior with Task tool:
+   - Spawn yolo-senior with Task tool:
      - model: "${SENIOR_MODEL}"
      - Mode: "design_review"
      - Provide: plan.jsonl path, architecture.toon path, critique.jsonl path (if exists), compiled context
@@ -99,7 +99,7 @@ Implements the 10-step company-grade engineering workflow. See `references/compa
 1. Update execution state: `"step": "test_authoring"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} tester {phases_dir} {plan_path}`
 3. For each plan.jsonl with tasks that have `ts` fields:
-   - Spawn vbw-tester with Task tool:
+   - Spawn yolo-tester with Task tool:
      - model: "${TESTER_MODEL}"
      - Provide: enriched plan.jsonl path, compiled context
    - Display: `◆ Spawning Tester (${TESTER_MODEL}) for RED phase ({plan})...`
@@ -145,7 +145,7 @@ When Dev reports completion:
 
 1. Update execution state: `"step": "code_review"`
 2. For each completed plan:
-   - Spawn vbw-senior with Task tool:
+   - Spawn yolo-senior with Task tool:
      - model: "${SENIOR_MODEL}"
      - Mode: "code_review"
      - Provide: plan.jsonl path, git diff of plan commits, test-plan.jsonl (if exists)
@@ -175,14 +175,14 @@ If `--skip-qa` or turbo: `○ QA skipped ({reason})`
    - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} qa-code {phases_dir}`
 
 **QA Lead (plan-level):**
-4. Spawn vbw-qa:
+4. Spawn yolo-qa:
    - model: "${QA_MODEL}"
    - Provide: plan.jsonl files, summary.jsonl files, compiled context
    - Tier: {tier}
 5. QA Lead produces verification.jsonl. Commits: `docs({phase}): verification results`
 
 **QA Code (code-level):**
-6. Spawn vbw-qa-code:
+6. Spawn yolo-qa-code:
    - model: "${QA_CODE_MODEL}"
    - Provide: summary.jsonl (for file list), test-plan.jsonl (for TDD compliance), compiled context
    - Tier: {tier}
@@ -227,7 +227,7 @@ If `--skip-security` or config `security_audit` != true: `○ Security audit ski
 
 1. Update execution state: `"step": "security"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} security {phases_dir}`
-3. Spawn vbw-security:
+3. Spawn yolo-security:
    - model: "${SECURITY_MODEL}"
    - Provide: summary.jsonl (file list), compiled context
 4. Security produces security-audit.jsonl. Commits: `docs({phase}): security audit`
@@ -255,7 +255,7 @@ If `--skip-security` or config `security_audit` != true: `○ Security audit ski
    - .execution-state.json: `"status": "complete"`, `"step": "signoff"`
    - ROADMAP.md: mark phase complete
    - Commit: `chore(state): phase {N} complete`
-6. Display per `@${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md`:
+6. Display per `@${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md`:
    ```
    ╔═══════════════════════════════════════════════╗
    ║  Phase {N}: {name} — Built                    ║
@@ -308,4 +308,4 @@ Context compilation for department agents uses the same `compile-context.sh` wit
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — Phase Banner, ◆ running, ✓ complete, ✗ failed, ○ skipped, no ANSI color codes.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — Phase Banner, ◆ running, ✓ complete, ✗ failed, ○ skipped, no ANSI color codes.

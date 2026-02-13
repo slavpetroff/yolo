@@ -1,12 +1,12 @@
 ---
 name: help
 disable-model-invocation: true
-description: Display all available VBW commands with descriptions and usage examples.
+description: Display all available YOLO commands with descriptions and usage examples.
 argument-hint: [command-name]
 allowed-tools: Read, Glob
 ---
 
-# VBW Help $ARGUMENTS
+# YOLO Help $ARGUMENTS
 
 ## Behavior
 
@@ -24,37 +24,37 @@ allowed-tools: Read, Glob
 
 ## Architecture
 
-- /vbw:vibe --execute creates Dev team for parallel plans. /vbw:map creates Scout team. Session IS the lead.
-- Continuous verification via PostToolUse, TaskCompleted, TeammateIdle hooks. /vbw:qa is on-demand.
-- /vbw:config maps skills to hook events (skill-hook wiring).
+- /yolo:go --execute creates Dev team for parallel plans. /yolo:map creates Scout team. Session IS the lead.
+- Continuous verification via PostToolUse, TaskCompleted, TeammateIdle hooks. /yolo:qa is on-demand.
+- /yolo:config maps skills to hook events (skill-hook wiring).
 
 ## Model Profiles
 
 Control which Claude model each agent uses (cost optimization):
-- `/vbw:config model_profile quality` -- Opus for Lead/Dev/Debugger/Architect, Sonnet for QA, Haiku for Scout (~$2.80/phase)
-- `/vbw:config model_profile balanced` -- Sonnet for most, Haiku for Scout (~$1.40/phase, default)
-- `/vbw:config model_profile budget` -- Sonnet for critical agents, Haiku for QA/Scout (~$0.70/phase)
-- `/vbw:config model_override dev opus` -- Override single agent without changing profile
+- `/yolo:config model_profile quality` -- Opus for Lead/Dev/Debugger/Architect, Sonnet for QA, Haiku for Scout (~$2.80/phase)
+- `/yolo:config model_profile balanced` -- Sonnet for most, Haiku for Scout (~$1.40/phase, default)
+- `/yolo:config model_profile budget` -- Sonnet for critical agents, Haiku for QA/Scout (~$0.70/phase)
+- `/yolo:config model_override dev opus` -- Override single agent without changing profile
 - Interactive mode: Select "Model Profile" → "Configure each agent individually" to set models per-agent (6 questions across 2 rounds). Status display marks overridden agents with asterisk (*).
 
 See: @references/model-profiles.md for full preset definitions and cost comparison.
 
 ## Getting Started
 
-➜ /vbw:init -> /vbw:vibe -> /vbw:vibe --archive
-Optional: /vbw:config model_profile <quality|balanced|budget> to optimize cost
-`/vbw:help <command>` for details.
+➜ /yolo:init -> /yolo:go -> /yolo:go --archive
+Optional: /yolo:config model_profile <quality|balanced|budget> to optimize cost
+`/yolo:help <command>` for details.
 
 ## GSD Import
 
-Migrating from GSD? VBW automatically detects existing GSD projects during initialization.
+Migrating from GSD? YOLO automatically detects existing GSD projects during initialization.
 
-**During /vbw:init:**
+**During /yolo:init:**
 - Detects `.planning/` directory (GSD's planning folder)
 - Prompts: "GSD project detected. Import work history?"
-- If approved: copies `.planning/` to `.vbw-planning/gsd-archive/` (original preserved)
+- If approved: copies `.planning/` to `.yolo-planning/gsd-archive/` (original preserved)
 - Generates INDEX.json with phase metadata, milestones, and quick paths
-- Continues with normal VBW initialization
+- Continues with normal YOLO initialization
 
 **What's archived:**
 - All GSD planning files (ROADMAP, PROJECT, phases, summaries, plans)
@@ -62,12 +62,12 @@ Migrating from GSD? VBW automatically detects existing GSD projects during initi
 - Original `.planning/` remains untouched (continues working with GSD if needed)
 
 **After import:**
-- VBW agents can reference archived GSD files when needed
+- YOLO agents can reference archived GSD files when needed
 - Index provides quick lookup: phases completed, milestones, key file paths
 - GSD isolation can be enabled to prevent cross-contamination
 
-See: /vbw:init for the import flow, docs/migration-gsd-to-vbw.md for detailed migration guide.
+See: /yolo:init for the import flow, docs/migration-gsd-to-yolo.md for detailed migration guide.
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — double-line box, ✓ available, ➜ Getting Started, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — double-line box, ✓ available, ➜ Getting Started, no ANSI.

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Generate lightweight JSON index for archived GSD projects
 # Called by: commands/init.md Step 0.5 (GSD import flow)
-# Output: .vbw-planning/gsd-archive/INDEX.json
+# Output: .yolo-planning/gsd-archive/INDEX.json
 # Performance target: <5 seconds for typical projects
 
 set -euo pipefail
 
 # Check if archive exists
-ARCHIVE_DIR=".vbw-planning/gsd-archive"
+ARCHIVE_DIR=".yolo-planning/gsd-archive"
 if [[ ! -d "$ARCHIVE_DIR" ]]; then
   exit 0
 fi

@@ -4,7 +4,7 @@ set -euo pipefail
 # infer-gsd-summary.sh — Extract recent work context from archived GSD planning data
 #
 # Usage: infer-gsd-summary.sh GSD_ARCHIVE_DIR
-#   GSD_ARCHIVE_DIR   Path to .vbw-planning/gsd-archive/ directory
+#   GSD_ARCHIVE_DIR   Path to .yolo-planning/gsd-archive/ directory
 #
 # Output: JSON to stdout with latest milestone, recent phases, key decisions,
 #         and current work status. Focused on recent context (last 2-3 phases).

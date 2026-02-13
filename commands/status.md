@@ -5,7 +5,7 @@ argument-hint: [--verbose] [--metrics]
 allowed-tools: Read, Glob, Grep, Bash
 ---
 
-# VBW Status $ARGUMENTS
+# YOLO Status $ARGUMENTS
 
 ## Context
 
@@ -13,49 +13,49 @@ Working directory: `!`pwd``
 
 Current state:
 ```
-!`head -40 .vbw-planning/STATE.md 2>/dev/null || echo "No state found"`
+!`head -40 .yolo-planning/STATE.md 2>/dev/null || echo "No state found"`
 ```
 
 Roadmap:
 ```
-!`head -50 .vbw-planning/ROADMAP.md 2>/dev/null || echo "No roadmap found"`
+!`head -50 .yolo-planning/ROADMAP.md 2>/dev/null || echo "No roadmap found"`
 ```
 
-Config: Pre-injected by SessionStart hook. Read .vbw-planning/config.json only if --verbose.
+Config: Pre-injected by SessionStart hook. Read .yolo-planning/config.json only if --verbose.
 
 Phase directories:
 ```
-!`ls .vbw-planning/phases/ 2>/dev/null || echo "No phases directory"`
+!`ls .yolo-planning/phases/ 2>/dev/null || echo "No phases directory"`
 ```
 
 Active milestone:
 ```
-!`cat .vbw-planning/ACTIVE 2>/dev/null || echo "No active milestone (single-milestone mode)"`
+!`cat .yolo-planning/ACTIVE 2>/dev/null || echo "No active milestone (single-milestone mode)"`
 ```
 
 ## Guard
 
-- Not initialized (no .vbw-planning/ dir): STOP "Run /vbw:init first."
-- No ROADMAP.md or has template placeholders: STOP "No roadmap found. Run /vbw:vibe to set up your project."
+- Not initialized (no .yolo-planning/ dir): STOP "Run /yolo:init first."
+- No ROADMAP.md or has template placeholders: STOP "No roadmap found. Run /yolo:go to set up your project."
 
 ## Steps
 
 1. **Parse args:** --verbose shows per-plan detail within each phase
-2. **Resolve milestone:** If .vbw-planning/ACTIVE exists, use milestone-scoped paths. Gather milestone list (all dirs with ROADMAP.md). Else use defaults.
+2. **Resolve milestone:** If .yolo-planning/ACTIVE exists, use milestone-scoped paths. Gather milestone list (all dirs with ROADMAP.md). Else use defaults.
 3. **Read data:** (STATE.md and ROADMAP.md use compact format -- flat fields, no verbose prose)
    - STATE.md: project name, current phase (flat `Phase:`, `Plans:`, `Progress:` lines), velocity
    - ROADMAP.md: phases, status markers, plan counts (compact per-phase fields, Progress table)
    - SessionStart injection: effort, autonomy. If --verbose, read config.json
    - Phase dirs: glob `*-PLAN.md` and `*-SUMMARY.md` per phase for completion data
    - If Agent Teams build active: read shared task list for teammate status
-   - Cost ledger: if `.vbw-planning/.cost-ledger.json` exists, read with jq. Extract per-agent costs. Compute total. Only display economy if total > 0.
+   - Cost ledger: if `.yolo-planning/.cost-ledger.json` exists, read with jq. Extract per-agent costs. Compute total. Only display economy if total > 0.
 4. **Compute progress:** Per phase: count PLANs (total) vs SUMMARYs (done). Pct = done/total * 100. Status: ✓ (100%), ◆ (1-99%), ○ (0%).
 5. **Compute velocity:** Total plans done, avg duration, total time. If --verbose: per-phase breakdown.
-6. **Next action:** Find first incomplete phase. Has plans but not all summaries: `/vbw:vibe` (auto-executes). Complete + next unplanned: `/vbw:vibe` (auto-plans). All complete: `/vbw:vibe --archive`. No plans anywhere: `/vbw:vibe`.
+6. **Next action:** Find first incomplete phase. Has plans but not all summaries: `/yolo:go` (auto-executes). Complete + next unplanned: `/yolo:go` (auto-plans). All complete: `/yolo:go --archive`. No plans anywhere: `/yolo:go`.
 
 ## Display
 
-Per @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md:
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md:
 
 **Header:**
 ```

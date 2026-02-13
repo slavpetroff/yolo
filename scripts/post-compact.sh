@@ -6,11 +6,11 @@ set -u
 INPUT=$(cat)
 
 # Clean up cost tracking files (stale after compaction)
-rm -f .vbw-planning/.cost-ledger.json .vbw-planning/.active-agent 2>/dev/null
+rm -f .yolo-planning/.cost-ledger.json .yolo-planning/.active-agent 2>/dev/null
 
 # Try to identify agent role from input context
 ROLE=""
-for pattern in vbw-lead vbw-dev vbw-qa vbw-scout vbw-debugger vbw-architect; do
+for pattern in yolo-lead yolo-dev yolo-qa yolo-scout yolo-debugger yolo-architect; do
   if echo "$INPUT" | grep -qi "$pattern"; then
     ROLE="$pattern"
     break
@@ -18,22 +18,22 @@ for pattern in vbw-lead vbw-dev vbw-qa vbw-scout vbw-debugger vbw-architect; do
 done
 
 case "$ROLE" in
-  vbw-lead)
+  yolo-lead)
     FILES="STATE.md, ROADMAP.md, config.json, and current phase plans"
     ;;
-  vbw-dev)
+  yolo-dev)
     FILES="your assigned plan.jsonl file and relevant source files"
     ;;
-  vbw-qa)
+  yolo-qa)
     FILES="summary.jsonl files under review, verification criteria, and gap reports"
     ;;
-  vbw-scout)
+  yolo-scout)
     FILES="research notes, REQUIREMENTS.md, and any scout-specific findings"
     ;;
-  vbw-debugger)
+  yolo-debugger)
     FILES="reproduction steps, hypothesis log, and related source files"
     ;;
-  vbw-architect)
+  yolo-architect)
     FILES="REQUIREMENTS.md, ROADMAP.md, phase structure, and architecture decisions"
     ;;
   *)

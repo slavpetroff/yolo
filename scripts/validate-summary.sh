@@ -5,12 +5,12 @@ set -u
 INPUT=$(cat)
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // .tool_input.command // ""')
 
-# Check both JSONL and legacy MD summary files in .vbw-planning/
+# Check both JSONL and legacy MD summary files in .yolo-planning/
 IS_JSONL=false
 IS_MD=false
-if echo "$FILE_PATH" | grep -qE '\.vbw-planning/.*\.summary\.jsonl$'; then
+if echo "$FILE_PATH" | grep -qE '\.yolo-planning/.*\.summary\.jsonl$'; then
   IS_JSONL=true
-elif echo "$FILE_PATH" | grep -qE '\.vbw-planning/.*SUMMARY\.md$'; then
+elif echo "$FILE_PATH" | grep -qE '\.yolo-planning/.*SUMMARY\.md$'; then
   IS_MD=true
 fi
 

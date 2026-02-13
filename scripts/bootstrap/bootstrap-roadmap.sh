@@ -63,12 +63,14 @@ PHASES_DIR="${PLANNING_DIR}/phases"
 
   # Phase list
   echo "## Phase List"
-  for i in $(seq 0 $((PHASE_COUNT - 1))); do
-    PHASE_NUM=$((i + 1))
-    PHASE_NAME=$(jq -r ".[$i].name" "$PHASES_JSON")
-    SLUG=$(echo "$PHASE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
-    echo "- [ ] [Phase ${PHASE_NUM}: ${PHASE_NAME}](#phase-${PHASE_NUM}-${SLUG})"
-  done
+  jq -r '.[].name' "$PHASES_JSON" | {
+    i=0
+    while IFS= read -r PHASE_NAME; do
+      i=$((i + 1))
+      SLUG=$(echo "$PHASE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g;s/--*/-/g;s/^-//;s/-$//')
+      echo "- [ ] [Phase ${i}: ${PHASE_NAME}](#phase-${i}-${SLUG})"
+    done
+  }
   echo ""
   echo "---"
   echo ""
@@ -76,10 +78,8 @@ PHASES_DIR="${PLANNING_DIR}/phases"
   # Phase details
   for i in $(seq 0 $((PHASE_COUNT - 1))); do
     PHASE_NUM=$((i + 1))
-    PHASE_NAME=$(jq -r ".[$i].name" "$PHASES_JSON")
-    PHASE_GOAL=$(jq -r ".[$i].goal" "$PHASES_JSON")
-    REQS=$(jq -r ".[$i].requirements // [] | join(\", \")" "$PHASES_JSON")
-    CRITERIA_COUNT=$(jq ".[$i].success_criteria // [] | length" "$PHASES_JSON")
+    IFS=$'\t' read -r PHASE_NAME PHASE_GOAL REQS <<< \
+      "$(jq -r --argjson i "$i" '[.[$i].name, .[$i].goal, (.[$i].requirements // [] | join(", "))] | @tsv' "$PHASES_JSON")"
 
     echo "## Phase ${PHASE_NUM}: ${PHASE_NAME}"
     echo ""
@@ -90,10 +90,7 @@ PHASES_DIR="${PLANNING_DIR}/phases"
       echo ""
     fi
     echo "**Success Criteria:**"
-    for j in $(seq 0 $((CRITERIA_COUNT - 1))); do
-      CRITERION=$(jq -r ".[$i].success_criteria[$j]" "$PHASES_JSON")
-      echo "- ${CRITERION}"
-    done
+    jq -r --argjson i "$i" '.[$i].success_criteria // [] | .[] | "- \(.)"' "$PHASES_JSON"
     echo ""
 
     # Dependencies: Phase 1 has none, others depend on previous
@@ -112,11 +109,14 @@ PHASES_DIR="${PLANNING_DIR}/phases"
 } > "$OUTPUT_PATH"
 
 # Create phase directories
-for i in $(seq 0 $((PHASE_COUNT - 1))); do
-  PHASE_NUM=$(printf "%02d" $((i + 1)))
-  PHASE_NAME=$(jq -r ".[$i].name" "$PHASES_JSON")
-  SLUG=$(echo "$PHASE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
-  mkdir -p "${PHASES_DIR}/${PHASE_NUM}-${SLUG}"
-done
+jq -r '.[].name' "$PHASES_JSON" | {
+  i=0
+  while IFS= read -r PHASE_NAME; do
+    i=$((i + 1))
+    PHASE_NUM=$(printf "%02d" "$i")
+    SLUG=$(echo "$PHASE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g;s/--*/-/g;s/^-//;s/-$//')
+    mkdir -p "${PHASES_DIR}/${PHASE_NUM}-${SLUG}"
+  done
+}
 
 exit 0

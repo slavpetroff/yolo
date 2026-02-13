@@ -1,24 +1,24 @@
 {
-  "name": "vbw-marketplace",
+  "name": "yolo-marketplace",
   "owner": {
-    "name": "Tiago Serôdio",
-    "email": "t.serodio@gmail.com"
+    "name": "slavpetroff",
+    "email": ""
   },
   "metadata": {
-    "description": "Vibe Better With Claude Code — development lifecycle plugin"
+    "description": "YOLO — Your Own Local Orchestrator — development lifecycle plugin"
   },
   "plugins": [
     {
-      "name": "vbw",
+      "name": "yolo",
       "source": {
         "source": "url",
-        "url": "https://github.com/yidakee/vibe-better-with-claude-code-vbw.git"
+        "url": "https://github.com/slavpetroff/yolo.git"
       },
       "description": "Development lifecycle plugin — 20 commands, 6 agents, continuous verification",
       "version": "1.10.18",
       "license": "MIT",
       "keywords": [
-        "vibe-coding",
+        "yolo-coding",
         "project-management",
         "agent-teams",
         "verification",

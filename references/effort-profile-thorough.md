@@ -10,8 +10,8 @@
 These are independent settings. You can run Thorough effort on Budget profile (deep workflow, cheap models) or Fast effort on Quality profile (quick workflow, expensive models). Most users: match them (balanced+balanced, thorough+quality, fast+budget).
 
 Configure via:
-- Effort: `/vbw:config effort <level>` or `/vbw:vibe --effort=<level>`
-- Model: `/vbw:config model_profile <profile>`
+- Effort: `/yolo:config effort <level>` or `/yolo:go --effort=<level>`
+- Model: `/yolo:config model_profile <profile>`
 
 See: @references/model-profiles.md for model profile details.
 
@@ -32,7 +32,7 @@ See: @references/model-profiles.md for model profile details.
 |----------|------|
 | cautious | required |
 | standard | required |
-| confident / pure-vibe | OFF |
+| confident / pure-yolo | OFF |
 
 Platform-enforced: Dev cannot write files until lead approves.
 

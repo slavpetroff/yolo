@@ -6,7 +6,7 @@
 
 ## Context
 
-VBW originally had 6 flat agents (Lead, Dev, QA, Scout, Debugger, Architect). No separation of concerns between planning and implementation, no code review step, no security audit. Quality depended on a single QA pass.
+YOLO originally had 6 flat agents (Lead, Dev, QA, Scout, Debugger, Architect). No separation of concerns between planning and implementation, no code review step, no security audit. Quality depended on a single QA pass.
 
 ## Decision
 

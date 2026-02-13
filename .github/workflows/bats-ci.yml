@@ -1,0 +1,50 @@
+name: YOLO Test Suite
+on:
+  push:
+    branches: [main]
+    paths: ['scripts/**', 'agents/**', 'commands/**', 'hooks/**', 'config/**', 'tests/**']
+  pull_request:
+    paths: ['scripts/**', 'agents/**', 'commands/**', 'hooks/**', 'config/**', 'tests/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+      - name: Install bats-core
+        run: |
+          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats
+          sudo /tmp/bats/install.sh /usr/local
+      - name: Run static tests
+        run: bats --recursive tests/static/
+      - name: Run unit tests
+        run: bats --recursive tests/unit/
+      - name: Run containment tests
+        run: bats --recursive tests/containment/
+      - name: Run integration tests
+        run: bats --recursive tests/integration/
+
+  perf:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+          wget -q https://github.com/sharkdp/hyperfine/releases/download/v1.18.0/hyperfine_1.18.0_amd64.deb
+          sudo dpkg -i hyperfine_1.18.0_amd64.deb
+      - name: Install bats-core
+        run: |
+          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats
+          sudo /tmp/bats/install.sh /usr/local
+      - name: Run performance baselines
+        run: bats tests/perf/baselines.bats
+        continue-on-error: true

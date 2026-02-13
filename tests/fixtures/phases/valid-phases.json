@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Setup",
+    "goal": "Initialize project structure",
+    "requirements": ["Create directory layout", "Configure tooling"],
+    "success_criteria": ["All directories exist", "Config files are valid"]
+  },
+  {
+    "name": "Build Core",
+    "goal": "Implement core functionality",
+    "requirements": ["Implement main module"],
+    "success_criteria": ["Module compiles", "Tests pass"]
+  }
+]

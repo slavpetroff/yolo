@@ -1,0 +1,8 @@
+{
+  "effort": "balanced",
+  "model_profile": "balanced",
+  "model_overrides": {
+    "dev": "opus",
+    "scout": "sonnet"
+  }
+}

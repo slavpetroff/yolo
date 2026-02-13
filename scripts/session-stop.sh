@@ -1,9 +1,9 @@
 #!/bin/bash
 set -u
-# Stop hook: Log session metrics to .vbw-planning/.session-log.jsonl
+# Stop hook: Log session metrics to .yolo-planning/.session-log.jsonl
 # Non-blocking, fail-open (always exit 0)
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 
 # Guard: only log if planning directory exists
 if [ ! -d "$PLANNING_DIR" ]; then
@@ -51,6 +51,6 @@ if [ -f "$PLANNING_DIR/.cost-ledger.json" ]; then
 fi
 
 # Clean up GSD isolation session marker (if it exists)
-rm -f "$PLANNING_DIR/.vbw-session" 2>/dev/null
+rm -f "$PLANNING_DIR/.yolo-session" 2>/dev/null
 
 exit 0

@@ -14,7 +14,7 @@ SUMMARY_OK=false
 PLANS_TOTAL=0
 SUMMARIES_TOTAL=0
 
-for phase_dir in .vbw-planning/phases/*/; do
+for phase_dir in .yolo-planning/phases/*/; do
   [ -d "$phase_dir" ] || continue
   PLANS=$(ls -1 "$phase_dir"*.plan.jsonl "$phase_dir"*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
   SUMMARIES=$(ls -1 "$phase_dir"*.summary.jsonl "$phase_dir"*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')

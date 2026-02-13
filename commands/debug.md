@@ -5,7 +5,7 @@ argument-hint: "<bug description or error message>"
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch
 ---
 
-# VBW Debug: $ARGUMENTS
+# YOLO Debug: $ARGUMENTS
 
 ## Context
 
@@ -18,8 +18,8 @@ Recent commits:
 
 ## Guard
 
-- Not initialized (no .vbw-planning/ dir): STOP "Run /vbw:init first."
-- No $ARGUMENTS: STOP "Usage: /vbw:debug \"description of the bug or error message\""
+- Not initialized (no .yolo-planning/ dir): STOP "Run /yolo:init first."
+- No $ARGUMENTS: STOP "Usage: /yolo:debug \"description of the bug or error message\""
 
 ## Steps
 
@@ -33,13 +33,13 @@ Recent commits:
 - Generate 3 hypotheses (cause, codebase area, confirming evidence)
 - Resolve Debugger model:
   ```bash
-  DEBUGGER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+  DEBUGGER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
   if [ $? -ne 0 ]; then echo "$DEBUGGER_MODEL" >&2; exit 1; fi
   ```
 - Display: `◆ Spawning Debugger (${DEBUGGER_MODEL})...`
 - Create Agent Team "debug-{timestamp}" via TeamCreate
 - Create 3 tasks via TaskCreate, each with: bug report, ONE hypothesis only (no cross-contamination), working dir, instruction to report via `debugger_report` schema (see `${CLAUDE_PLUGIN_ROOT}/references/handoff-schemas.md`)
-- Spawn 3 vbw-debugger teammates, one task each. **Add `model: "${DEBUGGER_MODEL}"` parameter to each Task spawn.**
+- Spawn 3 yolo-debugger teammates, one task each. **Add `model: "${DEBUGGER_MODEL}"` parameter to each Task spawn.**
 - Wait for completion. Synthesize: strongest evidence + highest confidence wins. Multiple confirmed = contributing factors.
 - Winning hypothesis with fix: apply + commit `fix({scope}): {description}`
 - Shutdown: send shutdown to each teammate, wait for approval, re-request if rejected, then TeamDelete.
@@ -47,11 +47,11 @@ Recent commits:
 **Path B: Standard** (all other cases):
 - Resolve Debugger model:
   ```bash
-  DEBUGGER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+  DEBUGGER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
   if [ $? -ne 0 ]; then echo "$DEBUGGER_MODEL" >&2; exit 1; fi
   ```
 - Display: `◆ Spawning Debugger (${DEBUGGER_MODEL})...`
-- Spawn vbw-debugger as subagent via Task tool. **Add `model: "${DEBUGGER_MODEL}"` parameter.**
+- Spawn yolo-debugger as subagent via Task tool. **Add `model: "${DEBUGGER_MODEL}"` parameter.**
 ```
 Bug investigation. Effort: {DEBUGGER_EFFORT}.
 Bug report: {description}.
@@ -60,7 +60,7 @@ Follow protocol: reproduce, hypothesize, gather evidence, diagnose, fix, verify,
 If you apply a fix, commit with: fix({scope}): {description}.
 ```
 
-4. **Present:** Per @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md:
+4. **Present:** Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md:
 ```
 ┌──────────────────────────────────────────┐
 │  Bug Investigation Complete              │
@@ -73,5 +73,5 @@ If you apply a fix, commit with: fix({scope}): {description}.
 
   Files Modified: {list}
 
-➜ Next: /vbw:status -- View project status
+➜ Next: /yolo:status -- View project status
 ```

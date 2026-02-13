@@ -4,14 +4,14 @@ set -euo pipefail
 # bootstrap-reqs-jsonl.sh — Generate reqs.jsonl from REQUIREMENTS.md
 #
 # Usage: bootstrap-reqs-jsonl.sh [REQUIREMENTS_MD] [OUTPUT_PATH]
-#   REQUIREMENTS_MD  Path to REQUIREMENTS.md (default: .vbw-planning/REQUIREMENTS.md)
-#   OUTPUT_PATH      Path to write reqs.jsonl (default: .vbw-planning/reqs.jsonl)
+#   REQUIREMENTS_MD  Path to REQUIREMENTS.md (default: .yolo-planning/REQUIREMENTS.md)
+#   OUTPUT_PATH      Path to write reqs.jsonl (default: .yolo-planning/reqs.jsonl)
 #
 # Schema per line: {"id":"REQ-01","t":"title","pri":"must","st":"open","ac":""}
 # Priority mapping: Must-have→must, Should-have→should, Nice-to-have→nice
 
-REQUIREMENTS_MD="${1:-.vbw-planning/REQUIREMENTS.md}"
-OUTPUT_PATH="${2:-.vbw-planning/reqs.jsonl}"
+REQUIREMENTS_MD="${1:-.yolo-planning/REQUIREMENTS.md}"
+OUTPUT_PATH="${2:-.yolo-planning/reqs.jsonl}"
 
 if [[ ! -f "$REQUIREMENTS_MD" ]]; then
   echo "Error: $REQUIREMENTS_MD not found" >&2

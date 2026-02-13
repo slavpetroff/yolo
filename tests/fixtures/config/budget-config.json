@@ -1,0 +1,24 @@
+{
+  "effort": "quick",
+  "autonomy": "full",
+  "auto_commit": true,
+  "verification_tier": "basic",
+  "agent_teams": false,
+  "max_tasks_per_plan": 3,
+  "context_compiler": false,
+  "security_audit": false,
+  "model_profile": "budget",
+  "approval_gates": {
+    "qa_fail": false,
+    "security_warn": false,
+    "code_review": false,
+    "manual_qa": false
+  },
+  "departments": {
+    "backend": true,
+    "frontend": false,
+    "uiux": false
+  },
+  "department_workflow": "backend_only",
+  "cross_team_handoff": true
+}

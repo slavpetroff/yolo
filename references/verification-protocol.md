@@ -1,11 +1,11 @@
-# VBW Verification Protocol
+# YOLO Verification Protocol
 
-Authoritative spec for VBW's verification pipeline. QA agent is read-only; parent command persists results to `VERIFICATION.md`.
+Authoritative spec for YOLO's verification pipeline. QA agent is read-only; parent command persists results to `VERIFICATION.md`.
 
 ## 1. Contexts
 
-- **Post-build:** Auto after `/vbw:vibe` execute mode (unless `--skip-qa` or turbo)
-- **Standalone:** `/vbw:qa <phase>`
+- **Post-build:** Auto after `/yolo:go` execute mode (unless `--skip-qa` or turbo)
+- **Standalone:** `/yolo:qa <phase>`
 
 ## 2. Three-Tier Verification (VRFY-01)
 
@@ -42,7 +42,7 @@ Standard, plus:
 | `--effort=fast` / `QA_EFFORT=low` | Quick |
 | `--effort=balanced` / `QA_EFFORT=medium` | Standard |
 | `--effort=thorough` / `QA_EFFORT=high` | Deep |
-| Standalone `/vbw:qa` (no flag) | Standard |
+| Standalone `/yolo:qa` (no flag) | Standard |
 | >15 requirements or last phase before ship | Deep (override) |
 
 Precedence: explicit `--tier` > context overrides > effort-based > default.
@@ -61,7 +61,7 @@ Start from desired outcomes, derive testable conditions, verify against artifact
 
 ## 5. Convention Verification (VRFY-06)
 
-Active when `.vbw-planning/codebase/CONVENTIONS.md` exists. Silently skipped otherwise.
+Active when `.yolo-planning/codebase/CONVENTIONS.md` exists. Silently skipped otherwise.
 
 | Tier | Behavior |
 |------|----------|

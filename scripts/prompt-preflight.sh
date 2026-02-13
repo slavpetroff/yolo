@@ -1,27 +1,27 @@
 #!/bin/bash
 set -u
-# UserPromptSubmit: Pre-flight validation for VBW commands (non-blocking, exit 0)
+# UserPromptSubmit: Pre-flight validation for YOLO commands (non-blocking, exit 0)
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 [ -d "$PLANNING_DIR" ] || exit 0
 
 INPUT=$(cat)
 PROMPT=$(echo "$INPUT" | jq -r '.prompt // .content // ""' 2>/dev/null)
 [ -z "$PROMPT" ] && exit 0
 
-# GSD Isolation: manage .vbw-session marker
+# GSD Isolation: manage .yolo-session marker
 if [ -f "$PLANNING_DIR/.gsd-isolation" ]; then
-  if echo "$PROMPT" | grep -qi '^/vbw:'; then
-    echo "session" > "$PLANNING_DIR/.vbw-session"
+  if echo "$PROMPT" | grep -qi '^/yolo:'; then
+    echo "session" > "$PLANNING_DIR/.yolo-session"
   else
-    rm -f "$PLANNING_DIR/.vbw-session"
+    rm -f "$PLANNING_DIR/.yolo-session"
   fi
 fi
 
 WARNING=""
 
-# Check: /vbw:vibe --execute when no PLAN.md exists
-if echo "$PROMPT" | grep -q '/vbw:vibe.*--execute'; then
+# Check: /yolo:go --execute when no PLAN.md exists
+if echo "$PROMPT" | grep -q '/yolo:go.*--execute'; then
   CURRENT_PHASE=""
   if [ -f "$PLANNING_DIR/state.json" ] && command -v jq >/dev/null 2>&1; then
     CURRENT_PHASE=$(jq -r '.ph // ""' "$PLANNING_DIR/state.json" 2>/dev/null)
@@ -34,13 +34,13 @@ if echo "$PROMPT" | grep -q '/vbw:vibe.*--execute'; then
     PHASE_DIR="$PLANNING_DIR/phases/$CURRENT_PHASE"
     PLAN_COUNT=$(find "$PHASE_DIR" -name "*.plan.jsonl" -o -name "*-PLAN.md" 2>/dev/null | wc -l | tr -d ' ')
     if [ "$PLAN_COUNT" -eq 0 ]; then
-      WARNING="No plans for phase $CURRENT_PHASE. Run /vbw:vibe to plan first."
+      WARNING="No plans for phase $CURRENT_PHASE. Run /yolo:go to plan first."
     fi
   fi
 fi
 
-# Check: /vbw:vibe --archive with incomplete phases
-if echo "$PROMPT" | grep -q '/vbw:vibe.*--archive'; then
+# Check: /yolo:go --archive with incomplete phases
+if echo "$PROMPT" | grep -q '/yolo:go.*--archive'; then
   if [ -f "$PLANNING_DIR/STATE.md" ]; then
     INCOMPLETE=$(grep -c "status:.*incomplete\|status:.*in.progress\|status:.*pending" "$PLANNING_DIR/STATE.md" 2>/dev/null || echo 0)
     if [ "$INCOMPLETE" -gt 0 ]; then
@@ -52,7 +52,7 @@ fi
 if [ -n "$WARNING" ]; then
   jq -n --arg msg "$WARNING" '{
     "hookSpecificOutput": {
-      "additionalContext": ("VBW pre-flight warning: " + $msg)
+      "additionalContext": ("YOLO pre-flight warning: " + $msg)
     }
   }'
 fi

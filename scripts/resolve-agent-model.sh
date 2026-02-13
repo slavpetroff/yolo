@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# resolve-agent-model.sh - Model resolution for VBW agents
+# resolve-agent-model.sh - Model resolution for YOLO agents
 #
 # Reads model_profile from config.json, loads preset from model-profiles.json,
 # applies per-agent overrides, and returns the final model string.
 #
 # Usage: resolve-agent-model.sh <agent-name> <config-path> <profiles-path>
-#   agent-name: lead|dev|qa|qa-code|scout|debugger|architect|senior|security
-#   config-path: path to .vbw-planning/config.json
+#   agent-name: Any agent key present in model-profiles.json (e.g., lead, dev, fe-architect, ux-dev, owner)
+#   config-path: path to .yolo-planning/config.json
 #   profiles-path: path to config/model-profiles.json
 #
 # Returns: stdout = model string (opus|sonnet|haiku), exit 0
 # Errors: stderr = error message, exit 1
 #
 # Integration pattern (from command files):
-#   MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+#   MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
 #   if [ $? -ne 0 ]; then echo "Model resolution failed"; exit 1; fi
 #   # Pass to Task tool: model: "${MODEL}"
 
@@ -29,20 +29,9 @@ AGENT="$1"
 CONFIG_PATH="$2"
 PROFILES_PATH="$3"
 
-# Validate agent name
-case "$AGENT" in
-  lead|dev|qa|qa-code|scout|debugger|architect|senior|security)
-    # Valid agent
-    ;;
-  *)
-    echo "Invalid agent name '$AGENT'. Valid: lead, dev, qa, qa-code, scout, debugger, architect, senior, security" >&2
-    exit 1
-    ;;
-esac
-
 # Validate config file exists
 if [ ! -f "$CONFIG_PATH" ]; then
-  echo "Config not found at $CONFIG_PATH. Run /vbw:init first." >&2
+  echo "Config not found at $CONFIG_PATH. Run /yolo:init first." >&2
   exit 1
 fi
 
@@ -56,8 +45,15 @@ fi
 PROFILE=$(jq -r '.model_profile // "balanced"' "$CONFIG_PATH")
 
 # Validate profile exists in model-profiles.json
-if ! jq -e ".$PROFILE" "$PROFILES_PATH" >/dev/null 2>&1; then
+if ! jq -e --arg p "$PROFILE" '.[$p]' "$PROFILES_PATH" >/dev/null 2>&1; then
   echo "Invalid model_profile '$PROFILE'. Valid: quality, balanced, budget" >&2
+  exit 1
+fi
+
+# Dynamic agent validation: check if agent exists in the profile
+# model-profiles.json is the single source of truth for valid agent names
+if ! jq -e --arg p "$PROFILE" --arg a "$AGENT" '.[$p] | has($a)' "$PROFILES_PATH" >/dev/null 2>&1; then
+  echo "Unknown agent '$AGENT' for profile '$PROFILE'. Check model-profiles.json for valid agents." >&2
   exit 1
 fi
 

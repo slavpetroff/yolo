@@ -1,4 +1,4 @@
-# VBW Structured Handoff Schemas
+# YOLO Structured Handoff Schemas
 
 JSON-structured SendMessage schemas with `type` discriminator. Receivers: `JSON.parse` content; fall back to plain text on parse failure.
 
@@ -149,10 +149,10 @@ Plan-level verification results.
   "checks": { "passed": 18, "failed": 2, "total": 20 },
   "failures": [
     {
-      "check": "vbw-senior.md has Opus model",
+      "check": "yolo-senior.md has Opus model",
       "expected": "model: opus in frontmatter",
       "actual": "model: inherit found",
-      "evidence": "grep output from agents/vbw-senior.md"
+      "evidence": "grep output from agents/yolo-senior.md"
     }
   ],
   "artifact": "phases/01-company-hierarchy/verification.jsonl",

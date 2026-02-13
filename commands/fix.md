@@ -5,7 +5,7 @@ argument-hint: "<description of what to fix or change>"
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch
 ---
 
-# VBW Fix: $ARGUMENTS
+# YOLO Fix: $ARGUMENTS
 
 ## Context
 
@@ -14,14 +14,14 @@ Config: Pre-injected by SessionStart hook.
 
 ## Guard
 
-- Not initialized (no .vbw-planning/ dir): STOP "Run /vbw:init first."
-- No $ARGUMENTS: STOP "Usage: /vbw:fix \"description of what to fix\""
+- Not initialized (no .yolo-planning/ dir): STOP "Run /yolo:init first."
+- No $ARGUMENTS: STOP "Usage: /yolo:fix \"description of what to fix\""
 
 ## Steps
 
 1. **Parse:** Entire $ARGUMENTS (minus flags) = fix description.
-2. **Milestone:** If .vbw-planning/ACTIVE exists, use milestone-scoped STATE_PATH. Else .vbw-planning/STATE.md.
-3. **Spawn Dev:** Spawn vbw-dev as subagent via Task tool:
+2. **Milestone:** If .yolo-planning/ACTIVE exists, use milestone-scoped STATE_PATH. Else .yolo-planning/STATE.md.
+3. **Spawn Dev:** Spawn yolo-dev as subagent via Task tool:
 ```
 Quick fix (Turbo mode). Effort: low.
 Task: {fix description}.

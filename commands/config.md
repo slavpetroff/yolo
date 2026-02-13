@@ -1,23 +1,23 @@
 ---
 name: config
 disable-model-invocation: true
-description: View and modify VBW configuration including effort profile, verification tier, and skill-hook wiring.
+description: View and modify YOLO configuration including effort profile, verification tier, and skill-hook wiring.
 argument-hint: [setting value]
 allowed-tools: Read, Write, Edit, Bash, Glob
 ---
 
-# VBW Config $ARGUMENTS
+# YOLO Config $ARGUMENTS
 
 ## Context
 
 Config:
 ```
-!`cat .vbw-planning/config.json 2>/dev/null || echo "No config found -- run /vbw:init first"`
+!`cat .yolo-planning/config.json 2>/dev/null || echo "No config found -- run /yolo:init first"`
 ```
 
 ## Guard
 
-If no .vbw-planning/ dir: STOP "Run /vbw:init first." (check `.vbw-planning/config.json`)
+If no .yolo-planning/ dir: STOP "Run /yolo:init first." (check `.yolo-planning/config.json`)
 
 ## Behavior
 
@@ -27,17 +27,17 @@ If no .vbw-planning/ dir: STOP "Run /vbw:init first." (check `.vbw-planning/conf
 
 After the settings table, display Model Profile section:
 ```bash
-PROFILE=$(jq -r '.model_profile // "balanced"' .vbw-planning/config.json)
+PROFILE=$(jq -r '.model_profile // "balanced"' .yolo-planning/config.json)
 echo ""
 echo "Model Profile: $PROFILE"
 echo "Agent Models:"
 # Resolve each agent model
-LEAD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-DEV=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-QA=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-SCOUT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-DEBUGGER=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-ARCHITECT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+LEAD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+DEV=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+QA=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+SCOUT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+DEBUGGER=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+ARCHITECT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
 # Check for overrides and mark with asterisk
 LEAD_DISPLAY=$LEAD
 DEV_DISPLAY=$DEV
@@ -45,18 +45,18 @@ QA_DISPLAY=$QA
 SCOUT_DISPLAY=$SCOUT
 DEBUGGER_DISPLAY=$DEBUGGER
 ARCHITECT_DISPLAY=$ARCHITECT
-if [ "$(jq -r '.model_overrides.lead // ""' .vbw-planning/config.json)" != "" ]; then LEAD_DISPLAY="${LEAD}*"; fi
-if [ "$(jq -r '.model_overrides.dev // ""' .vbw-planning/config.json)" != "" ]; then DEV_DISPLAY="${DEV}*"; fi
-if [ "$(jq -r '.model_overrides.qa // ""' .vbw-planning/config.json)" != "" ]; then QA_DISPLAY="${QA}*"; fi
-if [ "$(jq -r '.model_overrides.scout // ""' .vbw-planning/config.json)" != "" ]; then SCOUT_DISPLAY="${SCOUT}*"; fi
-if [ "$(jq -r '.model_overrides.debugger // ""' .vbw-planning/config.json)" != "" ]; then DEBUGGER_DISPLAY="${DEBUGGER}*"; fi
-if [ "$(jq -r '.model_overrides.architect // ""' .vbw-planning/config.json)" != "" ]; then ARCHITECT_DISPLAY="${ARCHITECT}*"; fi
+if [ "$(jq -r '.model_overrides.lead // ""' .yolo-planning/config.json)" != "" ]; then LEAD_DISPLAY="${LEAD}*"; fi
+if [ "$(jq -r '.model_overrides.dev // ""' .yolo-planning/config.json)" != "" ]; then DEV_DISPLAY="${DEV}*"; fi
+if [ "$(jq -r '.model_overrides.qa // ""' .yolo-planning/config.json)" != "" ]; then QA_DISPLAY="${QA}*"; fi
+if [ "$(jq -r '.model_overrides.scout // ""' .yolo-planning/config.json)" != "" ]; then SCOUT_DISPLAY="${SCOUT}*"; fi
+if [ "$(jq -r '.model_overrides.debugger // ""' .yolo-planning/config.json)" != "" ]; then DEBUGGER_DISPLAY="${DEBUGGER}*"; fi
+if [ "$(jq -r '.model_overrides.architect // ""' .yolo-planning/config.json)" != "" ]; then ARCHITECT_DISPLAY="${ARCHITECT}*"; fi
 echo "  Lead: $LEAD_DISPLAY | Dev: $DEV_DISPLAY | QA: $QA_DISPLAY | Scout: $SCOUT_DISPLAY | Debugger: $DEBUGGER_DISPLAY | Architect: $ARCHITECT_DISPLAY"
 ```
 
 **Step 2:** AskUserQuestion with up to 5 commonly changed settings (mark current values):
 - Effort: thorough | balanced | fast | turbo
-- Autonomy: cautious | standard | confident | pure-vibe
+- Autonomy: cautious | standard | confident | pure-yolo
 - Verification: quick | standard | deep
 - Max tasks per plan: 3 | 5 | 7
 - Model Profile
@@ -75,16 +75,16 @@ Store selection in variable `PROFILE_METHOD`.
 
 Calculate OLD_COST before making changes (cost weights: opus=100, sonnet=20, haiku=2):
 ```bash
-CURRENT_PROFILE=$(jq -r '.model_profile // "balanced"' .vbw-planning/config.json)
+CURRENT_PROFILE=$(jq -r '.model_profile // "balanced"' .yolo-planning/config.json)
 PROFILES_PATH="${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json"
 
 # Get current models (before changes)
-LEAD_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-DEV_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-QA_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-SCOUT_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-DEBUGGER_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-ARCHITECT_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+LEAD_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+DEV_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+QA_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+SCOUT_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+DEBUGGER_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+ARCHITECT_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
 
 # Calculate cost based on model
 get_model_cost() {
@@ -101,10 +101,10 @@ OLD_COST=$(( $(get_model_cost "$LEAD_OLD") + $(get_model_cost "$DEV_OLD") + $(ge
 
 Get current models for Lead, Dev, QA, Scout:
 ```bash
-CURRENT_LEAD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-CURRENT_DEV=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-CURRENT_QA=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-CURRENT_SCOUT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+CURRENT_LEAD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+CURRENT_DEV=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+CURRENT_QA=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+CURRENT_SCOUT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
 ```
 
 AskUserQuestion with 4 questions:
@@ -119,8 +119,8 @@ Store selections in variables `LEAD_MODEL`, `DEV_MODEL`, `QA_MODEL`, `SCOUT_MODE
 
 Get current models for Debugger and Architect:
 ```bash
-CURRENT_DEBUGGER=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-CURRENT_ARCHITECT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+CURRENT_DEBUGGER=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+CURRENT_ARCHITECT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
 ```
 
 AskUserQuestion with 2 questions:
@@ -133,29 +133,29 @@ Store selections in variables `DEBUGGER_MODEL`, `ARCHITECT_MODEL`.
 
 Ensure model_overrides object exists:
 ```bash
-if ! jq -e '.model_overrides' .vbw-planning/config.json >/dev/null 2>&1; then
-  jq '.model_overrides = {}' .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+if ! jq -e '.model_overrides' .yolo-planning/config.json >/dev/null 2>&1; then
+  jq '.model_overrides = {}' .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
 fi
 ```
 
 Apply each agent override:
 ```bash
-jq ".model_overrides.lead = \"$LEAD_MODEL\"" .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+jq ".model_overrides.lead = \"$LEAD_MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
 echo "✓ Model override: lead ➜ $LEAD_MODEL"
 
-jq ".model_overrides.dev = \"$DEV_MODEL\"" .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+jq ".model_overrides.dev = \"$DEV_MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
 echo "✓ Model override: dev ➜ $DEV_MODEL"
 
-jq ".model_overrides.qa = \"$QA_MODEL\"" .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+jq ".model_overrides.qa = \"$QA_MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
 echo "✓ Model override: qa ➜ $QA_MODEL"
 
-jq ".model_overrides.scout = \"$SCOUT_MODEL\"" .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+jq ".model_overrides.scout = \"$SCOUT_MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
 echo "✓ Model override: scout ➜ $SCOUT_MODEL"
 
-jq ".model_overrides.debugger = \"$DEBUGGER_MODEL\"" .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+jq ".model_overrides.debugger = \"$DEBUGGER_MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
 echo "✓ Model override: debugger ➜ $DEBUGGER_MODEL"
 
-jq ".model_overrides.architect = \"$ARCHITECT_MODEL\"" .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+jq ".model_overrides.architect = \"$ARCHITECT_MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
 echo "✓ Model override: architect ➜ $ARCHITECT_MODEL"
 ```
 
@@ -189,7 +189,7 @@ fi
 
 **Step 4: Profile drift detection** — if effort/autonomy/verification_tier changed:
 - Compare against active profile's expected values
-- If mismatch: AskUserQuestion "Settings no longer match '{profile}'. Save as new profile?" → "Save" (route to /vbw:profile save) or "No" (set active_profile to "custom")
+- If mismatch: AskUserQuestion "Settings no longer match '{profile}'. Save as new profile?" → "Save" (route to /yolo:profile save) or "No" (set active_profile to "custom")
 - Skip if no profile-tracked settings changed or already "custom"
 
 Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh config` and display.
@@ -224,7 +224,7 @@ if ! jq -e ".$PROFILE" "$PROFILES_PATH" >/dev/null 2>&1; then
 fi
 
 # Get current profile
-OLD_PROFILE=$(jq -r '.model_profile // "balanced"' .vbw-planning/config.json)
+OLD_PROFILE=$(jq -r '.model_profile // "balanced"' .yolo-planning/config.json)
 
 # Calculate cost estimate
 # Cost weights: opus=100, sonnet=20, haiku=2
@@ -248,7 +248,7 @@ else
 fi
 
 # Update config.json
-jq ".model_profile = \"$PROFILE\"" .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+jq ".model_profile = \"$PROFILE\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
 
 echo "✓ Model profile ➜ $PROFILE"
 ```
@@ -284,16 +284,16 @@ case "$MODEL" in
 esac
 
 # Get current model for this agent
-OLD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh "$AGENT" .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+OLD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh "$AGENT" .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
 
 echo "Set $AGENT model override: $MODEL (was: $OLD_MODEL)"
 
 # Update config.json - ensure model_overrides object exists
-if ! jq -e '.model_overrides' .vbw-planning/config.json >/dev/null 2>&1; then
-  jq '.model_overrides = {}' .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+if ! jq -e '.model_overrides' .yolo-planning/config.json >/dev/null 2>&1; then
+  jq '.model_overrides = {}' .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
 fi
 
-jq ".model_overrides.$AGENT = \"$MODEL\"" .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+jq ".model_overrides.$AGENT = \"$MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
 
 echo "✓ Model override: $AGENT ➜ $MODEL"
 ```
@@ -303,7 +303,7 @@ echo "✓ Model override: $AGENT ➜ $MODEL"
 | Setting | Type | Values | Default |
 |---------|------|--------|---------|
 | effort | string | thorough/balanced/fast/turbo | balanced |
-| autonomy | string | cautious/standard/confident/pure-vibe | standard |
+| autonomy | string | cautious/standard/confident/pure-yolo | standard |
 | auto_commit | boolean | true/false | true |
 | verification_tier | string | quick/standard/deep | standard |
 | skill_suggestions | boolean | true/false | true |
@@ -319,4 +319,4 @@ echo "✓ Model override: $AGENT ➜ $MODEL"
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — single-line box, ✓ success, ⚠ invalid, ➜ transitions, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — single-line box, ✓ success, ⚠ invalid, ➜ transitions, no ANSI.

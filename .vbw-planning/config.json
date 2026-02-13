@@ -1,0 +1,15 @@
+{
+  "effort": "balanced",
+  "autonomy": "standard",
+  "auto_commit": true,
+  "verification_tier": "standard",
+  "agent_teams": false,
+  "max_tasks_per_plan": 5,
+  "context_compiler": true,
+  "security_audit": false,
+  "model_profile": "balanced",
+  "approval_gates": {
+    "qa_fail": false,
+    "security_warn": false
+  }
+}

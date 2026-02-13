@@ -13,13 +13,13 @@ INPUT=$(cat 2>/dev/null) || exit 0
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null) || exit 0
 [ -z "$TOOL_NAME" ] && exit 0
 
-# Find config.json in .vbw-planning/ relative to project root
-# Walk up from $PWD looking for .vbw-planning/config.json
+# Find config.json in .yolo-planning/ relative to project root
+# Walk up from $PWD looking for .yolo-planning/config.json
 find_config() {
   local dir="$PWD"
   while [ "$dir" != "/" ]; do
-    if [ -f "$dir/.vbw-planning/config.json" ]; then
-      echo "$dir/.vbw-planning/config.json"
+    if [ -f "$dir/.yolo-planning/config.json" ]; then
+      echo "$dir/.yolo-planning/config.json"
       return 0
     fi
     dir=$(dirname "$dir")
@@ -49,7 +49,7 @@ for SKILL_NAME in $(echo "$SKILL_HOOKS" | jq -r 'keys[]' 2>/dev/null); do
   fi
 
   # Find and invoke the skill's hook script from plugin cache (latest version)
-  SCRIPT=$(ls -1 "$HOME"/.claude/plugins/cache/vbw-marketplace/vbw/*/scripts/"${SKILL_NAME}-hook.sh" 2>/dev/null | sort -V | tail -1)
+  SCRIPT=$(ls -1 "$HOME"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/"${SKILL_NAME}-hook.sh" 2>/dev/null | sort -V | tail -1)
   if [ -f "$SCRIPT" ]; then
     echo "$INPUT" | bash "$SCRIPT" 2>/dev/null || true
   fi

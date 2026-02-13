@@ -1,6 +1,6 @@
 # Discovery Protocol (DISC-01)
 
-Intelligent questioning system that helps users define what they want to build. Runs during `/vbw:vibe` at bootstrap and before each phase. Questions are non-developer friendly, scenario-based, and profile-gated.
+Intelligent questioning system that helps users define what they want to build. Runs during `/yolo:go` at bootstrap and before each phase. Questions are non-developer friendly, scenario-based, and profile-gated.
 
 ## Profile Depth Mapping
 
@@ -27,18 +27,18 @@ Flow:
 2. Generate scenario questions first (Round 1)
 3. Based on answers, generate targeted checklist questions (Round 2)
 4. Synthesize all answers into REQUIREMENTS.md
-5. Store answered questions in `.vbw-planning/discovery.json`
+5. Store answered questions in `.yolo-planning/discovery.json`
 
 ### Phase Discovery (implement States 3-4, before planning)
 
-Lighter round scoped to the specific phase about to be planned. Skipped if phase already has a CONTEXT.md from `/vbw:vibe --discuss`.
+Lighter round scoped to the specific phase about to be planned. Skipped if phase already has a CONTEXT.md from `/yolo:go --discuss`.
 
 **Input:** Phase goal, requirements, and success criteria from ROADMAP.md
 **Output:** Phase context injected into Lead agent prompt
 
 Flow:
 1. Read phase scope from ROADMAP.md
-2. Check `.vbw-planning/discovery.json` — skip questions already answered
+2. Check `.yolo-planning/discovery.json` — skip questions already answered
 3. Generate 1-3 phase-scoped questions (fewer than bootstrap)
 4. Store answers, pass as context to planning step
 
@@ -111,7 +111,7 @@ Use these to ensure coverage. Not every category applies to every project — se
 
 ## Per-Project Memory
 
-Store in `.vbw-planning/discovery.json`:
+Store in `.yolo-planning/discovery.json`:
 
 ```json
 {
@@ -156,4 +156,4 @@ When `false`, implement proceeds directly to requirements gathering (bootstrap) 
 | vibe plan mode | Phase | Before planning, after phase auto-detection |
 | vibe --discuss | N/A | Explicit discuss mode, not gated by discovery_questions |
 
-`/vbw:vibe --discuss` remains independent — it's a manual deep-dive the user triggers explicitly. Discovery is the automatic layer.
+`/yolo:go --discuss` remains independent — it's a manual deep-dive the user triggers explicitly. Discovery is the automatic layer.

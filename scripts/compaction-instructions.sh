@@ -39,7 +39,7 @@ else
 fi
 
 # Write compaction marker for Dev re-read guard (REQ-14)
-date +%s > .vbw-planning/.compaction-marker 2>/dev/null || true
+date +%s > .yolo-planning/.compaction-marker 2>/dev/null || true
 
 jq -n --arg ctx "$PRIORITIES" '{
   "hookSpecificOutput": {

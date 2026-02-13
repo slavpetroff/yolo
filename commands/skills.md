@@ -6,7 +6,7 @@ argument-hint: [--search <query>] [--list] [--refresh]
 allowed-tools: Read, Bash, Glob, Grep, WebFetch
 ---
 
-# VBW Skills $ARGUMENTS
+# YOLO Skills $ARGUMENTS
 
 ## Context
 
@@ -58,4 +58,4 @@ Combine curated + registry, deduplicate, rank (curated first). AskUserQuestion m
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — single-line box, ✓ installed, ○ suggested, ✗ failed, ⚠ warning, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — single-line box, ✓ installed, ○ suggested, ✗ failed, ⚠ warning, no ANSI.

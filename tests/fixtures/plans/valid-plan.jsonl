@@ -1,0 +1,4 @@
+{"p":"01","n":"01-01","g":"Setup project","fm":["src/foo.ts","src/bar.ts","config/app.json"],"tc":3}
+{"id":"T1","a":"dev","f":["src/foo.ts"],"spec":"Create foo module","done":""}
+{"id":"T2","a":"dev","f":["src/bar.ts"],"spec":"Create bar module","done":""}
+{"id":"T3","a":"dev","f":["config/app.json"],"spec":"Add config file","done":""}

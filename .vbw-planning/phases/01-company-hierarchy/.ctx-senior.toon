@@ -1,0 +1,26 @@
+phase: 01
+goal: Establish company-grade agent hierarchy with Senior Engineer, QA Code Engineer, Security Engineer agents. Wire Architect into Scope. Implement 8-step workflow in execute-protocol. Update compile-context.sh for all new roles. Define JSONL handoff schemas.
+
+
+reqs:
+  ### REQ-03: 6 specialized agents (Lead, Dev, QA, Scout, Debugger, Architect)
+  ### REQ-08: Context compilation with role-specific routing
+
+patterns: @.yolo-planning/codebase/PATTERNS.md
+
+conventions[15]{tag,rule}:
+  file-structure,Commands are kebab-case .md files in commands/
+  naming,Agents named yolo-{role}.md in agents/
+  naming,Scripts are kebab-case .sh files in scripts/
+  naming,Phase directories follow {NN}-{slug}/ pattern
+  naming,Plan files named {NN-MM}.plan.jsonl, summaries {NN-MM}.summary.jsonl
+  style,Commits follow {type}({scope}): {desc} format, one commit per task
+  style,Stage files individually with git add, never git add . or git add -A
+  style,Shell scripts use set -u minimum, set -euo pipefail for critical scripts
+  tooling,Use jq for all JSON parsing, never grep/sed on JSON
+  style,YAML frontmatter description must be single-line (multi-line breaks discovery)
+  style,No prettier-ignore comment before YAML frontmatter, use .prettierignore instead
+  patterns,All hooks route through hook-wrapper.sh for graceful degradation (DXP-01)
+  patterns,Zero-dependency design: no package.json, npm, or build step
+  tooling,All scripts target bash, not POSIX sh
+  patterns,Plugin cache resolution via ls | sort -V | tail -1, never glob expansion

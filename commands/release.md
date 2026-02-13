@@ -6,7 +6,7 @@ argument-hint: "[--dry-run] [--no-push] [--major] [--minor] [--skip-audit]"
 allowed-tools: Read, Edit, Bash, Glob, Grep
 ---
 
-# VBW Release $ARGUMENTS
+# YOLO Release $ARGUMENTS
 
 ## Context
 
@@ -19,7 +19,7 @@ Git status:
 
 ## Guard
 
-1. **Not a VBW repo:** No VERSION file → STOP: "No VERSION file found. Must run from VBW plugin root."
+1. **Not a YOLO repo:** No VERSION file → STOP: "No VERSION file found. Must run from YOLO plugin root."
 2. **Dirty tree:** If `git status --porcelain` shows uncommitted changes (excluding .claude/ and CLAUDE.md), WARN + confirm: "Uncommitted changes detected. They will NOT be in the release commit. Continue?"
 3. **No [Unreleased]:** If CHANGELOG.md lacks `## [Unreleased]`, WARN + confirm: "No [Unreleased] section. Release commit will only bump versions. Continue?"
 4. **Version sync:** `bash scripts/bump-version.sh --verify`. Out of sync → WARN but proceed (bump fixes it).
@@ -93,4 +93,4 @@ Display task-level box with: version old→new, audit result, changelog status, 
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — task-level box (single-line), semantic symbols, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — task-level box (single-line), semantic symbols, no ANSI.

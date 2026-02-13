@@ -6,11 +6,11 @@ Company-level agents dispatched across departments. Read by Owner, Critic, Scout
 
 | Agent | Role | Model | Tools | Produces | Token Budget | Dispatch |
 |-------|------|-------|-------|----------|-------------|----------|
-| vbw-owner | Project Owner | Opus | Read,Glob,Grep (read-only) | owner_review, owner_signoff | 3000 | Phase start + end |
-| vbw-critic | Brainstorm / Gap Analyst | Opus | Read,Glob,Grep,WebSearch,WebFetch | critique.jsonl | 4000 | Per department |
-| vbw-scout | Research Analyst | Haiku | Read,Glob,Grep,WebSearch,WebFetch | research.jsonl | 1000 | On demand |
-| vbw-debugger | Incident Responder | Sonnet | All | debug-report.jsonl | 3000 | On incident |
-| vbw-security | Security Engineer | Sonnet | Read,Glob,Grep,Bash | security-audit.jsonl | 3000 | Per department |
+| yolo-owner | Project Owner | Opus | Read,Glob,Grep (read-only) | owner_review, owner_signoff | 3000 | Phase start + end |
+| yolo-critic | Brainstorm / Gap Analyst | Opus | Read,Glob,Grep,WebSearch,WebFetch | critique.jsonl | 4000 | Per department |
+| yolo-scout | Research Analyst | Haiku | Read,Glob,Grep,WebSearch,WebFetch | research.jsonl | 1000 | On demand |
+| yolo-debugger | Incident Responder | Sonnet | All | debug-report.jsonl | 3000 | On incident |
+| yolo-security | Security Engineer | Sonnet | Read,Glob,Grep,Bash | security-audit.jsonl | 3000 | Per department |
 
 Models shown are quality profile defaults. Actual models resolved via `resolve-agent-model.sh` from `config/model-profiles.json`.
 

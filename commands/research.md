@@ -5,7 +5,7 @@ argument-hint: <research-topic> [--parallel]
 allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch
 ---
 
-# VBW Research: $ARGUMENTS
+# YOLO Research: $ARGUMENTS
 
 ## Context
 
@@ -13,12 +13,12 @@ Working directory: `!`pwd``
 
 Current project:
 ```
-!`cat .vbw-planning/PROJECT.md 2>/dev/null || echo "No project found"`
+!`cat .yolo-planning/PROJECT.md 2>/dev/null || echo "No project found"`
 ```
 
 ## Guard
 
-- No $ARGUMENTS: STOP "Usage: /vbw:research <topic> [--parallel]"
+- No $ARGUMENTS: STOP "Usage: /yolo:research <topic> [--parallel]"
 
 ## Steps
 
@@ -27,11 +27,11 @@ Current project:
 3. **Spawn Scout:**
    - Resolve Scout model:
      ```bash
-     SCOUT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+     SCOUT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
      if [ $? -ne 0 ]; then echo "$SCOUT_MODEL" >&2; exit 1; fi
      ```
    - Display: `◆ Spawning Scout (${SCOUT_MODEL})...`
-   - Spawn vbw-scout as subagent(s) via Task tool. **Add `model: "${SCOUT_MODEL}"` parameter.**
+   - Spawn yolo-scout as subagent(s) via Task tool. **Add `model: "${SCOUT_MODEL}"` parameter.**
 ```
 Research: {topic or sub-topic}.
 Project context: {tech stack, constraints from PROJECT.md if relevant}.
@@ -43,14 +43,14 @@ Return structured findings.
    ```json
    {"q":"topic","src":"web","finding":"key finding text","conf":"high","dt":"YYYY-MM-DD","rel":"why relevant"}
    ```
-   Write to `.vbw-planning/phases/{phase-dir}/research.jsonl` (if active phase) or `.vbw-planning/research.jsonl` (global).
+   Write to `.yolo-planning/phases/{phase-dir}/research.jsonl` (if active phase) or `.yolo-planning/research.jsonl` (global).
    Use `jq -cn` to produce each line. Append if file exists.
 ```
 ➜ Next Up
-  /vbw:vibe --plan {N} -- Plan using research findings
-  /vbw:vibe --discuss {N} -- Discuss phase approach
+  /yolo:go --plan {N} -- Plan using research findings
+  /yolo:go --discuss {N} -- Discuss phase approach
 ```
 
 ## Output Format
 
-Per @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md: single-line box for findings, ✓ high / ○ medium / ⚠ low confidence, Next Up Block, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md: single-line box for findings, ✓ high / ○ medium / ⚠ low confidence, Next Up Block, no ANSI.

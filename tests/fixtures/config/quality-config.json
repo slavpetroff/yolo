@@ -1,0 +1,24 @@
+{
+  "effort": "thorough",
+  "autonomy": "standard",
+  "auto_commit": true,
+  "verification_tier": "thorough",
+  "agent_teams": true,
+  "max_tasks_per_plan": 8,
+  "context_compiler": true,
+  "security_audit": true,
+  "model_profile": "quality",
+  "approval_gates": {
+    "qa_fail": true,
+    "security_warn": true,
+    "code_review": true,
+    "manual_qa": true
+  },
+  "departments": {
+    "backend": true,
+    "frontend": true,
+    "uiux": true
+  },
+  "department_workflow": "parallel",
+  "cross_team_handoff": true
+}

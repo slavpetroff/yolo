@@ -1,17 +1,17 @@
 #!/bin/bash
 set -u
-# SessionStart: VBW project state detection, update checks, cache maintenance (exit 0)
+# SessionStart: YOLO project state detection, update checks, cache maintenance (exit 0)
 
 # --- Dependency check ---
 if ! command -v jq &>/dev/null; then
-  echo '{"hookSpecificOutput":{"additionalContext":"VBW: jq not found. Install: brew install jq (macOS) / apt install jq (Linux). All 17 VBW quality gates are disabled until jq is installed -- no commit validation, no security filtering, no file guarding."}}'
+  echo '{"hookSpecificOutput":{"additionalContext":"YOLO: jq not found. Install: brew install jq (macOS) / apt install jq (Linux). All 17 YOLO quality gates are disabled until jq is installed -- no commit validation, no security filtering, no file guarding."}}'
   exit 0
 fi
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 
-# Auto-migrate config if .vbw-planning exists
+# Auto-migrate config if .yolo-planning exists
 if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ]; then
   if ! jq -e '.model_profile' "$PLANNING_DIR/config.json" >/dev/null 2>&1; then
     TMP=$(mktemp)
@@ -25,17 +25,17 @@ rm -f "$PLANNING_DIR/.compaction-marker" 2>/dev/null
 UPDATE_MSG=""
 
 # --- First-run welcome (DXP-03) ---
-VBW_MARKER="$CLAUDE_DIR/.vbw-welcomed"
+YOLO_MARKER="$CLAUDE_DIR/.yolo-welcomed"
 WELCOME_MSG=""
-if [ ! -f "$VBW_MARKER" ]; then
+if [ ! -f "$YOLO_MARKER" ]; then
   mkdir -p "$CLAUDE_DIR" 2>/dev/null
-  touch "$VBW_MARKER" 2>/dev/null
-  WELCOME_MSG="FIRST RUN -- Display this welcome to the user verbatim: Welcome to VBW -- Vibe Better with Claude Code. You're not an engineer anymore. You're a prompt jockey with commit access. At least do it properly. Quick start: /vbw:vibe -- describe your project and VBW handles the rest. Type /vbw:help for the full story. --- "
+  touch "$YOLO_MARKER" 2>/dev/null
+  WELCOME_MSG="FIRST RUN -- Display this welcome to the user verbatim: Welcome to YOLO -- YOLO — Your Own Local Orchestrator. You're not an engineer anymore. You're a prompt jockey with commit access. At least do it properly. Quick start: /yolo:go -- describe your project and YOLO handles the rest. Type /yolo:help for the full story. --- "
 fi
 
 # --- Update check (once per day, fail-silent) ---
 
-CACHE="/tmp/vbw-update-check-$(id -u)"
+CACHE="/tmp/yolo-update-check-$(id -u)"
 NOW=$(date +%s)
 if [ "$(uname)" = "Darwin" ]; then
   MT=$(stat -f %m "$CACHE" 2>/dev/null || echo 0)
@@ -50,21 +50,21 @@ if [ ! -f "$CACHE" ] || [ $((NOW - MT)) -gt 86400 ]; then
 
   # Fetch latest version from GitHub (3s timeout)
   REMOTE_VER=$(curl -sf --max-time 3 \
-    "https://raw.githubusercontent.com/yidakee/vibe-better-with-claude-code-vbw/main/.claude-plugin/plugin.json" \
+    "https://raw.githubusercontent.com/slavpetroff/yolo/main/.claude-plugin/plugin.json" \
     2>/dev/null | jq -r '.version // "0.0.0"' 2>/dev/null)
 
   # Cache the result regardless
   echo "${LOCAL_VER:-0.0.0}|${REMOTE_VER:-0.0.0}" > "$CACHE" 2>/dev/null
 
   if [ -n "$REMOTE_VER" ] && [ "$REMOTE_VER" != "0.0.0" ] && [ "$REMOTE_VER" != "$LOCAL_VER" ]; then
-    UPDATE_MSG=" UPDATE AVAILABLE: v${LOCAL_VER} -> v${REMOTE_VER}. Run /vbw:update to upgrade."
+    UPDATE_MSG=" UPDATE AVAILABLE: v${LOCAL_VER} -> v${REMOTE_VER}. Run /yolo:update to upgrade."
   fi
 else
   # Read cached result
   LOCAL_VER="" REMOTE_VER=""
   IFS='|' read -r LOCAL_VER REMOTE_VER < "$CACHE" 2>/dev/null || true
   if [ -n "${REMOTE_VER:-}" ] && [ "${REMOTE_VER:-}" != "0.0.0" ] && [ "${REMOTE_VER:-}" != "${LOCAL_VER:-}" ]; then
-    UPDATE_MSG=" UPDATE AVAILABLE: v${LOCAL_VER:-0.0.0} -> v${REMOTE_VER:-0.0.0}. Run /vbw:update to upgrade."
+    UPDATE_MSG=" UPDATE AVAILABLE: v${LOCAL_VER:-0.0.0} -> v${REMOTE_VER:-0.0.0}. Run /yolo:update to upgrade."
   fi
 fi
 
@@ -72,8 +72,8 @@ fi
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 if [ -f "$SETTINGS_FILE" ]; then
   SL_CMD=$(jq -r '.statusLine.command // .statusLine // ""' "$SETTINGS_FILE" 2>/dev/null)
-  if echo "$SL_CMD" | grep -q 'for f in' && echo "$SL_CMD" | grep -q 'vbw-statusline'; then
-    CORRECT_CMD="bash -c 'f=\$(ls -1 \"\${CLAUDE_CONFIG_DIR:-\$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/vbw-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"\$f\" ] && exec bash \"\$f\"'"
+  if echo "$SL_CMD" | grep -q 'for f in' && echo "$SL_CMD" | grep -q 'yolo-statusline'; then
+    CORRECT_CMD="bash -c 'f=\$(ls -1 \"\${CLAUDE_CONFIG_DIR:-\$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/yolo-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"\$f\" ] && exec bash \"\$f\"'"
     cp "$SETTINGS_FILE" "${SETTINGS_FILE}.bak"
     if ! jq --arg cmd "$CORRECT_CMD" '.statusLine = {"type": "command", "command": $cmd}' "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp"; then
       cp "${SETTINGS_FILE}.bak" "$SETTINGS_FILE"
@@ -86,15 +86,15 @@ if [ -f "$SETTINGS_FILE" ]; then
 fi
 
 # --- Clean old cache versions (keep only latest) ---
-CACHE_DIR="$CLAUDE_DIR/plugins/cache/vbw-marketplace/vbw"
-VBW_CLEANUP_LOCK="/tmp/vbw-cache-cleanup-lock"
-if [ -d "$CACHE_DIR" ] && mkdir "$VBW_CLEANUP_LOCK" 2>/dev/null; then
+CACHE_DIR="$CLAUDE_DIR/plugins/cache/yolo-marketplace/yolo"
+YOLO_CLEANUP_LOCK="/tmp/yolo-cache-cleanup-lock"
+if [ -d "$CACHE_DIR" ] && mkdir "$YOLO_CLEANUP_LOCK" 2>/dev/null; then
   VERSIONS=$(ls -d "$CACHE_DIR"/*/ 2>/dev/null | sort -V)
   COUNT=$(echo "$VERSIONS" | wc -l | tr -d ' ')
   if [ "$COUNT" -gt 1 ]; then
     echo "$VERSIONS" | head -n $((COUNT - 1)) | while IFS= read -r dir; do rm -rf "$dir"; done
   fi
-  rmdir "$VBW_CLEANUP_LOCK" 2>/dev/null
+  rmdir "$YOLO_CLEANUP_LOCK" 2>/dev/null
 fi
 
 # --- Cache integrity check (nuke if critical files missing) ---
@@ -109,14 +109,14 @@ if [ -d "$CACHE_DIR" ]; then
       fi
     done
     if [ "$INTEGRITY_OK" = false ]; then
-      echo "VBW cache integrity check failed — nuking stale cache" >&2
+      echo "YOLO cache integrity check failed — nuking stale cache" >&2
       rm -rf "$CACHE_DIR"
     fi
   fi
 fi
 
 # --- Auto-sync stale marketplace checkout ---
-MKT_DIR="$CLAUDE_DIR/plugins/marketplaces/vbw-marketplace"
+MKT_DIR="$CLAUDE_DIR/plugins/marketplaces/yolo-marketplace"
 if [ -d "$MKT_DIR/.git" ] && [ -d "$CACHE_DIR" ]; then
   MKT_VER=$(jq -r '.version // "0"' "$MKT_DIR/.claude-plugin/plugin.json" 2>/dev/null)
   CACHE_VER=$(jq -r '.version // "0"' "$(ls -d "$CACHE_DIR"/*/.claude-plugin/plugin.json 2>/dev/null | sort -V | tail -1)" 2>/dev/null)
@@ -125,7 +125,7 @@ if [ -d "$MKT_DIR/.git" ] && [ -d "$CACHE_DIR" ]; then
       if git diff --quiet 2>/dev/null; then
         git reset --hard origin/main --quiet 2>/dev/null
       else
-        echo "VBW: marketplace checkout has local modifications — skipping reset" >&2
+        echo "YOLO: marketplace checkout has local modifications — skipping reset" >&2
       fi) &
   fi
   # Content staleness: compare command counts
@@ -135,20 +135,20 @@ if [ -d "$MKT_DIR/.git" ] && [ -d "$CACHE_DIR" ]; then
       MKT_CMD_COUNT=$(ls "$MKT_DIR/commands/"*.md 2>/dev/null | wc -l | tr -d ' ')
       CACHE_CMD_COUNT=$(ls "${LATEST_VER}commands/"*.md 2>/dev/null | wc -l | tr -d ' ')
       if [ "${MKT_CMD_COUNT:-0}" -ne "${CACHE_CMD_COUNT:-0}" ]; then
-        echo "VBW cache stale — marketplace has ${MKT_CMD_COUNT} commands, cache has ${CACHE_CMD_COUNT}" >&2
+        echo "YOLO cache stale — marketplace has ${MKT_CMD_COUNT} commands, cache has ${CACHE_CMD_COUNT}" >&2
         rm -rf "$CACHE_DIR"
       fi
     fi
   fi
 fi
 
-# --- Sync commands to CLAUDE_DIR/commands/vbw/ for autocomplete prefix ---
-VBW_CACHE_CMD=$(ls -d "$CLAUDE_DIR"/plugins/cache/vbw-marketplace/vbw/*/commands 2>/dev/null | sort -V | tail -1)
-VBW_GLOBAL_CMD="$CLAUDE_DIR/commands/vbw"
-if [ -d "$VBW_CACHE_CMD" ]; then
-  mkdir -p "$VBW_GLOBAL_CMD"
-  rm -f "$VBW_GLOBAL_CMD"/*.md 2>/dev/null
-  cp "$VBW_CACHE_CMD"/*.md "$VBW_GLOBAL_CMD/" 2>/dev/null
+# --- Sync commands to CLAUDE_DIR/commands/yolo/ for autocomplete prefix ---
+YOLO_CACHE_CMD=$(ls -d "$CLAUDE_DIR"/plugins/cache/yolo-marketplace/yolo/*/commands 2>/dev/null | sort -V | tail -1)
+YOLO_GLOBAL_CMD="$CLAUDE_DIR/commands/yolo"
+if [ -d "$YOLO_CACHE_CMD" ]; then
+  mkdir -p "$YOLO_GLOBAL_CMD"
+  rm -f "$YOLO_GLOBAL_CMD"/*.md 2>/dev/null
+  cp "$YOLO_CACHE_CMD"/*.md "$YOLO_GLOBAL_CMD/" 2>/dev/null
 fi
 
 # --- Auto-install git hooks if missing ---
@@ -162,17 +162,15 @@ EXEC_STATE="$PLANNING_DIR/.execution-state.json"
 if [ -f "$EXEC_STATE" ]; then
   EXEC_STATUS=$(jq -r '.status // ""' "$EXEC_STATE" 2>/dev/null)
   if [ "$EXEC_STATUS" = "running" ]; then
-    PHASE_NAME=$(jq -r '.phase_name // ""' "$EXEC_STATE" 2>/dev/null)
-    PHASE_NUM=$(jq -r '.phase // ""' "$EXEC_STATE" 2>/dev/null)
-    EXEC_STEP=$(jq -r '.step // ""' "$EXEC_STATE" 2>/dev/null)
-    EXEC_TASK=$(jq -r '.current_task // ""' "$EXEC_STATE" 2>/dev/null)
+    IFS='|' read -r PHASE_NAME PHASE_NUM EXEC_STEP EXEC_TASK <<< \
+      "$(jq -r '[(.phase_name // ""), (.phase // ""), (.step // ""), (.current_task // "")] | join("|")' "$EXEC_STATE" 2>/dev/null)"
     PHASE_DIR=""
     if [ -n "$PHASE_NUM" ]; then
       PHASE_DIR=$(ls -d "$PLANNING_DIR/phases/${PHASE_NUM}-"* 2>/dev/null | head -1)
     fi
     if [ -n "$PHASE_DIR" ] && [ -d "$PHASE_DIR" ]; then
       PLAN_COUNT=$(jq -r '.plans | length' "$EXEC_STATE" 2>/dev/null)
-      SUMMARY_COUNT=$(ls "$PHASE_DIR"/*.summary.jsonl "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+      SUMMARY_COUNT=$(find "$PHASE_DIR" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
       if [ "${SUMMARY_COUNT:-0}" -ge "${PLAN_COUNT:-1}" ] && [ "${PLAN_COUNT:-0}" -gt 0 ]; then
         # All plans have summaries — build finished after crash
         jq '.status = "complete"' "$EXEC_STATE" > "$PLANNING_DIR/.execution-state.json.tmp" && mv "$PLANNING_DIR/.execution-state.json.tmp" "$EXEC_STATE"
@@ -204,7 +202,7 @@ fi
 if [ ! -d "$PLANNING_DIR" ]; then
   jq -n --arg update "$UPDATE_MSG" --arg welcome "$WELCOME_MSG" '{
     "hookSpecificOutput": {
-      "additionalContext": ($welcome + "No .vbw-planning/ directory found. Run /vbw:init to set up the project." + $update)
+      "additionalContext": ($welcome + "No .yolo-planning/ directory found. Run /yolo:init to set up the project." + $update)
     }
   }'
   exit 0
@@ -237,12 +235,16 @@ config_verification="standard"
 config_agent_teams="true"
 config_max_tasks="5"
 if [ -f "$CONFIG_FILE" ]; then
-  config_effort=$(jq -r '.effort // "balanced"' "$CONFIG_FILE" 2>/dev/null)
-  config_autonomy=$(jq -r '.autonomy // "standard"' "$CONFIG_FILE" 2>/dev/null)
-  config_auto_commit=$(jq -r '.auto_commit // true' "$CONFIG_FILE" 2>/dev/null)
-  config_verification=$(jq -r '.verification_tier // "standard"' "$CONFIG_FILE" 2>/dev/null)
-  config_agent_teams=$(jq -r '.agent_teams // true' "$CONFIG_FILE" 2>/dev/null)
-  config_max_tasks=$(jq -r '.max_tasks_per_plan // 5' "$CONFIG_FILE" 2>/dev/null)
+  IFS='|' read -r config_effort config_autonomy config_auto_commit config_verification \
+    config_agent_teams config_max_tasks <<< \
+    "$(jq -r '[
+      (.effort // "balanced"),
+      (.autonomy // "standard"),
+      (.auto_commit // true | tostring),
+      (.verification_tier // "standard"),
+      (.agent_teams // true | tostring),
+      (.max_tasks_per_plan // 5 | tostring)
+    ] | join("|")' "$CONFIG_FILE" 2>/dev/null)"
 fi
 
 # --- Parse state.json (preferred) or STATE.md (fallback) ---
@@ -254,10 +256,8 @@ phase_name="unknown"
 phase_status="unknown"
 progress_pct="0"
 if [ -f "$STATE_JSON" ] && command -v jq >/dev/null 2>&1; then
-  phase_pos=$(jq -r '.ph // "unknown"' "$STATE_JSON" 2>/dev/null)
-  phase_total=$(jq -r '.tt // "unknown"' "$STATE_JSON" 2>/dev/null)
-  phase_status=$(jq -r '.st // "unknown"' "$STATE_JSON" 2>/dev/null)
-  progress_pct=$(jq -r '.pr // 0' "$STATE_JSON" 2>/dev/null)
+  IFS='|' read -r phase_pos phase_total phase_status progress_pct <<< \
+    "$(jq -r '[(.ph // "unknown"), (.tt // "unknown"), (.st // "unknown"), (.pr // 0 | tostring)] | join("|")' "$STATE_JSON" 2>/dev/null)"
   # Derive phase name from directory
   if [ -n "$phase_pos" ] && [ "$phase_pos" != "unknown" ]; then
     phase_dir_match=$(ls -d "$PLANNING_DIR/phases/$(printf '%02d' "$phase_pos")-"* 2>/dev/null | head -1)
@@ -285,9 +285,9 @@ fi
 # --- Determine next action ---
 NEXT_ACTION=""
 if [ ! -f "$PLANNING_DIR/PROJECT.md" ]; then
-  NEXT_ACTION="/vbw:init"
+  NEXT_ACTION="/yolo:init"
 elif [ ! -d "$PHASES_DIR" ] || [ -z "$(ls -d "$PHASES_DIR"/*/ 2>/dev/null)" ]; then
-  NEXT_ACTION="/vbw:vibe (needs scoping)"
+  NEXT_ACTION="/yolo:go (needs scoping)"
 else
   # Check execution state for interrupted builds
   EXEC_STATE="$PLANNING_DIR/.execution-state.json"
@@ -304,37 +304,37 @@ else
   done
 
   if [ "$exec_running" = true ]; then
-    NEXT_ACTION="/vbw:vibe (build interrupted, will resume)"
+    NEXT_ACTION="/yolo:go (build interrupted, will resume)"
   else
     # Find next phase needing work
     all_done=true
     next_phase=""
     for pdir in $(ls -d "$PHASES_DIR"/*/ 2>/dev/null | sort); do
       pname=$(basename "$pdir")
-      plan_count=$(ls "$pdir"/*.plan.jsonl "$pdir"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-      summary_count=$(ls "$pdir"/*.summary.jsonl "$pdir"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+      plan_count=$(find "$pdir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
+      summary_count=$(find "$pdir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
       if [ "${plan_count:-0}" -eq 0 ]; then
         # Phase has no plans yet — needs planning
         pnum=$(echo "$pname" | sed 's/-.*//')
-        NEXT_ACTION="/vbw:vibe (Phase $pnum needs planning)"
+        NEXT_ACTION="/yolo:go (Phase $pnum needs planning)"
         all_done=false
         break
       elif [ "${summary_count:-0}" -lt "${plan_count:-0}" ]; then
         # Phase has plans but not all executed
         pnum=$(echo "$pname" | sed 's/-.*//')
-        NEXT_ACTION="/vbw:vibe (Phase $pnum planned, needs execution)"
+        NEXT_ACTION="/yolo:go (Phase $pnum planned, needs execution)"
         all_done=false
         break
       fi
     done
     if [ "$all_done" = true ]; then
-      NEXT_ACTION="/vbw:vibe --archive"
+      NEXT_ACTION="/yolo:go --archive"
     fi
   fi
 fi
 
 # --- Build additionalContext ---
-CTX="VBW project detected."
+CTX="YOLO project detected."
 CTX="$CTX Milestone: ${MILESTONE_SLUG}."
 CTX="$CTX Phase: ${phase_pos}/${phase_total} (${phase_name}) -- ${phase_status}."
 CTX="$CTX Progress: ${progress_pct}%."

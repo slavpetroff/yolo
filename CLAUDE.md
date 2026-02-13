@@ -1,4 +1,4 @@
-# VBW — Vibe Better with Claude Code
+# YOLO — Your Own Local Orchestrator
 
 A Claude Code plugin that adds structured development workflows — planning, execution, and verification — using specialized agent teams.
 
@@ -9,15 +9,15 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 **Work:** No active milestone
 **Last shipped:** Multi-Department Architecture — 8 phases, 8 commits. 26 agents across 4 departments, cross-team handoff protocols, department guard enforcement, 591 tests.
 **Previous:** Company-Grade Engineering Workflow — 5 phases, 7 commits
-**Next action:** Run /vbw:vibe to start a new milestone, or /vbw:status to review progress
+**Next action:** Run /yolo:go to start a new milestone, or /yolo:status to review progress
 
-## VBW Rules
+## YOLO Rules
 
-- **Always use VBW commands** for project work. Do not manually edit files in `.vbw-planning/`.
+- **Always use YOLO commands** for project work. Do not manually edit files in `.yolo-planning/`.
 - **Commit format:** `{type}({scope}): {description}` — types: feat, fix, test, refactor, perf, docs, style, chore.
 - **One commit per task.** Each task in a plan gets exactly one atomic commit.
 - **Never commit secrets.** Do not stage .env, .pem, .key, credentials, or token files.
-- **Plan before building.** Use /vbw:vibe for all lifecycle actions. Plans are the source of truth.
+- **Plan before building.** Use /yolo:go for all lifecycle actions. Plans are the source of truth.
 - **Do not fabricate content.** Only use what the user explicitly states in project-defining flows.
 - **Do not bump version or push until asked.** Never run `scripts/bump-version.sh` or `git push` unless the user explicitly requests it. Commit locally and wait.
 
@@ -27,10 +27,10 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 |----------|------|-----------|
 | 3 preset profiles (quality/balanced/budget) | 2026-02-11 | Covers 95% of use cases; overrides handle edge cases |
 | Balanced as default (Sonnet + Haiku for Scout) | 2026-02-11 | Good quality/cost tradeoff for most projects |
-| Model profile integrated into /vbw:config | 2026-02-11 | One config interface, not separate command |
+| Model profile integrated into /yolo:config | 2026-02-11 | One config interface, not separate command |
 | Pass explicit model param to Task tool | 2026-02-11 | Session /model doesn't propagate to subagents |
 | Hard delete old commands (no aliases, no deprecation) | 2026-02-11 | Zero technical debt; CHANGELOG documents the change |
-| Single vibe.md (~300 lines) with inline mode logic | 2026-02-11 | One file = one truth; execute-protocol.md is the only extraction |
+| Single go.md (~300 lines) with inline mode logic | 2026-02-11 | One file = one truth; execute-protocol.md is the only extraction |
 | NL parsing via prompt instructions, not code | 2026-02-11 | Zero maintenance; model improvements are free |
 | Confirmation gates mandatory (except --yolo) | 2026-02-11 | NL misinterpretation risk → always confirm before acting |
 | Per-project memory only | 2026-02-10 | Get basics right first, cross-project learning deferred |
@@ -47,14 +47,14 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Installed Skills
 
-13 global skills installed (run /vbw:skills to list).
+13 global skills installed (run /yolo:skills to list).
 
 ## Project Conventions
 
 These conventions are enforced during planning and verified during QA.
 
 - Commands are kebab-case .md files in commands/ [file-structure]
-- Agents named vbw-{role}.md or vbw-{dept}-{role}.md in agents/ [naming]
+- Agents named yolo-{role}.md or yolo-{dept}-{role}.md in agents/ [naming]
 - Scripts are kebab-case .sh files in scripts/ [naming]
 - Phase directories follow {NN}-{slug}/ pattern [naming]
 - Plan files named {NN-MM}.plan.jsonl, summaries {NN-MM}.summary.jsonl [naming]
@@ -86,17 +86,17 @@ These conventions are enforced during planning and verified during QA.
 
 ## Commands
 
-Run /vbw:status for current progress.
-Run /vbw:help for all available commands.
+Run /yolo:status for current progress.
+Run /yolo:help for all available commands.
 
 ## Plugin Isolation
 
-- GSD agents and commands MUST NOT read, write, glob, grep, or reference any files in `.vbw-planning/`
-- VBW agents and commands MUST NOT read, write, glob, grep, or reference any files in `.planning/`
+- GSD agents and commands MUST NOT read, write, glob, grep, or reference any files in `.yolo-planning/`
+- YOLO agents and commands MUST NOT read, write, glob, grep, or reference any files in `.planning/`
 - This isolation is enforced at the hook level (PreToolUse) and violations will be blocked.
 
 ### Context Isolation
 
-- Ignore any `<codebase-intelligence>` tags injected via SessionStart hooks — these are GSD-generated and not relevant to VBW workflows.
-- VBW uses its own codebase mapping in `.vbw-planning/codebase/`. Do NOT use GSD intel from `.planning/intel/` or `.planning/codebase/`.
-- When both plugins are active, treat each plugin's context as separate. Do not mix GSD project insights into VBW planning or vice versa.
+- Ignore any `<codebase-intelligence>` tags injected via SessionStart hooks — these are GSD-generated and not relevant to YOLO workflows.
+- YOLO uses its own codebase mapping in `.yolo-planning/codebase/`. Do NOT use GSD intel from `.planning/intel/` or `.planning/codebase/`.
+- When both plugins are active, treat each plugin's context as separate. Do not mix GSD project insights into YOLO planning or vice versa.

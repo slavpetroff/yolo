@@ -1,0 +1,16 @@
+phase: 02
+goal: Migrate all agent-facing artifacts from Markdown to JSONL with abbreviated keys. Implement TOON compiled context. Create state.json to replace STATE.md for machines. Token budget enforcement in compile-context.sh.
+
+
+recent_commits:
+  452866b feat(tokens): add state.json, reqs.jsonl, token budgets, and JSONL templates
+  815c03d feat(agents): complete JSONL migration for company hierarchy workflow
+  74198f9 feat(agents): implement company-grade engineering hierarchy
+  498cc54 chore: release v1.10.18
+  453b5a0 feat(isolation): add context isolation to prevent GSD insight leakage
+  87bcbdc chore: release v1.10.17
+  69eeaaf chore: archive init-auto-bootstrap milestone
+  4b9da24 docs(phase-04): add plan 04-01 summary
+  10742c0 docs(vibe): finalize Phase 4 verification report
+  3b2ead6 test(vibe): verify no regression in non-bootstrap modes
+

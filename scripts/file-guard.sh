@@ -12,7 +12,7 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null) || 
 
 # Exempt planning artifacts — these are always allowed
 case "$FILE_PATH" in
-  *.vbw-planning/*|*SUMMARY.md|*VERIFICATION.md|*STATE.md|*CLAUDE.md|*.execution-state.json|*.summary.jsonl|*.verification.jsonl|*decisions.jsonl|*research.jsonl)
+  *.yolo-planning/*|*SUMMARY.md|*VERIFICATION.md|*STATE.md|*CLAUDE.md|*.execution-state.json|*.summary.jsonl|*.verification.jsonl|*decisions.jsonl|*research.jsonl)
     exit 0
     ;;
 esac
@@ -21,7 +21,7 @@ esac
 find_project_root() {
   local dir="$PWD"
   while [ "$dir" != "/" ]; do
-    if [ -d "$dir/.vbw-planning/phases" ]; then
+    if [ -d "$dir/.yolo-planning/phases" ]; then
       echo "$dir"
       return 0
     fi
@@ -31,7 +31,7 @@ find_project_root() {
 }
 
 PROJECT_ROOT=$(find_project_root) || exit 0
-PHASES_DIR="$PROJECT_ROOT/.vbw-planning/phases"
+PHASES_DIR="$PROJECT_ROOT/.yolo-planning/phases"
 [ ! -d "$PHASES_DIR" ] && exit 0
 
 # Find active plan: first plan without a corresponding summary (JSONL or legacy MD)

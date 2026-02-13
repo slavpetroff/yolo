@@ -4,15 +4,15 @@ set -euo pipefail
 # department-guard.sh — Enforce department directory boundaries
 # Called as a PreToolUse hook for Write|Edit operations.
 # Reads tool input from stdin (JSON with file_path).
-# Determines department from VBW_AGENT env var (set by agent-start.sh).
+# Determines department from YOLO_AGENT env var (set by agent-start.sh).
 # Exits 0 (allow) or 2 (block with message).
 #
 # Rules:
 # - Backend agents cannot write to frontend/ or design/ directories
 # - Frontend agents cannot write to backend-specific dirs (scripts/, agents/, hooks/, config/)
 # - UI/UX agents cannot write to implementation dirs (src/, scripts/, agents/, hooks/, config/)
-# - All agents can write to .vbw-planning/ (shared planning dir)
-# - If VBW_AGENT is not set, allow (graceful degradation)
+# - All agents can write to .yolo-planning/ (shared planning dir)
+# - If YOLO_AGENT is not set, allow (graceful degradation)
 
 # Read tool input
 INPUT=$(cat 2>/dev/null) || INPUT=""
@@ -27,18 +27,18 @@ if [ -z "$FILE_PATH" ]; then
 fi
 
 # Determine agent department
-AGENT="${VBW_AGENT:-}"
+AGENT="${YOLO_AGENT:-}"
 if [ -z "$AGENT" ]; then
   exit 0  # No agent context — allow (graceful degradation)
 fi
 
 # Extract department from agent name
 case "$AGENT" in
-  vbw-fe-*)  DEPT="frontend" ;;
-  vbw-ux-*)  DEPT="uiux" ;;
-  vbw-owner) DEPT="shared" ;;
-  vbw-critic|vbw-scout|vbw-debugger|vbw-security) DEPT="shared" ;;
-  vbw-*)     DEPT="backend" ;;
+  yolo-fe-*)  DEPT="frontend" ;;
+  yolo-ux-*)  DEPT="uiux" ;;
+  yolo-owner) DEPT="shared" ;;
+  yolo-critic|yolo-scout|yolo-debugger|yolo-security) DEPT="shared" ;;
+  yolo-*)     DEPT="backend" ;;
   *)         exit 0 ;;  # Unknown agent — allow
 esac
 
@@ -50,7 +50,7 @@ fi
 
 # Planning directory: always allowed for all departments
 case "$FILE_PATH" in
-  .vbw-planning/*|*/.vbw-planning/*) exit 0 ;;
+  .yolo-planning/*|*/.yolo-planning/*) exit 0 ;;
 esac
 
 # Department boundary checks

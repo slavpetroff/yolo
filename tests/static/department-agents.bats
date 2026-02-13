@@ -31,129 +31,129 @@ assert_has_escalation() {
 
 # --- Backend agents (existing) ---
 
-@test "vbw-architect.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-architect.md"
+@test "yolo-architect.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-architect.md"
 }
 
-@test "vbw-lead.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-lead.md"
+@test "yolo-lead.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-lead.md"
 }
 
-@test "vbw-senior.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-senior.md"
+@test "yolo-senior.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-senior.md"
 }
 
-@test "vbw-dev.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-dev.md"
+@test "yolo-dev.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-dev.md"
 }
 
-@test "vbw-tester.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-tester.md"
+@test "yolo-tester.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-tester.md"
 }
 
-@test "vbw-qa.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-qa.md"
+@test "yolo-qa.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-qa.md"
 }
 
-@test "vbw-qa-code.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-qa-code.md"
+@test "yolo-qa-code.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-qa-code.md"
 }
 
 # --- Shared agents ---
 
-@test "vbw-owner.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-owner.md"
+@test "yolo-owner.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-owner.md"
 }
 
-@test "vbw-owner.md is read-only (disallowedTools)" {
-  run grep 'disallowedTools:.*Edit.*Write.*Bash' "$AGENTS_DIR/vbw-owner.md"
+@test "yolo-owner.md is read-only (disallowedTools)" {
+  run grep 'disallowedTools:.*Edit.*Write.*Bash' "$AGENTS_DIR/yolo-owner.md"
   assert_success
 }
 
-@test "vbw-critic.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-critic.md"
+@test "yolo-critic.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-critic.md"
 }
 
-@test "vbw-scout.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-scout.md"
+@test "yolo-scout.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-scout.md"
 }
 
-@test "vbw-debugger.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-debugger.md"
+@test "yolo-debugger.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-debugger.md"
 }
 
-@test "vbw-security.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-security.md"
+@test "yolo-security.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-security.md"
 }
 
 # --- Frontend agents ---
 
-@test "vbw-fe-architect.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-fe-architect.md"
+@test "yolo-fe-architect.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-fe-architect.md"
 }
 
-@test "vbw-fe-lead.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-fe-lead.md"
+@test "yolo-fe-lead.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-fe-lead.md"
 }
 
-@test "vbw-fe-senior.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-fe-senior.md"
+@test "yolo-fe-senior.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-fe-senior.md"
 }
 
-@test "vbw-fe-dev.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-fe-dev.md"
+@test "yolo-fe-dev.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-fe-dev.md"
 }
 
-@test "vbw-fe-tester.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-fe-tester.md"
+@test "yolo-fe-tester.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-fe-tester.md"
 }
 
-@test "vbw-fe-qa.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-fe-qa.md"
+@test "yolo-fe-qa.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-fe-qa.md"
 }
 
-@test "vbw-fe-qa-code.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-fe-qa-code.md"
+@test "yolo-fe-qa-code.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-fe-qa-code.md"
 }
 
 # --- UI/UX agents ---
 
-@test "vbw-ux-architect.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-ux-architect.md"
+@test "yolo-ux-architect.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-ux-architect.md"
 }
 
-@test "vbw-ux-lead.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-ux-lead.md"
+@test "yolo-ux-lead.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-ux-lead.md"
 }
 
-@test "vbw-ux-senior.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-ux-senior.md"
+@test "yolo-ux-senior.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-ux-senior.md"
 }
 
-@test "vbw-ux-dev.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-ux-dev.md"
+@test "yolo-ux-dev.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-ux-dev.md"
 }
 
-@test "vbw-ux-tester.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-ux-tester.md"
+@test "yolo-ux-tester.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-ux-tester.md"
 }
 
-@test "vbw-ux-qa.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-ux-qa.md"
+@test "yolo-ux-qa.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-ux-qa.md"
 }
 
-@test "vbw-ux-qa-code.md has valid frontmatter" {
-  assert_agent_frontmatter "vbw-ux-qa-code.md"
+@test "yolo-ux-qa-code.md has valid frontmatter" {
+  assert_agent_frontmatter "yolo-ux-qa-code.md"
 }
 
 # --- Escalation table presence ---
 
 @test "all 26 agents have escalation tables" {
   local agents=(
-    vbw-architect vbw-lead vbw-senior vbw-dev vbw-tester vbw-qa vbw-qa-code
-    vbw-owner vbw-critic vbw-scout vbw-debugger vbw-security
-    vbw-fe-architect vbw-fe-lead vbw-fe-senior vbw-fe-dev vbw-fe-tester vbw-fe-qa vbw-fe-qa-code
-    vbw-ux-architect vbw-ux-lead vbw-ux-senior vbw-ux-dev vbw-ux-tester vbw-ux-qa vbw-ux-qa-code
+    yolo-architect yolo-lead yolo-senior yolo-dev yolo-tester yolo-qa yolo-qa-code
+    yolo-owner yolo-critic yolo-scout yolo-debugger yolo-security
+    yolo-fe-architect yolo-fe-lead yolo-fe-senior yolo-fe-dev yolo-fe-tester yolo-fe-qa yolo-fe-qa-code
+    yolo-ux-architect yolo-ux-lead yolo-ux-senior yolo-ux-dev yolo-ux-tester yolo-ux-qa yolo-ux-qa-code
   )
   for agent in "${agents[@]}"; do
     assert_has_escalation "${agent}.md"
@@ -164,7 +164,7 @@ assert_has_escalation() {
 
 @test "exactly 26 agent files exist" {
   local count
-  count=$(ls -1 "$AGENTS_DIR"/vbw-*.md 2>/dev/null | wc -l | tr -d ' ')
+  count=$(ls -1 "$AGENTS_DIR"/yolo-*.md 2>/dev/null | wc -l | tr -d ' ')
   [ "$count" -eq 26 ]
 }
 
@@ -172,7 +172,7 @@ assert_has_escalation() {
 
 @test "frontend agents reference frontend department protocol" {
   for agent in fe-architect fe-lead fe-senior fe-dev fe-tester fe-qa fe-qa-code; do
-    run grep "departments/frontend.md" "$AGENTS_DIR/vbw-${agent}.md"
+    run grep "departments/frontend.md" "$AGENTS_DIR/yolo-${agent}.md"
     assert_success
   done
 }
@@ -181,7 +181,7 @@ assert_has_escalation() {
 
 @test "uiux agents reference uiux department protocol" {
   for agent in ux-architect ux-lead ux-senior ux-dev ux-tester ux-qa ux-qa-code; do
-    run grep "departments/uiux.md" "$AGENTS_DIR/vbw-${agent}.md"
+    run grep "departments/uiux.md" "$AGENTS_DIR/yolo-${agent}.md"
     assert_success
   done
 }

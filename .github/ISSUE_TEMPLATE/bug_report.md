@@ -7,7 +7,7 @@ assignees: ''
 ---
 
 **Command**
-Which `/vbw:*` command triggered the issue?
+Which `/yolo:*` command triggered the issue?
 
 **What happened**
 Describe what went wrong. Include error messages if any.
@@ -26,4 +26,4 @@ What should have happened instead.
 - Model: Opus 4.6 / other
 
 **Additional context**
-Screenshots, logs, or the content of any relevant `.vbw-planning/` files.
+Screenshots, logs, or the content of any relevant `.yolo-planning/` files.

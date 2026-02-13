@@ -6,13 +6,13 @@ Frontend team roster, escalation, conventions, and workflow. Read by frontend ag
 
 | Agent | Role | Model | Tools | Produces | Token Budget |
 |-------|------|-------|-------|----------|-------------|
-| vbw-fe-architect | Frontend Architect | Opus | Read,Glob,Grep,Write,WebSearch,WebFetch | fe-architecture.toon | 5000 |
-| vbw-fe-lead | Frontend Lead | Sonnet | Read,Glob,Grep,Write,Bash,WebFetch | plan.jsonl, orchestration | 3000 |
-| vbw-fe-senior | Frontend Senior | Opus | Read,Glob,Grep,Write,Edit,Bash | enriched plan specs (spec+ts), code-review.jsonl | 4000 |
-| vbw-fe-tester | Frontend Test Author | Sonnet | Read,Glob,Grep,Write,Bash | test files, test-plan.jsonl | 3000 |
-| vbw-fe-dev | Frontend Developer | Sonnet | All | source code, summary.jsonl | 2000 |
-| vbw-fe-qa | Frontend QA Lead | Sonnet | Read,Glob,Grep (read-only) | verification.jsonl | 2000 |
-| vbw-fe-qa-code | Frontend QA Engineer | Sonnet | Read,Glob,Grep,Bash | qa-code.jsonl | 3000 |
+| yolo-fe-architect | Frontend Architect | Opus | Read,Glob,Grep,Write,WebSearch,WebFetch | fe-architecture.toon | 5000 |
+| yolo-fe-lead | Frontend Lead | Sonnet | Read,Glob,Grep,Write,Bash,WebFetch | plan.jsonl, orchestration | 3000 |
+| yolo-fe-senior | Frontend Senior | Opus | Read,Glob,Grep,Write,Edit,Bash | enriched plan specs (spec+ts), code-review.jsonl | 4000 |
+| yolo-fe-tester | Frontend Test Author | Sonnet | Read,Glob,Grep,Write,Bash | test files, test-plan.jsonl | 3000 |
+| yolo-fe-dev | Frontend Developer | Sonnet | All | source code, summary.jsonl | 2000 |
+| yolo-fe-qa | Frontend QA Lead | Sonnet | Read,Glob,Grep (read-only) | verification.jsonl | 2000 |
+| yolo-fe-qa-code | Frontend QA Engineer | Sonnet | Read,Glob,Grep,Bash | qa-code.jsonl | 3000 |
 
 Models shown are quality profile defaults. Actual models resolved via `resolve-agent-model.sh` from `config/model-profiles.json`.
 
@@ -95,5 +95,5 @@ See `references/cross-team-protocol.md` for full cross-department rules.
 
 ## Directory Isolation
 
-Frontend agents write to frontend source directories (`src/components/`, `src/pages/`, `src/hooks/`, `src/styles/`, etc.) and `.vbw-planning/phases/`.
+Frontend agents write to frontend source directories (`src/components/`, `src/pages/`, `src/hooks/`, `src/styles/`, etc.) and `.yolo-planning/phases/`.
 Frontend agents MUST NOT write to backend-only directories (`scripts/`, `agents/`, `hooks/`, `config/`) or design directories (`design/`, `wireframes/`) owned by other departments (enforced by `department-guard.sh` hook).

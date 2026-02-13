@@ -5,13 +5,13 @@ set -u
 
 update_state_md() {
   local phase_dir="$1"
-  local state_md=".vbw-planning/STATE.md"
+  local state_md=".yolo-planning/STATE.md"
 
   [ -f "$state_md" ] || return 0
 
   local plan_count summary_count pct
-  plan_count=$(ls -1 "$phase_dir"/*.plan.jsonl "$phase_dir"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-  summary_count=$(ls -1 "$phase_dir"/*.summary.jsonl "$phase_dir"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+  plan_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
+  summary_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
 
   if [ "$plan_count" -gt 0 ]; then
     pct=$(( (summary_count * 100) / plan_count ))
@@ -20,8 +20,8 @@ update_state_md() {
   fi
 
   local tmp="${state_md}.tmp.$$"
-  sed "s/^Plans: .*/Plans: ${summary_count}\/${plan_count}/" "$state_md" | \
-    sed "s/^Progress: .*/Progress: ${pct}%/" > "$tmp" 2>/dev/null && \
+  sed -e "s/^Plans: .*/Plans: ${summary_count}\/${plan_count}/" \
+      -e "s/^Progress: .*/Progress: ${pct}%/" "$state_md" > "$tmp" 2>/dev/null && \
     mv "$tmp" "$state_md" 2>/dev/null || rm -f "$tmp" 2>/dev/null
 }
 
@@ -31,17 +31,17 @@ slug_to_name() {
 
 update_roadmap() {
   local phase_dir="$1"
-  local roadmap=".vbw-planning/ROADMAP.md"
+  local roadmap=".yolo-planning/ROADMAP.md"
 
   [ -f "$roadmap" ] || return 0
 
   local dirname phase_num plan_count summary_count status date_str
   dirname=$(basename "$phase_dir")
-  phase_num=$(echo "$dirname" | sed 's/^\([0-9]*\).*/\1/' | sed 's/^0*//')
+  phase_num=$(echo "$dirname" | sed 's/^\([0-9]*\).*/\1/;s/^0*//')
   [ -z "$phase_num" ] && return 0
 
-  plan_count=$(ls -1 "$phase_dir"/*.plan.jsonl "$phase_dir"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-  summary_count=$(ls -1 "$phase_dir"/*.summary.jsonl "$phase_dir"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+  plan_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
+  summary_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
 
   [ "$plan_count" -eq 0 ] && return 0
 
@@ -58,7 +58,7 @@ update_roadmap() {
 
   # Extract phase name from existing progress table row
   local existing_name
-  existing_name=$(grep -E "^\| *${phase_num} - " "$roadmap" | head -1 | sed 's/^| *[0-9]* - //' | sed 's/ *|.*//')
+  existing_name=$(grep -E "^\| *${phase_num} - " "$roadmap" | head -1 | sed 's/^| *[0-9]* - //;s/ *|.*//')
   [ -z "$existing_name" ] && return 0
 
   # Update progress table row
@@ -76,13 +76,13 @@ update_roadmap() {
 }
 
 update_model_profile() {
-  local state_md=".vbw-planning/STATE.md"
+  local state_md=".yolo-planning/STATE.md"
 
   [ -f "$state_md" ] || return 0
 
   # Read active model profile from config
   local model_profile
-  model_profile=$(jq -r '.model_profile // "balanced"' .vbw-planning/config.json 2>/dev/null || echo "balanced")
+  model_profile=$(jq -r '.model_profile // "balanced"' .yolo-planning/config.json 2>/dev/null || echo "balanced")
 
   # Check if Codebase Profile section exists
   if ! grep -q "^## Codebase Profile" "$state_md" 2>/dev/null; then
@@ -106,18 +106,18 @@ update_model_profile() {
 
 update_state_json() {
   local phase_dir="$1"
-  local state_json=".vbw-planning/state.json"
+  local state_json=".yolo-planning/state.json"
 
   [ -f "$state_json" ] || return 0
   command -v jq >/dev/null 2>&1 || return 0
 
   local dirname phase_num plan_count summary_count pct phases_dir total status
   dirname=$(basename "$phase_dir")
-  phase_num=$(echo "$dirname" | sed 's/^\([0-9]*\).*/\1/' | sed 's/^0*//')
+  phase_num=$(echo "$dirname" | sed 's/^\([0-9]*\).*/\1/;s/^0*//')
   [ -z "$phase_num" ] && return 0
 
-  plan_count=$(ls -1 "$phase_dir"/*.plan.jsonl "$phase_dir"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-  summary_count=$(ls -1 "$phase_dir"/*.summary.jsonl "$phase_dir"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+  plan_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
+  summary_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
 
   # Compute overall progress across all phases
   phases_dir=$(dirname "$phase_dir")
@@ -125,8 +125,8 @@ update_state_json() {
   local total_plans=0 total_summaries=0
   for dir in $(ls -d "$phases_dir"/*/ 2>/dev/null | sort); do
     total=$((total + 1))
-    total_plans=$((total_plans + $(ls -1 "$dir"*.plan.jsonl "$dir"*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')))
-    total_summaries=$((total_summaries + $(ls -1 "$dir"*.summary.jsonl "$dir"*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')))
+    total_plans=$((total_plans + $(find "$dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')))
+    total_summaries=$((total_summaries + $(find "$dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')))
   done
 
   if [ "$total_plans" -gt 0 ]; then
@@ -153,14 +153,14 @@ update_state_json() {
 
 advance_phase() {
   local phase_dir="$1"
-  local state_md=".vbw-planning/STATE.md"
+  local state_md=".yolo-planning/STATE.md"
 
   [ -f "$state_md" ] || return 0
 
   # Check if triggering phase is complete
   local plan_count summary_count
-  plan_count=$(ls -1 "$phase_dir"/*.plan.jsonl "$phase_dir"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-  summary_count=$(ls -1 "$phase_dir"/*.summary.jsonl "$phase_dir"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+  plan_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
+  summary_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
   [ "$plan_count" -gt 0 ] && [ "$summary_count" -eq "$plan_count" ] || return 0
 
   # Scan all phase dirs to find next incomplete
@@ -174,12 +174,12 @@ advance_phase() {
   for dir in $(ls -d "$phases_dir"/*/ 2>/dev/null | sort); do
     local dirname p s
     dirname=$(basename "$dir")
-    p=$(ls -1 "$dir"*.plan.jsonl "$dir"*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-    s=$(ls -1 "$dir"*.summary.jsonl "$dir"*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+    p=$(find "$dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
+    s=$(find "$dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
 
     if [ "$p" -eq 0 ] || [ "$s" -lt "$p" ]; then
       if [ -z "$next_num" ]; then
-        next_num=$(echo "$dirname" | sed 's/^\([0-9]*\).*/\1/' | sed 's/^0*//')
+        next_num=$(echo "$dirname" | sed 's/^\([0-9]*\).*/\1/;s/^0*//')
         [ -z "$next_num" ] && next_num=0
         next_name=$(slug_to_name "$dirname")
       fi
@@ -191,7 +191,7 @@ advance_phase() {
   [ "$total" -eq 0 ] && return 0
 
   local tmp="${state_md}.tmp.$$"
-  local state_json=".vbw-planning/state.json"
+  local state_json=".yolo-planning/state.json"
   if [ "$all_done" = true ]; then
     sed "s/^Status: .*/Status: complete/" "$state_md" > "$tmp" 2>/dev/null && \
       mv "$tmp" "$state_md" 2>/dev/null || rm -f "$tmp" 2>/dev/null
@@ -202,8 +202,8 @@ advance_phase() {
         mv "$jtmp" "$state_json" 2>/dev/null || rm -f "$jtmp" 2>/dev/null
     fi
   elif [ -n "$next_num" ]; then
-    sed "s/^Phase: .*/Phase: ${next_num} of ${total} (${next_name})/" "$state_md" | \
-      sed "s/^Status: .*/Status: ready/" > "$tmp" 2>/dev/null && \
+    sed -e "s/^Phase: .*/Phase: ${next_num} of ${total} (${next_name})/" \
+        -e "s/^Status: .*/Status: ready/" "$state_md" > "$tmp" 2>/dev/null && \
       mv "$tmp" "$state_md" 2>/dev/null || rm -f "$tmp" 2>/dev/null
     # Advance state.json to next phase
     if [ -f "$state_json" ] && command -v jq >/dev/null 2>&1; then
@@ -221,7 +221,7 @@ commit_state_artifacts() {
   command -v git >/dev/null 2>&1 || return 0
 
   local files_to_add=""
-  for f in .vbw-planning/STATE.md .vbw-planning/state.json .vbw-planning/ROADMAP.md .vbw-planning/.execution-state.json; do
+  for f in .yolo-planning/STATE.md .yolo-planning/state.json .yolo-planning/ROADMAP.md .yolo-planning/.execution-state.json; do
     if [ -f "$f" ] && git diff --name-only "$f" 2>/dev/null | grep -q .; then
       files_to_add="$files_to_add $f"
     elif [ -f "$f" ] && ! git ls-files --error-unmatch "$f" 2>/dev/null | grep -q .; then
@@ -244,7 +244,7 @@ if echo "$FILE_PATH" | grep -qE 'phases/[^/]+/[0-9]+-[0-9]+\.plan\.jsonl$' || ec
   update_roadmap "$(dirname "$FILE_PATH")"
   update_state_json "$(dirname "$FILE_PATH")"
   # Status: ready → active when a plan is written
-  _sm=".vbw-planning/STATE.md"
+  _sm=".yolo-planning/STATE.md"
   if [ -f "$_sm" ] && grep -q '^Status: ready' "$_sm" 2>/dev/null; then
     _tmp="${_sm}.tmp.$$"
     sed 's/^Status: ready/Status: active/' "$_sm" > "$_tmp" 2>/dev/null && \
@@ -267,7 +267,7 @@ if [ "$IS_SUMMARY" != true ]; then
   exit 0
 fi
 
-STATE_FILE=".vbw-planning/.execution-state.json"
+STATE_FILE=".yolo-planning/.execution-state.json"
 [ -f "$STATE_FILE" ] || exit 0
 [ -f "$FILE_PATH" ] || exit 0
 
@@ -279,9 +279,7 @@ STATUS=""
 if echo "$FILE_PATH" | grep -qE '\.summary\.jsonl$'; then
   # JSONL summary: parse first line with jq
   if command -v jq >/dev/null 2>&1; then
-    PHASE=$(jq -r '.p // ""' "$FILE_PATH" 2>/dev/null)
-    PLAN=$(jq -r '.n // ""' "$FILE_PATH" 2>/dev/null)
-    STATUS=$(jq -r '.s // "complete"' "$FILE_PATH" 2>/dev/null)
+    IFS='|' read -r PHASE PLAN STATUS <<< "$(jq -r '[(.p // ""), (.n // ""), (.s // "complete")] | join("|")' "$FILE_PATH" 2>/dev/null)"
   fi
 else
   # Legacy SUMMARY.md: parse YAML frontmatter

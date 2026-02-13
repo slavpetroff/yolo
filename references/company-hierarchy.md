@@ -1,4 +1,4 @@
-# VBW Company Hierarchy
+# YOLO Company Hierarchy
 
 Agent hierarchy, team structure, workflow, and escalation. Referenced by all agents and commands.
 
@@ -6,17 +6,17 @@ Agent hierarchy, team structure, workflow, and escalation. Referenced by all age
 
 | Agent | Role | Model | Tools | Produces | Token Budget |
 |-------|------|-------|-------|----------|-------------|
-| vbw-critic | Brainstorm / Gap Analyst | Opus | Read,Glob,Grep,WebSearch,WebFetch | critique.jsonl | 4000 |
-| vbw-architect | VP Eng / Solutions Architect | Opus | Read,Glob,Grep,Write,WebSearch,WebFetch | architecture.toon, ROADMAP.md | 5000 |
-| vbw-lead | Tech Lead | Sonnet | Read,Glob,Grep,Write,Bash,WebFetch | plan.jsonl, orchestration | 3000 |
-| vbw-senior | Senior Engineer | Opus | Read,Glob,Grep,Write,Edit,Bash | enriched plan specs (spec+ts), code-review.jsonl | 4000 |
-| vbw-tester | TDD Test Author | Sonnet | Read,Glob,Grep,Write,Bash | test files, test-plan.jsonl | 3000 |
-| vbw-dev | Junior Developer | Sonnet | All | source code, summary.jsonl | 2000 |
-| vbw-qa | QA Lead | Sonnet | Read,Glob,Grep (read-only) | verification.jsonl | 2000 |
-| vbw-qa-code | QA Engineer | Sonnet | Read,Glob,Grep,Bash | qa-code.jsonl | 3000 |
-| vbw-security | Security Engineer | Sonnet | Read,Glob,Grep,Bash | security-audit.jsonl | 3000 |
-| vbw-scout | Research Analyst | Haiku | Read,Glob,Grep,WebSearch,WebFetch | research.jsonl | 1000 |
-| vbw-debugger | Incident Responder | Sonnet | All | debug-report.jsonl | 3000 |
+| yolo-critic | Brainstorm / Gap Analyst | Opus | Read,Glob,Grep,WebSearch,WebFetch | critique.jsonl | 4000 |
+| yolo-architect | VP Eng / Solutions Architect | Opus | Read,Glob,Grep,Write,WebSearch,WebFetch | architecture.toon, ROADMAP.md | 5000 |
+| yolo-lead | Tech Lead | Sonnet | Read,Glob,Grep,Write,Bash,WebFetch | plan.jsonl, orchestration | 3000 |
+| yolo-senior | Senior Engineer | Opus | Read,Glob,Grep,Write,Edit,Bash | enriched plan specs (spec+ts), code-review.jsonl | 4000 |
+| yolo-tester | TDD Test Author | Sonnet | Read,Glob,Grep,Write,Bash | test files, test-plan.jsonl | 3000 |
+| yolo-dev | Junior Developer | Sonnet | All | source code, summary.jsonl | 2000 |
+| yolo-qa | QA Lead | Sonnet | Read,Glob,Grep (read-only) | verification.jsonl | 2000 |
+| yolo-qa-code | QA Engineer | Sonnet | Read,Glob,Grep,Bash | qa-code.jsonl | 3000 |
+| yolo-security | Security Engineer | Sonnet | Read,Glob,Grep,Bash | security-audit.jsonl | 3000 |
+| yolo-scout | Research Analyst | Haiku | Read,Glob,Grep,WebSearch,WebFetch | research.jsonl | 1000 |
+| yolo-debugger | Incident Responder | Sonnet | All | debug-report.jsonl | 3000 |
 
 ## Team Structure
 
@@ -193,7 +193,7 @@ Format: `docs({phase}): {artifact}` except Dev source: `{type}({phase}-{plan}): 
 
 ## Multi-Department Structure
 
-When `departments.frontend` or `departments.uiux` is true in config, VBW operates as a multi-department company:
+When `departments.frontend` or `departments.uiux` is true in config, YOLO operates as a multi-department company:
 
 | Department | Agents | Protocol File |
 |------------|--------|---------------|

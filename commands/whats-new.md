@@ -6,7 +6,7 @@ argument-hint: "[version]"
 allowed-tools: Read, Glob
 ---
 
-# VBW What's New $ARGUMENTS
+# YOLO What's New $ARGUMENTS
 
 ## Guard
 
@@ -18,8 +18,8 @@ allowed-tools: Read, Glob
 2. Read `${CLAUDE_PLUGIN_ROOT}/CHANGELOG.md`, split by `## [` headings.
    - With version arg: show entries newer than that version.
    - No args: show current version's entry.
-3. Display Phase Banner "VBW Changelog" with version context, entries, Next Up (/vbw:help). No entries: "✓ No changelog entry found for v{version}."
+3. Display Phase Banner "YOLO Changelog" with version context, entries, Next Up (/yolo:help). No entries: "✓ No changelog entry found for v{version}."
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — double-line box, ✓ up-to-date, Next Up, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — double-line box, ✓ up-to-date, Next Up, no ANSI.
