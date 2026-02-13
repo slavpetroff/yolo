@@ -157,7 +157,7 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
 2. If $ARGUMENTS (excl. flags) provided, use as scope. Else ask: "What do you want to build?" Show uncovered requirements as suggestions.
 3. Decompose into 3-5 phases (name, goal, success criteria). Each independently plannable. Map REQ-IDs.
 4. Write ROADMAP.md. Create `.vbw-planning/phases/{NN}-{slug}/` dirs.
-5. Update STATE.md: Phase 1, status "Pending planning".
+5. Update STATE.md: set Phase to 1, Status to "Pending planning". Do NOT add entries to `## Todos` or `### Pending Todos` — phase lifecycle actions are not todos.
 6. Display "Scoping complete. {N} phases created." STOP -- do not auto-continue to planning.
 
 ### Mode: Discuss
