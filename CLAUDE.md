@@ -6,10 +6,10 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** Company-Grade Engineering Workflow (5 phases)
-**Last shipped:** Init Auto-Bootstrap — 4 phases, 6 plans, 28 tasks, 29 commits.
-**Previous:** Granular Model Config — 2 phases, 2 plans, 6 tasks, 6 commits
-**Next action:** Phase 1 design locked. Continue implementation of company hierarchy agents and 8-step workflow.
+**Work:** No active milestone
+**Last shipped:** Company-Grade Engineering Workflow — 5 phases, 7 commits. 9-agent hierarchy, JSONL artifacts, auto-commit persistence, gaps remediation loop, approval gates, 5 ADRs.
+**Previous:** Init Auto-Bootstrap — 4 phases, 6 plans, 28 tasks, 29 commits
+**Next action:** Run /vbw:vibe to start a new milestone, or /vbw:status to review progress
 
 ## VBW Rules
 
