@@ -15,5 +15,10 @@
   "active_profile": "default",
   "custom_profiles": {},
   "model_profile": "quality",
-  "model_overrides": {}
+  "model_overrides": {},
+  "security_audit": false,
+  "approval_gates": {
+    "qa_fail": false,
+    "security_warn": false
+  }
 }

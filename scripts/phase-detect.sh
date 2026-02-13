@@ -33,6 +33,9 @@ else
   echo "config_agent_teams=false"
   echo "config_max_tasks_per_plan=5"
   echo "config_context_compiler=true"
+  echo "config_security_audit=false"
+  echo "config_approval_qa_fail=false"
+  echo "config_approval_security_warn=false"
   echo "has_codebase_map=false"
   echo "brownfield=false"
   echo "execution_state=none"
@@ -150,6 +153,9 @@ CFG_AGENT_TEAMS="false"
 CFG_MAX_TASKS="5"
 CFG_COMPACTION="130000"
 CFG_CONTEXT_COMPILER="true"
+CFG_SECURITY_AUDIT="false"
+CFG_APPROVAL_QA_FAIL="false"
+CFG_APPROVAL_SECURITY_WARN="false"
 
 if [ "$JQ_AVAILABLE" = true ] && [ -f "$CONFIG_FILE" ]; then
   CFG_EFFORT=$(jq -r '.effort // "balanced"' "$CONFIG_FILE" 2>/dev/null)
@@ -159,6 +165,9 @@ if [ "$JQ_AVAILABLE" = true ] && [ -f "$CONFIG_FILE" ]; then
   CFG_AGENT_TEAMS=$(jq -r '.agent_teams // false' "$CONFIG_FILE" 2>/dev/null)
   CFG_MAX_TASKS=$(jq -r '.max_tasks_per_plan // 5' "$CONFIG_FILE" 2>/dev/null)
   CFG_CONTEXT_COMPILER=$(jq -r '.context_compiler // true' "$CONFIG_FILE" 2>/dev/null)
+  CFG_SECURITY_AUDIT=$(jq -r '.security_audit // false' "$CONFIG_FILE" 2>/dev/null)
+  CFG_APPROVAL_QA_FAIL=$(jq -r '.approval_gates.qa_fail // false' "$CONFIG_FILE" 2>/dev/null)
+  CFG_APPROVAL_SECURITY_WARN=$(jq -r '.approval_gates.security_warn // false' "$CONFIG_FILE" 2>/dev/null)
 fi
 
 echo "config_effort=$CFG_EFFORT"
@@ -168,6 +177,9 @@ echo "config_verification_tier=$CFG_VERIFICATION_TIER"
 echo "config_agent_teams=$CFG_AGENT_TEAMS"
 echo "config_max_tasks_per_plan=$CFG_MAX_TASKS"
 echo "config_context_compiler=$CFG_CONTEXT_COMPILER"
+echo "config_security_audit=$CFG_SECURITY_AUDIT"
+echo "config_approval_qa_fail=$CFG_APPROVAL_QA_FAIL"
+echo "config_approval_security_warn=$CFG_APPROVAL_SECURITY_WARN"
 
 # --- Codebase map status ---
 if [ -f "$PLANNING_DIR/codebase/META.md" ]; then

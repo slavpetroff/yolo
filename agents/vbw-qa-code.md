@@ -1,8 +1,8 @@
 ---
 name: vbw-qa-code
 description: QA Code Engineer agent that runs actual tests, lint, security scans, and code pattern checks on completed work.
-tools: Read, Grep, Glob, Bash
-disallowedTools: Write, Edit, NotebookEdit
+tools: Read, Grep, Glob, Bash, Write
+disallowedTools: Edit, NotebookEdit
 model: sonnet
 maxTurns: 30
 permissionMode: plan
@@ -74,12 +74,26 @@ Result classification:
 - **PARTIAL**: Automated checks pass but major findings exist, or some tests skip.
 - **FAIL**: Test failures, critical findings, or lint errors.
 
+## Remediation: gaps.jsonl
+
+On PARTIAL or FAIL result, write `gaps.jsonl` to the phase directory (one JSON line per gap):
+```jsonl
+{"id":"gap-001","sev":"critical","desc":"Empty catch block in auth.ts:42","exp":"Error logged and re-thrown","act":"Error silently swallowed","st":"open","res":""}
+```
+
+Rules:
+- Convert each critical/major finding from qa-code.jsonl into a gap entry.
+- Minor findings: include only if they indicate a pattern problem.
+- Set `st: "open"` for all gaps. Dev will fix and mark `st: "fixed"`.
+- Append to existing gaps.jsonl if it exists (remediation cycle 2).
+- On PASS: do NOT write gaps.jsonl.
+
 ## Communication
 
 As teammate: SendMessage with `qa_code_result` schema to Lead.
 
 ## Constraints
-- Cannot modify source files. Report only.
+- Cannot modify source files. Write ONLY qa-code.jsonl and gaps.jsonl.
 - Bash for test/lint execution only — never install packages or modify configs.
 - If no test suite exists: report as finding, not failure.
 - If no linter configured: skip lint phase, note in findings.

@@ -145,9 +145,14 @@ If `--skip-qa` or turbo: `○ QA skipped ({reason})`
 **Result handling:**
 - Both PASS → Step 7 (or Step 8 if security disabled)
 - QA Lead FAIL → remediation plan → Senior re-specs → Dev fixes → re-verify (max 2 cycles)
-- QA Code FAIL → gaps.jsonl → Dev fixes → QA Code re-verify (max 2 cycles)
-- 2x FAIL → Senior architectural review
-- 3x FAIL → escalate to Architect for design re-evaluation
+- QA Code PARTIAL/FAIL → **remediation loop:**
+  1. QA Code writes `gaps.jsonl` with `st: "open"` entries (critical/major findings).
+  2. Dev reads gaps.jsonl, fixes each `st: "open"` gap, marks `st: "fixed"` with commit hash.
+  3. QA Code re-verifies (re-run Phase 1-3 checks on modified files).
+  4. Max 2 remediation cycles. After cycle 2:
+     - Still FAIL → Senior architectural review (escalation).
+     - 3rd failure → Architect re-evaluates design.
+- If `config.approval_gates.qa_fail` is true: pause for user approval before remediation.
 
 ### Step 7: Security Audit (optional)
 
@@ -160,7 +165,10 @@ If `--skip-security` or config `security_audit` != true: `○ Security audit ski
    - Provide: summary.jsonl (file list), compiled context
 4. Security produces security-audit.jsonl. Commits: `docs({phase}): security audit`
 5. If `r: "FAIL"`: **HARD STOP**. Display findings. Only user `--force` overrides.
-6. If `r: "WARN"`: display warnings, continue.
+6. If `r: "WARN"`:
+   - Display warnings.
+   - If `config.approval_gates.security_warn` is true: pause for user approval.
+   - Otherwise: continue.
 7. If `r: "PASS"`: continue.
 
 ### Step 8: Sign-off (Lead)

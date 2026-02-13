@@ -23,6 +23,15 @@ Read plan.jsonl from disk (source of truth). Parse header (line 1) and task line
 If `.vbw-planning/.compaction-marker` exists: re-read plan.jsonl from disk.
 
 ### Stage 2: Execute Tasks
+
+**Remediation check:** Before normal tasks, check `{phase-dir}/gaps.jsonl`. If it exists with `st: "open"` entries, fix those FIRST:
+1. Read each gap with `st: "open"`.
+2. Fix the issue described in `desc` (expected: `exp`, actual: `act`).
+3. Update the gap entry: set `st: "fixed"`, `res: "{commit-hash}"`.
+4. Commit fix: `fix({phase}-{plan}): resolve {gap-id}`.
+5. After all gaps fixed, continue with normal tasks (or signal re-verify).
+
+**Normal task execution:**
 Per task:
 1. Read the `spec` field — this is your EXACT instruction set.
 2. Implement action: create/modify files listed in `f` field.
