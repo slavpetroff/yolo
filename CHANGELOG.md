@@ -2,6 +2,44 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.20.3] - 2026-02-13
+
+### Changed
+
+- **`discovery-protocol`** -- complete rewrite of `references/discovery-protocol.md` for coherence and completeness. B2 bootstrap and Discuss mode logic fully specified with gap fixes from research. Removed brittle line number references from Integration Points.
+- **`vibe`** -- updated Discuss mode and Bootstrap B2 to align with rewritten discovery protocol.
+
+---
+
+## [1.20.2] - 2026-02-13
+
+### Community Contributions
+
+Merges 10 pull requests from **[@dpearson2699](https://github.com/dpearson2699)** (Derek Pearson). These contributions identified bugs, proposed fixes, and directly influenced the v1.20.0 architecture. Previously closed without proper merge credit — now properly merged and attributed.
+
+### Merged
+
+- **#10** -- `fix(update)`: identified `CLAUDE_PLUGIN_ROOT` breakage when commands copied to user directory.
+- **#11** -- `fix(compile-context)`: fixed unpadded phase number resolution in `compile-context.sh`.
+- **#12** -- `fix(stack)`: identified nested manifest scanning gap in `detect-stack.sh`, added iOS/Swift mappings.
+- **#13** -- `fix(map)`: identified zsh `nomatch` glob crash, triggering a repo-wide zsh compatibility audit.
+- **#14** -- `fix(todo)`: fixed STATE.md/todo.md heading mismatch causing unreliable insertion after `/vbw:init`.
+- **#15** -- `test(verification)`: built repo-wide verification harness (228+ tests, GitHub Actions CI, command frontmatter validation).
+- **#17** -- `fix(bootstrap)`: hardened CLAUDE.md bootstrap with centralized isolation, brownfield stripping, input guardrails.
+- **#19** -- `refactor(isolation)`: designed the two-layer defense model and auto-migration that ships as the canonical isolation architecture.
+- **#22** -- `fix(vibe)`: identified and fixed scope mode writing lifecycle actions into Todos section.
+- **#24** -- `fix(hooks)`: systematic audit of `hookEventName` compliance across 8 hook scripts.
+
+### Added (from Derek's PRs, beyond v1.20.1)
+
+- **`ci`** -- GitHub Actions CI workflow (`.github/workflows/verification.yml`) for automated PR and push checks.
+- **`testing`** -- repo-wide test harness: `testing/run-all.sh`, `verify-bash-scripts-contract.sh`, `verify-commands-contract.sh`.
+- **`bootstrap`** -- `scripts/verify-claude-bootstrap.sh` with 27 contract tests.
+- **`hooks`** -- `hookEventName` compliance added to 7 additional hook scripts (`post-compact`, `map-staleness`, `prompt-preflight`, `validate-commit`, `validate-frontmatter`, `validate-summary`).
+- **`stack`** -- expanded `config/stack-mappings.json` with iOS/Swift and recursive detection entries.
+
+---
+
 ## [1.20.1] - 2026-02-13
 
 ### Fixed
