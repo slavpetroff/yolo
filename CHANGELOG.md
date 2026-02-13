@@ -2,6 +2,34 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.20.5] - 2026-02-13
+
+### Community Contributions
+
+- **PR #27** (@halindrome) -- CLAUDE_CONFIG_DIR support across all hooks and scripts
+- **PR #29** (@dpearson2699) -- Fix 6 command names missing `vbw:` prefix for discovery
+
+### Added
+
+- **`resolve-claude-dir.sh`** -- Central helper for Claude config directory resolution
+
+### Fixed
+
+- **`hooks`** -- All 21 hook commands now respect `CLAUDE_CONFIG_DIR` environment variable
+- **`commands`** -- 6 commands missing `vbw:` prefix now discoverable under `/vbw:*`
+- **`doctor`** -- Plugin cache check respects custom config directory
+- **`verify-vibe`** -- Removed unused `GLOBAL_MIRROR` variable
+
+### Changed
+
+- **`scripts`** -- 8 scripts source central resolver instead of inline fallback pattern
+
+### Testing
+
+- **`resolve-claude-dir`** -- 19 new bats tests for CLAUDE_CONFIG_DIR resolution
+
+---
+
 ## [1.20.4] - 2026-02-13
 
 ### Fixed
