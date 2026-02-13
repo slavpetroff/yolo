@@ -19,6 +19,10 @@
     ],
     "per_task_budget_enabled": true
   },
+  "escalation": {
+    "reduction_percent": 15,
+    "min_budget_floor": 100
+  },
   "truncation_strategy": "tail",
   "overage_action": "truncate_and_log"
 }
