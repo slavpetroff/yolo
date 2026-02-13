@@ -447,3 +447,38 @@ run_cc() {
   assert_output --partial "files_to_check:"
   assert_output --partial "src/foo.ts"
 }
+
+# --- Department-specific architecture file resolution ---
+
+@test "fe-senior uses fe-architecture.toon when available" {
+  echo "goal: Build FE components" > "$PHASES_DIR/01-setup/fe-architecture.toon"
+  echo "tech_decisions: React, TypeScript" >> "$PHASES_DIR/01-setup/fe-architecture.toon"
+  run_cc 01 fe-senior
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-fe-senior.toon"
+  run cat "$ctx"
+  assert_output --partial "Build FE components"
+  assert_output --partial "React, TypeScript"
+}
+
+@test "ux-lead uses ux-architecture.toon when available" {
+  echo "goal: Design UI system" > "$PHASES_DIR/01-setup/ux-architecture.toon"
+  echo "tech_decisions: Figma tokens, 8px grid" >> "$PHASES_DIR/01-setup/ux-architecture.toon"
+  run_cc 01 ux-lead
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-ux-lead.toon"
+  run cat "$ctx"
+  assert_output --partial "Design UI system"
+  assert_output --partial "Figma tokens"
+}
+
+@test "backend lead uses architecture.toon (not fe- or ux- prefixed)" {
+  echo "goal: Build backend API" > "$PHASES_DIR/01-setup/architecture.toon"
+  echo "tech_decisions: Node.js, Express" >> "$PHASES_DIR/01-setup/architecture.toon"
+  run_cc 01 lead
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-lead.toon"
+  run cat "$ctx"
+  assert_output --partial "Build backend API"
+  assert_output --partial "Express"
+}

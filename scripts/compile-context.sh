@@ -76,7 +76,7 @@ get_conventions() {
   local compact="${1:-false}"
   if [ -f "$PLANNING_DIR/conventions.json" ] && command -v jq &>/dev/null; then
     if [ "$compact" = "true" ]; then
-      jq -r '.conventions[] | "  \(.tag),\(.rule)"' "$PLANNING_DIR/conventions.json" 2>/dev/null || true
+      jq -r '.conventions[] | "  \(.tag)"' "$PLANNING_DIR/conventions.json" 2>/dev/null || true
     else
       jq -r '.conventions[] | "  \(.tag),\(.rule)"' "$PLANNING_DIR/conventions.json" 2>/dev/null || true
     fi
@@ -222,15 +222,20 @@ case "$BASE_ROLE" in
       emit_header
       echo ""
       get_requirements
-      echo ""
       get_research
       echo ""
       # Include codebase mapping summaries if available
       if [ -d "$PLANNING_DIR/codebase" ]; then
         echo "codebase:"
-        for f in index.jsonl architecture.jsonl patterns.jsonl concerns.jsonl; do
-          if [ -f "$PLANNING_DIR/codebase/$f" ]; then
-            echo "  @$PLANNING_DIR/codebase/$f"
+        for base in index architecture patterns concerns; do
+          # Check .jsonl first, then .md (uppercase for .md files)
+          if [ -f "$PLANNING_DIR/codebase/${base}.jsonl" ]; then
+            echo "  @$PLANNING_DIR/codebase/${base}.jsonl"
+          else
+            base_upper=$(echo "$base" | tr '[:lower:]' '[:upper:]')
+            if [ -f "$PLANNING_DIR/codebase/${base_upper}.md" ]; then
+              echo "  @$PLANNING_DIR/codebase/${base_upper}.md"
+            fi
           fi
         done
       fi
@@ -238,8 +243,8 @@ case "$BASE_ROLE" in
       # For FE architect: include UX handoff if available
       if [ "$DEPT" = "fe" ] && [ -f "$PHASE_DIR/design-handoff.jsonl" ]; then
         echo "design_handoff: @$PHASE_DIR/design-handoff.jsonl"
+        echo ""
       fi
-      echo ""
       echo "success_criteria: $PHASE_SUCCESS"
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
@@ -252,8 +257,8 @@ case "$BASE_ROLE" in
       if [ -f "$ARCH_FILE" ]; then
         echo "architecture:"
         head -5 "$ARCH_FILE" | sed 's/^/  /'
+        echo ""
       fi
-      echo ""
       get_requirements
       echo ""
       # Decisions from decisions.jsonl (preferred) or STATE.md (fallback)
@@ -275,8 +280,8 @@ case "$BASE_ROLE" in
         if [ -f "$PHASE_DIR/api-contracts.jsonl" ]; then
           echo "api_contracts: @$PHASE_DIR/api-contracts.jsonl"
         fi
+        echo ""
       fi
-      echo ""
       echo "success_criteria: $PHASE_SUCCESS"
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
@@ -289,13 +294,15 @@ case "$BASE_ROLE" in
       if [ -f "$ARCH_FILE" ]; then
         echo "architecture:"
         sed 's/^/  /' "$ARCH_FILE"
+        echo ""
       fi
-      echo ""
       get_requirements
       echo ""
       # Codebase patterns for spec enrichment
       if [ -f "$PLANNING_DIR/codebase/patterns.jsonl" ]; then
         echo "patterns: @$PLANNING_DIR/codebase/patterns.jsonl"
+      elif [ -f "$PLANNING_DIR/codebase/PATTERNS.md" ]; then
+        echo "patterns: @$PLANNING_DIR/codebase/PATTERNS.md"
       fi
       echo ""
       # For FE senior: include design tokens and component specs
@@ -306,8 +313,8 @@ case "$BASE_ROLE" in
         if [ -f "$PHASE_DIR/component-specs.jsonl" ]; then
           echo "component_specs: @$PHASE_DIR/component-specs.jsonl"
         fi
+        echo ""
       fi
-      echo ""
       # Conventions for code review
       CONVENTIONS=$(get_conventions)
       if [ -n "$CONVENTIONS" ]; then
@@ -333,8 +340,8 @@ case "$BASE_ROLE" in
       # For FE dev: include design tokens reference
       if [ "$DEPT" = "fe" ] && [ -f "$PHASE_DIR/design-tokens.jsonl" ]; then
         echo "design_tokens: @$PHASE_DIR/design-tokens.jsonl"
+        echo ""
       fi
-      echo ""
       # Conventions (compact)
       CONVENTIONS=$(get_conventions true)
       if [ -n "$CONVENTIONS" ]; then
@@ -372,8 +379,8 @@ case "$BASE_ROLE" in
         if [ -f "$PHASE_DIR/component-specs.jsonl" ]; then
           echo "component_specs: @$PHASE_DIR/component-specs.jsonl"
         fi
+        echo ""
       fi
-      echo ""
       # Conventions to check
       CONVENTIONS=$(get_conventions)
       if [ -n "$CONVENTIONS" ]; then
@@ -405,7 +412,6 @@ case "$BASE_ROLE" in
         echo "conventions[${CONV_COUNT}]{tag,rule}:"
         echo "$CONVENTIONS"
       fi
-      echo ""
       get_research
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
@@ -424,6 +430,8 @@ case "$BASE_ROLE" in
       # Codebase patterns for test conventions
       if [ -f "$PLANNING_DIR/codebase/patterns.jsonl" ]; then
         echo "patterns: @$PLANNING_DIR/codebase/patterns.jsonl"
+      elif [ -f "$PLANNING_DIR/codebase/PATTERNS.md" ]; then
+        echo "patterns: @$PLANNING_DIR/codebase/PATTERNS.md"
       fi
       echo ""
       # Conventions for test structure
@@ -441,7 +449,6 @@ case "$BASE_ROLE" in
       emit_header
       echo ""
       get_requirements
-      echo ""
       echo "success_criteria: $PHASE_SUCCESS"
       echo ""
       # Department results if available
@@ -451,7 +458,6 @@ case "$BASE_ROLE" in
           jq -r '"  \(.dept // ""): \(.r // "")"' "$dept_result" 2>/dev/null || true
         fi
       done
-      echo ""
       # Cross-department overview
       if [ -f "$PHASE_DIR/design-handoff.jsonl" ]; then
         echo "design_handoff: @$PHASE_DIR/design-handoff.jsonl"
@@ -489,7 +495,6 @@ case "$BASE_ROLE" in
   debugger)
     {
       emit_header
-      echo ""
       get_research
       echo ""
       # Recent changes for context
@@ -511,15 +516,20 @@ case "$BASE_ROLE" in
       emit_header
       echo ""
       get_requirements
-      echo ""
       get_research
       echo ""
       # Include codebase mapping summaries if available
       if [ -d "$PLANNING_DIR/codebase" ]; then
         echo "codebase:"
-        for f in index.jsonl architecture.jsonl patterns.jsonl concerns.jsonl; do
-          if [ -f "$PLANNING_DIR/codebase/$f" ]; then
-            echo "  @$PLANNING_DIR/codebase/$f"
+        for base in index architecture patterns concerns; do
+          # Check .jsonl first, then .md (uppercase for .md files)
+          if [ -f "$PLANNING_DIR/codebase/${base}.jsonl" ]; then
+            echo "  @$PLANNING_DIR/codebase/${base}.jsonl"
+          else
+            base_upper=$(echo "$base" | tr '[:lower:]' '[:upper:]')
+            if [ -f "$PLANNING_DIR/codebase/${base_upper}.md" ]; then
+              echo "  @$PLANNING_DIR/codebase/${base_upper}.md"
+            fi
           fi
         done
       fi
