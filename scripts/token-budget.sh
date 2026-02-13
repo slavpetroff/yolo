@@ -28,13 +28,18 @@ fi
 ROLE="$1"
 shift
 
-# Read content
+# Read content from file arg or stdin
 CONTENT=""
 if [ $# -ge 1 ] && [ -f "$1" ]; then
   CONTENT=$(cat "$1" 2>/dev/null) || CONTENT=""
+  shift
 else
   CONTENT=$(cat 2>/dev/null) || CONTENT=""
 fi
+
+# Optional contract metadata for per-task budgets
+CONTRACT_PATH="${1:-}"
+TASK_NUMBER="${2:-}"
 
 # If flag disabled, pass through
 if [ "$ENABLED" != "true" ]; then
