@@ -48,3 +48,80 @@ teardown() {
   # Lock directory should be cleaned up after operation
   [ ! -d "$TEST_TEMP_DIR/state.txt.lock" ]
 }
+
+# =============================================================================
+# Bug #8: compile-context.sh handles all 6 roles
+# =============================================================================
+
+# Helper: set up minimal .vbw-planning structure for compile-context.sh
+setup_compile_context() {
+  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/phases/01-test"
+  create_test_config
+
+  cat > "$TEST_TEMP_DIR/.vbw-planning/ROADMAP.md" <<'ROADMAP'
+## Phases
+
+### Phase 1: Test Phase
+**Goal:** Test the context compiler
+**Reqs:** REQ-01
+**Success:** All roles produce context files
+ROADMAP
+
+  cat > "$TEST_TEMP_DIR/.vbw-planning/REQUIREMENTS.md" <<'REQS'
+## Requirements
+- [REQ-01] Sample requirement for testing
+REQS
+
+  cat > "$TEST_TEMP_DIR/.vbw-planning/STATE.md" <<'STATE'
+## Status
+Phase: 1 of 1 (Test Phase)
+Status: executing
+Progress: 50%
+
+## Activity
+- Task 1 completed
+- Task 2 in progress
+
+## Decisions
+- Decided to test all roles
+STATE
+}
+
+@test "compile-context.sh supports all 6 roles" {
+  setup_compile_context
+  cd "$TEST_TEMP_DIR"
+  for role in lead dev qa scout debugger architect; do
+    run bash "$SCRIPTS_DIR/compile-context.sh" "01" "$role" ".vbw-planning/phases"
+    [ "$status" -eq 0 ]
+    [ -f ".vbw-planning/phases/01-test/.context-${role}.md" ]
+    # File must be non-empty
+    [ -s ".vbw-planning/phases/01-test/.context-${role}.md" ]
+  done
+}
+
+@test "compile-context.sh scout context includes requirements" {
+  setup_compile_context
+  cd "$TEST_TEMP_DIR"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "scout" ".vbw-planning/phases"
+  [ "$status" -eq 0 ]
+  grep -q "Research Context" ".vbw-planning/phases/01-test/.context-scout.md"
+  grep -q "Requirements" ".vbw-planning/phases/01-test/.context-scout.md"
+}
+
+@test "compile-context.sh debugger context includes activity" {
+  setup_compile_context
+  cd "$TEST_TEMP_DIR"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".vbw-planning/phases"
+  [ "$status" -eq 0 ]
+  grep -q "Debug Context" ".vbw-planning/phases/01-test/.context-debugger.md"
+  grep -q "Recent Activity" ".vbw-planning/phases/01-test/.context-debugger.md"
+}
+
+@test "compile-context.sh architect context includes full requirements" {
+  setup_compile_context
+  cd "$TEST_TEMP_DIR"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "architect" ".vbw-planning/phases"
+  [ "$status" -eq 0 ]
+  grep -q "Architecture Context" ".vbw-planning/phases/01-test/.context-architect.md"
+  grep -q "Full Requirements" ".vbw-planning/phases/01-test/.context-architect.md"
+}
