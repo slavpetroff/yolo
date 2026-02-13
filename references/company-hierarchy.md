@@ -111,7 +111,8 @@ Each phase follows this cadence:
 ### Primary Chain
 
 ```
-Dev → Senior → Lead → Architect → User
+Dev → Senior → Lead → Architect → User                  (single-department)
+Dept Dev → Dept Senior → Dept Lead → Dept Architect → Owner → User  (multi-department)
 ```
 
 ### Full Escalation Table
@@ -157,20 +158,38 @@ Lead decides              → Accept with known issues OR escalate to Architect
 
 ## Context Isolation
 
-### Planning Team sees:
-- ROADMAP.md, reqs.jsonl, PROJECT.md, codebase/
-- Prior phase summary.jsonl (for dependency context)
-- NEVER: code-review.jsonl, gaps.jsonl, .execution-state.json
+### Per-Agent Context Scoping (within a department)
 
-### Execution Team sees:
-- plan.jsonl (enriched), .ctx-dev.toon, research.jsonl
-- Prior summary.jsonl (for cross-phase deps)
-- NEVER: verification.jsonl, code-review.jsonl, security-audit.jsonl
+Each agent level receives progressively LESS context. This prevents noise and enforces clean delegation:
 
-### Quality Team sees:
-- plan.jsonl, summary.jsonl, git diff, .ctx-qa.toon
-- research.jsonl (for expected behavior context)
-- NEVER: modifies source code (QA Lead/Senior), modifies plan.jsonl
+| Agent | Receives | NEVER receives |
+|-------|----------|----------------|
+| Lead | Dept CONTEXT + ROADMAP + REQUIREMENTS + architecture.toon + prior summaries + codebase mapping | Other dept contexts, code-review.jsonl, gaps.jsonl, security-audit.jsonl |
+| Architect | Dept CONTEXT + REQUIREMENTS + critique.jsonl + codebase mapping + research.jsonl | Other dept contexts, implementation code, QA artifacts |
+| Senior (Design Review) | architecture.toon + plan.jsonl tasks + codebase patterns + critique.jsonl | Full CONTEXT file directly (only via architecture.toon), other dept artifacts |
+| Senior (Code Review) | plan.jsonl + git diff + test-plan.jsonl | CONTEXT files, ROADMAP directly |
+| Tester | Enriched plan.jsonl (tasks with `ts` field) + codebase patterns | CONTEXT files, architecture.toon, critique.jsonl |
+| Dev | Enriched plan.jsonl (`spec` field ONLY) + test files (RED targets) | architecture.toon, CONTEXT files, critique.jsonl, ROADMAP, REQUIREMENTS |
+| QA Lead | plan.jsonl + summary.jsonl + .ctx-qa.toon | Source code modifications, CONTEXT files |
+| QA Code | summary.jsonl (file list) + test-plan.jsonl + .ctx-qa-code.toon | CONTEXT files, architecture.toon |
+
+**Key principle:** Dev receives ZERO creative context. The `spec` field IS the complete instruction set.
+
+### Cross-Department Context Isolation (multi-department mode)
+
+When multiple departments are active, context is split at the Owner level:
+
+| Department | Receives | NEVER receives |
+|------------|----------|----------------|
+| Backend | `{phase}-CONTEXT-backend.md` | UX context, FE context, design tokens, component specs |
+| UI/UX | `{phase}-CONTEXT-uiux.md` | BE context, FE context, API contracts |
+| Frontend | `{phase}-CONTEXT-frontend.md` + UX handoff artifacts | BE context, UX internal plans/architecture |
+
+Backend agents NEVER read UI/UX artifacts directly. Frontend relays relevant information via handoff artifacts only.
+
+### Escalation Restores Context
+
+When escalation reaches Owner, Owner clarifies with user and pushes corrected context back DOWN through the same chain (Owner→Architect→Lead→Senior→Dev). Resolution comes as updated artifacts, never as raw context dumps. No level is ever skipped.
 
 ## Commit-Every-Artifact Protocol
 

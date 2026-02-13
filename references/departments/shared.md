@@ -22,6 +22,7 @@ Owner is the final internal escalation point. All department Leads report to Own
 
 | Mode | Trigger | Input | Output |
 |------|---------|-------|--------|
+| Context Gathering | Phase start (via go.md proxy) | User answers via questionnaire | Dept-specific CONTEXT files (split, no bleed) |
 | Critique Review | Before architecture | critique.jsonl + reqs.jsonl | `owner_review` to Leads |
 | Conflict Resolution | Inter-department conflict | Escalations from Leads | Resolution + rationale to Leads |
 | Final Sign-off | All departments complete | `department_result` from Leads | `owner_signoff` to Leads |
@@ -86,14 +87,17 @@ Owner is the final internal escalation point. All department Leads report to Own
 Phase Start
     │
     ▼
- Owner Review (critique)
+ Owner Context Gathering  ← SOLE point of contact with user
+    │                        Questionnaire → split into dept CONTEXT files
+    ▼
+ Owner Critique Review    ← balanced/thorough only
     │
     ▼
  UI/UX Department (10-step)
-    │ handoff
+    │ handoff (design-tokens, component-specs)
     ├──────────────┐
     ▼              ▼
- Frontend (10)  Backend (10)  ← parallel
+ Frontend (10)  Backend (10)  ← parallel, each gets ONLY their dept context
     │              │
     └──────┬───────┘
            ▼

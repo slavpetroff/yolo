@@ -233,10 +233,10 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 6. **Multi-department planning (when `multi_dept=true` from resolve-departments.sh above):**
    Read `${CLAUDE_PLUGIN_ROOT}/references/cross-team-protocol.md` for workflow order.
 
-   a. **Owner Context Gathering (FIRST — before any department leads spawn):**
-      The Owner is the SOLE point of contact with the user. In multi-department mode, go.md acts as the Owner's proxy to gather ALL requirements before ANY department lead is spawned. No department lead talks to the user — only the Owner does.
+   a. **Owner Context Gathering + Context Splitting (FIRST — before any department leads spawn):**
+      The Owner is the SOLE point of contact with the user. In multi-department mode, go.md acts as the Owner's proxy to gather ALL requirements before ANY department lead is spawned. NO other agent talks to the user — ONLY the Owner does.
 
-      **Questionnaire** — ask via AskUserQuestion in 2-3 adaptive rounds until context is clear:
+      **Questionnaire** — ask via AskUserQuestion in 2-3 adaptive rounds. Keep asking until ALL context is gathered and NO ambiguity remains:
 
       **Round 1: Vision and scope** (always):
       - "What are you building? Describe the end goal in 1-2 sentences."
@@ -248,14 +248,25 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
       - If `fe_active=true`: "Frontend framework preference? (React, Vue, Svelte, vanilla) Any component library? SSR needed?"
       - Backend (always): "Data storage needs? Auth method? External APIs or services to integrate?"
 
-      **Round 3: Integration and constraints** (if 2+ departments active):
+      **Round 3: Gaps, features, and constraints** (if 2+ departments active):
       - "How should frontend and backend communicate? (REST, GraphQL, WebSocket)"
       - "Any hard constraints? (tech stack, hosting, budget, timeline)"
+      - Suggest features the user may not have considered based on their vision. Ask: "Would you also want X, Y, or Z?"
+      - Surface gaps: "You mentioned X but haven't specified Y — how should that work?"
       - "Anything else the team should know?"
 
-      Stop asking when context is clear. Write gathered context to `{phase-dir}/{phase}-CONTEXT.md` organized by department section.
+      **Keep asking until satisfied.** If answers are vague, ask follow-ups. If there are contradictions, resolve them. The goal is ZERO ambiguity before any department starts.
 
-      Display: `◆ Owner gathering project context...` → (questions) → `✓ Context gathered — all departments briefed`
+      **Context Splitting (MANDATORY — NO CONTEXT BLEED):**
+      After gathering ALL context, split into department-specific context files. Each file contains ONLY what that department needs:
+
+      - `{phase-dir}/{phase}-CONTEXT-backend.md` — Backend concerns ONLY: data models, API design, auth, infrastructure, external services, performance requirements. NO UI/UX details. NO frontend framework choices.
+      - `{phase-dir}/{phase}-CONTEXT-uiux.md` — UX concerns ONLY: design preferences, target users, accessibility needs, user flows, device targets, interaction patterns. NO backend implementation details. NO frontend framework choices.
+      - `{phase-dir}/{phase}-CONTEXT-frontend.md` — Frontend concerns ONLY: framework choice, component architecture, state management, routing, SSR needs, responsive requirements. NO backend implementation details. NO raw design decisions (those come via UX handoff artifacts later).
+
+      Each file structure: **Vision** (shared 1-2 line overview), **Department Requirements** (filtered to this dept only), **Constraints** (dept-relevant only), **Integration Points** (what this dept needs from others, stated abstractly without leaking other dept's implementation).
+
+      Display: `◆ Owner gathering project context...` → (questions) → `✓ Context gathered — split into {N} department briefs`
 
    b. **Resolve models for ALL active department Leads + Owner:**
       ```bash
@@ -285,17 +296,28 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
       - If wave contains `,` (parallel agents): spawn ALL agents in that wave in PARALLEL using multiple Task tool calls in a single message. Wait for all to complete.
       - If wave is a single agent: spawn it and wait for completion.
 
+      **Context isolation per lead (STRICT — NO CONTEXT BLEED):**
+      Each lead receives ONLY their department's context file from step 6a. Do NOT pass other departments' context files or the master gathered notes:
+
+      - `yolo-lead` (Backend): Pass `{phase}-CONTEXT-backend.md` — NEVER pass UX or FE context
+      - `yolo-ux-lead` (UX): Pass `{phase}-CONTEXT-uiux.md` — NEVER pass BE or FE context
+      - `yolo-fe-lead` (Frontend): Pass `{phase}-CONTEXT-frontend.md` + UX design handoff artifacts (after UX completes) — NEVER pass BE context
+
       For each lead, spawn `yolo-{lead-name}` with:
-      - model: resolved model from step 6d
+      - model: resolved model from step 6b
       - Compiled context from step 6c
-      - Phase dir, ROADMAP.md, REQUIREMENTS.md, CONTEXT.md (from step 6a)
+      - Phase dir, ROADMAP.md, REQUIREMENTS.md
+      - Department-specific context file ONLY (from step 6a)
+      - **DO NOT pass the other departments' context files**
+
+      Each Lead then delegates down their chain: Lead→Architect→Senior→Dev. At each level, context narrows further (see `references/cross-team-protocol.md` Context Isolation Rules). Dev receives ONLY the enriched `spec` field — no architecture, no CONTEXT, no ROADMAP.
 
       Display per lead: `◆ Spawning {Dept} Lead ({model})...` -> `✓ {Dept} Lead complete`
 
       **Example dispatch for `leads_to_spawn=ux-lead|fe-lead,lead`:**
-      1. Spawn yolo-ux-lead (model: "${UX_LEAD_MODEL}"). Wait.
+      1. Spawn yolo-ux-lead with `{phase}-CONTEXT-uiux.md`. Wait.
          `◆ Spawning UX Lead...` -> `✓ UX Lead complete`
-      2. Spawn yolo-fe-lead + yolo-lead in PARALLEL. Wait for both.
+      2. Spawn yolo-fe-lead (with `{phase}-CONTEXT-frontend.md` + UX handoff) + yolo-lead (with `{phase}-CONTEXT-backend.md`) in PARALLEL. Wait for both.
          `◆ Spawning Frontend Lead + Backend Lead...` -> `✓ All Leads complete`
 
    e. **Owner plan review (balanced/thorough effort only, when `owner_active=true`):**
@@ -341,9 +363,16 @@ This mode delegates to protocol files. Before reading:
 
   Follow `multi-dept-protocol.md` dispatch flow — each department runs its own 10-step using department-prefixed agents (fe-*, ux-*). Workflow order from `workflow` variable:
 
-  **Owner Context Gathering** (if `{phase}-CONTEXT.md` does NOT exist — user skipped Plan Mode) → **Owner Critique Review** → UX 10-step (if ux_active) → Handoff Gate → FE+BE parallel 10-step → Integration QA → Security → **Owner Sign-off**.
+  **Owner Context Gathering + Splitting** (if `{phase}-CONTEXT-backend.md` does NOT exist) → **Owner Critique Review** → UX 10-step (if ux_active) → Handoff Gate → FE+BE parallel 10-step → Integration QA → Security → **Owner Sign-off**.
 
-  The Owner is the SOLE point of contact with the user. If CONTEXT.md is missing, run the Owner questionnaire from Plan Mode step 6a before any department execution begins. No department lead or agent talks to the user — only the Owner does.
+  The Owner is the SOLE point of contact with the user. If department context files are missing, run the Owner questionnaire + context splitting from Plan Mode step 6a before any department execution begins. No department lead or agent talks to the user — only the Owner does.
+
+  **Context isolation (STRICT):** Each department's 10-step execution receives ONLY its department context file. Within each department, context cascades DOWN the hierarchy with progressive scoping:
+  - Lead receives: department CONTEXT + ROADMAP + REQUIREMENTS
+  - Architect receives: Lead's plan structure + department CONTEXT (NOT other department contexts)
+  - Senior receives: architecture.toon + plan.jsonl tasks (NOT full CONTEXT, NOT critique.jsonl directly)
+  - Dev receives: Senior's enriched `spec` field ONLY (NOT architecture.toon, NOT CONTEXT files)
+  - On escalation: flows UP the chain (Dev→Senior→Lead→Architect→Owner→User). Owner clarifies with user, then pushes corrected context back down through the SAME chain — never skipping levels.
 
   Resolve models for ALL active department agents via `resolve-agent-model.sh` with department-prefixed names (e.g., `fe-lead`, `ux-architect`, `owner`). Compile context per department via `compile-context.sh` with department-aware roles.
 

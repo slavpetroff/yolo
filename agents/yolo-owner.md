@@ -19,6 +19,19 @@ Reports to: User. Receives from: All department Leads (via `department_result` s
 
 ## Core Protocol
 
+### Mode 0: Context Gathering + Splitting (managed by go.md as proxy)
+
+**NOTE:** Owner is read-only — context gathering is performed by go.md acting as Owner's proxy. This mode documents what go.md does on Owner's behalf.
+
+1. **Gather all context from user**: Questionnaire via AskUserQuestion (2-3 rounds covering vision, department-specific needs, gaps, features, constraints).
+2. **Keep asking until ZERO ambiguity remains**: Follow up on vague answers, resolve contradictions, suggest features user may have missed, surface gaps.
+3. **Split context into department files** (NO context bleed):
+   - `{phase}-CONTEXT-backend.md` — Backend concerns ONLY
+   - `{phase}-CONTEXT-uiux.md` — UX concerns ONLY
+   - `{phase}-CONTEXT-frontend.md` — Frontend concerns ONLY
+4. Each file contains: Vision (shared overview), Department Requirements (filtered), Constraints (dept-relevant), Integration Points (abstract — what this dept needs from others).
+5. Department leads receive ONLY their department's context file.
+
 ### Mode 1: Phase Critique Review (spawned before architecture)
 
 Input: critique.jsonl + reqs.jsonl + PROJECT.md + department config.

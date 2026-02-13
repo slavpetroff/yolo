@@ -50,13 +50,15 @@ After standard pre-execution:
 
 The Owner is the SOLE point of contact with the user. No department lead or agent talks to the user directly.
 
-If `{phase-dir}/{phase}-CONTEXT.md` does NOT exist:
-1. go.md acts as Owner proxy — runs questionnaire via AskUserQuestion.
-2. Covers all active departments: vision, UX needs, frontend preferences, backend requirements, integration, constraints.
-3. Writes `{phase-dir}/{phase}-CONTEXT.md` organized by department.
-4. All department leads receive this CONTEXT.md as input.
+If department context files do NOT exist (e.g. `{phase}-CONTEXT-backend.md`):
+1. go.md acts as Owner proxy — runs questionnaire via AskUserQuestion (2-3 rounds: vision, dept-specific, gaps/features/constraints). Keeps asking until ZERO ambiguity remains.
+2. Splits gathered context into department-specific files (NO context bleed):
+   - `{phase-dir}/{phase}-CONTEXT-backend.md` — Backend concerns ONLY
+   - `{phase-dir}/{phase}-CONTEXT-uiux.md` — UX concerns ONLY
+   - `{phase-dir}/{phase}-CONTEXT-frontend.md` — Frontend concerns ONLY
+3. Each department lead receives ONLY their department's context file.
 
-If CONTEXT.md already exists (from Plan Mode): skip to Step 0b.
+If department context files already exist (from Plan Mode): skip to Step 0b.
 
 **Step 0b: Owner Critique Review (balanced/thorough effort only):**
 
@@ -67,6 +69,39 @@ If Owner is active (multiple departments):
    - Input: critique.jsonl, reqs.jsonl, department config, CONTEXT.md
 3. Owner determines department priorities and dispatch order.
 4. Owner sends `owner_review` to all department Leads.
+
+### Context Delegation Protocol (MANDATORY — NO CONTEXT BLEED)
+
+Context flows DOWN the hierarchy with progressive scoping. Each level receives ONLY what it needs.
+
+**Owner → Department Leads (cross-department boundary):**
+
+Owner splits gathered context into department-specific files:
+- Backend Lead receives: `{phase}-CONTEXT-backend.md` (data models, APIs, auth, infrastructure)
+- UX Lead receives: `{phase}-CONTEXT-uiux.md` (design preferences, users, accessibility, flows)
+- Frontend Lead receives: `{phase}-CONTEXT-frontend.md` + UX handoff artifacts (after UX completes)
+
+Each Lead NEVER sees another department's context file. This prevents context bleed.
+
+**Within each department (Lead → Architect → Senior → Dev):**
+
+| Agent | Receives | NEVER receives |
+|-------|----------|----------------|
+| Lead | Dept CONTEXT + ROADMAP + REQUIREMENTS + prior summaries | Other dept contexts, other dept plans |
+| Architect | Lead's plan structure + dept CONTEXT + critique findings | Other dept contexts, implementation code |
+| Senior | architecture.toon + plan.jsonl tasks + codebase patterns | Full CONTEXT file, critique.jsonl directly, other dept artifacts |
+| Dev | Senior's enriched `spec` field ONLY + test files from Tester | architecture.toon, CONTEXT files, critique.jsonl, ROADMAP, REQUIREMENTS |
+
+**Dev receives ZERO creative context.** The spec field IS the complete instruction set. If spec is unclear → escalate to Senior (not read more context).
+
+**Escalation reverses the flow:**
+```
+Dev → Senior → Lead → Architect → Owner → User
+```
+At each level, the escalating agent provides evidence. At Owner level, Owner clarifies with user. Owner then pushes corrected context back DOWN through the SAME chain (never skipping levels). Corrected context is written to a new version of the relevant artifact (plan.jsonl spec update, architecture.toon amendment, or CONTEXT addendum).
+
+**UX → Frontend handoff (cross-department):**
+UX department produces design-handoff.jsonl, design-tokens.jsonl, component-specs.jsonl. These are the ONLY UX artifacts Frontend receives. Frontend Lead does NOT read UX's internal plans, architecture, or critique.
 
 ### Step 1-10: Department Dispatch
 

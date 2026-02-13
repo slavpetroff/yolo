@@ -24,6 +24,28 @@ Implements the 10-step company-grade engineering workflow. See `references/compa
    SECURITY_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh security .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
    ```
 
+### Context Scoping Protocol (MANDATORY)
+
+Each agent receives ONLY what it needs. Context flows down the hierarchy with progressive scoping — lower agents see less, not more. This prevents context bleed and ensures clean delegation.
+
+When spawning each agent via Task tool, include ONLY the listed inputs. Do NOT pass extra context "for reference."
+
+| Step | Agent | Receives (include in Task prompt) | NEVER pass |
+|------|-------|----------------------------------|-----------|
+| 1 | Critic | reqs.jsonl, PROJECT.md, codebase/, research.jsonl, dept CONTEXT (if multi-dept) | plans, code-review, QA artifacts |
+| 2 | Architect | reqs.jsonl, codebase/, research.jsonl, critique.jsonl, dept CONTEXT | implementation code, QA artifacts |
+| 3 | Lead | architecture.toon, reqs.jsonl, ROADMAP, prior summaries | critique.jsonl directly (addressed in architecture), QA artifacts |
+| 4 | Senior (Review) | plan.jsonl, architecture.toon, codebase patterns | full CONTEXT, ROADMAP, other dept artifacts |
+| 5 | Tester | enriched plan.jsonl (tasks with `ts`), codebase patterns | architecture.toon, CONTEXT, critique.jsonl |
+| 6 | Dev | enriched plan.jsonl (`spec` + `ts` fields), test files | architecture.toon, CONTEXT, critique.jsonl, ROADMAP |
+| 7 | Senior (Review) | plan.jsonl, git diff, test-plan.jsonl | CONTEXT, ROADMAP |
+| 8 | QA | plan.jsonl, summary.jsonl, .ctx-qa.toon | CONTEXT, architecture.toon |
+| 9 | Security | summary.jsonl (file list), .ctx-security.toon | CONTEXT, plans |
+
+**Key principle:** Dev receives the enriched `spec` field as its COMPLETE instruction set. If spec is unclear, Dev escalates to Senior — never reads more context files.
+
+**Escalation context flow:** When an agent escalates UP, the receiving agent has broader context to resolve. When resolution pushes back DOWN, it comes as an updated artifact (amended spec, architecture addendum), not as raw context files.
+
 ### Step 1: Critique / Brainstorm (Critic Agent)
 
 **Guard:** Skip if `--effort=turbo` or critique.jsonl already exists in phase directory.
@@ -330,12 +352,12 @@ In addition to standard pre-execution (resolve models for Steps 1-10 above):
 
 Follow `workflow` variable and `leads_to_spawn` from resolve-departments.sh:
 
-**Step 0a: Owner Context Gathering** (if `{phase}-CONTEXT.md` does NOT exist)
+**Step 0a: Owner Context Gathering + Splitting** (if `{phase}-CONTEXT-backend.md` does NOT exist)
 The Owner is the SOLE point of contact with the user — no department lead talks to user directly.
-1. go.md acts as Owner proxy: run questionnaire via AskUserQuestion (vision, UX, frontend, backend, integration, constraints).
-2. Write `{phase-dir}/{phase}-CONTEXT.md` with gathered context organized by department.
-3. If CONTEXT.md already exists (from Plan Mode): skip to Step 0b.
-4. Display: `◆ Owner gathering context...` → `✓ Context gathered`
+1. go.md acts as Owner proxy: run questionnaire via AskUserQuestion (2-3 rounds: vision, dept-specific, gaps/features/constraints). Keep asking until ZERO ambiguity.
+2. Split into department-specific context files (NO bleed): `{phase}-CONTEXT-backend.md`, `{phase}-CONTEXT-uiux.md`, `{phase}-CONTEXT-frontend.md`. Each contains ONLY that department's concerns.
+3. If department context files already exist (from Plan Mode): skip to Step 0b.
+4. Display: `◆ Owner gathering context...` → `✓ Context gathered — split into dept briefs`
 
 **Step 0b: Owner Critique Review** (balanced/thorough effort only)
 1. Run shared Critic (Step 1 above) as normal.

@@ -69,6 +69,41 @@ Phase Start
 3. **Backend-UI/UX isolation is absolute.** Backend agents cannot read UI/UX artifacts directly. Frontend relays relevant information.
 4. **Owner communicates only with Leads.** Strategic decisions, not technical details.
 
+## Context Isolation Rules (STRICT — NO CONTEXT BLEED)
+
+### Owner Context Splitting
+
+After gathering all requirements from user, Owner splits context into department-specific files:
+- `{phase}-CONTEXT-backend.md` — Backend concerns ONLY (data models, APIs, auth, infrastructure)
+- `{phase}-CONTEXT-uiux.md` — UX concerns ONLY (design preferences, users, accessibility, flows)
+- `{phase}-CONTEXT-frontend.md` — Frontend concerns ONLY (framework, components, state, routing)
+
+Each department Lead receives ONLY their file. This is enforced at spawn time by go.md.
+
+### Cross-Department Context Boundaries
+
+| Department | Can read | NEVER reads |
+|------------|----------|-------------|
+| Backend | Own CONTEXT, own plans/architecture, API contracts from FE | UX CONTEXT, FE CONTEXT, design tokens, component specs, UX plans |
+| UI/UX | Own CONTEXT, own plans/architecture | BE CONTEXT, FE CONTEXT, API contracts, backend code |
+| Frontend | Own CONTEXT, UX handoff artifacts (design-tokens, component-specs, user-flows), API contracts | BE CONTEXT, UX CONTEXT, UX internal plans/architecture, backend code |
+
+### Within-Department Scoping
+
+Context narrows as it flows down the hierarchy:
+- **Lead**: Full department CONTEXT + ROADMAP + REQUIREMENTS
+- **Architect**: Department CONTEXT + critique findings + codebase mapping
+- **Senior**: architecture.toon + plan.jsonl (NOT full CONTEXT)
+- **Dev**: enriched `spec` field ONLY (NOT architecture, NOT CONTEXT)
+
+### Escalation Context
+
+When issues escalate UP (Dev→Senior→Lead→Architect→Owner→User):
+1. Each level adds their broader context to diagnose the issue
+2. Owner clarifies with user if needed
+3. Resolution flows back DOWN as updated artifacts (spec amendment, architecture change)
+4. Resolution NEVER skips levels — Owner→Architect→Lead→Senior→Dev
+
 ## Handoff Gates
 
 ### Gate 1: UI/UX → Frontend + Backend
