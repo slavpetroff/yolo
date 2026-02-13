@@ -133,6 +133,19 @@ Read each template from `${CLAUDE_PLUGIN_ROOT}/templates/` and write to .yolo-pl
 
 Create `.yolo-planning/phases/`. Ensure config.json includes `"agent_teams": true` and `"model_profile": "quality"`.
 
+**Apply department selections (after Step 2f completes):**
+
+After Step 2f, update the already-written config.json with the user's department choices via jq:
+
+```bash
+jq --argjson fe "$DEPT_FRONTEND" --argjson ux "$DEPT_UIUX" --arg wf "$DEPT_WORKFLOW" \
+  '.departments.frontend = $fe | .departments.uiux = $ux | .department_workflow = $wf' \
+  .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+  mv .yolo-planning/config.json.tmp .yolo-planning/config.json
+```
+
+This ensures config.json reflects user choices before any downstream scripts read it.
+
 ### Step 1.5: Install git hooks
 
 1. `git rev-parse --git-dir` — if not a git repo, display "○ Git hooks skipped (not a git repository)" and skip
@@ -190,6 +203,44 @@ Set GSD_ISOLATION_ENABLED=true for Step 3.5.
 - `false`: AskUserQuestion: "○ Skills.sh Registry\n\nYOLO can search the Skills.sh registry (~2000 community skills) to find\nskills matching your project. This requires the find-skills meta-skill.\nInstall it now?" Options: "Install (Recommended)" / "Skip"
   - Approved: `npx skills add vercel-labs/skills --skill find-skills -g -y`
   - Declined: "○ Skipped. Run /yolo:skills later to search the registry."
+
+### Step 2e: Department selection
+
+**Timing:** After stack detection (Step 2b) and mapping (Step 2c), before convergence.
+
+Use AskUserQuestion multiSelect to ask which departments to enable:
+
+"Which departments should be active for this project?"
+
+Options (multiSelect: true):
+- **"Backend"** — description: "Always enabled. Server-side logic, APIs, scripts, infrastructure." (This option is pre-selected and cannot be deselected — if the user deselects it, re-add it silently.)
+- **"Frontend"** — description: "UI components, client-side logic, bundling, browser code."
+- **"UI/UX"** — description: "Design systems, wireframes, accessibility, user flows."
+
+Store selections: DEPT_BACKEND=true (always), DEPT_FRONTEND=true|false, DEPT_UIUX=true|false.
+
+If BROWNFIELD=true and `.yolo-planning/codebase/STACK.md` exists, read it to pre-suggest departments:
+- If stack mentions React, Vue, Angular, Svelte, Next, Nuxt, CSS, Tailwind, or similar frontend tech → pre-select Frontend
+- If stack mentions Figma, Storybook, design tokens, or similar → pre-select UI/UX
+- Display: `◆ Department suggestion based on detected stack`
+
+### Step 2f: Department workflow (conditional)
+
+**Only run this step if Frontend or UI/UX was enabled in Step 2e** (i.e., DEPT_FRONTEND=true OR DEPT_UIUX=true).
+
+If only Backend is enabled, set DEPT_WORKFLOW="backend_only" and skip this step.
+
+Use AskUserQuestion to ask the workflow mode:
+
+"How should departments coordinate?"
+
+Options:
+- **"Parallel (Recommended)"** — description: "UI/UX designs first, then Frontend + Backend build in parallel. Fastest."
+- **"Sequential"** — description: "UI/UX → Frontend → Backend, one at a time. Simpler but slower."
+
+Store selection as DEPT_WORKFLOW="parallel"|"sequential".
+
+Display: `✓ Departments: {comma-separated active} — workflow: {DEPT_WORKFLOW}`
 
 ### Step 3: Convergence — augment and search
 
