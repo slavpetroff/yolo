@@ -7,8 +7,8 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 ## Active Context
 
 **Work:** No active milestone
-**Last shipped:** Company-Grade Engineering Workflow — 5 phases, 7 commits. 9-agent hierarchy, JSONL artifacts, auto-commit persistence, gaps remediation loop, approval gates, 5 ADRs.
-**Previous:** Init Auto-Bootstrap — 4 phases, 6 plans, 28 tasks, 29 commits
+**Last shipped:** Multi-Department Architecture — 8 phases, 8 commits. 26 agents across 4 departments, cross-team handoff protocols, department guard enforcement, 591 tests.
+**Previous:** Company-Grade Engineering Workflow — 5 phases, 7 commits
 **Next action:** Run /vbw:vibe to start a new milestone, or /vbw:status to review progress
 
 ## VBW Rules
@@ -39,6 +39,11 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | TOON for compiled context, MD for user-facing only | 2026-02-13 | Agents read TOON natively, humans read Markdown |
 | 8-step workflow per phase | 2026-02-13 | Architecture → Plan → Design Review → Implement → Code Review → QA → Security → Sign-off |
 | Commit every artifact immediately | 2026-02-13 | Survives exit, enables resume from any point |
+| 4 departments (Backend, Frontend, UI/UX, Shared) | 2026-02-13 | Mirrors real company org, config-driven enable/disable |
+| Additive dept agents (fe-*, ux-* prefix, no rename) | 2026-02-13 | Zero breakage of existing agents, clean namespace |
+| Per-department protocol files for token segregation | 2026-02-13 | 60% token reduction per agent vs monolithic hierarchy |
+| UX → FE+BE parallel workflow | 2026-02-13 | Design-first ensures Frontend/Backend build against specs |
+| Department guard hook for directory boundaries | 2026-02-13 | Prevents cross-department file writes at hook level |
 
 ## Installed Skills
 
@@ -49,7 +54,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 These conventions are enforced during planning and verified during QA.
 
 - Commands are kebab-case .md files in commands/ [file-structure]
-- Agents named vbw-{role}.md in agents/ [naming]
+- Agents named vbw-{role}.md or vbw-{dept}-{role}.md in agents/ [naming]
 - Scripts are kebab-case .sh files in scripts/ [naming]
 - Phase directories follow {NN}-{slug}/ pattern [naming]
 - Plan files named {NN-MM}.plan.jsonl, summaries {NN-MM}.summary.jsonl [naming]
@@ -63,6 +68,21 @@ These conventions are enforced during planning and verified during QA.
 - Zero-dependency design: no package.json, npm, or build step [patterns]
 - All scripts target bash, not POSIX sh [tooling]
 - Plugin cache resolution via ls | sort -V | tail -1, never glob expansion [patterns]
+
+## Department Architecture
+
+26 agents across 4 departments. Enable/disable via `config/defaults.json` `departments` key.
+
+| Department | Agents | Prefix | Protocol File |
+|-----------|--------|--------|---------------|
+| Backend | architect, lead, senior, dev, tester, qa, qa-code | (none) | `references/departments/backend.md` |
+| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code | `fe-` | `references/departments/frontend.md` |
+| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code | `ux-` | `references/departments/uiux.md` |
+| Shared | owner, critic, scout, debugger, security | (none) | `references/departments/shared.md` |
+
+**Workflow order:** UI/UX first (design) → Frontend + Backend in parallel → Integration QA → Owner Sign-off.
+**Communication:** Backend NEVER communicates with UI/UX directly. All cross-department data passes through handoff artifacts and Leads.
+**Enforcement:** `scripts/department-guard.sh` (PreToolUse hook) blocks cross-department file writes.
 
 ## Commands
 
