@@ -98,6 +98,16 @@
     ],
     "SubagentStart": [
       {
+        "matcher": "yolo-fe-|yolo-ux-|yolo-owner",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-dept-spawn.sh; exit 0'",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "yolo-",
         "hooks": [
           {

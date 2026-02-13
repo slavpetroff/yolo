@@ -291,20 +291,95 @@ If `--skip-security` or config `security_audit` != true: `○ Security audit ski
 
 Each transition commits .execution-state.json so resume works on exit.
 
-## Multi-Department Dispatch
+## Multi-Department Execution
 
-When `departments.frontend` or `departments.uiux` is true in config, execution extends to multi-department orchestration. See `references/multi-dept-protocol.md` for full details.
+**Detection:** Check `multi_dept` from resolve-departments.sh output (pre-computed in go.md context).
+- If `multi_dept=false`: SKIP this section entirely. The standard 10-step above is sufficient.
+- If `multi_dept=true`: Follow the multi-department flow below.
 
-Key additions:
-- **Owner Review** before architecture (balanced/thorough effort)
-- **Department-specific agents** (fe-*, ux-*) run their own 10-step workflows
-- **Handoff gates** between departments (UI/UX → Frontend + Backend)
-- **Integration QA** after all departments complete
-- **Owner Sign-off** as final company-level decision
+**Protocol files (MUST Read when multi_dept=true):**
+- `references/multi-dept-protocol.md` — Full dispatch sequence, department tracking, Owner review
+- `references/cross-team-protocol.md` — Handoff gates, communication rules, workflow modes
 
-Model resolution for department agents uses the same `resolve-agent-model.sh` script with department-prefixed agent names (e.g., `fe-lead`, `ux-architect`).
+### Multi-Department Pre-Execution
 
-Context compilation for department agents uses the same `compile-context.sh` with department-aware routing — department prefix determines architecture file and cross-department context inclusion.
+In addition to standard pre-execution (resolve models for Steps 1-10 above):
+
+1. **Resolve models for all active department agents:**
+   ```bash
+   # Owner (always for multi-dept)
+   OWNER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh owner .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   # Frontend agents (if fe_active=true)
+   FE_LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-lead ...)
+   FE_ARCHITECT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-architect ...)
+   FE_SENIOR_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-senior ...)
+   FE_TESTER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-tester ...)
+   FE_DEV_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-dev ...)
+   FE_QA_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-qa ...)
+   FE_QA_CODE_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-qa-code ...)
+   # UI/UX agents (if ux_active=true) — same pattern with ux- prefix
+   ```
+
+2. **Validate department readiness:**
+   - If `fe_active=true`: verify all 7 `yolo-fe-*.md` agent files exist
+   - If `ux_active=true`: verify all 7 `yolo-ux-*.md` agent files exist
+   - Verify `references/departments/{dept}.md` for each active department
+   - Verify `references/cross-team-protocol.md` exists
+
+### Multi-Department Dispatch Flow
+
+Follow `workflow` variable and `leads_to_spawn` from resolve-departments.sh:
+
+**Step 0: Owner Critique Review** (balanced/thorough effort only)
+1. Run shared Critic (Step 1 above) as normal.
+2. Spawn yolo-owner (model: "${OWNER_MODEL}") with `owner_review` mode.
+3. Input: critique.jsonl, reqs.jsonl, department config.
+4. Owner determines department priorities and dispatch order.
+5. Display: `◆ Spawning Owner for critique review...` → `✓ Owner review complete`
+
+**Steps 1-10: Per-Department Execution**
+
+Each active department runs the SAME 10-step workflow above, using department-prefixed agents:
+- Backend: yolo-critic, yolo-architect, yolo-lead, yolo-senior, yolo-tester, yolo-dev, yolo-qa, yolo-qa-code
+- Frontend (if active): yolo-fe-architect, yolo-fe-lead, yolo-fe-senior, yolo-fe-tester, yolo-fe-dev, yolo-fe-qa, yolo-fe-qa-code
+- UI/UX (if active): yolo-ux-architect, yolo-ux-lead, yolo-ux-senior, yolo-ux-tester, yolo-ux-dev, yolo-ux-qa, yolo-ux-qa-code
+
+Dispatch order follows `leads_to_spawn` pattern from resolve-departments.sh:
+- **Parallel workflow**: UX department runs first (if active) → Handoff Gate → FE + BE run in parallel
+- **Sequential workflow**: UX → FE → BE (strict sequential)
+
+**Handoff gates** (from cross-team-protocol.md):
+- After UX completes: validate design-handoff.jsonl, design-tokens.jsonl, component-specs.jsonl exist
+- After FE+BE complete: validate api_contract status
+- Integration QA: cross-department verification
+- Shared Security: per-department audit
+- Owner Sign-off: final SHIP/HOLD decision
+
+### Multi-Department Execution State
+
+`.execution-state.json` gains department tracking when multi_dept=true:
+```json
+{
+  "phase": 1,
+  "departments": {
+    "uiux": {"status": "complete", "step": "signoff", "result": "PASS"},
+    "frontend": {"status": "running", "step": "implementation"},
+    "backend": {"status": "running", "step": "code_review"}
+  },
+  "integration_qa": "pending",
+  "owner_signoff": "pending"
+}
+```
+
+### Multi-Department Sign-off
+
+Replaces standard Step 10 when multi_dept=true:
+1. Each department Lead sends `department_result` to Owner.
+2. Integration QA runs cross-department verification.
+3. Shared Security runs per-department audit.
+4. Owner reviews all results → SHIP or HOLD.
+5. Owner sends `owner_signoff` to all department Leads.
+6. Display multi-department phase banner (see `references/yolo-brand-essentials.md`).
 
 ## Output Format
 

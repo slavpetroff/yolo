@@ -22,6 +22,19 @@ Config:
 !`cat .yolo-planning/config.json 2>/dev/null || echo "No config found"`
 ```
 
+Department routing (via resolve-departments.sh):
+```
+!`bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-departments.sh .yolo-planning/config.json 2>/dev/null || echo "multi_dept=false"`
+```
+
+Key variables from above (MANDATORY — read these before any mode):
+- `multi_dept`: true = multi-department orchestration active, false = single backend lead only
+- `workflow`: parallel | sequential | backend_only
+- `leads_to_spawn`: pipe-separated waves, comma-separated parallel (e.g., `ux-lead|fe-lead,lead`)
+- `spawn_order`: single | wave | sequential
+- `owner_active`: true if Owner agent should be spawned for cross-dept review
+- `fe_active` / `ux_active`: individual department flags
+
 ## Input Parsing
 
 Three input paths, evaluated in order:
@@ -202,9 +215,10 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 **Steps:**
 1. **Parse args:** Phase number (optional, auto-detected), --effort (optional, falls back to config).
 2. **Phase Discovery (if applicable):** Skip if already planned, phase dir has `{phase}-CONTEXT.md`, or DISCOVERY_DEPTH=skip. Otherwise: read `${CLAUDE_PLUGIN_ROOT}/references/discovery-protocol.md` Phase Discovery mode. Generate phase-scoped questions (quick=1, standard=1-2, thorough=2-3). Skip categories already in `discovery.json.answered[]`. Present via AskUserQuestion. Append to `discovery.json`. Write `{phase}-CONTEXT.md`.
-3. **Context compilation:** If `config_context_compiler=true`, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} lead {phases_dir}`. Include `.ctx-lead.toon` in Lead agent context if produced.
+3. **Context compilation:** If `config_context_compiler=true`, compile context for the appropriate leads (see step 5/6).
 4. **Turbo shortcut:** If effort=turbo, skip Lead. Read phase reqs from ROADMAP.md, create single lightweight plan.jsonl inline (header + tasks, no spec field).
-5. **Other efforts:**
+5. **Single-department planning (when `multi_dept=false` from resolve-departments.sh above):**
+   - Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} lead {phases_dir}`
    - Resolve Lead model:
      ```bash
      LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
@@ -216,6 +230,55 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
    - Spawn yolo-lead as subagent via Task tool with compiled context (or full file list as fallback).
    - **CRITICAL:** Add `model: "${LEAD_MODEL}"` parameter to the Task tool invocation.
    - Display `◆ Spawning Lead agent...` -> `✓ Lead agent complete`.
+6. **Multi-department planning (when `multi_dept=true` from resolve-departments.sh above):**
+   Read `${CLAUDE_PLUGIN_ROOT}/references/cross-team-protocol.md` for workflow order.
+
+   a. **Resolve models for ALL active department Leads + Owner:**
+      ```bash
+      # Backend Lead (always)
+      LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+      # Frontend Lead (if fe_active=true)
+      FE_LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+      # UX Lead (if ux_active=true)
+      UX_LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh ux-lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+      # Owner (always for multi-dept)
+      OWNER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh owner .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+      ```
+
+   b. **Compile context per department Lead:**
+      ```bash
+      bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} lead {phases_dir}
+      # If fe_active=true:
+      bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} fe-lead {phases_dir}
+      # If ux_active=true:
+      bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} ux-lead {phases_dir}
+      ```
+
+   c. **Follow `leads_to_spawn` dispatch order from resolve-departments.sh:**
+      Parse `leads_to_spawn` — `|` separates waves, `,` separates parallel agents within a wave.
+
+      For each wave (separated by `|`):
+      - If wave contains `,` (parallel agents): spawn ALL agents in that wave in PARALLEL using multiple Task tool calls in a single message. Wait for all to complete.
+      - If wave is a single agent: spawn it and wait for completion.
+
+      For each lead, spawn `yolo-{lead-name}` with:
+      - model: resolved model from step 6a
+      - Compiled context from step 6b
+      - Phase dir, ROADMAP.md, REQUIREMENTS.md, CONTEXT.md
+
+      Display per lead: `◆ Spawning {Dept} Lead ({model})...` -> `✓ {Dept} Lead complete`
+
+      **Example dispatch for `leads_to_spawn=ux-lead|fe-lead,lead`:**
+      1. Spawn yolo-ux-lead (model: "${UX_LEAD_MODEL}"). Wait.
+         `◆ Spawning UX Lead...` -> `✓ UX Lead complete`
+      2. Spawn yolo-fe-lead + yolo-lead in PARALLEL. Wait for both.
+         `◆ Spawning Frontend Lead + Backend Lead...` -> `✓ All Leads complete`
+
+   d. **Owner plan review (balanced/thorough effort only, when `owner_active=true`):**
+      - Spawn yolo-owner (model: "${OWNER_MODEL}") with `owner_review` mode.
+      - Provide: all department plan.jsonl files, reqs.jsonl, department config.
+      - Owner reviews cross-department plan coherence and sets priorities.
+      - Display `◆ Spawning Owner for plan review...` -> `✓ Owner review complete`
 6. **Validate output:** Verify plan.jsonl files exist with valid JSONL (each line parses with jq). Check header has p, n, t, w, mh fields. Check wave deps acyclic.
 7. **Present:** Update STATE.md (phase position, plan count, status=Planned). Resolve model profile:
    ```bash
@@ -233,9 +296,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 
 ### Mode: Execute
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` and follow its 10-step company workflow (Critique → Architecture → Planning → Design Review → Test Authoring RED → Implementation → Code Review → QA → Security → Sign-off). See `references/company-hierarchy.md` for agent hierarchy.
-
-This mode delegates entirely to the protocol file. Before reading:
+This mode delegates to protocol files. Before reading:
 1. **Parse arguments:** Phase number (auto-detect if omitted), --effort, --skip-qa, --skip-security, --plan=NN.
 2. **Run execute guards:**
    - Not initialized: STOP "Run /yolo:init first."
@@ -243,7 +304,20 @@ This mode delegates entirely to the protocol file. Before reading:
    - All plans have `*.summary.jsonl`: cautious/standard -> WARN + confirm; confident/pure-yolo -> warn + auto-continue.
 3. **Compile context:** If `config_context_compiler=true`, compile context for each agent role as needed per the protocol steps. Include `.ctx-{role}.toon` paths in agent task descriptions.
 
-Then Read the protocol file and execute the 10-step workflow as written.
+**Routing (based on `multi_dept` from resolve-departments.sh above):**
+
+- **Single department (`multi_dept=false`):**
+  Read `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` and follow its 10-step company workflow (Critique → Architecture → Planning → Design Review → Test Authoring RED → Implementation → Code Review → QA → Security → Sign-off). See `references/company-hierarchy.md` for agent hierarchy.
+
+- **Multi-department (`multi_dept=true`):**
+  Read ALL THREE protocol files:
+  1. `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` — the per-department 10-step workflow structure
+  2. `${CLAUDE_PLUGIN_ROOT}/references/multi-dept-protocol.md` — department dispatch order, handoff gates, Owner review
+  3. `${CLAUDE_PLUGIN_ROOT}/references/cross-team-protocol.md` — communication rules, workflow modes, conflict resolution
+
+  Follow `multi-dept-protocol.md` dispatch flow — each department runs its own 10-step using department-prefixed agents (fe-*, ux-*). Workflow order from `workflow` variable: Owner Review → UX 10-step (if ux_active) → Handoff Gate → FE+BE parallel 10-step → Integration QA → Security → Owner Sign-off.
+
+  Resolve models for ALL active department agents via `resolve-agent-model.sh` with department-prefixed names (e.g., `fe-lead`, `ux-architect`, `owner`). Compile context per department via `compile-context.sh` with department-aware roles.
 
 ### Mode: Add Phase
 
