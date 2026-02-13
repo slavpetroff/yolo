@@ -197,11 +197,11 @@ case "$ROLE" in
         TASK_COUNT=$(tail -n +2 "$PLAN_PATH" | wc -l | tr -d ' ')
         echo "tasks[${TASK_COUNT}]{id,action,files,done,spec}:"
         tail -n +2 "$PLAN_PATH" | while IFS= read -r line; do
-          local id; id=$(echo "$line" | jq -r '.id // empty' 2>/dev/null) || true
-          local action; action=$(echo "$line" | jq -r '.a // empty' 2>/dev/null) || true
-          local files; files=$(echo "$line" | jq -r '.f // [] | join(";")' 2>/dev/null) || true
-          local done_crit; done_crit=$(echo "$line" | jq -r '.done // empty' 2>/dev/null) || true
-          local spec; spec=$(echo "$line" | jq -r '.spec // empty' 2>/dev/null) || true
+          id=$(echo "$line" | jq -r '.id // empty' 2>/dev/null) || true
+          action=$(echo "$line" | jq -r '.a // empty' 2>/dev/null) || true
+          files=$(echo "$line" | jq -r '.f // [] | join(";")' 2>/dev/null) || true
+          done_crit=$(echo "$line" | jq -r '.done // empty' 2>/dev/null) || true
+          spec=$(echo "$line" | jq -r '.spec // empty' 2>/dev/null) || true
           if [ -n "$id" ]; then
             echo "  ${id},${action},${files},${done_crit},${spec}"
           fi
@@ -320,8 +320,8 @@ case "$ROLE" in
       if [ -f "$PHASE_DIR/gaps.jsonl" ]; then
         echo "known_gaps:"
         while IFS= read -r line; do
-          local desc; desc=$(echo "$line" | jq -r '.desc // empty' 2>/dev/null) || true
-          local sev; sev=$(echo "$line" | jq -r '.sev // empty' 2>/dev/null) || true
+          desc=$(echo "$line" | jq -r '.desc // empty' 2>/dev/null) || true
+          sev=$(echo "$line" | jq -r '.sev // empty' 2>/dev/null) || true
           if [ -n "$desc" ]; then
             echo "  ${sev}: ${desc}"
           fi

@@ -22,10 +22,10 @@ case "$ROLE" in
     FILES="STATE.md, ROADMAP.md, config.json, and current phase plans"
     ;;
   vbw-dev)
-    FILES="your assigned plan file, SUMMARY.md template, and relevant source files"
+    FILES="your assigned plan.jsonl file and relevant source files"
     ;;
   vbw-qa)
-    FILES="SUMMARY.md files under review, verification criteria, and gap reports"
+    FILES="summary.jsonl files under review, verification criteria, and gap reports"
     ;;
   vbw-scout)
     FILES="research notes, REQUIREMENTS.md, and any scout-specific findings"

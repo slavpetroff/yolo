@@ -5,7 +5,7 @@
 # applies per-agent overrides, and returns the final model string.
 #
 # Usage: resolve-agent-model.sh <agent-name> <config-path> <profiles-path>
-#   agent-name: lead|dev|qa|scout|debugger|architect
+#   agent-name: lead|dev|qa|qa-code|scout|debugger|architect|senior|security
 #   config-path: path to .vbw-planning/config.json
 #   profiles-path: path to config/model-profiles.json
 #
@@ -31,11 +31,11 @@ PROFILES_PATH="$3"
 
 # Validate agent name
 case "$AGENT" in
-  lead|dev|qa|scout|debugger|architect)
+  lead|dev|qa|qa-code|scout|debugger|architect|senior|security)
     # Valid agent
     ;;
   *)
-    echo "Invalid agent name '$AGENT'. Valid: lead, dev, qa, scout, debugger, architect" >&2
+    echo "Invalid agent name '$AGENT'. Valid: lead, dev, qa, qa-code, scout, debugger, architect, senior, security" >&2
     exit 1
     ;;
 esac
@@ -61,11 +61,11 @@ if ! jq -e ".$PROFILE" "$PROFILES_PATH" >/dev/null 2>&1; then
   exit 1
 fi
 
-# Get model from preset for the agent
-MODEL=$(jq -r ".$PROFILE.$AGENT" "$PROFILES_PATH")
+# Get model from preset for the agent (--arg avoids jq interpreting hyphens as operators)
+MODEL=$(jq -r --arg p "$PROFILE" --arg a "$AGENT" '.[$p][$a]' "$PROFILES_PATH")
 
 # Check for per-agent override in config.json model_overrides
-OVERRIDE=$(jq -r ".model_overrides.$AGENT // \"\"" "$CONFIG_PATH")
+OVERRIDE=$(jq -r --arg a "$AGENT" '.model_overrides[$a] // ""' "$CONFIG_PATH")
 if [ -n "$OVERRIDE" ]; then
   MODEL="$OVERRIDE"
 fi

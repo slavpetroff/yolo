@@ -29,9 +29,9 @@ if echo "$PROMPT" | grep -q '/vbw:vibe.*--execute'; then
 
   if [ -n "$CURRENT_PHASE" ]; then
     PHASE_DIR="$PLANNING_DIR/phases/$CURRENT_PHASE"
-    PLAN_COUNT=$(find "$PHASE_DIR" -name "PLAN.md" -o -name "*-PLAN.md" 2>/dev/null | wc -l | tr -d ' ')
+    PLAN_COUNT=$(find "$PHASE_DIR" -name "*.plan.jsonl" -o -name "*-PLAN.md" 2>/dev/null | wc -l | tr -d ' ')
     if [ "$PLAN_COUNT" -eq 0 ]; then
-      WARNING="No PLAN.md for phase $CURRENT_PHASE. Run /vbw:vibe to plan first."
+      WARNING="No plans for phase $CURRENT_PHASE. Run /vbw:vibe to plan first."
     fi
   fi
 fi

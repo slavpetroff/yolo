@@ -12,7 +12,7 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null) || 
 
 # Exempt planning artifacts — these are always allowed
 case "$FILE_PATH" in
-  *.vbw-planning/*|*SUMMARY.md|*VERIFICATION.md|*STATE.md|*CLAUDE.md|*.execution-state.json)
+  *.vbw-planning/*|*SUMMARY.md|*VERIFICATION.md|*STATE.md|*CLAUDE.md|*.execution-state.json|*.summary.jsonl|*.verification.jsonl)
     exit 0
     ;;
 esac
@@ -34,39 +34,60 @@ PROJECT_ROOT=$(find_project_root) || exit 0
 PHASES_DIR="$PROJECT_ROOT/.vbw-planning/phases"
 [ ! -d "$PHASES_DIR" ] && exit 0
 
-# Find active plan: first PLAN.md without a corresponding SUMMARY.md
+# Find active plan: first plan without a corresponding summary (JSONL or legacy MD)
 ACTIVE_PLAN=""
-for PLAN_FILE in "$PHASES_DIR"/*/*-PLAN.md; do
+ACTIVE_PLAN_FORMAT=""
+
+# Check JSONL plans first
+for PLAN_FILE in "$PHASES_DIR"/*/*.plan.jsonl; do
   [ ! -f "$PLAN_FILE" ] && continue
-  # Derive expected SUMMARY.md path: 03-01-PLAN.md -> 03-01-SUMMARY.md
-  SUMMARY_FILE="${PLAN_FILE%-PLAN.md}-SUMMARY.md"
+  SUMMARY_FILE="${PLAN_FILE%.plan.jsonl}.summary.jsonl"
   if [ ! -f "$SUMMARY_FILE" ]; then
     ACTIVE_PLAN="$PLAN_FILE"
+    ACTIVE_PLAN_FORMAT="jsonl"
     break
   fi
 done
 
+# Fall back to legacy MD plans
+if [ -z "$ACTIVE_PLAN" ]; then
+  for PLAN_FILE in "$PHASES_DIR"/*/*-PLAN.md; do
+    [ ! -f "$PLAN_FILE" ] && continue
+    SUMMARY_FILE="${PLAN_FILE%-PLAN.md}-SUMMARY.md"
+    if [ ! -f "$SUMMARY_FILE" ]; then
+      ACTIVE_PLAN="$PLAN_FILE"
+      ACTIVE_PLAN_FORMAT="md"
+      break
+    fi
+  done
+fi
+
 # No active plan found — fail-open
 [ -z "$ACTIVE_PLAN" ] && exit 0
 
-# Extract files_modified from YAML frontmatter using awk
-# Frontmatter is between --- delimiters at the top of the file
-DECLARED_FILES=$(awk '
-  BEGIN { in_front=0; in_files=0 }
-  /^---$/ {
-    if (in_front == 0) { in_front=1; next }
-    else { exit }
-  }
-  in_front && /^files_modified:/ { in_files=1; next }
-  in_front && in_files && /^[[:space:]]+- / {
-    sub(/^[[:space:]]+- /, "")
-    # Remove quotes if present
-    gsub(/["'"'"']/, "")
-    print
-    next
-  }
-  in_front && in_files && /^[^[:space:]]/ { in_files=0 }
-' "$ACTIVE_PLAN" 2>/dev/null) || exit 0
+# Extract files_modified from plan
+DECLARED_FILES=""
+if [ "$ACTIVE_PLAN_FORMAT" = "jsonl" ] && command -v jq >/dev/null 2>&1; then
+  # JSONL: extract fm (files_modified) from header line
+  DECLARED_FILES=$(head -1 "$ACTIVE_PLAN" | jq -r '.fm // [] | .[]' 2>/dev/null) || exit 0
+else
+  # Legacy MD: extract files_modified from YAML frontmatter
+  DECLARED_FILES=$(awk '
+    BEGIN { in_front=0; in_files=0 }
+    /^---$/ {
+      if (in_front == 0) { in_front=1; next }
+      else { exit }
+    }
+    in_front && /^files_modified:/ { in_files=1; next }
+    in_front && in_files && /^[[:space:]]+- / {
+      sub(/^[[:space:]]+- /, "")
+      gsub(/["'"'"']/, "")
+      print
+      next
+    }
+    in_front && in_files && /^[^[:space:]]/ { in_files=0 }
+  ' "$ACTIVE_PLAN" 2>/dev/null) || exit 0
+fi
 
 # No files_modified declared — fail-open
 [ -z "$DECLARED_FILES" ] && exit 0

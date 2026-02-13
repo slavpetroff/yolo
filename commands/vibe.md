@@ -72,7 +72,7 @@ If no $ARGUMENTS, evaluate phase-detect.sh output. First match determines mode:
 | 2 | `project_exists=false` | Bootstrap | "No project defined. Set one up?" |
 | 3 | `phase_count=0` | Scope | "Project defined but no phases. Scope the work?" |
 | 4 | `next_phase_state=needs_plan_and_execute` | Plan + Execute | "Phase {N} needs planning and execution. Start?" |
-| 5 | `next_phase_state=needs_execute` | Execute | "Phase {N} is planned. Execute it?" |
+| 5 | `next_phase_state=needs_execute` | Execute | "Phase {N} has plan.jsonl files. Execute it?" |
 | 6 | `next_phase_state=all_done` | Archive | "All phases complete. Run audit and archive?" |
 
 ### Confirmation Gate
@@ -174,7 +174,7 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
 ### Mode: Discuss
 
 **Guard:** Initialized, phase exists in roadmap.
-**Phase auto-detection:** First phase without `*-PLAN.md`. All planned: STOP "All phases planned. Specify: `/vbw:vibe --discuss N`"
+**Phase auto-detection:** First phase without `*.plan.jsonl`. All planned: STOP "All phases planned. Specify: `/vbw:vibe --discuss N`"
 
 **Steps:**
 1. Load phase goal, requirements, success criteria, dependencies from ROADMAP.md.
@@ -197,13 +197,13 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
 ### Mode: Plan
 
 **Guard:** Initialized, roadmap exists, phase exists.
-**Phase auto-detection:** First phase without PLAN.md. All planned: STOP "All phases planned. Specify phase: `/vbw:vibe --plan N`"
+**Phase auto-detection:** First phase without `*.plan.jsonl`. All planned: STOP "All phases planned. Specify phase: `/vbw:vibe --plan N`"
 
 **Steps:**
 1. **Parse args:** Phase number (optional, auto-detected), --effort (optional, falls back to config).
 2. **Phase Discovery (if applicable):** Skip if already planned, phase dir has `{phase}-CONTEXT.md`, or DISCOVERY_DEPTH=skip. Otherwise: read `${CLAUDE_PLUGIN_ROOT}/references/discovery-protocol.md` Phase Discovery mode. Generate phase-scoped questions (quick=1, standard=1-2, thorough=2-3). Skip categories already in `discovery.json.answered[]`. Present via AskUserQuestion. Append to `discovery.json`. Write `{phase}-CONTEXT.md`.
-3. **Context compilation:** If `config_context_compiler=true`, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} lead {phases_dir}`. Include `.context-lead.md` in Lead agent context if produced.
-4. **Turbo shortcut:** If effort=turbo, skip Lead. Read phase reqs from ROADMAP.md, create single lightweight PLAN.md inline.
+3. **Context compilation:** If `config_context_compiler=true`, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} lead {phases_dir}`. Include `.ctx-lead.toon` in Lead agent context if produced.
+4. **Turbo shortcut:** If effort=turbo, skip Lead. Read phase reqs from ROADMAP.md, create single lightweight plan.jsonl inline (header + tasks, no spec field).
 5. **Other efforts:**
    - Resolve Lead model:
      ```bash
@@ -216,7 +216,7 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
    - Spawn vbw-lead as subagent via Task tool with compiled context (or full file list as fallback).
    - **CRITICAL:** Add `model: "${LEAD_MODEL}"` parameter to the Task tool invocation.
    - Display `◆ Spawning Lead agent...` -> `✓ Lead agent complete`.
-6. **Validate output:** Verify PLAN.md has valid frontmatter (phase, plan, title, wave, depends_on, must_haves) and tasks. Check wave deps acyclic.
+6. **Validate output:** Verify plan.jsonl files exist with valid JSONL (each line parses with jq). Check header has p, n, t, w, mh fields. Check wave deps acyclic.
 7. **Present:** Update STATE.md (phase position, plan count, status=Planned). Resolve model profile:
    ```bash
    MODEL_PROFILE=$(jq -r '.model_profile // "balanced"' .vbw-planning/config.json)
@@ -225,7 +225,7 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
    ```
    Phase {N}: {name}
    Plans: {N}
-     {plan}: {title} (wave {W}, {N} tasks)
+     {NN-MM}: {title} (wave {W}, {N} tasks)
    Effort: {effort}
    Model Profile: {profile}
    ```
@@ -239,14 +239,11 @@ This mode delegates entirely to the protocol file. Before reading:
 1. **Parse arguments:** Phase number (auto-detect if omitted), --effort, --skip-qa, --skip-security, --plan=NN.
 2. **Run execute guards:**
    - Not initialized: STOP "Run /vbw:init first."
-   - No plan files in phase dir: STOP "Phase {N} has no plans. Run `/vbw:vibe --plan {N}` first."
-   - All plans have summary.jsonl: cautious/standard -> WARN + confirm; confident/pure-vibe -> warn + auto-continue.
-3. **Compile context:** If `config_context_compiler=true`, run:
-   - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} dev {phases_dir} {plan_path}`
-   - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} qa {phases_dir}`
-   Include compiled context paths in Dev and QA task descriptions.
+   - No `*.plan.jsonl` files in phase dir: STOP "Phase {N} has no plans. Run `/vbw:vibe --plan {N}` first."
+   - All plans have `*.summary.jsonl`: cautious/standard -> WARN + confirm; confident/pure-vibe -> warn + auto-continue.
+3. **Compile context:** If `config_context_compiler=true`, compile context for each agent role as needed per the protocol steps. Include `.ctx-{role}.toon` paths in agent task descriptions.
 
-Then Read the protocol file and execute Steps 2-5 as written.
+Then Read the protocol file and execute the 8-step workflow as written.
 
 ### Mode: Add Phase
 
@@ -272,7 +269,7 @@ Inserting before completed phase: WARN + confirm.
 1. Resolve context: ACTIVE -> milestone-scoped paths, otherwise defaults.
 2. Parse args: position (int), phase name, --goal (optional), slug (lowercase hyphenated).
 3. Identify renumbering: all phases >= position shift up by 1.
-4. Renumber dirs in REVERSE order: rename dir {NN}-{slug} -> {NN+1}-{slug}, rename internal PLAN/SUMMARY files, update `phase:` frontmatter, update `depends_on` references.
+4. Renumber dirs in REVERSE order: rename dir {NN}-{slug} -> {NN+1}-{slug}, rename internal plan.jsonl/summary.jsonl files, update `p` field in JSONL headers, update `d` (depends_on) references.
 5. Update ROADMAP.md: insert new phase entry + details at position, renumber subsequent entries/headers/cross-refs, update progress table.
 6. Create dir: `mkdir -p {PHASES_DIR}/{NN}-{slug}/`
 7. Present: Phase Banner with renumber count, phase changes, file checklist, Next Up.
@@ -282,7 +279,7 @@ Inserting before completed phase: WARN + confirm.
 **Guard:** Initialized. Requires phase number.
 Missing number: STOP "Usage: `/vbw:vibe --remove <phase-number>`"
 Not found: STOP "Phase {N} not found."
-Has work (PLAN.md or SUMMARY.md): STOP "Phase {N} has artifacts. Remove plans first."
+Has work (plan.jsonl or summary.jsonl): STOP "Phase {N} has artifacts. Remove plans first."
 Completed ([x] in roadmap): STOP "Cannot remove completed Phase {N}."
 
 **Steps:**
@@ -290,7 +287,7 @@ Completed ([x] in roadmap): STOP "Cannot remove completed Phase {N}."
 2. Parse args: extract phase number, validate, look up name/slug.
 3. Confirm: display phase details, ask confirmation. Not confirmed -> STOP.
 4. Remove dir: `rm -rf {PHASES_DIR}/{NN}-{slug}/`
-5. Renumber FORWARD: for each phase > removed: rename dir {NN} -> {NN-1}, rename internal files, update frontmatter, update depends_on.
+5. Renumber FORWARD: for each phase > removed: rename dir {NN} -> {NN-1}, rename internal plan.jsonl/summary.jsonl files, update `p` field in JSONL headers, update `d` references.
 6. Update ROADMAP.md: remove phase entry + details, renumber subsequent, update deps, update progress table.
 7. Present: Phase Banner with renumber count, phase changes, file checklist, Next Up.
 
@@ -298,22 +295,22 @@ Completed ([x] in roadmap): STOP "Cannot remove completed Phase {N}."
 
 **Guard:** Initialized, roadmap exists.
 No roadmap: STOP "No milestones configured. Run `/vbw:vibe` to bootstrap."
-No work (no SUMMARY.md files): STOP "Nothing to ship."
+No work (no `*.summary.jsonl` files): STOP "Nothing to ship."
 
 **Pre-gate audit (unless --skip-audit or --force):**
 Run 6-point audit matrix:
 1. Roadmap completeness: every phase has real goal (not TBD/empty)
-2. Phase planning: every phase has >= 1 PLAN.md
-3. Plan execution: every PLAN.md has SUMMARY.md
-4. Execution status: every SUMMARY.md has `status: complete`
-5. Verification: VERIFICATION.md files exist + PASS. Missing=WARN, failed=FAIL
-6. Requirements coverage: req IDs in roadmap exist in REQUIREMENTS.md
+2. Phase planning: every phase has >= 1 `*.plan.jsonl`
+3. Plan execution: every plan.jsonl has matching summary.jsonl
+4. Execution status: every summary.jsonl has `"s":"complete"`
+5. Verification: verification.jsonl exists + `"r":"PASS"`. Missing=WARN, failed=FAIL
+6. Requirements coverage: req IDs in roadmap exist in REQUIREMENTS.md or reqs.jsonl
 FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
 
 **Steps:**
 1. Resolve context: ACTIVE -> milestone-scoped paths. No ACTIVE -> SLUG="default", root paths.
 2. Parse args: --tag=vN.N.N (custom tag), --no-tag (skip), --force (skip audit).
-3. Compute summary: from ROADMAP (phases), SUMMARY.md files (tasks/commits/deviations), REQUIREMENTS.md (satisfied count).
+3. Compute summary: from ROADMAP (phases), summary.jsonl files (tasks/commits/deviations via jq), REQUIREMENTS.md or reqs.jsonl (satisfied count).
 4. Archive: `mkdir -p .vbw-planning/milestones/`. Move roadmap, state, phases to milestones/{SLUG}/. Write SHIPPED.md. Delete stale RESUME.md.
 5. Git branch merge: if `milestone/{SLUG}` branch exists, merge --no-ff. Conflict -> abort, warn. No branch -> skip.
 6. Git tag: unless --no-tag, `git tag -a {tag} -m "Shipped milestone: {name}"`. Default: `milestone/{SLUG}`.

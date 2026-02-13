@@ -170,9 +170,9 @@ if [ -f "$EXEC_STATE" ]; then
     fi
     if [ -n "$PHASE_DIR" ] && [ -d "$PHASE_DIR" ]; then
       PLAN_COUNT=$(jq -r '.plans | length' "$EXEC_STATE" 2>/dev/null)
-      SUMMARY_COUNT=$(ls "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+      SUMMARY_COUNT=$(ls "$PHASE_DIR"/*.summary.jsonl "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
       if [ "${SUMMARY_COUNT:-0}" -ge "${PLAN_COUNT:-1}" ] && [ "${PLAN_COUNT:-0}" -gt 0 ]; then
-        # All plans have SUMMARY.md — build finished after crash
+        # All plans have summaries — build finished after crash
         jq '.status = "complete"' "$EXEC_STATE" > "$PLANNING_DIR/.execution-state.json.tmp" && mv "$PLANNING_DIR/.execution-state.json.tmp" "$EXEC_STATE"
         BUILD_STATE="complete (recovered)"
       else
@@ -290,8 +290,8 @@ else
     next_phase=""
     for pdir in $(ls -d "$PHASES_DIR"/*/ 2>/dev/null | sort); do
       pname=$(basename "$pdir")
-      plan_count=$(ls "$pdir"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-      summary_count=$(ls "$pdir"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+      plan_count=$(ls "$pdir"/*.plan.jsonl "$pdir"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
+      summary_count=$(ls "$pdir"/*.summary.jsonl "$pdir"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
       if [ "${plan_count:-0}" -eq 0 ]; then
         # Phase has no plans yet — needs planning
         pnum=$(echo "$pname" | sed 's/-.*//')

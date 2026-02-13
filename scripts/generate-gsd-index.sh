@@ -35,10 +35,10 @@ if [[ -d "$ARCHIVE_DIR/phases" ]]; then
     phase_slug=$(echo "$phase_name" | sed "s/^${phase_num}-//" || echo "unknown")
 
     # Count plans
-    plan_count=$(find "$phase_dir" -maxdepth 1 -name "*-PLAN.md" 2>/dev/null | wc -l | tr -d ' ')
+    plan_count=$(find "$phase_dir" -maxdepth 1 \( -name "*.plan.jsonl" -o -name "*-PLAN.md" \) 2>/dev/null | wc -l | tr -d ' ')
 
     # Determine status (complete if all plans have summaries)
-    summary_count=$(find "$phase_dir" -maxdepth 1 -name "*-SUMMARY.md" 2>/dev/null | wc -l | tr -d ' ')
+    summary_count=$(find "$phase_dir" -maxdepth 1 \( -name "*.summary.jsonl" -o -name "*-SUMMARY.md" \) 2>/dev/null | wc -l | tr -d ' ')
     status="in_progress"
     if [[ "$summary_count" -eq "$plan_count" ]] && [[ "$plan_count" -gt 0 ]]; then
       status="complete"

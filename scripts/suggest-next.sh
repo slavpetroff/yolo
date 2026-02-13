@@ -79,8 +79,8 @@ if [ -d "$PLANNING_DIR" ]; then
       phase_num=$(basename "$dir" | sed 's/[^0-9].*//')
       phase_slug=$(basename "$dir" | sed 's/^[0-9]*-//')
 
-      plans=$(find "$dir" -maxdepth 1 -name '*-PLAN.md' 2>/dev/null | wc -l | tr -d ' ')
-      summaries=$(find "$dir" -maxdepth 1 -name '*-SUMMARY.md' 2>/dev/null | wc -l | tr -d ' ')
+      plans=$(find "$dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
+      summaries=$(find "$dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
 
       if [ "$plans" -eq 0 ] && [ -z "$next_unplanned" ]; then
         next_unplanned="$phase_num"
@@ -116,9 +116,15 @@ if [ -d "$PLANNING_DIR" ]; then
       all_done=true
     fi
 
-    # Find most recent QA result
+    # Find most recent QA result (JSONL or legacy MD)
     for dir in "$PHASES_DIR"/*/; do
       [ -d "$dir" ] || continue
+      # Check JSONL verification
+      if [ -f "$dir/verification.jsonl" ] && command -v jq >/dev/null 2>&1; then
+        r=$(head -1 "$dir/verification.jsonl" | jq -r '.r // empty' 2>/dev/null | tr '[:upper:]' '[:lower:]' || true)
+        [ -n "$r" ] && last_qa_result="$r"
+      fi
+      # Check legacy VERIFICATION.md
       for vf in "$dir"/*-VERIFICATION.md; do
         [ -f "$vf" ] || continue
         r=$(grep -m1 '^result:' "$vf" 2>/dev/null | sed 's/result:[[:space:]]*//' | tr '[:upper:]' '[:lower:]' || true)
@@ -128,16 +134,28 @@ if [ -d "$PLANNING_DIR" ]; then
 
     # Count deviations and find failing plans in active phase
     if [ -n "$active_phase_dir" ] && [ -d "$active_phase_dir" ]; then
+      # Check JSONL summaries
+      for sf in "$active_phase_dir"/*.summary.jsonl; do
+        [ -f "$sf" ] || continue
+        if command -v jq >/dev/null 2>&1; then
+          d=$(jq -r '.dv // [] | length' "$sf" 2>/dev/null || echo 0)
+          deviation_count=$((deviation_count + d))
+          s=$(jq -r '.s // "complete"' "$sf" 2>/dev/null | tr '[:upper:]' '[:lower:]' || true)
+          if [ "$s" = "failed" ] || [ "$s" = "partial" ]; then
+            plan_id=$(basename "$sf" | sed 's/\.summary\.jsonl//')
+            failing_plan_ids="${failing_plan_ids:+$failing_plan_ids }$plan_id"
+          fi
+        fi
+      done
+      # Check legacy SUMMARY.md files
       for sf in "$active_phase_dir"/*-SUMMARY.md; do
         [ -f "$sf" ] || continue
-        # Extract deviations count from frontmatter
         d=$(grep -m1 '^deviations:' "$sf" 2>/dev/null | sed 's/deviations:[[:space:]]*//' || true)
         case "$d" in
-          0|"[]"|"") ;;  # zero deviations
+          0|"[]"|"") ;;
           [0-9]*) deviation_count=$((deviation_count + d)) ;;
-          *) deviation_count=$((deviation_count + 1)) ;;  # non-empty, non-numeric = at least 1
+          *) deviation_count=$((deviation_count + 1)) ;;
         esac
-        # Check for failed/partial status
         s=$(grep -m1 '^status:' "$sf" 2>/dev/null | sed 's/status:[[:space:]]*//' | tr '[:upper:]' '[:lower:]' || true)
         if [ "$s" = "failed" ] || [ "$s" = "partial" ]; then
           plan_id=$(basename "$sf" | sed 's/-SUMMARY.md//')

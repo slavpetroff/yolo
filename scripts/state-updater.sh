@@ -10,8 +10,8 @@ update_state_md() {
   [ -f "$state_md" ] || return 0
 
   local plan_count summary_count pct
-  plan_count=$(ls -1 "$phase_dir"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-  summary_count=$(ls -1 "$phase_dir"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+  plan_count=$(ls -1 "$phase_dir"/*.plan.jsonl "$phase_dir"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
+  summary_count=$(ls -1 "$phase_dir"/*.summary.jsonl "$phase_dir"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
 
   if [ "$plan_count" -gt 0 ]; then
     pct=$(( (summary_count * 100) / plan_count ))
@@ -40,8 +40,8 @@ update_roadmap() {
   phase_num=$(echo "$dirname" | sed 's/^\([0-9]*\).*/\1/' | sed 's/^0*//')
   [ -z "$phase_num" ] && return 0
 
-  plan_count=$(ls -1 "$phase_dir"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-  summary_count=$(ls -1 "$phase_dir"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+  plan_count=$(ls -1 "$phase_dir"/*.plan.jsonl "$phase_dir"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
+  summary_count=$(ls -1 "$phase_dir"/*.summary.jsonl "$phase_dir"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
 
   [ "$plan_count" -eq 0 ] && return 0
 
@@ -112,8 +112,8 @@ advance_phase() {
 
   # Check if triggering phase is complete
   local plan_count summary_count
-  plan_count=$(ls -1 "$phase_dir"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-  summary_count=$(ls -1 "$phase_dir"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+  plan_count=$(ls -1 "$phase_dir"/*.plan.jsonl "$phase_dir"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
+  summary_count=$(ls -1 "$phase_dir"/*.summary.jsonl "$phase_dir"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
   [ "$plan_count" -gt 0 ] && [ "$summary_count" -eq "$plan_count" ] || return 0
 
   # Scan all phase dirs to find next incomplete
@@ -127,8 +127,8 @@ advance_phase() {
   for dir in $(ls -d "$phases_dir"/*/ 2>/dev/null | sort); do
     local dirname p s
     dirname=$(basename "$dir")
-    p=$(ls -1 "$dir"*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-    s=$(ls -1 "$dir"*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+    p=$(ls -1 "$dir"*.plan.jsonl "$dir"*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
+    s=$(ls -1 "$dir"*.summary.jsonl "$dir"*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
 
     if [ "$p" -eq 0 ] || [ "$s" -lt "$p" ]; then
       if [ -z "$next_num" ]; then
@@ -157,8 +157,8 @@ advance_phase() {
 INPUT=$(cat)
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null)
 
-# PLAN.md trigger: update plan count + activate status
-if echo "$FILE_PATH" | grep -qE 'phases/[^/]+/[0-9]+-[0-9]+-PLAN\.md$'; then
+# Plan trigger: update plan count + activate status (JSONL or legacy MD)
+if echo "$FILE_PATH" | grep -qE 'phases/[^/]+/[0-9]+-[0-9]+\.plan\.jsonl$' || echo "$FILE_PATH" | grep -qE 'phases/[^/]+/[0-9]+-[0-9]+-PLAN\.md$'; then
   update_state_md "$(dirname "$FILE_PATH")"
   update_roadmap "$(dirname "$FILE_PATH")"
   # Status: ready → active when a plan is written
@@ -170,8 +170,15 @@ if echo "$FILE_PATH" | grep -qE 'phases/[^/]+/[0-9]+-[0-9]+-PLAN\.md$'; then
   fi
 fi
 
-# SUMMARY.md trigger: update execution state + progress
-if ! echo "$FILE_PATH" | grep -qE 'phases/.*-SUMMARY\.md$'; then
+# Summary trigger: update execution state + progress (JSONL or legacy MD)
+IS_SUMMARY=false
+if echo "$FILE_PATH" | grep -qE 'phases/.*\.summary\.jsonl$'; then
+  IS_SUMMARY=true
+elif echo "$FILE_PATH" | grep -qE 'phases/.*-SUMMARY\.md$'; then
+  IS_SUMMARY=true
+fi
+
+if [ "$IS_SUMMARY" != true ]; then
   exit 0
 fi
 
@@ -179,31 +186,41 @@ STATE_FILE=".vbw-planning/.execution-state.json"
 [ -f "$STATE_FILE" ] || exit 0
 [ -f "$FILE_PATH" ] || exit 0
 
-# Parse SUMMARY.md YAML frontmatter for phase, plan, status
+# Parse summary for phase, plan, status (JSONL or legacy YAML)
 PHASE=""
 PLAN=""
 STATUS=""
-IN_FRONTMATTER=0
 
-while IFS= read -r line; do
-  if [ "$line" = "---" ]; then
-    if [ "$IN_FRONTMATTER" -eq 0 ]; then
-      IN_FRONTMATTER=1
-      continue
-    else
-      break
+if echo "$FILE_PATH" | grep -qE '\.summary\.jsonl$'; then
+  # JSONL summary: parse first line with jq
+  if command -v jq >/dev/null 2>&1; then
+    PHASE=$(jq -r '.p // ""' "$FILE_PATH" 2>/dev/null)
+    PLAN=$(jq -r '.n // ""' "$FILE_PATH" 2>/dev/null)
+    STATUS=$(jq -r '.s // "complete"' "$FILE_PATH" 2>/dev/null)
+  fi
+else
+  # Legacy SUMMARY.md: parse YAML frontmatter
+  IN_FRONTMATTER=0
+  while IFS= read -r line; do
+    if [ "$line" = "---" ]; then
+      if [ "$IN_FRONTMATTER" -eq 0 ]; then
+        IN_FRONTMATTER=1
+        continue
+      else
+        break
+      fi
     fi
-  fi
-  if [ "$IN_FRONTMATTER" -eq 1 ]; then
-    key=$(echo "$line" | cut -d: -f1 | tr -d ' ')
-    val=$(echo "$line" | cut -d: -f2- | sed 's/^ *//')
-    case "$key" in
-      phase) PHASE="$val" ;;
-      plan) PLAN="$val" ;;
-      status) STATUS="$val" ;;
-    esac
-  fi
-done < "$FILE_PATH"
+    if [ "$IN_FRONTMATTER" -eq 1 ]; then
+      key=$(echo "$line" | cut -d: -f1 | tr -d ' ')
+      val=$(echo "$line" | cut -d: -f2- | sed 's/^ *//')
+      case "$key" in
+        phase) PHASE="$val" ;;
+        plan) PLAN="$val" ;;
+        status) STATUS="$val" ;;
+      esac
+    fi
+  done < "$FILE_PATH"
+fi
 
 if [ -z "$PHASE" ] || [ -z "$PLAN" ]; then
   exit 0

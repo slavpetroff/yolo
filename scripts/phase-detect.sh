@@ -95,9 +95,9 @@ if [ -d "$PHASES_DIR" ]; then
       # Extract numeric prefix (e.g., "01" from "01-context-diet")
       NUM=$(echo "$DIRNAME" | sed 's/^\([0-9]*\).*/\1/')
 
-      # Count PLAN and SUMMARY files
-      P_COUNT=$(ls "$DIR"*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-      S_COUNT=$(ls "$DIR"*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+      # Count plan and summary files (JSONL format or legacy PLAN.md)
+      P_COUNT=$(ls "$DIR"*.plan.jsonl "$DIR"*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
+      S_COUNT=$(ls "$DIR"*.summary.jsonl "$DIR"*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
 
       if [ "$P_COUNT" -eq 0 ]; then
         # Needs plan and execute
