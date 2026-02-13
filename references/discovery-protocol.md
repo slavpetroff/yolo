@@ -20,14 +20,15 @@ Read active profile from `config.json` → `active_profile`. Map to depth above.
 Replaces static requirements questions. Triggered when project has no REQUIREMENTS.md or it contains template placeholders.
 
 **Input:** User's project description (from $ARGUMENTS or "What do you want to build?")
-**Output:** Populated REQUIREMENTS.md with REQ-IDs
+**Output:** Populated REQUIREMENTS.md with REQ-IDs, `.vbw-planning/domain-research.md` (if research conducted), updated discovery.json
 
 Flow:
 1. Analyze the user's description for: domain, scale, users, complexity signals
-2. Generate scenario questions first (Round 1)
-3. Based on answers, generate targeted checklist questions (Round 2)
-4. Synthesize all answers into REQUIREMENTS.md
-5. Store answered questions in `.vbw-planning/discovery.json`
+2. **Domain Research (if not skip depth):** Spawn Scout agent to research domain. Produce `.vbw-planning/domain-research.md` with 4 sections: Table Stakes, Common Pitfalls, Architecture Patterns, Competitor Landscape. Display brief 3-5 line summary to user. On timeout/failure, log warning and proceed with flag RESEARCH_AVAILABLE=false.
+3. Generate scenario questions (Round 1) — reference research findings if available
+4. Based on answers, generate targeted checklist questions (Round 2)
+5. Synthesize all answers into REQUIREMENTS.md, integrating research where relevant
+6. Store answered questions and research summary in `.vbw-planning/discovery.json`
 
 ### Phase Discovery (implement States 3-4, before planning)
 
@@ -43,6 +44,18 @@ Flow:
 4. Store answers, pass as context to planning step
 
 ## Mixed Question Format
+
+### Research-Informed Question Generation
+
+When domain research is available (RESEARCH_AVAILABLE=true):
+- **Scenarios (Round 1):** Reference specific pitfalls, patterns, or competitor behaviors from research. Example: "App X handles offline sync by caching recipes locally. Should yours work the same way or always require internet?"
+- **Checklists (Round 2):** Include table-stakes features as default-checked items with "(domain standard)" labels. Example: "☑ Offline access (domain standard — recipe apps need this)"
+- **Requirement synthesis:** Annotate requirements with research sources: "(domain standard)", "(addresses common pitfall: X)", "(typical approach: Y)"
+
+When research is unavailable (RESEARCH_AVAILABLE=false):
+- Use description analysis only, per existing protocol
+- Generate scenarios from inferred complexity signals
+- No domain-specific annotations
 
 ### Round 1: Scenarios
 
