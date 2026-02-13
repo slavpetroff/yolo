@@ -16,35 +16,11 @@ Frontend team roster, escalation, conventions, and workflow. Read by frontend ag
 
 Models shown are quality profile defaults. Actual models resolved via `resolve-agent-model.sh` from `config/model-profiles.json`.
 
-## Team Structure
+## Team Structure & Escalation
 
-| Team | Agents | Active During |
-|------|--------|--------------|
-| Planning | FE Architect, FE Lead | Architecture, Planning |
-| Execution | FE Senior, FE Tester, FE Dev, Debugger (on-call) | Design Review, Test Authoring (RED), Implementation |
-| Quality | FE QA Lead, FE QA Code, FE Senior (escalation) | Code Review, QA |
+Frontend follows standard company hierarchy with fe- prefixed agents. See @references/company-hierarchy.md ## Team Structure and ## Escalation Chain sections.
 
-## Escalation Chain (STRICT — NO LEVEL SKIPPING)
-
-```
-FE Dev → FE Senior → FE Lead → FE Architect → Owner → User
-```
-
-| Agent | Escalates to | Trigger |
-|-------|-------------|---------|
-| FE Dev | FE Senior | Blocker, spec unclear, 2 task failures, architectural issue |
-| FE Senior | FE Lead | Can't resolve Dev blocker, design conflict, code review cycle 2 fail |
-| FE Lead | FE Architect | Can't resolve Senior escalation, design problem, cross-phase issue |
-| FE Architect | Owner (or User if no Owner) | Design-level decision needed, scope change required |
-| FE Tester | FE Senior | `ts` field unclear, tests pass unexpectedly |
-| FE QA Lead | FE Lead | Verification findings, FAIL result |
-| FE QA Code | FE Lead | Critical/major findings, FAIL result |
-
-**Rules:**
-1. Each agent escalates ONLY to their direct report-to. No skipping.
-2. FE Dev NEVER contacts FE Lead, FE Architect, or User.
-3. FE QA/Tester NEVER contact FE Architect. Findings route through FE Lead.
-4. Only FE Architect escalates to Owner/User.
+Frontend-specific escalation chain: FE Dev → FE Senior → FE Lead → FE Architect → Owner → User
 
 ## Domain Conventions
 

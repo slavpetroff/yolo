@@ -16,35 +16,11 @@ UI/UX team roster, escalation, conventions, and workflow. Read by UI/UX agents o
 
 Models shown are quality profile defaults. Actual models resolved via `resolve-agent-model.sh` from `config/model-profiles.json`.
 
-## Team Structure
+## Team Structure & Escalation
 
-| Team | Agents | Active During |
-|------|--------|--------------|
-| Planning | UX Architect, UX Lead | Architecture, Planning |
-| Execution | UX Senior, UX Tester, UX Dev, Debugger (on-call) | Design Review, Test Authoring (RED), Implementation |
-| Quality | UX QA Lead, UX QA Code, UX Senior (escalation) | Design Review, QA |
+UI/UX follows standard company hierarchy with ux- prefixed agents. See @references/company-hierarchy.md ## Team Structure and ## Escalation Chain sections.
 
-## Escalation Chain (STRICT — NO LEVEL SKIPPING)
-
-```
-UX Dev → UX Senior → UX Lead → UX Architect → Owner → User
-```
-
-| Agent | Escalates to | Trigger |
-|-------|-------------|---------|
-| UX Dev | UX Senior | Spec unclear, design token conflict, 2 task failures |
-| UX Senior | UX Lead | Can't resolve Dev blocker, design system conflict, review cycle 2 fail |
-| UX Lead | UX Architect | Can't resolve Senior escalation, IA problem, cross-phase issue |
-| UX Architect | Owner (or User if no Owner) | Design-level decision needed, scope change required |
-| UX Tester | UX Senior | Usability spec unclear, accessibility test ambiguity |
-| UX QA Lead | UX Lead | Design system violations, FAIL result |
-| UX QA Code | UX Lead | Token validation failures, style consistency issues |
-
-**Rules:**
-1. Each agent escalates ONLY to their direct report-to. No skipping.
-2. UX Dev NEVER contacts UX Lead, UX Architect, or User.
-3. UX QA/Tester NEVER contact UX Architect. Findings route through UX Lead.
-4. Only UX Architect escalates to Owner/User.
+UI/UX-specific escalation chain: UX Dev → UX Senior → UX Lead → UX Architect → Owner → User
 
 ## Domain Conventions
 

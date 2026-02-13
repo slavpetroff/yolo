@@ -110,41 +110,11 @@ When only backend is active (single department mode), Owner is optional and Lead
 
 ## Communication Schemas
 
-### `owner_review` (Owner → Leads)
-```json
-{
-  "type": "owner_review",
-  "phase": "01",
-  "departments_needed": ["backend", "frontend", "uiux"],
-  "dispatch_order": ["uiux", "frontend", "backend"],
-  "priorities": ["UX must define design tokens before frontend starts"],
-  "risks": ["Backend API changes may invalidate frontend component specs"]
-}
-```
-
-### `owner_signoff` (Owner → All Leads)
-```json
-{
-  "type": "owner_signoff",
-  "phase": "01",
-  "decision": "SHIP | HOLD",
-  "departments_approved": ["backend", "frontend", "uiux"],
-  "integration_qa": "PASS",
-  "notes": ""
-}
-```
-
-### `department_result` (Department Lead → Owner)
-```json
-{
-  "type": "department_result",
-  "department": "backend | frontend | uiux",
-  "phase": "01",
-  "result": "PASS | PARTIAL | FAIL",
-  "plans_completed": 3,
-  "plans_total": 3,
-  "qa_result": "PASS",
-  "security_result": "PASS",
-  "tdd_coverage": "red_green"
-}
-```
+Shared agents use standard SendMessage schemas. See @references/handoff-schemas.md for:
+- `owner_review` (Owner → Leads)
+- `owner_signoff` (Owner → All Leads)
+- `department_result` (Department Lead → Owner)
+- `escalation` (any agent, up the chain)
+- `scout_findings` (Scout → Lead)
+- `debugger_report` (Debugger → Lead)
+- `security_audit` (Security → Lead)

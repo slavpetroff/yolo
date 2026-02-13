@@ -16,35 +16,11 @@ Backend team roster, escalation, conventions, and workflow. Read by backend agen
 
 Models shown are quality profile defaults. Actual models resolved via `resolve-agent-model.sh` from `config/model-profiles.json`.
 
-## Team Structure
+## Team Structure & Escalation
 
-| Team | Agents | Active During |
-|------|--------|--------------|
-| Planning | Architect, Lead | Critique, Scope, Research, Plan |
-| Execution | Senior, Tester, Dev, Debugger (on-call) | Design Review, Test Authoring (RED), Implementation |
-| Quality | QA Lead, QA Code, Senior (escalation) | Code Review, QA, Security |
+Backend follows standard company hierarchy. See @references/company-hierarchy.md ## Team Structure and ## Escalation Chain sections.
 
-## Escalation Chain (STRICT — NO LEVEL SKIPPING)
-
-```
-Dev → Senior → Lead → Architect → Owner → User
-```
-
-| Agent | Escalates to | Trigger |
-|-------|-------------|---------|
-| Dev | Senior | Blocker, spec unclear, 2 task failures, architectural issue |
-| Senior | Lead | Can't resolve Dev blocker, design conflict, code review cycle 2 fail |
-| Lead | Architect | Can't resolve Senior escalation, design problem, cross-phase issue |
-| Architect | Owner (or User if no Owner) | Design-level decision needed, scope change required |
-| Tester | Senior | `ts` field unclear, tests pass unexpectedly |
-| QA Lead | Lead | Verification findings, FAIL result |
-| QA Code | Lead | Critical/major findings, FAIL result |
-
-**Rules:**
-1. Each agent escalates ONLY to their direct report-to. No skipping.
-2. Dev NEVER contacts Lead, Architect, or User. Senior is Dev's single contact.
-3. QA/Tester NEVER contact Architect. Findings route through Lead.
-4. Only Architect escalates to Owner/User.
+Backend-specific escalation chain: Dev → Senior → Lead → Architect → Owner → User
 
 ## Domain Conventions
 

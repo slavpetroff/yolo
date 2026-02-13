@@ -15,26 +15,7 @@ After standard pre-execution:
    ```
 
 2. **Resolve models for all active department agents:**
-   ```bash
-   # Backend agents (always)
-   LEAD_MODEL=$(bash resolve-agent-model.sh lead ...)
-   # Frontend agents (if enabled)
-   if [ "$FRONTEND" = "true" ]; then
-     FE_LEAD_MODEL=$(bash resolve-agent-model.sh fe-lead ...)
-     FE_ARCHITECT_MODEL=$(bash resolve-agent-model.sh fe-architect ...)
-     # ... all 7 fe-* agents
-   fi
-   # UI/UX agents (if enabled)
-   if [ "$UIUX" = "true" ]; then
-     UX_LEAD_MODEL=$(bash resolve-agent-model.sh ux-lead ...)
-     UX_ARCHITECT_MODEL=$(bash resolve-agent-model.sh ux-architect ...)
-     # ... all 7 ux-* agents
-   fi
-   # Owner (if multiple departments)
-   if [ "$FRONTEND" = "true" ] || [ "$UIUX" = "true" ]; then
-     OWNER_MODEL=$(bash resolve-agent-model.sh owner ...)
-   fi
-   ```
+   Same process as @references/execute-protocol.md ## Pre-Execution step 3, but for all 26 agents across active departments (backend, fe-*, ux-*, owner).
 
 3. **Validate department readiness:**
    - If `departments.frontend` true: verify all 7 `yolo-fe-*.md` agent files exist
@@ -72,36 +53,13 @@ If Owner is active (multiple departments):
 
 ### Context Delegation Protocol (MANDATORY — NO CONTEXT BLEED)
 
-Context flows DOWN the hierarchy with progressive scoping. Each level receives ONLY what it needs.
+See @references/company-hierarchy.md ## Context Isolation for full protocol.
 
-**Owner → Department Leads (cross-department boundary):**
-
-Owner splits gathered context into department-specific files:
-- Backend Lead receives: `{phase}-CONTEXT-backend.md` (data models, APIs, auth, infrastructure)
-- UX Lead receives: `{phase}-CONTEXT-uiux.md` (design preferences, users, accessibility, flows)
-- Frontend Lead receives: `{phase}-CONTEXT-frontend.md` + UX handoff artifacts (after UX completes)
-
-Each Lead NEVER sees another department's context file. This prevents context bleed.
-
-**Within each department (Lead → Architect → Senior → Dev):**
-
-| Agent | Receives | NEVER receives |
-|-------|----------|----------------|
-| Lead | Dept CONTEXT + ROADMAP + REQUIREMENTS + prior summaries | Other dept contexts, other dept plans |
-| Architect | Lead's plan structure + dept CONTEXT + critique findings | Other dept contexts, implementation code |
-| Senior | architecture.toon + plan.jsonl tasks + codebase patterns | Full CONTEXT file, critique.jsonl directly, other dept artifacts |
-| Dev | Senior's enriched `spec` field ONLY + test files from Tester | architecture.toon, CONTEXT files, critique.jsonl, ROADMAP, REQUIREMENTS |
-
-**Dev receives ZERO creative context.** The spec field IS the complete instruction set. If spec is unclear → escalate to Senior (not read more context).
-
-**Escalation reverses the flow:**
-```
-Dev → Senior → Lead → Architect → Owner → User
-```
-At each level, the escalating agent provides evidence. At Owner level, Owner clarifies with user. Owner then pushes corrected context back DOWN through the SAME chain (never skipping levels). Corrected context is written to a new version of the relevant artifact (plan.jsonl spec update, architecture.toon amendment, or CONTEXT addendum).
-
-**UX → Frontend handoff (cross-department):**
-UX department produces design-handoff.jsonl, design-tokens.jsonl, component-specs.jsonl. These are the ONLY UX artifacts Frontend receives. Frontend Lead does NOT read UX's internal plans, architecture, or critique.
+**TL;DR:**
+- Owner splits context into department-specific files (no bleed)
+- Context narrows down hierarchy: Lead (full) → Architect → Senior → Dev (spec only)
+- Escalation flows UP with evidence, resolution flows DOWN as updated artifacts
+- UX → Frontend handoff via design-handoff.jsonl only (FE never reads UX internal plans)
 
 ### Step 1-10: Department Dispatch
 
@@ -190,20 +148,7 @@ After all departments complete their individual 10-step workflows:
 
 ## Execution State Extensions
 
-`.execution-state.json` gains department tracking:
-
-```json
-{
-  "phase": 1,
-  "departments": {
-    "uiux": {"status": "complete", "step": "signoff", "result": "PASS"},
-    "frontend": {"status": "running", "step": "implementation"},
-    "backend": {"status": "running", "step": "code_review"}
-  },
-  "integration_qa": "pending",
-  "owner_signoff": "pending"
-}
-```
+`.execution-state.json` gains `departments` object tracking per-department status, step, and result. Example structure in `references/artifact-formats.md`.
 
 ## Display Format
 
