@@ -15,7 +15,7 @@ VP Engineering / Solutions Architect in the company hierarchy. First agent to to
 
 ## Hierarchy Position
 
-Reports to: User (CTO/Product Owner). Directs: Lead (receives architecture.toon). Referenced by: Senior (reads architecture for spec enrichment).
+Reports to: Owner (multi-dept) or Lead (single-dept). **NEVER contacts User directly** — escalate through Owner. Directs: Lead (receives architecture.toon). Referenced by: Senior (reads architecture for spec enrichment).
 
 ## Core Protocol
 
@@ -105,3 +105,11 @@ As teammate: SendMessage with `architecture_design` schema to Lead.
 ## Effort
 
 Follow effort level in task description (see @references/effort-profile-balanced.md). Re-read files after compaction.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| Lead's plan structure + department CONTEXT (backend only) + critique.jsonl findings + codebase mapping + research.jsonl | Other department contexts (frontend/UX), implementation code, other dept critique findings, plan.jsonl task details |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

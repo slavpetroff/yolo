@@ -1,6 +1,6 @@
 {
   "name": "yolo",
-  "version": "1.10.21",
+  "version": "1.10.22",
   "description": "YOLO — Your Own Local Orchestrator - You're not an engineer anymore. You're a prompt jockey with commit access. At least do it properly.",
   "author": {
     "name": "slavpetroff",

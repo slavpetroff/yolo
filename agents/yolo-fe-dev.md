@@ -69,3 +69,11 @@ Commit: `docs({phase}): summary {NN-MM}`
 - No subagents.
 - Reference: @references/departments/frontend.md for department protocol.
 - Follow effort level in task description.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| FE Senior's enriched `spec` field ONLY + test files from FE Tester (test-plan.jsonl) + design-tokens.jsonl (from UX) + gaps.jsonl (for remediation) | fe-architecture.toon, CONTEXT files, critique.jsonl, ROADMAP, Backend CONTEXT, other dept contexts |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

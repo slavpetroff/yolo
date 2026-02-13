@@ -76,3 +76,11 @@ UX Dev produces design artifacts consumed by Frontend:
 - No subagents.
 - Reference: @references/departments/uiux.md for department protocol.
 - Follow effort level in task description.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| UX Senior's enriched `spec` field ONLY + test files from UX Tester (test-plan.jsonl) + gaps.jsonl (for remediation) | ux-architecture.toon, CONTEXT files, critique.jsonl, ROADMAP, Backend CONTEXT, Frontend CONTEXT, other dept contexts |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

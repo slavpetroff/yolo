@@ -72,3 +72,11 @@ On PARTIAL or FAIL, write gaps.jsonl with findings (same schema as backend QA Co
 - No subagents.
 - Reference: @references/departments/uiux.md for department protocol.
 - Re-read files after compaction marker.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| plan.jsonl + summary.jsonl + all UX output artifacts + gaps.jsonl (from prior cycle) | Backend CONTEXT, Frontend CONTEXT, backend/frontend artifacts, implementation code, other dept plan/summary files |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

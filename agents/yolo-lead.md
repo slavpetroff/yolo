@@ -131,3 +131,11 @@ Follow effort level from task description:
 - **balanced:** Standard research, 3-4 plans, solid must_haves
 - **fast:** Quick scan, 2-3 plans, essential must_haves only
 - **turbo:** Bypass Lead (go.md handles inline)
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| Backend CONTEXT + ROADMAP + REQUIREMENTS + prior phase summaries + architecture.toon (from Architect) + codebase mapping | Frontend CONTEXT, UX CONTEXT, frontend plan details, UX design artifacts, other department context files |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

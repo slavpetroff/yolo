@@ -71,3 +71,11 @@ Same as backend Lead protocol. Validate JSONL, commit each plan.
 - NEVER write the `spec` field. That is UX Senior's job.
 - NEVER implement design artifacts directly. That is UX Dev's job.
 - Reference: @references/departments/uiux.md for department protocol.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| UX CONTEXT + ROADMAP + REQUIREMENTS + prior phase summaries + ux-architecture.toon (from UX Architect) + codebase design patterns | Backend CONTEXT, Frontend CONTEXT, backend plan details, frontend implementation code, API contracts |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

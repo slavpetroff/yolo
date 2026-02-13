@@ -82,18 +82,16 @@ NEXT_PHASE_PLANS=0
 NEXT_PHASE_SUMMARIES=0
 
 if [ -d "$PHASES_DIR" ]; then
-  # Collect phase directories in sorted order
-  PHASE_DIRS=$(ls -d "$PHASES_DIR"/*/ 2>/dev/null | sort)
-
-  for DIR in $PHASE_DIRS; do
-    PHASE_COUNT=$((PHASE_COUNT + 1))
-  done
+  # Collect phase directories in sorted order (use while-read to handle spaces)
+  PHASE_DIRS_FILE=$(mktemp)
+  ls -d "$PHASES_DIR"/*/ 2>/dev/null | sort > "$PHASE_DIRS_FILE"
+  PHASE_COUNT=$(wc -l < "$PHASE_DIRS_FILE" | tr -d ' ')
 
   if [ "$PHASE_COUNT" -eq 0 ]; then
     NEXT_PHASE_STATE="no_phases"
   else
     ALL_DONE=true
-    for DIR in $PHASE_DIRS; do
+    while IFS= read -r DIR; do
       DIRNAME=$(basename "$DIR")
       # Extract numeric prefix (e.g., "01" from "01-context-diet")
       NUM=$(echo "$DIRNAME" | sed 's/^\([0-9]*\).*/\1/')
@@ -126,12 +124,13 @@ if [ -d "$PHASES_DIR" ]; then
         break
       fi
       # This phase is complete, continue scanning
-    done
+    done < "$PHASE_DIRS_FILE"
 
     if [ "$ALL_DONE" = true ] && [ "$NEXT_PHASE" = "none" ]; then
       NEXT_PHASE_STATE="all_done"
     fi
   fi
+  rm -f "$PHASE_DIRS_FILE"
 fi
 
 echo "phase_count=$PHASE_COUNT"

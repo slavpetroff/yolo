@@ -13,21 +13,25 @@ disable-model-invocation: true
 Working directory: `!`pwd``
 
 Pre-computed state (via phase-detect.sh):
+
 ```
 !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/phase-detect.sh 2>/dev/null || echo "phase_detect_error=true"`
 ```
 
 Config:
+
 ```
 !`cat .yolo-planning/config.json 2>/dev/null || echo "No config found"`
 ```
 
 Department routing (via resolve-departments.sh):
+
 ```
 !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-departments.sh .yolo-planning/config.json 2>/dev/null || echo "multi_dept=false"`
 ```
 
 Key variables from above (MANDATORY — read these before any mode):
+
 - `multi_dept`: true = multi-department orchestration active, false = single backend lead only
 - `workflow`: parallel | sequential | backend_only
 - `leads_to_spawn`: pipe-separated waves, comma-separated parallel (e.g., `ux-lead|fe-lead,lead`)
@@ -42,6 +46,7 @@ Three input paths, evaluated in order:
 ### Path 1: Flag detection
 
 Check $ARGUMENTS for flags. If any mode flag is present, go directly to that mode:
+
 - `--plan [N]` -> Plan mode
 - `--execute [N]` -> Execute mode
 - `--discuss [N]` -> Discuss mode
@@ -53,6 +58,7 @@ Check $ARGUMENTS for flags. If any mode flag is present, go directly to that mod
 - `--archive` -> Archive mode
 
 Behavior modifiers (combinable with mode flags):
+
 - `--effort <level>`: thorough|balanced|fast|turbo (overrides config)
 - `--skip-qa`: skip post-build QA
 - `--skip-audit`: skip pre-archive audit
@@ -65,6 +71,7 @@ If flags present: skip confirmation gate (flags express explicit intent).
 ### Path 2: Natural language intent
 
 If $ARGUMENTS present but no flags detected, interpret user intent:
+
 - Discussion keywords (talk, discuss, explore, think about, what about) -> Discuss mode
 - Assumption keywords (assume, assuming, what if, what are you assuming) -> Assumptions mode
 - Planning keywords (plan, scope, break down, decompose, structure) -> Plan mode
@@ -91,6 +98,7 @@ If no $ARGUMENTS, evaluate phase-detect.sh output. First match determines mode:
 ### Confirmation Gate
 
 Every mode triggers confirmation via AskUserQuestion before executing, with contextual options (recommended action + alternatives).
+
 - **Exception:** `--yolo` skips all confirmation gates. Error guards (missing roadmap, uninitialized project) still halt.
 - **Exception:** Flags skip confirmation (explicit intent).
 
@@ -105,6 +113,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 **Guard:** `.yolo-planning/` exists but no PROJECT.md.
 
 **Critical Rules (non-negotiable):**
+
 - NEVER fabricate content. Only use what the user explicitly states.
 - If answer doesn't match question: STOP, handle their request, let them re-run.
 - No silent assumptions -- ask follow-ups for gaps.
@@ -115,10 +124,13 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 **Brownfield detection:** `git ls-files` or Glob check for existing code.
 
 **Steps:**
+
 - **B1: PROJECT.md** -- If $ARGUMENTS provided (excluding flags), use as description. Otherwise ask name + core purpose. Then call:
+
   ```
   bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-project.sh .yolo-planning/PROJECT.md "$NAME" "$DESCRIPTION"
   ```
+
 - **B1.5: Discovery Depth** -- Read `discovery_questions` and `active_profile` from config. Map profile to depth:
 
   | Profile | Depth | Questions |
@@ -139,25 +151,32 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
     4. Synthesize answers into `.yolo-planning/discovery.json` with `answered[]` and `inferred[]` (questions=friendly, requirements=precise)
   - **Wording rules (all depths):** No jargon. Plain language. Concrete situations. Cause and effect. Assume user is not a developer.
   - **After discovery (all depths):** Call:
+
     ```
     bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-requirements.sh .yolo-planning/REQUIREMENTS.md .yolo-planning/discovery.json
     ```
 
 - **B3: ROADMAP.md** -- Suggest 3-5 phases from requirements. If `.yolo-planning/codebase/` exists, read INDEX.md, PATTERNS.md, ARCHITECTURE.md, CONCERNS.md. Each phase: name, goal, mapped reqs, success criteria. Write phases JSON to temp file, then call:
+
   ```
   bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-roadmap.sh .yolo-planning/ROADMAP.md "$PROJECT_NAME" /tmp/yolo-phases.json
   ```
+
   Script handles ROADMAP.md generation and phase directory creation.
 - **B4: STATE.md** -- Extract project name, milestone name, and phase count from earlier steps. Call:
+
   ```
   bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-state.sh .yolo-planning/STATE.md "$PROJECT_NAME" "$MILESTONE_NAME" "$PHASE_COUNT"
   ```
+
   Script handles today's date, Phase 1 status, empty decisions, and 0% progress.
 - **B5: Brownfield summary** -- If BROWNFIELD=true AND no codebase/: count files by ext, check tests/CI/Docker/monorepo, add Codebase Profile to STATE.md.
 - **B6: CLAUDE.md** -- Extract project name and core value from PROJECT.md. If root CLAUDE.md exists, pass it as EXISTING_PATH for section preservation. Call:
+
   ```
   bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-claude.sh CLAUDE.md "$PROJECT_NAME" "$CORE_VALUE" [CLAUDE.md]
   ```
+
   Script handles: new file generation (heading + core value + YOLO sections), existing file preservation (replaces only YOLO-managed sections: Active Context, YOLO Rules, Key Decisions, Installed Skills, Project Conventions, Commands, Plugin Isolation; preserves all other content). Omit the fourth argument if no existing CLAUDE.md. Max 200 lines.
 - **B7: Transition** -- Display "Bootstrap complete. Transitioning to scoping..." Re-evaluate state, route to next match.
 
@@ -168,12 +187,15 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 **Delegation:** Scope delegates to the Architect agent (yolo-architect) for phase decomposition. See `references/company-hierarchy.md` for hierarchy.
 
 **Steps:**
+
 1. Load context: PROJECT.md, REQUIREMENTS.md (or reqs.jsonl). If `.yolo-planning/codebase/` exists, note available mapping docs.
 2. If $ARGUMENTS (excl. flags) provided, use as scope description. Else ask: "What do you want to build?" Show uncovered requirements as suggestions.
 3. Resolve Architect model:
+
    ```bash
    ARCHITECT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
    ```
+
 4. Spawn yolo-architect as subagent via Task tool with:
    - model: "${ARCHITECT_MODEL}"
    - Mode: "scoping"
@@ -190,6 +212,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 **Phase auto-detection:** First phase without `*.plan.jsonl`. All planned: STOP "All phases planned. Specify: `/yolo:go --discuss N`"
 
 **Steps:**
+
 1. Load phase goal, requirements, success criteria, dependencies from ROADMAP.md.
 2. Ask 3-5 phase-specific questions across: essential features, technical preferences, boundaries, dependencies, acceptance criteria.
 3. Write `.yolo-planning/phases/{phase-dir}/{phase}-CONTEXT.md` with sections: User Vision, Essential Features, Technical Preferences, Boundaries, Acceptance Criteria, Decisions Made.
@@ -202,6 +225,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 **Phase auto-detection:** Same as Discuss mode.
 
 **Steps:**
+
 1. Load context: ROADMAP.md, REQUIREMENTS.md, PROJECT.md, STATE.md, CONTEXT.md (if exists), codebase signals.
 2. Generate 5-10 assumptions by impact: scope (included/excluded), technical (implied approaches), ordering (sequencing), dependency (prior phases), user preference (defaults without stated preference).
 3. Gather feedback per assumption: "Confirm, correct, or expand?" Confirm=proceed, Correct=user provides answer, Expand=user adds nuance.
@@ -213,6 +237,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 **Phase auto-detection:** First phase without `*.plan.jsonl`. All planned: STOP "All phases planned. Specify phase: `/yolo:go --plan N`"
 
 **Steps:**
+
 1. **Parse args:** Phase number (optional, auto-detected), --effort (optional, falls back to config).
 2. **Phase Discovery (if applicable):** Skip if already planned, phase dir has `{phase}-CONTEXT.md`, or DISCOVERY_DEPTH=skip. Otherwise: read `${CLAUDE_PLUGIN_ROOT}/references/discovery-protocol.md` Phase Discovery mode. Generate phase-scoped questions (quick=1, standard=1-2, thorough=2-3). Skip categories already in `discovery.json.answered[]`. Present via AskUserQuestion. Append to `discovery.json`. Write `{phase}-CONTEXT.md`.
 3. **Context compilation:** If `config_context_compiler=true`, compile context for the appropriate leads (see step 5/6).
@@ -220,6 +245,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 5. **Single-department planning (when `multi_dept=false` from resolve-departments.sh above):**
    - Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} lead {phases_dir}`
    - Resolve Lead model:
+
      ```bash
      LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
      if [ $? -ne 0 ]; then
@@ -227,6 +253,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
        exit 1
      fi
      ```
+
    - Spawn yolo-lead as subagent via Task tool with compiled context (or full file list as fallback).
    - **CRITICAL:** Add `model: "${LEAD_MODEL}"` parameter to the Task tool invocation.
    - Display `◆ Spawning Lead agent...` -> `✓ Lead agent complete`.
@@ -269,6 +296,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
       Display: `◆ Owner gathering project context...` → (questions) → `✓ Context gathered — split into {N} department briefs`
 
    b. **Resolve models for ALL active department Leads + Owner:**
+
       ```bash
       # Backend Lead (always)
       LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
@@ -281,6 +309,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
       ```
 
    c. **Compile context per department Lead:**
+
       ```bash
       bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} lead {phases_dir}
       # If fe_active=true:
@@ -327,10 +356,13 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
       - Display `◆ Spawning Owner for plan review...` -> `✓ Owner review complete`
 6. **Validate output:** Verify plan.jsonl files exist with valid JSONL (each line parses with jq). Check header has p, n, t, w, mh fields. Check wave deps acyclic.
 7. **Present:** Update STATE.md (phase position, plan count, status=Planned). Resolve model profile:
+
    ```bash
    MODEL_PROFILE=$(jq -r '.model_profile // "balanced"' .yolo-planning/config.json)
    ```
+
    Display Phase Banner with plan list, effort level, and model profile:
+
    ```
    Phase {N}: {name}
    Plans: {N}
@@ -338,11 +370,13 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
    Effort: {effort}
    Model Profile: {profile}
    ```
+
 8. **Cautious gate (autonomy=cautious only):** STOP after planning. Ask "Plans ready. Execute Phase {N}?" Other levels: auto-chain.
 
 ### Mode: Execute
 
 This mode delegates to protocol files. Before reading:
+
 1. **Parse arguments:** Phase number (auto-detect if omitted), --effort, --skip-qa, --skip-security, --plan=NN.
 2. **Run execute guards:**
    - Not initialized: STOP "Run /yolo:init first."
@@ -382,6 +416,7 @@ This mode delegates to protocol files. Before reading:
 Missing name: STOP "Usage: `/yolo:go --add <phase-name>`"
 
 **Steps:**
+
 1. Resolve context: ACTIVE -> milestone-scoped paths, otherwise defaults.
 2. Parse args: phase name (first non-flag arg), --goal (optional), slug (lowercase hyphenated).
 3. Next number: highest in ROADMAP.md + 1, zero-padded.
@@ -397,6 +432,7 @@ Invalid position (out of range 1 to max+1): STOP with valid range.
 Inserting before completed phase: WARN + confirm.
 
 **Steps:**
+
 1. Resolve context: ACTIVE -> milestone-scoped paths, otherwise defaults.
 2. Parse args: position (int), phase name, --goal (optional), slug (lowercase hyphenated).
 3. Identify renumbering: all phases >= position shift up by 1.
@@ -414,6 +450,7 @@ Has work (plan.jsonl or summary.jsonl): STOP "Phase {N} has artifacts. Remove pl
 Completed ([x] in roadmap): STOP "Cannot remove completed Phase {N}."
 
 **Steps:**
+
 1. Resolve context: ACTIVE -> milestone-scoped paths, otherwise defaults.
 2. Parse args: extract phase number, validate, look up name/slug.
 3. Confirm: display phase details, ask confirmation. Not confirmed -> STOP.
@@ -430,6 +467,7 @@ No work (no `*.summary.jsonl` files): STOP "Nothing to ship."
 
 **Pre-gate audit (unless --skip-audit or --force):**
 Run 6-point audit matrix:
+
 1. Roadmap completeness: every phase has real goal (not TBD/empty)
 2. Phase planning: every phase has >= 1 `*.plan.jsonl`
 3. Plan execution: every plan.jsonl has matching summary.jsonl
@@ -439,6 +477,7 @@ Run 6-point audit matrix:
 FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
 
 **Steps:**
+
 1. Resolve context: ACTIVE -> milestone-scoped paths. No ACTIVE -> SLUG="default", root paths.
 2. Parse args: --tag=vN.N.N (custom tag), --no-tag (skip), --force (skip audit).
 3. Compute summary: from ROADMAP (phases), summary.jsonl files (tasks/commits/deviations via jq), REQUIREMENTS.md or reqs.jsonl (satisfied count).
@@ -458,6 +497,7 @@ After Execute mode completes (autonomy=pure-yolo only): if more unbuilt phases e
 Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md for all output.
 
 Per-mode output:
+
 - **Bootstrap:** project-defined banner + transition to scoping
 - **Scope:** phases-created summary + STOP
 - **Discuss:** ✓ for captured answers, Next Up Block

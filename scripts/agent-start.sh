@@ -9,10 +9,10 @@ PLANNING_DIR=".yolo-planning"
 
 AGENT_TYPE=$(echo "$INPUT" | jq -r '.agent_type // ""' 2>/dev/null)
 
-# Only track YOLO agents
+# Track all YOLO agents (26 agents across 4 departments)
 case "$AGENT_TYPE" in
-  yolo-lead|yolo-dev|yolo-qa|yolo-scout|yolo-debugger|yolo-architect)
-    echo "${AGENT_TYPE#yolo-}" > "$PLANNING_DIR/.active-agent"
+  yolo-*)
+    echo "$AGENT_TYPE" > "$PLANNING_DIR/.active-agent"
     ;;
 esac
 

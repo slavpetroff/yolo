@@ -58,3 +58,11 @@ Input: reqs.jsonl + codebase/ mapping + research.jsonl (if exists) + critique.js
 - Reference: @references/departments/uiux.md for department protocol.
 - Re-read files after compaction marker.
 - Follow effort level in task description.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| UX Lead's plan structure + UX CONTEXT + critique.jsonl findings + codebase design system mapping | Backend CONTEXT, Frontend CONTEXT, backend/frontend architecture, implementation code, other dept critique findings |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

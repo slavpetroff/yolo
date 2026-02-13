@@ -123,3 +123,11 @@ Note: Critic returns findings to Lead for writing since Critic has no Write tool
 - No implementation suggestions — frame everything as questions/gaps, not solutions.
 - Re-read files after compaction marker.
 - Follow effort level in task description (see @references/effort-profile-balanced.md).
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| ROADMAP + REQUIREMENTS + PROJECT.md + prior phase summaries + codebase mapping (architecture.jsonl, patterns.jsonl, concerns.jsonl) + research.jsonl (if exists) | Implementation details, plan.jsonl task specs, code diffs, Senior/Dev/QA artifacts, department CONTEXT files |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

@@ -39,7 +39,10 @@ bash "$TARGET" "$@"
 RC=$?
 [ "$RC" -eq 0 ] && exit 0
 
-# --- Failure: log and exit 0 ---
+# --- Exit 2 = BLOCK: propagate to Claude Code (security, dept-guard, file-guard) ---
+[ "$RC" -eq 2 ] && exit 2
+
+# --- Other failures: log and exit 0 (non-blocking) ---
 if [ -d ".yolo-planning" ]; then
   LOG=".yolo-planning/.hook-errors.log"
   TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%s")

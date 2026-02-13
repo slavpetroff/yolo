@@ -131,3 +131,11 @@ Log spec enrichment choices, pattern selections, and code review architectural f
 - Enriched plan.jsonl (spec field added to tasks)
 - code-review.jsonl (review findings)
 - Appends to decisions.jsonl (design decisions made during spec enrichment)
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| architecture.toon + plan.jsonl tasks + codebase patterns + critique.jsonl findings (relevant to specs) | Full CONTEXT file, ROADMAP, other dept contexts, other dept architecture or plans |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

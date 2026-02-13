@@ -79,3 +79,11 @@ Same as backend Lead protocol. Validate JSONL, commit each plan.
 - NEVER write the `spec` field. That is FE Senior's job.
 - NEVER implement code. That is FE Dev's job.
 - Reference: @references/departments/frontend.md for department protocol.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| Frontend CONTEXT + ROADMAP + REQUIREMENTS + prior phase summaries + fe-architecture.toon (from FE Architect) + UX design handoff artifacts (design-tokens.jsonl, component-specs.jsonl, user-flows.jsonl) + api-contracts.jsonl (from Backend) | Backend CONTEXT, UX CONTEXT (raw), backend plan details, backend implementation code |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

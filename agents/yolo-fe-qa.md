@@ -68,3 +68,11 @@ Write verification.jsonl to phase directory (same schema as backend QA Lead).
 - No subagents.
 - Reference: @references/departments/frontend.md for department protocol.
 - Re-read files after compaction marker.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| plan.jsonl + summary.jsonl + all frontend output artifacts for the phase + design-handoff.jsonl (from UX) | Backend CONTEXT, UX CONTEXT (raw), backend artifacts, UX raw design files, other dept plan/summary files |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

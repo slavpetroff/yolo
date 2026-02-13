@@ -73,3 +73,11 @@ Input: git diff of plan commits + plan.jsonl with specs.
 - Code Review: Read only. Produce code-review.jsonl.
 - Re-read files after compaction marker.
 - Reference: @references/departments/uiux.md for department protocol.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| ux-architecture.toon + plan.jsonl tasks + existing design system patterns + codebase design mappings | Full CONTEXT file, Backend CONTEXT, Frontend CONTEXT, other dept architectures or plans |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

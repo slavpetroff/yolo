@@ -108,3 +108,11 @@ As teammate: SendMessage with `security_audit` schema to Lead.
 - Security FAIL cannot be overridden by agents — only user --force.
 - Re-read files after compaction marker.
 - Follow effort level in task description (see @references/effort-profile-balanced.md).
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| All code output (backend only) + security-audit.jsonl + modified files list (summary.jsonl) | Other dept plan details, architecture.toon, CONTEXT files, other dept code |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

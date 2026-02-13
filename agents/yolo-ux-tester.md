@@ -74,3 +74,11 @@ Commit: `test({phase}): RED phase tests for plan {NN-MM}`
 - No subagents.
 - Reference: @references/departments/uiux.md for department protocol.
 - Re-read files after compaction marker.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| plan.jsonl `ts` (test_spec) fields + UX Senior's enriched specs (for context) | ux-architecture.toon, CONTEXT files, ROADMAP, Backend CONTEXT, Frontend CONTEXT, other dept contexts |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

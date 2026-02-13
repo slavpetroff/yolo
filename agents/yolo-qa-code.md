@@ -129,3 +129,11 @@ As teammate: SendMessage with `qa_code_result` schema to Lead.
 - If no linter configured: skip lint phase, note in findings.
 - Re-read files after compaction marker.
 - Follow effort level in task description (see @references/effort-profile-balanced.md).
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| plan.jsonl + summary.jsonl + all output artifacts for the phase + gaps.jsonl (from prior cycle) | Other dept artifacts, other dept plan/summary files |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

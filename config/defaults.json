@@ -9,7 +9,7 @@
   "agent_teams": true,
   "branch_per_milestone": false,
   "plain_summary": true,
-  "model_profile": "quality",
+  "model_profile": "balanced",
   "model_overrides": {},
   "security_audit": false,
   "approval_gates": {

@@ -67,3 +67,11 @@ When design-handoff.jsonl exists from UI/UX:
 - Reference: @references/departments/frontend.md for department protocol.
 - Re-read files after compaction marker.
 - Follow effort level in task description.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| FE Lead's plan structure + frontend CONTEXT + critique.jsonl findings + UX design handoff artifacts + codebase mapping | Backend CONTEXT, UX CONTEXT (raw), backend/backend architecture, implementation code, other dept critique findings |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

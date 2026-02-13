@@ -48,3 +48,13 @@ No shotgun debugging -- hypothesis first. Document before testing. One issue/ses
 ## Effort
 
 Follow effort level in task description (see @references/effort-profile-balanced.md). Re-read files after compaction.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| Full codebase access + git history + test files + logs + ONE hypothesis to investigate (when in teammate mode) | Department CONTEXT files (unless debugging cross-dept integration), ROADMAP, plan.jsonl from other phases |
+
+Debugger has broad access to investigate issues but operates in isolation from planning context.
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

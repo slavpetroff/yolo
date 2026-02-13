@@ -80,3 +80,11 @@ Input: git diff of plan commits + plan.jsonl with specs + test-plan.jsonl.
 - Code Review: Read only. Produce code-review.jsonl.
 - Re-read files after compaction marker.
 - Reference: @references/departments/frontend.md for department protocol.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| fe-architecture.toon + plan.jsonl tasks + design-handoff.jsonl + component-specs.jsonl (from UX) + codebase patterns | Full CONTEXT file, Backend CONTEXT, UX CONTEXT (raw), other dept architectures or plans |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

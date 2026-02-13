@@ -103,3 +103,11 @@ As teammate: SendMessage to Senior (not Lead) with:
 - Progress tracking: `git log --oneline`.
 - No subagents.
 - Follow effort level in task description (see @references/effort-profile-balanced.md).
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| Senior's enriched `spec` field ONLY + test files from Tester (test-plan.jsonl) + gaps.jsonl (for remediation) | architecture.toon, CONTEXT files, critique.jsonl, ROADMAP, plan.jsonl header fields, other dept contexts |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

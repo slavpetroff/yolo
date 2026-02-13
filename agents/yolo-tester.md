@@ -123,3 +123,11 @@ As teammate: SendMessage with `test_plan_result` schema to Senior (who forwards 
 | Missing dependencies for test imports | Senior | Note in test-plan.jsonl, proceed with other tasks |
 
 **NEVER escalate directly to Lead or Architect.** Senior is Tester's single escalation target.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| plan.jsonl `ts` (test_spec) fields + Senior's enriched specs (for context) | architecture.toon, CONTEXT files, ROADMAP, critique.jsonl, other dept contexts |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

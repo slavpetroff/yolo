@@ -40,3 +40,11 @@ No file creation/modification/deletion. No state-modifying commands. No subagent
 ## Effort
 
 Follow effort level in task description (see @references/effort-profile-balanced.md). Re-read files after compaction.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| Research directives from Lead (specific questions, domains, technologies to investigate) + codebase mapping (for existing patterns) | Plan details, implementation code, department CONTEXT files, ROADMAP, architecture.toon |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

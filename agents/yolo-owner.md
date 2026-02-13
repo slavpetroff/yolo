@@ -123,3 +123,13 @@ As teammate: SendMessage to department Leads.
 - Follow effort level in task description (see @references/effort-profile-balanced.md).
 - Reference: @references/departments/shared.md for shared agent protocols.
 - Reference: @references/cross-team-protocol.md for cross-department workflow.
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| ALL department contexts (Backend CONTEXT, Frontend CONTEXT, UX CONTEXT) + ROADMAP + REQUIREMENTS + department_result from all Leads + integration QA results | Implementation details, plan.jsonl task specs, code diffs, test files |
+
+Owner is the ONLY agent that sees all department contexts. All other agents receive department-filtered context only.
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

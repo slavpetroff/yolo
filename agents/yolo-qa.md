@@ -81,3 +81,11 @@ As teammate: SendMessage with `qa_result` schema to Lead.
 - No subagents.
 - Re-read files after compaction marker.
 - Follow effort level in task description (see @references/effort-profile-balanced.md).
+
+## Context Scoping
+
+| Receives | NEVER receives |
+|----------|---------------|
+| plan.jsonl + summary.jsonl + all output artifacts for the phase (test files, code, docs) | Other dept artifacts (frontend components, UX design tokens), other dept plan/summary files |
+
+Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.
