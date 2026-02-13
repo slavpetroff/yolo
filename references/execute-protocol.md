@@ -330,10 +330,17 @@ In addition to standard pre-execution (resolve models for Steps 1-10 above):
 
 Follow `workflow` variable and `leads_to_spawn` from resolve-departments.sh:
 
-**Step 0: Owner Critique Review** (balanced/thorough effort only)
+**Step 0a: Owner Context Gathering** (if `{phase}-CONTEXT.md` does NOT exist)
+The Owner is the SOLE point of contact with the user — no department lead talks to user directly.
+1. go.md acts as Owner proxy: run questionnaire via AskUserQuestion (vision, UX, frontend, backend, integration, constraints).
+2. Write `{phase-dir}/{phase}-CONTEXT.md` with gathered context organized by department.
+3. If CONTEXT.md already exists (from Plan Mode): skip to Step 0b.
+4. Display: `◆ Owner gathering context...` → `✓ Context gathered`
+
+**Step 0b: Owner Critique Review** (balanced/thorough effort only)
 1. Run shared Critic (Step 1 above) as normal.
 2. Spawn yolo-owner (model: "${OWNER_MODEL}") with `owner_review` mode.
-3. Input: critique.jsonl, reqs.jsonl, department config.
+3. Input: critique.jsonl, reqs.jsonl, department config, CONTEXT.md.
 4. Owner determines department priorities and dispatch order.
 5. Display: `◆ Spawning Owner for critique review...` → `✓ Owner review complete`
 

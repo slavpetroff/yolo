@@ -15,7 +15,7 @@
         "url": "https://github.com/slavpetroff/yolo.git"
       },
       "description": "Development lifecycle plugin — 20 commands, 6 agents, continuous verification",
-      "version": "1.10.19",
+      "version": "1.10.20",
       "license": "MIT",
       "keywords": [
         "yolo-coding",

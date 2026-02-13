@@ -44,13 +44,27 @@ After standard pre-execution:
 
 ## Phase Execution: Multi-Department Flow
 
-### Step 0: Owner Critique Review (balanced/thorough effort only)
+### Step 0: Owner Context Gathering + Critique Review
+
+**Step 0a: Owner Context Gathering (FIRST — before ANY department work):**
+
+The Owner is the SOLE point of contact with the user. No department lead or agent talks to the user directly.
+
+If `{phase-dir}/{phase}-CONTEXT.md` does NOT exist:
+1. go.md acts as Owner proxy — runs questionnaire via AskUserQuestion.
+2. Covers all active departments: vision, UX needs, frontend preferences, backend requirements, integration, constraints.
+3. Writes `{phase-dir}/{phase}-CONTEXT.md` organized by department.
+4. All department leads receive this CONTEXT.md as input.
+
+If CONTEXT.md already exists (from Plan Mode): skip to Step 0b.
+
+**Step 0b: Owner Critique Review (balanced/thorough effort only):**
 
 If Owner is active (multiple departments):
 1. Run shared Critic as normal (Step 1 from execute-protocol.md).
 2. Spawn yolo-owner with `owner_review` mode:
    - model: "${OWNER_MODEL}"
-   - Input: critique.jsonl, reqs.jsonl, department config
+   - Input: critique.jsonl, reqs.jsonl, department config, CONTEXT.md
 3. Owner determines department priorities and dispatch order.
 4. Owner sends `owner_review` to all department Leads.
 

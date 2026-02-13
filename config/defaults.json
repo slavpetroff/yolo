@@ -20,9 +20,9 @@
   },
   "departments": {
     "backend": true,
-    "frontend": false,
-    "uiux": false
+    "frontend": true,
+    "uiux": true
   },
-  "department_workflow": "backend_only",
+  "department_workflow": "parallel",
   "cross_team_handoff": true
 }

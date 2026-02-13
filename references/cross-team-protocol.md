@@ -9,8 +9,14 @@ Phase Start
     │
     ▼
 ┌─────────────────────┐
-│  Owner Review        │  ← Reviews critique, sets dept priorities
-│  (balanced/thorough) │
+│  Owner Context       │  ← SOLE point of contact with user
+│  Gathering           │     Questionnaire → writes CONTEXT.md
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Owner Critique      │  ← Reviews critique, sets dept priorities
+│  Review (optional)   │     (balanced/thorough effort only)
 └──────────┬──────────┘
            │
     ┌──────┴──────────┐

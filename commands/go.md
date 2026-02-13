@@ -233,7 +233,31 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 6. **Multi-department planning (when `multi_dept=true` from resolve-departments.sh above):**
    Read `${CLAUDE_PLUGIN_ROOT}/references/cross-team-protocol.md` for workflow order.
 
-   a. **Resolve models for ALL active department Leads + Owner:**
+   a. **Owner Context Gathering (FIRST — before any department leads spawn):**
+      The Owner is the SOLE point of contact with the user. In multi-department mode, go.md acts as the Owner's proxy to gather ALL requirements before ANY department lead is spawned. No department lead talks to the user — only the Owner does.
+
+      **Questionnaire** — ask via AskUserQuestion in 2-3 adaptive rounds until context is clear:
+
+      **Round 1: Vision and scope** (always):
+      - "What are you building? Describe the end goal in 1-2 sentences."
+      - "Who will use this? (end users, admins, developers, etc.)"
+      - "What are the must-have features vs nice-to-haves?"
+
+      **Round 2: Department-specific** (adapt to active departments):
+      - If `ux_active=true`: "Any design preferences? (minimal, bold, playful, corporate) Target devices? Accessibility requirements?"
+      - If `fe_active=true`: "Frontend framework preference? (React, Vue, Svelte, vanilla) Any component library? SSR needed?"
+      - Backend (always): "Data storage needs? Auth method? External APIs or services to integrate?"
+
+      **Round 3: Integration and constraints** (if 2+ departments active):
+      - "How should frontend and backend communicate? (REST, GraphQL, WebSocket)"
+      - "Any hard constraints? (tech stack, hosting, budget, timeline)"
+      - "Anything else the team should know?"
+
+      Stop asking when context is clear. Write gathered context to `{phase-dir}/{phase}-CONTEXT.md` organized by department section.
+
+      Display: `◆ Owner gathering project context...` → (questions) → `✓ Context gathered — all departments briefed`
+
+   b. **Resolve models for ALL active department Leads + Owner:**
       ```bash
       # Backend Lead (always)
       LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
@@ -245,7 +269,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
       OWNER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh owner .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
       ```
 
-   b. **Compile context per department Lead:**
+   c. **Compile context per department Lead:**
       ```bash
       bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} lead {phases_dir}
       # If fe_active=true:
@@ -254,7 +278,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
       bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} ux-lead {phases_dir}
       ```
 
-   c. **Follow `leads_to_spawn` dispatch order from resolve-departments.sh:**
+   d. **Follow `leads_to_spawn` dispatch order from resolve-departments.sh:**
       Parse `leads_to_spawn` — `|` separates waves, `,` separates parallel agents within a wave.
 
       For each wave (separated by `|`):
@@ -262,9 +286,9 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
       - If wave is a single agent: spawn it and wait for completion.
 
       For each lead, spawn `yolo-{lead-name}` with:
-      - model: resolved model from step 6a
-      - Compiled context from step 6b
-      - Phase dir, ROADMAP.md, REQUIREMENTS.md, CONTEXT.md
+      - model: resolved model from step 6d
+      - Compiled context from step 6c
+      - Phase dir, ROADMAP.md, REQUIREMENTS.md, CONTEXT.md (from step 6a)
 
       Display per lead: `◆ Spawning {Dept} Lead ({model})...` -> `✓ {Dept} Lead complete`
 
@@ -274,9 +298,9 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
       2. Spawn yolo-fe-lead + yolo-lead in PARALLEL. Wait for both.
          `◆ Spawning Frontend Lead + Backend Lead...` -> `✓ All Leads complete`
 
-   d. **Owner plan review (balanced/thorough effort only, when `owner_active=true`):**
+   e. **Owner plan review (balanced/thorough effort only, when `owner_active=true`):**
       - Spawn yolo-owner (model: "${OWNER_MODEL}") with `owner_review` mode.
-      - Provide: all department plan.jsonl files, reqs.jsonl, department config.
+      - Provide: all department plan.jsonl files, reqs.jsonl, department config, CONTEXT.md.
       - Owner reviews cross-department plan coherence and sets priorities.
       - Display `◆ Spawning Owner for plan review...` -> `✓ Owner review complete`
 6. **Validate output:** Verify plan.jsonl files exist with valid JSONL (each line parses with jq). Check header has p, n, t, w, mh fields. Check wave deps acyclic.
@@ -315,7 +339,11 @@ This mode delegates to protocol files. Before reading:
   2. `${CLAUDE_PLUGIN_ROOT}/references/multi-dept-protocol.md` — department dispatch order, handoff gates, Owner review
   3. `${CLAUDE_PLUGIN_ROOT}/references/cross-team-protocol.md` — communication rules, workflow modes, conflict resolution
 
-  Follow `multi-dept-protocol.md` dispatch flow — each department runs its own 10-step using department-prefixed agents (fe-*, ux-*). Workflow order from `workflow` variable: Owner Review → UX 10-step (if ux_active) → Handoff Gate → FE+BE parallel 10-step → Integration QA → Security → Owner Sign-off.
+  Follow `multi-dept-protocol.md` dispatch flow — each department runs its own 10-step using department-prefixed agents (fe-*, ux-*). Workflow order from `workflow` variable:
+
+  **Owner Context Gathering** (if `{phase}-CONTEXT.md` does NOT exist — user skipped Plan Mode) → **Owner Critique Review** → UX 10-step (if ux_active) → Handoff Gate → FE+BE parallel 10-step → Integration QA → Security → **Owner Sign-off**.
+
+  The Owner is the SOLE point of contact with the user. If CONTEXT.md is missing, run the Owner questionnaire from Plan Mode step 6a before any department execution begins. No department lead or agent talks to the user — only the Owner does.
 
   Resolve models for ALL active department agents via `resolve-agent-model.sh` with department-prefixed names (e.g., `fe-lead`, `ux-architect`, `owner`). Compile context per department via `compile-context.sh` with department-aware roles.
 
