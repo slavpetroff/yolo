@@ -54,12 +54,13 @@ if [ "$(jq -r '.model_overrides.architect // ""' .yolo-planning/config.json)" !=
 echo "  Lead: $LEAD_DISPLAY | Dev: $DEV_DISPLAY | QA: $QA_DISPLAY | Scout: $SCOUT_DISPLAY | Debugger: $DEBUGGER_DISPLAY | Architect: $ARCHITECT_DISPLAY"
 ```
 
-**Step 2:** AskUserQuestion with up to 5 commonly changed settings (mark current values):
+**Step 2:** AskUserQuestion with up to 6 commonly changed settings (mark current values):
 - Effort: thorough | balanced | fast | turbo
 - Autonomy: cautious | standard | confident | pure-yolo
 - Verification: quick | standard | deep
 - Max tasks per plan: 3 | 5 | 7
 - Model Profile
+- Departments
 
 **Step 2.5:** If "Model Profile" was selected, AskUserQuestion with 2 options:
 - Use preset profile (quality/balanced/budget)
@@ -184,6 +185,51 @@ else
   echo "  After:  ${NEW_COST} units (no change)"
 fi
 ```
+
+**Step 2.6:** If "Departments" was selected in Step 2, show current department state and allow toggling.
+
+Read current department state:
+```bash
+IFS='|' read -r DEPT_BE DEPT_FE DEPT_UX DEPT_WF <<< "$(jq -r '[
+  (.departments.backend // true),
+  (.departments.frontend // false),
+  (.departments.uiux // false),
+  (.department_workflow // "backend_only")
+] | join("|")' .yolo-planning/config.json)"
+```
+
+Display current state:
+```
+Current departments:
+  Backend:  ✓ (always on)
+  Frontend: {✓ or ○}
+  UI/UX:    {✓ or ○}
+  Workflow:  {DEPT_WF}
+```
+
+Use AskUserQuestion multiSelect: "Toggle departments (Backend is always on):"
+- **"Frontend"** — description: "Currently: {enabled|disabled}. UI components, client-side logic."
+- **"UI/UX"** — description: "Currently: {enabled|disabled}. Design systems, wireframes, accessibility."
+
+Toggle the selected departments (if Frontend was enabled and user selects it, disable it; if disabled, enable it).
+
+If the result has 2+ departments active (Frontend or UI/UX enabled) AND current workflow is "backend_only", ask workflow:
+
+AskUserQuestion: "Multiple departments enabled. Choose workflow:"
+- **"Parallel (Recommended)"** — description: "UI/UX first, then Frontend + Backend in parallel."
+- **"Sequential"** — description: "UI/UX → Frontend → Backend, one at a time."
+
+If the result has only Backend active, set workflow to "backend_only" automatically.
+
+Apply all changes via jq:
+```bash
+jq --argjson fe "$NEW_FE" --argjson ux "$NEW_UX" --arg wf "$NEW_WF" \
+  '.departments.frontend = $fe | .departments.uiux = $ux | .department_workflow = $wf' \
+  .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+  mv .yolo-planning/config.json.tmp .yolo-planning/config.json
+```
+
+Display: `✓ Departments: {comma-separated active} — workflow: {NEW_WF}`
 
 **Step 3:** Apply changes to config.json. Display ✓ per changed setting with ➜. No changes: "✓ No changes made."
 
