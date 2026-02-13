@@ -198,3 +198,54 @@ echo "| Gate failure rate | ${FR}% (${GF}/${GT}) |"
 echo "| Lease conflicts | ${LC} |"
 echo "| Resume successes | ${RS} |"
 echo "| Completion rejections | ${RJ} |"
+echo ""
+
+# --- Profile x Autonomy Breakdown (REQ-06) ---
+echo "## Profile x Autonomy Breakdown"
+echo ""
+
+HAS_SEGMENTED_DATA=false
+
+# Count gate events that have autonomy field (from Phase 1 hard-gate.sh changes)
+if [ -f "$EVENTS_FILE" ]; then
+  AUTONOMY_EVENTS=$(jq -s '[.[] | select(.data.autonomy != null or .autonomy != null)] | length' "$EVENTS_FILE" 2>/dev/null || echo "0")
+  if [ "$AUTONOMY_EVENTS" -gt 0 ]; then
+    HAS_SEGMENTED_DATA=true
+  fi
+fi
+
+# Count smart_route events from metrics
+SMART_ROUTE_COUNT=0
+if [ -f "$METRICS_FILE" ]; then
+  SMART_ROUTE_COUNT=$(jq -s '[.[] | select(.event == "smart_route")] | length' "$METRICS_FILE" 2>/dev/null || echo "0")
+  if [ "$SMART_ROUTE_COUNT" -gt 0 ]; then
+    HAS_SEGMENTED_DATA=true
+  fi
+fi
+
+if [ "$HAS_SEGMENTED_DATA" = "true" ]; then
+  echo "| Profile | Autonomy | Gate Events | Routes |"
+  echo "|---------|----------|-------------|--------|"
+
+  # Group gate events by autonomy value
+  if [ -f "$EVENTS_FILE" ]; then
+    GATE_BY_AUTONOMY=$(jq -rs '
+      [.[] | select(.event == "gate_passed" or .event == "gate_failed") | select(.autonomy != null)]
+      | group_by(.autonomy)
+      | .[]
+      | {autonomy: .[0].autonomy, count: length}
+    ' "$EVENTS_FILE" 2>/dev/null || echo "")
+    if [ -n "$GATE_BY_AUTONOMY" ]; then
+      echo "$GATE_BY_AUTONOMY" | jq -r '"| " + .autonomy + " | " + (.count|tostring) + " |"' 2>/dev/null | while IFS= read -r line; do
+        echo "| ${PROFILE_EFFORT} ${line} ${SMART_ROUTE_COUNT} |"
+      done
+    fi
+  fi
+
+  # If only routing data exists
+  if [ "$SMART_ROUTE_COUNT" -gt 0 ] && [ "${AUTONOMY_EVENTS:-0}" -eq 0 ]; then
+    echo "| ${PROFILE_EFFORT} | ${PROFILE_AUTONOMY} | 0 | ${SMART_ROUTE_COUNT} |"
+  fi
+else
+  echo "No segmented data available."
+fi
