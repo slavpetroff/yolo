@@ -1,7 +1,0 @@
-phase: 01
-goal: Establish company-grade agent hierarchy with Senior Engineer, QA Code Engineer, Security Engineer agents. Wire Architect into Scope. Implement 8-step workflow in execute-protocol. Update compile-context.sh for all new roles. Define JSONL handoff schemas.
-
-files_to_audit:
-
-dependency_files:
-  pyproject.toml
