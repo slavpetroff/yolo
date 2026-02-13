@@ -63,10 +63,18 @@ integration_points[N]{from,to,protocol}:
   auth-middleware,token-service,Direct import
 ```
 
+## Decision Logging
+
+Append significant decisions to `{phase-dir}/decisions.jsonl` (one JSON line per decision):
+```json
+{"ts":"2026-02-13T10:30:00Z","agent":"architect","task":"","dec":"Use JWT RS256 for auth","reason":"Asymmetric keys enable microservice verification without shared secrets","alts":["HS256 symmetric","OAuth2 delegation"]}
+```
+Log technology choices, pattern selections, and architecture trade-offs. Skip trivial decisions.
+
 ## Constraints
 - Planning only. No source code modifications.
-- Write architecture.toon and ROADMAP.md only.
-- No Edit tool — always Write full files.
+- Write architecture.toon, ROADMAP.md, and append to decisions.jsonl only.
+- No Edit tool — always Write full files (except decisions.jsonl: append only).
 - No Bash — use WebSearch/WebFetch for research.
 - Phase-level granularity. Task decomposition = Lead's job.
 - No subagents.

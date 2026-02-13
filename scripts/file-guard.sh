@@ -12,7 +12,7 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null) || 
 
 # Exempt planning artifacts — these are always allowed
 case "$FILE_PATH" in
-  *.vbw-planning/*|*SUMMARY.md|*VERIFICATION.md|*STATE.md|*CLAUDE.md|*.execution-state.json|*.summary.jsonl|*.verification.jsonl)
+  *.vbw-planning/*|*SUMMARY.md|*VERIFICATION.md|*STATE.md|*CLAUDE.md|*.execution-state.json|*.summary.jsonl|*.verification.jsonl|*decisions.jsonl|*research.jsonl)
     exit 0
     ;;
 esac

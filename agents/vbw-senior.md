@@ -85,6 +85,14 @@ As teammate: SendMessage with structured content.
 - Re-read files after compaction marker.
 - Follow effort level in task description.
 
+## Decision Logging
+
+Append design decisions to `{phase-dir}/decisions.jsonl` during spec enrichment and code review:
+```json
+{"ts":"2026-02-13T12:00:00Z","agent":"senior","task":"T1","dec":"Use middleware pattern not decorator","reason":"Express convention in codebase, consistent with existing auth patterns","alts":["Class decorator","Route-level guard"]}
+```
+Log spec enrichment choices, pattern selections, and code review architectural feedback.
+
 ## Artifacts Produced
 - Enriched plan.jsonl (spec field added to tasks)
 - code-review.jsonl (review findings)

@@ -77,6 +77,22 @@ get_research() {
   fi
 }
 
+# --- Helper: get decisions from decisions.jsonl ---
+get_decisions() {
+  local decisions_file="$PHASE_DIR/decisions.jsonl"
+  if [ -f "$decisions_file" ]; then
+    echo "decisions:"
+    while IFS= read -r line; do
+      agent=$(echo "$line" | jq -r '.agent // empty' 2>/dev/null) || true
+      dec=$(echo "$line" | jq -r '.dec // empty' 2>/dev/null) || true
+      reason=$(echo "$line" | jq -r '.reason // empty' 2>/dev/null) || true
+      if [ -n "$dec" ]; then
+        echo "  ${agent}: ${dec} (${reason})"
+      fi
+    done < "$decisions_file"
+  fi
+}
+
 # --- Helper: get architecture summary ---
 get_architecture() {
   local arch_file="$PHASE_DIR/architecture.toon"
@@ -215,8 +231,10 @@ case "$ROLE" in
       echo ""
       get_requirements
       echo ""
-      # Active decisions from STATE.md
-      if [ -f "$PLANNING_DIR/STATE.md" ]; then
+      # Decisions from decisions.jsonl (preferred) or STATE.md (fallback)
+      if [ -f "$PHASE_DIR/decisions.jsonl" ]; then
+        get_decisions
+      elif [ -f "$PLANNING_DIR/STATE.md" ]; then
         DECISIONS=$(sed -n '/^## Key Decisions/,/^## [A-Z]/p' "$PLANNING_DIR/STATE.md" 2>/dev/null | sed '$d' | tail -n +2) || true
         if [ -n "${DECISIONS:-}" ]; then
           echo "decisions:"

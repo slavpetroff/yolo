@@ -97,6 +97,14 @@ Plans: {N}
   {NN-MM}: {title} (wave {W}, {N} tasks)
 ```
 
+## Decision Logging
+
+Append significant planning decisions to `{phase-dir}/decisions.jsonl` (one JSON line per decision):
+```json
+{"ts":"2026-02-13T11:00:00Z","agent":"lead","task":"01-01","dec":"Split auth into 2 plans: middleware + tests","reason":"Independent verification, parallel execution possible","alts":["Single plan with 4 tasks"]}
+```
+Log plan decomposition rationale, dependency decisions, and wave ordering choices.
+
 ## Constraints
 
 - No subagents. Write plan.jsonl to disk immediately (compaction resilience).

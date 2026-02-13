@@ -39,7 +39,12 @@ Return structured findings.
 ```
    - Parallel: up to 4 simultaneous Tasks, each with same `model: "${SCOUT_MODEL}"`.
 4. **Synthesize:** Single: present directly. Parallel: merge, note contradictions, rank by confidence.
-5. **Persist:** Ask "Save findings? (y/n)". If yes: write to .vbw-planning/phases/{phase-dir}/RESEARCH.md or .vbw-planning/RESEARCH.md.
+5. **Persist:** Ask "Save findings? (y/n)". If yes: convert findings to research.jsonl (one JSON line per finding):
+   ```json
+   {"q":"topic","src":"web","finding":"key finding text","conf":"high","dt":"YYYY-MM-DD","rel":"why relevant"}
+   ```
+   Write to `.vbw-planning/phases/{phase-dir}/research.jsonl` (if active phase) or `.vbw-planning/research.jsonl` (global).
+   Use `jq -cn` to produce each line. Append if file exists.
 ```
 ➜ Next Up
   /vbw:vibe --plan {N} -- Plan using research findings

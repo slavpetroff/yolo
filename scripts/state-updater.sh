@@ -215,6 +215,26 @@ advance_phase() {
   fi
 }
 
+commit_state_artifacts() {
+  local msg="${1:-state transition}"
+  # Non-blocking: fail silently if git unavailable or nothing to commit
+  command -v git >/dev/null 2>&1 || return 0
+
+  local files_to_add=""
+  for f in .vbw-planning/STATE.md .vbw-planning/state.json .vbw-planning/ROADMAP.md .vbw-planning/.execution-state.json; do
+    if [ -f "$f" ] && git diff --name-only "$f" 2>/dev/null | grep -q .; then
+      files_to_add="$files_to_add $f"
+    elif [ -f "$f" ] && ! git ls-files --error-unmatch "$f" 2>/dev/null | grep -q .; then
+      files_to_add="$files_to_add $f"
+    fi
+  done
+
+  [ -z "$files_to_add" ] && return 0
+
+  git add $files_to_add 2>/dev/null || return 0
+  git commit -m "chore(state): $msg" --no-verify 2>/dev/null || return 0
+}
+
 INPUT=$(cat)
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null)
 
@@ -230,6 +250,9 @@ if echo "$FILE_PATH" | grep -qE 'phases/[^/]+/[0-9]+-[0-9]+\.plan\.jsonl$' || ec
     sed 's/^Status: ready/Status: active/' "$_sm" > "$_tmp" 2>/dev/null && \
       mv "$_tmp" "$_sm" 2>/dev/null || rm -f "$_tmp" 2>/dev/null
   fi
+  # Also stage+commit the plan file itself alongside state artifacts
+  git add "$FILE_PATH" 2>/dev/null || true
+  commit_state_artifacts "plan written $(basename "$FILE_PATH")"
 fi
 
 # Summary trigger: update execution state + progress (JSONL or legacy MD)
@@ -303,5 +326,9 @@ update_roadmap "$(dirname "$FILE_PATH")"
 update_state_json "$(dirname "$FILE_PATH")"
 update_model_profile
 advance_phase "$(dirname "$FILE_PATH")"
+
+# Stage summary + commit all state artifacts
+git add "$FILE_PATH" 2>/dev/null || true
+commit_state_artifacts "summary written $(basename "$FILE_PATH")"
 
 exit 0

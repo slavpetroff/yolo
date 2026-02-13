@@ -164,6 +164,8 @@ if [ -f "$EXEC_STATE" ]; then
   if [ "$EXEC_STATUS" = "running" ]; then
     PHASE_NAME=$(jq -r '.phase_name // ""' "$EXEC_STATE" 2>/dev/null)
     PHASE_NUM=$(jq -r '.phase // ""' "$EXEC_STATE" 2>/dev/null)
+    EXEC_STEP=$(jq -r '.step // ""' "$EXEC_STATE" 2>/dev/null)
+    EXEC_TASK=$(jq -r '.current_task // ""' "$EXEC_STATE" 2>/dev/null)
     PHASE_DIR=""
     if [ -n "$PHASE_NUM" ]; then
       PHASE_DIR=$(ls -d "$PLANNING_DIR/phases/${PHASE_NUM}-"* 2>/dev/null | head -1)
@@ -176,7 +178,21 @@ if [ -f "$EXEC_STATE" ]; then
         jq '.status = "complete"' "$EXEC_STATE" > "$PLANNING_DIR/.execution-state.json.tmp" && mv "$PLANNING_DIR/.execution-state.json.tmp" "$EXEC_STATE"
         BUILD_STATE="complete (recovered)"
       else
-        BUILD_STATE="interrupted (${SUMMARY_COUNT:-0}/${PLAN_COUNT:-0} plans)"
+        BUILD_STATE="interrupted (${SUMMARY_COUNT:-0}/${PLAN_COUNT:-0} plans"
+        [ -n "$EXEC_STEP" ] && BUILD_STATE="${BUILD_STATE}, step: ${EXEC_STEP}"
+        [ -n "$EXEC_TASK" ] && BUILD_STATE="${BUILD_STATE}, task: ${EXEC_TASK}"
+        BUILD_STATE="${BUILD_STATE})"
+
+        # Clear stale compiled context — force recompile from committed JSONL
+        rm -f "$PHASE_DIR"/.ctx-*.toon 2>/dev/null
+
+        # Recompile context for all roles from committed artifacts
+        COMPILE_SCRIPT="$SCRIPT_DIR/compile-context.sh"
+        if [ -f "$COMPILE_SCRIPT" ]; then
+          for role in architect lead senior dev qa qa-code security debugger; do
+            bash "$COMPILE_SCRIPT" "$PHASE_NUM" "$role" "$PLANNING_DIR/phases" 2>/dev/null || true
+          done
+        fi
       fi
       UPDATE_MSG="${UPDATE_MSG} Build state: ${BUILD_STATE}."
     fi
