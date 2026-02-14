@@ -1,0 +1,58 @@
+frontend_dept_protocol:
+  desc: Frontend team roster, escalation, conventions, workflow. Frontend agents only.
+
+roster:
+  agent|role|model|tools|produces|budget
+  yolo-fe-architect|FE Architect|Opus|Read,Glob,Grep,Write,WebSearch,WebFetch|fe-architecture.toon|5000
+  yolo-fe-lead|FE Lead|Sonnet|Read,Glob,Grep,Write,Bash,WebFetch|plan.jsonl, orchestration|3000
+  yolo-fe-senior|FE Senior|Opus|Read,Glob,Grep,Write,Edit,Bash|enriched plan specs (spec+ts), code-review.jsonl|4000
+  yolo-fe-tester|FE Test Author|Sonnet|Read,Glob,Grep,Write,Bash|test files, test-plan.jsonl|3000
+  yolo-fe-dev|FE Developer|Sonnet|All|source code, summary.jsonl|2000
+  yolo-fe-qa|FE QA Lead|Sonnet|Read,Glob,Grep (read-only)|verification.jsonl|2000
+  yolo-fe-qa-code|FE QA Engineer|Sonnet|Read,Glob,Grep,Bash|qa-code.jsonl|3000
+  note: Models are quality profile defaults. Actual via resolve-agent-model.sh from config/model-profiles.json.
+
+structure:
+  hierarchy: Standard company hierarchy with fe- prefix per @references/company-hierarchy.md
+  escalation: FE Dev > FE Senior > FE Lead > FE Architect > Owner > User
+
+conventions:
+  focus: Component architecture, state management, routing, UI rendering
+  testing: Component tests (vitest/jest + testing-library), E2E (playwright), visual regression
+  tooling: TypeScript, React/Vue/Svelte (per project), CSS-in-JS or Tailwind
+  a11y: WCAG 2.1 AA minimum, aria attributes, keyboard navigation
+  perf: Bundle size monitoring, code splitting, lazy loading
+  design_tokens: Consumed from UI/UX design-tokens.jsonl handoff
+  commits: {type}({scope}): {desc}, one commit per task
+  artifacts: JSONL with abbreviated keys (see references/artifact-formats.md)
+
+workflow:
+  steps: 10-step standard with FE domain specializations
+  1_critique: Shared Critic, includes component architecture review
+  2_architecture: FE Architect, component hierarchy, state management, routing
+  3_planning: FE Lead, component breakdown, page decomposition
+  4_design_review: FE Senior, enriches with component specs, prop types, state shapes
+  5_test_red: FE Tester, component tests, interaction tests, E2E specs
+  6_implementation: FE Dev, component code, styles, state logic, API integration
+  7_code_review: FE Senior, a11y, performance, design compliance
+  8_qa: FE QA Lead + FE QA Code, design compliance, UX verification, a11y audit, bundle size
+  9_security: Shared Security, XSS prevention, CSP compliance, auth token handling
+  10_signoff: FE Lead/Owner, dept result to Owner
+
+cross_dept:
+  receives_from_ux:
+    design-tokens.jsonl: colors, typography, spacing, breakpoints
+    component-specs.jsonl: component layout, behavior, interactions, states
+    user-flows.jsonl: user journey maps, navigation structure
+    design-handoff.jsonl: summary with acceptance criteria
+  communicates_with_backend:
+    FE Lead sends api_contract to BE Lead (proposed endpoints, request/response schemas)
+    FE Lead receives api_contract from BE Lead (implemented endpoints)
+  reports_to_owner:
+    FE Lead sends department_result at phase completion
+  STRICT: FE agents NEVER bypass FE Lead for cross-dept communication.
+  ref: references/cross-team-protocol.md
+
+dir_isolation:
+  write_to: FE source dirs (src/components/, src/pages/, src/hooks/, src/styles/), .yolo-planning/phases/
+  STRICT: MUST NOT write to backend dirs (scripts/, agents/, hooks/, config/) or design dirs (design/, wireframes/) (enforced by department-guard.sh hook)

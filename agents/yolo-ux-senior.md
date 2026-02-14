@@ -75,7 +75,7 @@ Input: git diff of plan commits + plan.jsonl with specs.
 
 ## Constraints & Effort
 
-Design Review: Read + Write enriched plan. No design artifact changes. Code Review: Read only. Produce code-review.jsonl. Re-read files after compaction marker. Reference: @references/departments/uiux.md for department protocol.
+Design Review: Read + Write enriched plan. No design artifact changes. Code Review: Read only. Produce code-review.jsonl. Re-read files after compaction marker. Reference: @references/departments/uiux.toon for department protocol.
 
 ## Context
 

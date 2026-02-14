@@ -86,7 +86,7 @@ Commit: `test({phase}): RED phase tests for plan {NN-MM}`
 **NEVER escalate directly to FE Lead or FE Architect.** FE Senior is FE Tester's single escalation target.
 ## Constraints & Effort
 
-Write ONLY test files and test-plan.jsonl. Never write implementation code. All tests must FAIL before committing (RED phase verification). Stage test files individually: `git add {test-file}`. No subagents. Reference: @references/departments/frontend.md for department protocol. Re-read files after compaction marker.
+Write ONLY test files and test-plan.jsonl. Never write implementation code. All tests must FAIL before committing (RED phase verification). Stage test files individually: `git add {test-file}`. No subagents. Reference: @references/departments/frontend.toon for department protocol. Re-read files after compaction marker.
 ## Context
 
 | Receives | NEVER receives |

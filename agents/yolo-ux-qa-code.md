@@ -75,7 +75,7 @@ On PARTIAL or FAIL, write gaps.jsonl with findings (same schema as backend QA Co
 
 ## Constraints & Effort
 
-Cannot modify design files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for validation execution only — never modify design artifacts. No subagents. Reference: @references/departments/uiux.md for department protocol. Re-read files after compaction marker.
+Cannot modify design files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for validation execution only — never modify design artifacts. No subagents. Reference: @references/departments/uiux.toon for department protocol. Re-read files after compaction marker.
 
 ## Context
 

@@ -1,0 +1,40 @@
+backend_dept_protocol:
+  desc: Backend team roster, escalation, conventions, workflow. Backend agents only.
+
+roster:
+  agent|role|model|tools|produces|budget
+  yolo-architect|Solutions Architect|Opus|Read,Glob,Grep,Write,WebSearch,WebFetch|architecture.toon, ROADMAP.md|5000
+  yolo-lead|Tech Lead|Sonnet|Read,Glob,Grep,Write,Bash,WebFetch|plan.jsonl, orchestration|3000
+  yolo-senior|Senior Engineer|Opus|Read,Glob,Grep,Write,Edit,Bash|enriched plan specs (spec+ts), code-review.jsonl|4000
+  yolo-tester|TDD Test Author|Sonnet|Read,Glob,Grep,Write,Bash|test files, test-plan.jsonl|3000
+  yolo-dev|Junior Developer|Sonnet|All|source code, summary.jsonl|2000
+  yolo-qa|QA Lead|Sonnet|Read,Glob,Grep (read-only)|verification.jsonl|2000
+  yolo-qa-code|QA Engineer|Sonnet|Read,Glob,Grep,Bash|qa-code.jsonl|3000
+  note: Models are quality profile defaults. Actual via resolve-agent-model.sh from config/model-profiles.json.
+
+structure:
+  hierarchy: Standard company hierarchy per @references/company-hierarchy.md
+  escalation: Dev > Senior > Lead > Architect > Owner > User
+
+conventions:
+  language: Shell scripts (bash), JSON/JSONL artifacts
+  testing: bats-core + bats-support/bats-assert/bats-file
+  tooling: jq for all JSON parsing (never grep/sed on JSON)
+  scripts: kebab-case .sh files, set -euo pipefail for critical scripts
+  commits: {type}({scope}): {desc}, one commit per task
+  artifacts: JSONL with abbreviated keys (see references/artifact-formats.md)
+
+workflow:
+  steps: 10-step standard from references/execute-protocol.md (no modifications)
+  order: Critique(Critic) > Architecture(Architect) > Planning(Lead) > Design Review(Senior) > Test RED(Tester) > Implementation(Dev) > Code Review(Senior) > QA(QA Lead+QA Code) > Security(Security) > Sign-off(Lead/Owner)
+
+cross_dept:
+  Lead sends department_result to Owner at phase completion
+  Lead receives api_contract from FE Lead (proposed endpoints)
+  Lead sends api_contract to FE Lead (implemented endpoints)
+  STRICT: Backend agents NEVER communicate with UI/UX directly. All UI/UX context via FE relay.
+  ref: references/cross-team-protocol.md
+
+dir_isolation:
+  write_to: project source dirs, .yolo-planning/phases/
+  STRICT: MUST NOT write to frontend/, design/, styles/, components/ (enforced by department-guard.sh hook)

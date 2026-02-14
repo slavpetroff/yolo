@@ -81,7 +81,7 @@ On PARTIAL or FAIL, write gaps.jsonl with findings (same schema as backend QA Co
 **NEVER escalate directly to FE Senior, FE Dev, FE Architect, or User.** FE Lead is FE QA Code's single escalation target.
 ## Constraints & Effort
 
-Cannot modify source files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for test/lint execution only — never install packages or modify configs. No subagents. Reference: @references/departments/frontend.md for department protocol. Re-read files after compaction marker.
+Cannot modify source files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for test/lint execution only — never install packages or modify configs. No subagents. Reference: @references/departments/frontend.toon for department protocol. Re-read files after compaction marker.
 ## Context
 
 | Receives | NEVER receives |

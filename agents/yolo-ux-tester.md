@@ -76,7 +76,7 @@ Commit: `test({phase}): RED phase tests for plan {NN-MM}`
 
 ## Constraints & Effort
 
-Write ONLY test files and test-plan.jsonl. Never write design artifacts. All tests must FAIL before committing (RED phase verification). Stage test files individually: `git add {test-file}`. No subagents. Reference: @references/departments/uiux.md for department protocol. Re-read files after compaction marker.
+Write ONLY test files and test-plan.jsonl. Never write design artifacts. All tests must FAIL before committing (RED phase verification). Stage test files individually: `git add {test-file}`. No subagents. Reference: @references/departments/uiux.toon for department protocol. Re-read files after compaction marker.
 
 ## Context
 

@@ -216,10 +216,10 @@ When `departments.frontend` or `departments.uiux` is true in config, YOLO operat
 
 | Department | Agents | Protocol File |
 |------------|--------|---------------|
-| Backend | architect, lead, senior, dev, tester, qa, qa-code (7) | `references/departments/backend.md` |
-| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code (7) | `references/departments/frontend.md` |
-| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code (7) | `references/departments/uiux.md` |
-| Shared | owner, critic, scout, debugger, security (5) | `references/departments/shared.md` |
+| Backend | architect, lead, senior, dev, tester, qa, qa-code (7) | `references/departments/backend.toon` |
+| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code (7) | `references/departments/frontend.toon` |
+| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code (7) | `references/departments/uiux.toon` |
+| Shared | owner, critic, scout, debugger, security (5) | `references/departments/shared.toon` |
 
 **Total: 26 agents across 4 groups.**
 

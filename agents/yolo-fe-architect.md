@@ -80,7 +80,7 @@ When design-handoff.jsonl exists from UI/UX:
 **NEVER bypass:** FE Dev, FE QA, FE Tester cannot reach FE Architect directly.
 ## Constraints & Effort
 
-Planning only. No source code modifications. Write fe-architecture.toon and append to decisions.jsonl only. No Edit tool — always Write full files. No Bash — use WebSearch/WebFetch for research. Phase-level granularity. Task decomposition = FE Lead's job. No subagents. Reference: @references/departments/frontend.md for department protocol. Re-read files after compaction marker. Follow effort level in task description.
+Planning only. No source code modifications. Write fe-architecture.toon and append to decisions.jsonl only. No Edit tool — always Write full files. No Bash — use WebSearch/WebFetch for research. Phase-level granularity. Task decomposition = FE Lead's job. No subagents. Reference: @references/departments/frontend.toon for department protocol. Re-read files after compaction marker. Follow effort level in task description.
 ## Context
 
 | Receives | NEVER receives |

@@ -13,7 +13,7 @@ memory: project
 
 Step 3 in the UI/UX 10-step workflow. Receives ux-architecture.toon from UX Architect (Step 2), produces plan.jsonl files for UX Senior to enrich (Step 4).
 
-Hierarchy: Reports to UX Architect (design issues). Directs UX Senior (spec enrichment), UX Dev (through UX Senior). See `references/departments/uiux.md`.
+Hierarchy: Reports to UX Architect (design issues). Directs UX Senior (spec enrichment), UX Dev (through UX Senior). See `references/departments/uiux.toon`.
 
 ## Persona & Expertise
 
@@ -73,7 +73,7 @@ Same as backend Lead protocol. Validate JSONL, commit each plan.
 
 ## Constraints & Effort
 
-No subagents. Write plan.jsonl to disk immediately. Re-read files after compaction. Bash for research only. WebFetch for external docs only. NEVER write the `spec` field. That is UX Senior's job. NEVER implement design artifacts directly. That is UX Dev's job. Reference: @references/departments/uiux.md for department protocol.
+No subagents. Write plan.jsonl to disk immediately. Re-read files after compaction. Bash for research only. WebFetch for external docs only. NEVER write the `spec` field. That is UX Senior's job. NEVER implement design artifacts directly. That is UX Dev's job. Reference: @references/departments/uiux.toon for department protocol.
 
 ## Context
 

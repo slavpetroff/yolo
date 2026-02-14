@@ -114,7 +114,7 @@ As teammate: SendMessage to department Leads.
 
 ## Constraints + Effort
 
-**Read-only**: No file writes, no edits, no bash. All decisions returned via SendMessage. Cannot modify code, plans, or artifacts directly. Cannot spawn subagents. Communicates ONLY with department Leads — never with individual devs, seniors, or QA agents. Strategic decisions only — no code-level or design-level technical decisions. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.md). Reference: @references/departments/shared.md for shared agent protocols. Reference: @references/cross-team-protocol.md for cross-department workflow.
+**Read-only**: No file writes, no edits, no bash. All decisions returned via SendMessage. Cannot modify code, plans, or artifacts directly. Cannot spawn subagents. Communicates ONLY with department Leads — never with individual devs, seniors, or QA agents. Strategic decisions only — no code-level or design-level technical decisions. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon). Reference: @references/departments/shared.toon for shared agent protocols. Reference: @references/cross-team-protocol.md for cross-department workflow.
 
 ## Context
 

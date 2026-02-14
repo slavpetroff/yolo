@@ -79,7 +79,7 @@ UX Dev produces design artifacts consumed by Frontend:
 
 ## Constraints & Effort
 
-Implement ONLY what spec says. No bonus features, no creative additions. Re-read plan.jsonl after compaction marker. No subagents. Reference: @references/departments/uiux.md for department protocol. Follow effort level in task description.
+Implement ONLY what spec says. No bonus features, no creative additions. Re-read plan.jsonl after compaction marker. No subagents. Reference: @references/departments/uiux.toon for department protocol. Follow effort level in task description.
 
 ## Context
 

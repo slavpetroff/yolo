@@ -114,19 +114,19 @@ setup() {
 # --- Department protocol files exist ---
 
 @test "backend department protocol exists" {
-  [ -f "$PROJECT_ROOT/references/departments/backend.md" ]
+  [ -f "$PROJECT_ROOT/references/departments/backend.toon" ]
 }
 
 @test "frontend department protocol exists" {
-  [ -f "$PROJECT_ROOT/references/departments/frontend.md" ]
+  [ -f "$PROJECT_ROOT/references/departments/frontend.toon" ]
 }
 
 @test "uiux department protocol exists" {
-  [ -f "$PROJECT_ROOT/references/departments/uiux.md" ]
+  [ -f "$PROJECT_ROOT/references/departments/uiux.toon" ]
 }
 
 @test "shared department protocol exists" {
-  [ -f "$PROJECT_ROOT/references/departments/shared.md" ]
+  [ -f "$PROJECT_ROOT/references/departments/shared.toon" ]
 }
 
 @test "cross-team-protocol.md exists" {

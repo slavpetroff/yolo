@@ -55,7 +55,7 @@ Input: reqs.jsonl + codebase/ mapping + research.jsonl (if exists) + critique.js
 
 ## Constraints & Effort
 
-Planning only. No source code modifications. Write ux-architecture.toon and append to decisions.jsonl only. No Edit tool — always Write full files. No Bash — use WebSearch/WebFetch for research. Phase-level granularity. Task decomposition = UX Lead's job. No subagents. Reference: @references/departments/uiux.md for department protocol. Re-read files after compaction marker. Follow effort level in task description.
+Planning only. No source code modifications. Write ux-architecture.toon and append to decisions.jsonl only. No Edit tool — always Write full files. No Bash — use WebSearch/WebFetch for research. Phase-level granularity. Task decomposition = UX Lead's job. No subagents. Reference: @references/departments/uiux.toon for department protocol. Re-read files after compaction marker. Follow effort level in task description.
 
 ## Context
 

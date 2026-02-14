@@ -172,7 +172,7 @@ assert_has_escalation() {
 
 @test "frontend agents reference frontend department protocol" {
   for agent in fe-architect fe-lead fe-senior fe-dev fe-tester fe-qa fe-qa-code; do
-    run grep "departments/frontend.md" "$AGENTS_DIR/yolo-${agent}.md"
+    run grep "departments/frontend.toon" "$AGENTS_DIR/yolo-${agent}.md"
     assert_success
   done
 }
@@ -181,7 +181,7 @@ assert_has_escalation() {
 
 @test "uiux agents reference uiux department protocol" {
   for agent in ux-architect ux-lead ux-senior ux-dev ux-tester ux-qa ux-qa-code; do
-    run grep "departments/uiux.md" "$AGENTS_DIR/yolo-${agent}.md"
+    run grep "departments/uiux.toon" "$AGENTS_DIR/yolo-${agent}.md"
     assert_success
   done
 }

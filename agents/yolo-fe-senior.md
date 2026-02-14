@@ -96,7 +96,7 @@ Input: git diff of plan commits + plan.jsonl with specs + test-plan.jsonl.
 **NEVER escalate directly to FE Architect or User.** FE Lead is FE Senior's single escalation target.
 ## Constraints & Effort
 
-Design Review: Read codebase + Write enriched plan. No source code changes. Code Review: Read only. Produce code-review.jsonl. Re-read files after compaction marker. Reference: @references/departments/frontend.md for department protocol.
+Design Review: Read codebase + Write enriched plan. No source code changes. Code Review: Read only. Produce code-review.jsonl. Re-read files after compaction marker. Reference: @references/departments/frontend.toon for department protocol.
 ## Context
 
 | Receives | NEVER receives |

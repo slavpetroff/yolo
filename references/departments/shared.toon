@@ -1,0 +1,73 @@
+shared_agents_protocol:
+  desc: Company-level agents dispatched across depts. Read by Owner, Critic, Scout, Debugger, Security.
+
+roster:
+  agent|role|model|tools|produces|budget|dispatch
+  yolo-owner|Project Owner|Opus|Read,Glob,Grep (read-only)|owner_review, owner_signoff|3000|Phase start + end
+  yolo-critic|Brainstorm / Gap Analyst|Opus|Read,Glob,Grep,WebSearch,WebFetch|critique.jsonl|4000|Per dept
+  yolo-scout|Research Analyst|Haiku|Read,Glob,Grep,WebSearch,WebFetch|research.jsonl|1000|On demand
+  yolo-debugger|Incident Responder|Sonnet|All|debug-report.jsonl|3000|On incident
+  yolo-security|Security Engineer|Sonnet|Read,Glob,Grep,Bash|security-audit.jsonl|3000|Per dept
+  note: Models are quality profile defaults. Actual via resolve-agent-model.sh from config/model-profiles.json.
+
+owner_protocol:
+  desc: Final internal escalation point. All dept Leads report to Owner. Only Owner escalates to User.
+  modes:
+    mode|trigger|input|output
+    Context Gathering|Phase start (via go.md proxy)|User answers via questionnaire|Dept-specific CONTEXT files (split, no bleed)
+    Critique Review|Before architecture|critique.jsonl + reqs.jsonl|owner_review to Leads
+    Conflict Resolution|Inter-dept conflict|Escalations from Leads|Resolution + rationale to Leads
+    Final Sign-off|All depts complete|department_result from Leads|owner_signoff to Leads
+  effort:
+    level|behavior
+    turbo|SKIP Owner entirely. Leads sign off directly.
+    fast|Sign-off only (skip critique review). Quick review.
+    balanced|Full protocol: critique review + sign-off.
+    thorough|Deep review: critique + conflict resolution + sign-off.
+  constraints: Read-only (no writes, no edits, no bash). Communicates ONLY with dept Leads. Strategic decisions only. Cannot spawn subagents.
+
+dispatch_rules:
+  critic:
+    frequency: Once per dept per phase (before architecture)
+    multi_dept: Reviews cross-dept implications
+    returns: Findings to dept Lead (no Write tool)
+    single_dept: Dispatched by Lead as normal
+  scout:
+    frequency: On demand by any Lead
+    returns: scout_findings to requesting Lead
+    scope: Can investigate technology for any dept
+    note: Lightweight (Haiku), use for quick lookups not deep analysis
+  debugger:
+    frequency: On incident by Lead (any dept)
+    access: Full tool access for investigation
+    returns: debugger_report to requesting Lead
+    note: Lead decides action, Debugger is advisory
+  security:
+    frequency: Once per dept after QA passes (Step 9)
+    multi_dept: Separate audit per dept
+    STRICT: FAIL = hard STOP (only user --force overrides)
+    STRICT: Security FAIL bypasses normal escalation > User directly
+
+escalation_table:
+  agent|escalates_to|trigger
+  Owner|User|Business decision needed, inter-dept deadlock
+  Critic|Dept Lead|Findings advisory (Lead forwards to Architect)
+  Scout|Dept Lead|Cannot find info, conflicting sources
+  Debugger|Dept Lead|Investigation complete, fix recommendation
+  Security|Lead (FAIL > User)|Findings to report; FAIL = HARD STOP
+  note: Owner is FINAL internal escalation point. Only Owner escalates to User. Exception: Security FAIL bypasses chain > User directly.
+
+multi_dept_workflow:
+  Phase Start
+    > Owner Context Gathering (SOLE point of contact with user, questionnaire > split into dept CONTEXT files)
+    > Owner Critique Review (balanced/thorough only)
+    > UI/UX Dept (10-step)
+      > handoff (design-tokens, component-specs)
+      > Frontend (10) + Backend (10) in parallel, each gets ONLY their dept context
+      > Integration QA + Security
+      > Owner Sign-off
+  single_dept: When only backend active, Owner optional, Lead signs off directly.
+
+communication_schemas:
+  ref: @references/handoff-schemas.md
+  schemas: owner_review, owner_signoff, department_result, escalation, scout_findings, debugger_report, security_audit

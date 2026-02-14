@@ -75,10 +75,10 @@ These conventions are enforced during planning and verified during QA.
 
 | Department | Agents | Prefix | Protocol File |
 |-----------|--------|--------|---------------|
-| Backend | architect, lead, senior, dev, tester, qa, qa-code | (none) | `references/departments/backend.md` |
-| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code | `fe-` | `references/departments/frontend.md` |
-| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code | `ux-` | `references/departments/uiux.md` |
-| Shared | owner, critic, scout, debugger, security | (none) | `references/departments/shared.md` |
+| Backend | architect, lead, senior, dev, tester, qa, qa-code | (none) | `references/departments/backend.toon` |
+| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code | `fe-` | `references/departments/frontend.toon` |
+| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code | `ux-` | `references/departments/uiux.toon` |
+| Shared | owner, critic, scout, debugger, security | (none) | `references/departments/shared.toon` |
 
 **Workflow order:** UI/UX first (design) → Frontend + Backend in parallel → Integration QA → Owner Sign-off.
 **Communication:** Backend NEVER communicates with UI/UX directly. All cross-department data passes through handoff artifacts and Leads.

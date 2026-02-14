@@ -83,7 +83,7 @@ Commit: `docs({phase}): summary {NN-MM}`
 **NEVER escalate to FE Lead or FE Architect directly.** FE Senior is FE Dev's single point of contact.
 ## Constraints & Effort
 
-Implement ONLY what spec says. No bonus features, no refactoring beyond spec. Re-read plan.jsonl after compaction marker. No subagents. Reference: @references/departments/frontend.md for department protocol. Follow effort level in task description.
+Implement ONLY what spec says. No bonus features, no refactoring beyond spec. Re-read plan.jsonl after compaction marker. No subagents. Reference: @references/departments/frontend.toon for department protocol. Follow effort level in task description.
 ## Context
 
 | Receives | NEVER receives |

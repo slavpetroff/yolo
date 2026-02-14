@@ -1,0 +1,64 @@
+uiux_dept_protocol:
+  desc: UI/UX team roster, escalation, conventions, workflow. UI/UX agents only.
+
+roster:
+  agent|role|model|tools|produces|budget
+  yolo-ux-architect|UX Architect|Opus|Read,Glob,Grep,Write,WebSearch,WebFetch|ux-architecture.toon|5000
+  yolo-ux-lead|UX Lead|Sonnet|Read,Glob,Grep,Write,Bash,WebFetch|plan.jsonl, orchestration|3000
+  yolo-ux-senior|UX Senior|Opus|Read,Glob,Grep,Write,Edit,Bash|enriched plan specs (spec+ts), design-review.jsonl|4000
+  yolo-ux-tester|UX Test Author|Sonnet|Read,Glob,Grep,Write,Bash|usability specs, test-plan.jsonl|3000
+  yolo-ux-dev|UX Designer/Developer|Sonnet|All|design tokens, component specs, wireframes|2000
+  yolo-ux-qa|UX QA Lead|Sonnet|Read,Glob,Grep (read-only)|verification.jsonl|2000
+  yolo-ux-qa-code|UX QA Engineer|Sonnet|Read,Glob,Grep,Bash|qa-code.jsonl|3000
+  note: Models are quality profile defaults. Actual via resolve-agent-model.sh from config/model-profiles.json.
+
+structure:
+  hierarchy: Standard company hierarchy with ux- prefix per @references/company-hierarchy.md
+  escalation: UX Dev > UX Senior > UX Lead > UX Architect > Owner > User
+
+conventions:
+  focus: Information architecture, design system strategy, user flows, accessibility
+  design_system: Design tokens (colors, typography, spacing, breakpoints) as JSONL
+  components: Component specs with states, interactions, responsive breakpoints
+  a11y: WCAG 2.1 AA minimum, screen reader testing, color contrast
+  user_flows: Journey maps, navigation structure, error states, loading states
+  testing: Usability checklists, a11y audits, design token validation
+  commits: {type}({scope}): {desc}, one commit per task
+  artifacts: JSONL with abbreviated keys (see references/artifact-formats.md)
+
+workflow:
+  steps: 10-step standard with UX domain specializations
+  1_critique: Shared Critic, includes UX heuristic evaluation, a11y review
+  2_architecture: UX Architect, information architecture, design system strategy, user flow structure
+  3_planning: UX Lead, design task decomposition, component spec breakdown
+  4_design_review: UX Senior, enriches with exact design token values, interaction specs, responsive rules
+  5_test_red: UX Tester, usability test specs, a11y checklists, design compliance criteria
+  6_implementation: UX Dev, design tokens, component specs, wireframes, user flow docs
+  7_code_review: UX Senior, design system consistency, a11y compliance, spec completeness
+  8_qa: UX QA Lead + UX QA Code, design system compliance, consistency audit, A11y lint
+  9_security: Shared Security, PII in design artifacts, data exposure in mockups
+  10_signoff: UX Lead/Owner, dept result to Owner + handoff artifacts to FE
+
+cross_dept:
+  produces_for_fe:
+    design-tokens.jsonl: colors, typography, spacing, breakpoints
+    component-specs.jsonl: component layout, behavior, interactions, states
+    user-flows.jsonl: user journey maps, navigation structure
+    design-handoff.jsonl: summary with acceptance criteria and status
+  indirect_backend:
+    Data model implications (what data UI needs) relayed via FE Lead
+    API contract suggestions (endpoints, response shapes) relayed via FE Lead
+  reports_to_owner:
+    UX Lead sends department_result at phase completion
+  STRICT: UI/UX agents NEVER communicate with Backend agents directly. All backend context via FE relay.
+  ref: references/cross-team-protocol.md
+
+handoff_gate:
+  condition: UX must complete BEFORE FE and BE can start (when all depts active)
+  design-handoff.jsonl: must exist with status complete
+  component_specs: all must have status ready
+  design_tokens: must be committed
+
+dir_isolation:
+  write_to: design dirs (design/, wireframes/, design-tokens/), .yolo-planning/phases/
+  STRICT: MUST NOT write to source code dirs (src/, scripts/, agents/, hooks/, config/) (enforced by department-guard.sh hook)

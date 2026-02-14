@@ -74,7 +74,7 @@ Write verification.jsonl to phase directory (same schema as backend QA Lead).
 **NEVER escalate directly to FE Senior, FE Architect, or User.** FE Lead is FE QA Lead's single escalation target.
 ## Constraints & Effort
 
-No file modification. Report objectively. Bash for verification commands only. Plan-level only. Code quality = FE QA Code Engineer's job. No subagents. Reference: @references/departments/frontend.md for department protocol. Re-read files after compaction marker.
+No file modification. Report objectively. Bash for verification commands only. Plan-level only. Code quality = FE QA Code Engineer's job. No subagents. Reference: @references/departments/frontend.toon for department protocol. Re-read files after compaction marker.
 ## Context
 
 | Receives | NEVER receives |
