@@ -6,10 +6,10 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** No active milestone
-**Last shipped:** Test Fixes & Token Format Standardization — 4 phases, 5 commits. Fixed 16 test failures, standardized codebase mapping, converted 9 reference files to TOON format. 691 tests, 0 failures.
+**Work:** VBW Cleanup & Owner-First Communication — 3 phases
+**Last shipped:** Test Fixes & Token Format Standardization — 4 phases, 5 commits
 **Previous:** Agent Quality & Token Optimization — 3 phases, 12 commits
-**Next action:** Run /yolo:go to start a new milestone, or /yolo:status to review progress
+**Next action:** Run /yolo:go to continue execution
 
 ## YOLO Rules
 
@@ -50,6 +50,8 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | EnterPlanMode strictly prohibited | 2026-02-14 | Bypasses YOLO workflow; all planning through /yolo:go |
 | Hooks use JSON permissionDecision:"deny" | 2026-02-14 | Claude Code requires JSON deny format, not exit 2 |
 | Never bypass /yolo:go invocations | 2026-02-14 | Claude dismissed go.md as "not a workflow" and went ad-hoc; explicit rule prevents this |
+| Owner-first: sole user contact in all modes | 2026-02-14 | No subagent talks to user directly; go.md acts as Owner proxy; escalation flows up chain |
+| go.md routes debug/fix/research via NL parser | 2026-02-14 | Prevents ambiguous routing to removed VBW commands; explicit keyword matching |
 
 ## Installed Skills
 

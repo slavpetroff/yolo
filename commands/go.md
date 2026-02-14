@@ -8,6 +8,15 @@ disable-model-invocation: true
 
 # YOLO Go: $ARGUMENTS
 
+## Owner-First Principle (Universal)
+
+The Owner is the SOLE point of contact with the user — in ALL modes, not just multi-department.
+
+- **Single-department mode:** go.md itself acts as the Owner proxy. All user interaction (questions, confirmations, status updates) flows through go.md. No subagent (Lead, Senior, Dev, QA) communicates with the user directly.
+- **Multi-department mode:** go.md acts as the Owner proxy for context gathering. The yolo-owner agent is spawned for critique review, conflict resolution, and sign-off. No department lead or subagent talks to the user.
+- **Escalation path:** Dev → Senior → Lead → (Owner agent if multi-dept) → go.md → User. Never skip levels.
+- **Redirects (`/yolo:debug`, `/yolo:fix`, `/yolo:research`):** go.md confirms intent with the user first, then delegates to the specialized command. The command itself handles user interaction through its own protocol.
+
 ## Context
 
 Working directory: `!`pwd``

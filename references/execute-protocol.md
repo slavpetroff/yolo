@@ -4,6 +4,10 @@ Loaded on demand by /yolo:go Execute mode. Not a user-facing command.
 
 Implements the 10-step company-grade engineering workflow. See `references/company-hierarchy.md` for full hierarchy and `references/artifact-formats.md` for JSONL schemas.
 
+## Owner-First Communication Rule
+
+**No agent in the execution chain communicates directly with the user.** All user interaction flows through go.md (which acts as the Owner proxy). If any agent encounters an issue requiring user input, it escalates UP the chain (Dev → Senior → Lead → Owner/go.md → User). The user never hears from a Dev, Senior, QA, or Lead agent directly.
+
 ## Pre-Execution
 
 1. **Parse arguments:** Phase number (auto-detect if omitted), --effort, --skip-qa, --skip-security, --plan=NN.
