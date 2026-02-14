@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-summary.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" validate-summary.sh; exit 0'",
             "timeout": 15
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-frontmatter.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" validate-frontmatter.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-commit.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" validate-commit.sh; exit 0'",
             "timeout": 10
           }
         ]
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" skill-hook-dispatch.sh PostToolUse; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" skill-hook-dispatch.sh PostToolUse; exit 0'",
             "timeout": 10
           }
         ]
@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" state-updater.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" state-updater.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -58,7 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-send-message.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" validate-send-message.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -70,7 +70,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" security-filter.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" security-filter.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -80,7 +80,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" skill-hook-dispatch.sh PreToolUse; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" skill-hook-dispatch.sh PreToolUse; exit 0'",
             "timeout": 10
           }
         ]
@@ -90,7 +90,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" file-guard.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" file-guard.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -100,7 +100,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" department-guard.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" department-guard.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -112,7 +112,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-dept-spawn.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" validate-dept-spawn.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -122,7 +122,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" agent-start.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" agent-start.sh; exit 0'",
             "timeout": 3
           }
         ]
@@ -134,7 +134,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" validate-summary.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" validate-summary.sh; exit 0'",
             "timeout": 15
           }
         ]
@@ -144,7 +144,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" agent-stop.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" agent-stop.sh; exit 0'",
             "timeout": 3
           }
         ]
@@ -155,7 +155,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" qa-gate.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" qa-gate.sh; exit 0'",
             "timeout": 30
           }
         ]
@@ -166,7 +166,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" task-verify.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" task-verify.sh; exit 0'",
             "timeout": 15
           }
         ]
@@ -177,7 +177,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" session-start.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" session-start.sh; exit 0'",
             "timeout": 10
           }
         ]
@@ -186,7 +186,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" map-staleness.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" map-staleness.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -196,7 +196,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" post-compact.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" post-compact.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -207,7 +207,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" compaction-instructions.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" compaction-instructions.sh; exit 0'",
             "timeout": 10
           }
         ]
@@ -218,7 +218,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" session-stop.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" session-stop.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -229,7 +229,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" prompt-preflight.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" prompt-preflight.sh; exit 0'",
             "timeout": 3
           }
         ]
@@ -240,7 +240,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"$HOME\"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1) && [ -f \"$w\" ] && exec bash \"$w\" notification-log.sh; exit 0'",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" notification-log.sh; exit 0'",
             "timeout": 3
           }
         ]
