@@ -76,9 +76,9 @@ get_conventions() {
   local compact="${1:-false}"
   if [ -f "$PLANNING_DIR/conventions.json" ] && command -v jq &>/dev/null; then
     if [ "$compact" = "true" ]; then
-      jq -r '.conventions[] | "  \(.tag)"' "$PLANNING_DIR/conventions.json" 2>/dev/null || true
+      jq -r '.conventions[] | "  \(.category)"' "$PLANNING_DIR/conventions.json" 2>/dev/null || true
     else
-      jq -r '.conventions[] | "  \(.tag),\(.rule)"' "$PLANNING_DIR/conventions.json" 2>/dev/null || true
+      jq -r '.conventions[] | "  \(.category),\(.rule)"' "$PLANNING_DIR/conventions.json" 2>/dev/null || true
     fi
   fi
 }
@@ -311,7 +311,7 @@ case "$BASE_ROLE" in
       CONVENTIONS=$(get_conventions)
       if [ -n "$CONVENTIONS" ]; then
         CONV_COUNT=$(echo "$CONVENTIONS" | wc -l | tr -d ' ')
-        echo "conventions[${CONV_COUNT}]{tag,rule}:"
+        echo "conventions[${CONV_COUNT}]{category,rule}:"
         echo "$CONVENTIONS"
       fi
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
@@ -338,7 +338,7 @@ case "$BASE_ROLE" in
       CONVENTIONS=$(get_conventions true)
       if [ -n "$CONVENTIONS" ]; then
         CONV_COUNT=$(echo "$CONVENTIONS" | wc -l | tr -d ' ')
-        echo "conventions[${CONV_COUNT}]{tag,rule}:"
+        echo "conventions[${CONV_COUNT}]{category,rule}:"
         echo "$CONVENTIONS"
       fi
       echo ""
@@ -377,7 +377,7 @@ case "$BASE_ROLE" in
       CONVENTIONS=$(get_conventions)
       if [ -n "$CONVENTIONS" ]; then
         CONV_COUNT=$(echo "$CONVENTIONS" | wc -l | tr -d ' ')
-        echo "conventions[${CONV_COUNT}]{tag,rule}:"
+        echo "conventions[${CONV_COUNT}]{category,rule}:"
         echo "$CONVENTIONS"
       fi
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
@@ -401,7 +401,7 @@ case "$BASE_ROLE" in
       CONVENTIONS=$(get_conventions)
       if [ -n "$CONVENTIONS" ]; then
         CONV_COUNT=$(echo "$CONVENTIONS" | wc -l | tr -d ' ')
-        echo "conventions[${CONV_COUNT}]{tag,rule}:"
+        echo "conventions[${CONV_COUNT}]{category,rule}:"
         echo "$CONVENTIONS"
       fi
       get_research
@@ -428,7 +428,7 @@ case "$BASE_ROLE" in
       CONVENTIONS=$(get_conventions)
       if [ -n "$CONVENTIONS" ]; then
         CONV_COUNT=$(echo "$CONVENTIONS" | wc -l | tr -d ' ')
-        echo "conventions[${CONV_COUNT}]{tag,rule}:"
+        echo "conventions[${CONV_COUNT}]{category,rule}:"
         echo "$CONVENTIONS"
       fi
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"

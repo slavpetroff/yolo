@@ -29,7 +29,7 @@ EOF
 
   # Conventions file
   cat > "$TEST_WORKDIR/.yolo-planning/conventions.json" <<'EOF'
-{"conventions":[{"tag":"naming","rule":"Use kebab-case for files"},{"tag":"style","rule":"One commit per task"}]}
+{"conventions":[{"category":"naming","rule":"Use kebab-case for files"},{"category":"style","rule":"One commit per task"}]}
 EOF
 
   PHASES_DIR="$TEST_WORKDIR/.yolo-planning/phases"
