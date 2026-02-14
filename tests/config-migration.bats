@@ -203,3 +203,19 @@ EOF
 
   # Temp file should be cleaned up (tested implicitly by not checking for it)
 }
+
+@test "EXPECTED_FLAG_COUNT matches defaults.json" {
+  # Count actual v3/v2 flags in defaults.json
+  # Flags: v3_*, v2_*, context_compiler, model_overrides
+  DEFAULTS_COUNT=$(jq '[keys[] | select(startswith("v3_") or startswith("v2_") or . == "context_compiler" or . == "model_overrides")] | length' "$CONFIG_DIR/defaults.json")
+
+  # Extract EXPECTED_FLAG_COUNT from session-start.sh
+  SCRIPT_COUNT=$(grep 'EXPECTED_FLAG_COUNT=' "$SCRIPTS_DIR/session-start.sh" | grep -oE '[0-9]+' | head -1)
+
+  # Debug output for test failure
+  if [ "$DEFAULTS_COUNT" != "$SCRIPT_COUNT" ]; then
+    echo "MISMATCH: defaults.json has $DEFAULTS_COUNT flags, session-start.sh expects $SCRIPT_COUNT"
+  fi
+
+  [ "$DEFAULTS_COUNT" = "$SCRIPT_COUNT" ]
+}
