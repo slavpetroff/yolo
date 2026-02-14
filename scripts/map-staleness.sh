@@ -17,10 +17,10 @@ if ! git rev-parse --git-dir >/dev/null 2>&1; then
   exit 0
 fi
 
-# Parse META.md
-git_hash=$(grep '^git_hash:' "$META" | awk '{print $2}')
-file_count=$(grep '^file_count:' "$META" | awk '{print $2}')
-mapped_at=$(grep '^mapped_at:' "$META" | awk '{print $2}')
+# Parse META.md — handles both plain (git_hash: val) and Markdown (- **git_hash**: val) formats
+git_hash=$(grep 'git_hash' "$META" | sed 's/.*git_hash[*]*: *//' | awk '{print $1}')
+file_count=$(grep 'file_count' "$META" | sed 's/.*file_count[*]*: *//' | awk '{print $1}')
+mapped_at=$(grep 'mapped_at' "$META" | sed 's/.*mapped_at[*]*: *//' | awk '{print $1}')
 
 # Validate parsed values
 if [[ -z "$git_hash" || -z "$file_count" || "$file_count" -eq 0 ]]; then

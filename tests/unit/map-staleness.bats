@@ -139,3 +139,27 @@ EOF
   assert_success
   assert_output --partial "since: 2026-02-10"
 }
+
+# --- 9. Handles Markdown bold format from actual map output ---
+
+@test "parses Markdown bold format META.md from map command" {
+  local head_hash
+  head_hash=$(cd "$TEST_WORKDIR" && git rev-parse HEAD)
+  mkdir -p "$TEST_WORKDIR/.yolo-planning/codebase"
+  cat > "$TEST_WORKDIR/.yolo-planning/codebase/META.md" <<EOF
+# Mapping Metadata
+
+- **mapped_at**: 2026-02-13
+- **git_hash**: $head_hash
+- **file_count**: 50
+- **documents**: STACK.md, DEPENDENCIES.md
+- **mode**: full
+- **monorepo**: false
+- **mapping_tier**: solo
+EOF
+  run bash -c "cd '$TEST_WORKDIR' && bash '$SUT'"
+  assert_success
+  assert_output --partial "status: fresh"
+  assert_output --partial "total: 50"
+  assert_output --partial "since: 2026-02-13"
+}
