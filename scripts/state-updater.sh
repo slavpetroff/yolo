@@ -123,7 +123,7 @@ update_state_json() {
   phases_dir=$(dirname "$phase_dir")
   total=0
   local total_plans=0 total_summaries=0
-  for dir in $(ls -d "$phases_dir"/*/ 2>/dev/null | sort); do
+  for dir in $(command ls -d "$phases_dir"/*/ 2>/dev/null | sort); do
     total=$((total + 1))
     total_plans=$((total_plans + $(find "$dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')))
     total_summaries=$((total_summaries + $(find "$dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')))
@@ -166,12 +166,12 @@ advance_phase() {
   # Scan all phase dirs to find next incomplete
   local phases_dir total next_num next_name all_done
   phases_dir=$(dirname "$phase_dir")
-  total=$(ls -d "$phases_dir"/*/ 2>/dev/null | wc -l | tr -d ' ')
+  total=$(command ls -d "$phases_dir"/*/ 2>/dev/null | wc -l | tr -d ' ')
   next_num=""
   next_name=""
   all_done=true
 
-  for dir in $(ls -d "$phases_dir"/*/ 2>/dev/null | sort); do
+  for dir in $(command ls -d "$phases_dir"/*/ 2>/dev/null | sort); do
     local dirname p s
     dirname=$(basename "$dir")
     p=$(find "$dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')

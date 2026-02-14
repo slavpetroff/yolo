@@ -28,7 +28,7 @@ versions_removed=0
 # --- 1. Plugin cache ---
 if [[ -d "$PLUGIN_CACHE_DIR" ]]; then
   if [[ "$KEEP_LATEST" == true ]]; then
-    VERSIONS=$(ls -d "$PLUGIN_CACHE_DIR"/*/ 2>/dev/null | sort -V || true)
+    VERSIONS=$(command ls -d "$PLUGIN_CACHE_DIR"/*/ 2>/dev/null | sort -V || true)
     COUNT=$(echo "$VERSIONS" | grep -c '/' || true)
     if [[ "$COUNT" -gt 1 ]]; then
       TO_REMOVE=$(echo "$VERSIONS" | head -n $((COUNT - 1)))
@@ -37,7 +37,7 @@ if [[ -d "$PLUGIN_CACHE_DIR" ]]; then
       wiped_plugin_cache=true
     fi
   else
-    versions_removed=$(ls -d "$PLUGIN_CACHE_DIR"/*/ 2>/dev/null | wc -l | tr -d ' ')
+    versions_removed=$(command ls -d "$PLUGIN_CACHE_DIR"/*/ 2>/dev/null | wc -l | tr -d ' ')
     rm -rf "$PLUGIN_CACHE_DIR"
     wiped_plugin_cache=true
   fi
@@ -50,7 +50,7 @@ if [[ -d "$GLOBAL_CMD_DIR" ]]; then
 fi
 
 # --- 3. Temp caches (statusline + update check) ---
-TEMP_FILES=$(ls /tmp/yolo-*-"${UID_TAG}"-* /tmp/yolo-*-"${UID_TAG}" /tmp/yolo-update-check-"${UID_TAG}" 2>/dev/null || true)
+TEMP_FILES=$(command ls /tmp/yolo-*-"${UID_TAG}"-* /tmp/yolo-*-"${UID_TAG}" /tmp/yolo-update-check-"${UID_TAG}" 2>/dev/null || true)
 if [[ -n "$TEMP_FILES" ]]; then
   echo "$TEMP_FILES" | while IFS= read -r f; do rm -f "$f" 2>/dev/null; done
   wiped_temp_caches=true

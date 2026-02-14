@@ -29,13 +29,13 @@ INSTALLED_PROJECT=""
 INSTALLED_AGENTS=""
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 if [ -d "$CLAUDE_DIR/skills" ]; then
-  INSTALLED_GLOBAL=$(ls -1 "$CLAUDE_DIR/skills/" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+  INSTALLED_GLOBAL=$(command ls -1 "$CLAUDE_DIR/skills/" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 fi
 if [ -d "$PROJECT_DIR/.claude/skills" ]; then
-  INSTALLED_PROJECT=$(ls -1 "$PROJECT_DIR/.claude/skills/" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+  INSTALLED_PROJECT=$(command ls -1 "$PROJECT_DIR/.claude/skills/" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 fi
 if [ -d "$HOME/.agents/skills" ]; then
-  INSTALLED_AGENTS=$(ls -1 "$HOME/.agents/skills/" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+  INSTALLED_AGENTS=$(command ls -1 "$HOME/.agents/skills/" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 fi
 ALL_INSTALLED="$INSTALLED_GLOBAL,$INSTALLED_PROJECT,$INSTALLED_AGENTS"
 

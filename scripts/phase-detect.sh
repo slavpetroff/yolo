@@ -84,7 +84,7 @@ NEXT_PHASE_SUMMARIES=0
 if [ -d "$PHASES_DIR" ]; then
   # Collect phase directories in sorted order (use while-read to handle spaces)
   PHASE_DIRS_FILE=$(mktemp)
-  ls -d "$PHASES_DIR"/*/ 2>/dev/null | sort > "$PHASE_DIRS_FILE"
+  command ls -d "$PHASES_DIR"/*/ 2>/dev/null | sort > "$PHASE_DIRS_FILE"
   PHASE_COUNT=$(wc -l < "$PHASE_DIRS_FILE" | tr -d ' ')
 
   if [ "$PHASE_COUNT" -eq 0 ]; then

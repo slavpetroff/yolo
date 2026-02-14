@@ -28,7 +28,7 @@ else
   VDIR=""
 fi
 if [ -z "$VDIR" ]; then
-  VDIR=$(ls -1d "$CACHE"/*/ 2>/dev/null \
+  VDIR=$(command ls -1d "$CACHE"/*/ 2>/dev/null \
     | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)
   VDIR="${VDIR%/}"
   [ -n "$VDIR" ] && printf '%s' "$VDIR" > "$_YOLO_DIR" 2>/dev/null

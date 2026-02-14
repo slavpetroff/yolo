@@ -25,7 +25,7 @@ HOOK_CONTENT='#!/usr/bin/env bash
 set -euo pipefail
 # YOLO pre-push hook — delegates to the latest cached plugin script.
 # Installed by YOLO install-hooks.sh. Remove with: rm .git/hooks/pre-push
-SCRIPT=$(ls -1 "$HOME"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/pre-push-hook.sh 2>/dev/null | sort -V | tail -1)
+SCRIPT=$(command ls -1 "$HOME"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/pre-push-hook.sh 2>/dev/null | sort -V | tail -1)
 if [ -n "$SCRIPT" ] && [ -f "$SCRIPT" ]; then
   exec bash "$SCRIPT" "$@"
 fi

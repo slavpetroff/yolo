@@ -68,12 +68,19 @@ else
   fi
 fi
 
-# --- Migrate statusLine if using old for-loop pattern ---
+# --- Migrate statusLine if using old for-loop pattern or bare ls (alias-vulnerable) ---
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 if [ -f "$SETTINGS_FILE" ]; then
   SL_CMD=$(jq -r '.statusLine.command // .statusLine // ""' "$SETTINGS_FILE" 2>/dev/null)
+  SL_NEEDS_UPDATE=false
   if echo "$SL_CMD" | grep -q 'for f in' && echo "$SL_CMD" | grep -q 'yolo-statusline'; then
-    CORRECT_CMD="bash -c 'f=\$(ls -1 \"\${CLAUDE_CONFIG_DIR:-\$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/yolo-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"\$f\" ] && exec bash \"\$f\"'"
+    SL_NEEDS_UPDATE=true
+  elif echo "$SL_CMD" | grep -q 'yolo-statusline' && ! echo "$SL_CMD" | grep -q 'command ls'; then
+    # Bare ls without 'command' prefix — vulnerable to eza/lsd aliases
+    SL_NEEDS_UPDATE=true
+  fi
+  if [ "$SL_NEEDS_UPDATE" = true ]; then
+    CORRECT_CMD="bash -c 'f=\$(command ls -1 \"\${CLAUDE_CONFIG_DIR:-\$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/yolo-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"\$f\" ] && exec bash \"\$f\"'"
     cp "$SETTINGS_FILE" "${SETTINGS_FILE}.bak"
     if ! jq --arg cmd "$CORRECT_CMD" '.statusLine = {"type": "command", "command": $cmd}' "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp"; then
       cp "${SETTINGS_FILE}.bak" "$SETTINGS_FILE"
@@ -89,7 +96,7 @@ fi
 CACHE_DIR="$CLAUDE_DIR/plugins/cache/yolo-marketplace/yolo"
 YOLO_CLEANUP_LOCK="/tmp/yolo-cache-cleanup-lock"
 if [ -d "$CACHE_DIR" ] && mkdir "$YOLO_CLEANUP_LOCK" 2>/dev/null; then
-  VERSIONS=$(ls -d "$CACHE_DIR"/*/ 2>/dev/null | sort -V)
+  VERSIONS=$(command ls -d "$CACHE_DIR"/*/ 2>/dev/null | sort -V)
   COUNT=$(echo "$VERSIONS" | wc -l | tr -d ' ')
   if [ "$COUNT" -gt 1 ]; then
     echo "$VERSIONS" | head -n $((COUNT - 1)) | while IFS= read -r dir; do rm -rf "$dir"; done
@@ -114,7 +121,7 @@ if [ -d "$CACHE_DIR" ]; then
   fi
   
   if [ "$SKIP_INTEGRITY" = false ]; then
-    LATEST_CACHE=$(ls -d "$CACHE_DIR"/*/ 2>/dev/null | sort -V | tail -1)
+    LATEST_CACHE=$(command ls -d "$CACHE_DIR"/*/ 2>/dev/null | sort -V | tail -1)
     if [ -n "$LATEST_CACHE" ]; then
       INTEGRITY_OK=true
       for f in commands/init.md .claude-plugin/plugin.json VERSION config/defaults.json; do
@@ -135,7 +142,7 @@ fi
 MKT_DIR="$CLAUDE_DIR/plugins/marketplaces/yolo-marketplace"
 if [ -d "$MKT_DIR/.git" ] && [ -d "$CACHE_DIR" ]; then
   MKT_VER=$(jq -r '.version // "0"' "$MKT_DIR/.claude-plugin/plugin.json" 2>/dev/null)
-  CACHE_VER=$(jq -r '.version // "0"' "$(ls -d "$CACHE_DIR"/*/.claude-plugin/plugin.json 2>/dev/null | sort -V | tail -1)" 2>/dev/null)
+  CACHE_VER=$(jq -r '.version // "0"' "$(command ls -d "$CACHE_DIR"/*/.claude-plugin/plugin.json 2>/dev/null | sort -V | tail -1)" 2>/dev/null)
   if [ "$MKT_VER" != "$CACHE_VER" ] && [ -n "$CACHE_VER" ] && [ "$CACHE_VER" != "0" ]; then
     (git -C "$MKT_DIR" fetch origin --quiet 2>/dev/null && \
       if git -C "$MKT_DIR" diff --quiet 2>/dev/null; then
@@ -146,10 +153,10 @@ if [ -d "$MKT_DIR/.git" ] && [ -d "$CACHE_DIR" ]; then
   fi
   # Content staleness: compare command counts
   if [ -d "$MKT_DIR/commands" ] && [ -d "$CACHE_DIR" ]; then
-    LATEST_VER=$(ls -d "$CACHE_DIR"/*/ 2>/dev/null | sort -V | tail -1)
+    LATEST_VER=$(command ls -d "$CACHE_DIR"/*/ 2>/dev/null | sort -V | tail -1)
     if [ -n "$LATEST_VER" ] && [ -d "${LATEST_VER}commands" ]; then
-      MKT_CMD_COUNT=$(ls "$MKT_DIR/commands/"*.md 2>/dev/null | wc -l | tr -d ' ')
-      CACHE_CMD_COUNT=$(ls "${LATEST_VER}commands/"*.md 2>/dev/null | wc -l | tr -d ' ')
+      MKT_CMD_COUNT=$(command ls "$MKT_DIR/commands/"*.md 2>/dev/null | wc -l | tr -d ' ')
+      CACHE_CMD_COUNT=$(command ls "${LATEST_VER}commands/"*.md 2>/dev/null | wc -l | tr -d ' ')
       if [ "${MKT_CMD_COUNT:-0}" -ne "${CACHE_CMD_COUNT:-0}" ]; then
         echo "YOLO cache stale — marketplace has ${MKT_CMD_COUNT} commands, cache has ${CACHE_CMD_COUNT}" >&2
         rm -rf "$CACHE_DIR"
@@ -159,7 +166,7 @@ if [ -d "$MKT_DIR/.git" ] && [ -d "$CACHE_DIR" ]; then
 fi
 
 # --- Sync commands to CLAUDE_DIR/commands/yolo/ for autocomplete prefix ---
-YOLO_CACHE_CMD=$(ls -d "$CLAUDE_DIR"/plugins/cache/yolo-marketplace/yolo/*/commands 2>/dev/null | sort -V | tail -1)
+YOLO_CACHE_CMD=$(command ls -d "$CLAUDE_DIR"/plugins/cache/yolo-marketplace/yolo/*/commands 2>/dev/null | sort -V | tail -1)
 YOLO_GLOBAL_CMD="$CLAUDE_DIR/commands/yolo"
 if [ -d "$YOLO_CACHE_CMD" ]; then
   mkdir -p "$YOLO_GLOBAL_CMD"
@@ -182,7 +189,7 @@ if [ -f "$EXEC_STATE" ]; then
       "$(jq -r '[(.phase_name // ""), (.phase // ""), (.step // ""), (.current_task // "")] | join("|")' "$EXEC_STATE" 2>/dev/null)"
     PHASE_DIR=""
     if [ -n "$PHASE_NUM" ]; then
-      PHASE_DIR=$(ls -d "$PLANNING_DIR/phases/${PHASE_NUM}-"* 2>/dev/null | head -1)
+      PHASE_DIR=$(command ls -d "$PLANNING_DIR/phases/${PHASE_NUM}-"* 2>/dev/null | head -1)
     fi
     if [ -n "$PHASE_DIR" ] && [ -d "$PHASE_DIR" ]; then
       PLAN_COUNT=$(jq -r '.plans | length' "$EXEC_STATE" 2>/dev/null)
@@ -276,7 +283,7 @@ if [ -f "$STATE_JSON" ] && command -v jq >/dev/null 2>&1; then
     "$(jq -r '[(.ph // "unknown"), (.tt // "unknown"), (.st // "unknown"), (.pr // 0 | tostring)] | join("|")' "$STATE_JSON" 2>/dev/null)"
   # Derive phase name from directory
   if [ -n "$phase_pos" ] && [ "$phase_pos" != "unknown" ]; then
-    phase_dir_match=$(ls -d "$PLANNING_DIR/phases/$(printf '%02d' "$phase_pos")-"* 2>/dev/null | head -1)
+    phase_dir_match=$(command ls -d "$PLANNING_DIR/phases/$(printf '%02d' "$phase_pos")-"* 2>/dev/null | head -1)
     if [ -n "$phase_dir_match" ]; then
       phase_name=$(basename "$phase_dir_match" | sed 's/^[0-9]*-//' | tr '-' ' ')
     fi
@@ -302,7 +309,7 @@ fi
 NEXT_ACTION=""
 if [ ! -f "$PLANNING_DIR/PROJECT.md" ]; then
   NEXT_ACTION="/yolo:init"
-elif [ ! -d "$PHASES_DIR" ] || [ -z "$(ls -d "$PHASES_DIR"/*/ 2>/dev/null)" ]; then
+elif [ ! -d "$PHASES_DIR" ] || [ -z "$(command ls -d "$PHASES_DIR"/*/ 2>/dev/null)" ]; then
   NEXT_ACTION="/yolo:go (needs scoping)"
 else
   # Check execution state for interrupted builds
@@ -325,7 +332,7 @@ else
     # Find next phase needing work
     all_done=true
     next_phase=""
-    for pdir in $(ls -d "$PHASES_DIR"/*/ 2>/dev/null | sort); do
+    for pdir in $(command ls -d "$PHASES_DIR"/*/ 2>/dev/null | sort); do
       pname=$(basename "$pdir")
       plan_count=$(find "$pdir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
       summary_count=$(find "$pdir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
