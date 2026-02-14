@@ -224,7 +224,7 @@ mk_config() {
 
 @test "non-yolo agent always allowed" {
   mk_config true false false backend_only
-  run_validate "vbw-lead"
+  run_validate "other-lead"
   assert_success
 }
 
