@@ -72,7 +72,10 @@ If flags present: skip confirmation gate (flags express explicit intent).
 
 If $ARGUMENTS present but no flags detected, interpret user intent:
 
-- Discussion keywords (talk, discuss, explore, think about, what about) -> Discuss mode
+- Debug keywords (debug, investigate, bug, error, broken, crash, failing, diagnose) -> Redirect to `/yolo:debug` with $ARGUMENTS
+- Fix keywords (fix, patch, hotfix, quick fix, tweak, small change) -> Redirect to `/yolo:fix` with $ARGUMENTS
+- Research keywords (research, look up, find out, what is, how does, explore docs) -> Redirect to `/yolo:research` with $ARGUMENTS
+- Discussion keywords (talk, discuss, think about, what about) -> Discuss mode
 - Assumption keywords (assume, assuming, what if, what are you assuming) -> Assumptions mode
 - Planning keywords (plan, scope, break down, decompose, structure) -> Plan mode
 - Execution keywords (build, execute, run, do it, go, make it, ship it) -> Execute mode
