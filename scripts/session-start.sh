@@ -97,20 +97,36 @@ if [ -d "$CACHE_DIR" ] && mkdir "$YOLO_CLEANUP_LOCK" 2>/dev/null; then
   rmdir "$YOLO_CLEANUP_LOCK" 2>/dev/null
 fi
 
-# --- Cache integrity check (nuke if critical files missing) ---
+# --- Cache integrity check (nuke if critical files missing, skip during update) ---
 if [ -d "$CACHE_DIR" ]; then
-  LATEST_CACHE=$(ls -d "$CACHE_DIR"/*/ 2>/dev/null | sort -V | tail -1)
-  if [ -n "$LATEST_CACHE" ]; then
-    INTEGRITY_OK=true
-    for f in commands/init.md .claude-plugin/plugin.json VERSION config/defaults.json; do
-      if [ ! -f "$LATEST_CACHE$f" ]; then
-        INTEGRITY_OK=false
-        break
+  UPDATE_LOCK="/tmp/yolo-update-lock-$(id -u)"
+  SKIP_INTEGRITY=false
+  
+  if [ -f "$UPDATE_LOCK" ]; then
+    if [ "$(uname)" = "Darwin" ]; then
+      LOCK_AGE=$((NOW - $(stat -f %m "$UPDATE_LOCK" 2>/dev/null || echo "$NOW")))
+    else
+      LOCK_AGE=$((NOW - $(stat -c %Y "$UPDATE_LOCK" 2>/dev/null || echo "$NOW")))
+    fi
+    if [ "$LOCK_AGE" -lt 60 ]; then
+      SKIP_INTEGRITY=true
+    fi
+  fi
+  
+  if [ "$SKIP_INTEGRITY" = false ]; then
+    LATEST_CACHE=$(ls -d "$CACHE_DIR"/*/ 2>/dev/null | sort -V | tail -1)
+    if [ -n "$LATEST_CACHE" ]; then
+      INTEGRITY_OK=true
+      for f in commands/init.md .claude-plugin/plugin.json VERSION config/defaults.json; do
+        if [ ! -f "$LATEST_CACHE$f" ]; then
+          INTEGRITY_OK=false
+          break
+        fi
+      done
+      if [ "$INTEGRITY_OK" = false ]; then
+        echo "YOLO cache integrity check failed — nuking stale cache" >&2
+        rm -rf "$CACHE_DIR"
       fi
-    done
-    if [ "$INTEGRITY_OK" = false ]; then
-      echo "YOLO cache integrity check failed — nuking stale cache" >&2
-      rm -rf "$CACHE_DIR"
     fi
   fi
 fi
@@ -121,9 +137,9 @@ if [ -d "$MKT_DIR/.git" ] && [ -d "$CACHE_DIR" ]; then
   MKT_VER=$(jq -r '.version // "0"' "$MKT_DIR/.claude-plugin/plugin.json" 2>/dev/null)
   CACHE_VER=$(jq -r '.version // "0"' "$(ls -d "$CACHE_DIR"/*/.claude-plugin/plugin.json 2>/dev/null | sort -V | tail -1)" 2>/dev/null)
   if [ "$MKT_VER" != "$CACHE_VER" ] && [ -n "$CACHE_VER" ] && [ "$CACHE_VER" != "0" ]; then
-    (cd "$MKT_DIR" && git fetch origin --quiet 2>/dev/null && \
-      if git diff --quiet 2>/dev/null; then
-        git reset --hard origin/main --quiet 2>/dev/null
+    (git -C "$MKT_DIR" fetch origin --quiet 2>/dev/null && \
+      if git -C "$MKT_DIR" diff --quiet 2>/dev/null; then
+        git -C "$MKT_DIR" reset --hard origin/main --quiet 2>/dev/null
       else
         echo "YOLO: marketplace checkout has local modifications — skipping reset" >&2
       fi)

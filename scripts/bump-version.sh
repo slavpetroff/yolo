@@ -34,6 +34,24 @@ if [[ "${1:-}" == "--verify" ]]; then
   exit 0
 fi
 
+# --set VERSION: set exact version without auto-increment
+if [[ "${1:-}" == "--set" ]]; then
+  NEW="${2:?Usage: bump-version.sh --set X.Y.Z}"
+  # Validate semver format
+  if ! [[ "$NEW" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "Error: '$NEW' is not valid semver (expected X.Y.Z)" >&2
+    exit 1
+  fi
+  echo "Setting version to: $NEW"
+  printf '%s\n' "$NEW" > "$ROOT/VERSION"
+  jq --arg v "$NEW" '.version = $v' "$ROOT/.claude-plugin/plugin.json" > "$ROOT/.claude-plugin/plugin.json.tmp" \
+    && mv "$ROOT/.claude-plugin/plugin.json.tmp" "$ROOT/.claude-plugin/plugin.json"
+  jq --arg v "$NEW" '.plugins[0].version = $v' "$ROOT/.claude-plugin/marketplace.json" > "$ROOT/.claude-plugin/marketplace.json.tmp" \
+    && mv "$ROOT/.claude-plugin/marketplace.json.tmp" "$ROOT/.claude-plugin/marketplace.json"
+  echo "Updated 3 files to $NEW"
+  exit 0
+fi
+
 LOCAL=$(tr -d '[:space:]' < "$ROOT/VERSION")
 
 # Fetch the authoritative version from GitHub (graceful fallback on failure)

@@ -12,11 +12,13 @@ allowed-tools: Read, Bash, Glob
 
 ## Steps
 
+**CRITICAL shell note:** All glob patterns with `*/` MUST run inside `bash -c '...'` to avoid zsh `no matches found` errors.
+
 ### Step 1: Read current INSTALLED version
 
 Read the **cached** version (what user actually has installed):
 ```bash
-cat "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/*/VERSION 2>/dev/null | sort -V | tail -1
+bash -c 'cat "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/*/VERSION 2>/dev/null | sort -V | tail -1'
 ```
 Store as `old_version`. If empty, fall back to `${CLAUDE_PLUGIN_ROOT}/VERSION`.
 
@@ -35,6 +37,8 @@ Store as `remote_version`. Curl fails → STOP: "⚠ Could not reach GitHub to c
 If remote == old: display "✓ Already at latest (v{old_version}). Refreshing cache..." Continue to Step 4 for clean cache refresh.
 
 ### Step 4: Nuclear cache wipe
+
+**MANDATORY:** Use the cache-nuke script. Do NOT run rm -rf inline.
 
 ```bash
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/cache-nuke.sh
@@ -56,14 +60,14 @@ Try in order (stop at first success):
 - **B) Reinstall:** `claude plugin uninstall yolo@yolo-marketplace 2>&1 && claude plugin install yolo@yolo-marketplace 2>&1`
 - **C) Manual fallback:** display commands for user to run manually, STOP.
 
-**Re-sync global commands** (after A or B succeeds):
+**Wait for cache population** (after A or B succeeds):
 ```bash
-CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
-YOLO_CACHE_CMD=$(ls -d "$CLAUDE_DIR"/plugins/cache/yolo-marketplace/yolo/*/commands 2>/dev/null | sort -V | tail -1)
-if [ -d "$YOLO_CACHE_CMD" ]; then
-  mkdir -p "$CLAUDE_DIR/commands/yolo"
-  cp "$YOLO_CACHE_CMD"/*.md "$CLAUDE_DIR/commands/yolo/" 2>/dev/null
-fi
+bash -c 'CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"; for i in 1 2 3; do [ -f "$CLAUDE_DIR/plugins/cache/yolo-marketplace/yolo/"*/VERSION ] && break; sleep 1; done'
+```
+
+**Re-sync global commands** (after cache populated):
+```bash
+bash -c 'CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"; YOLO_CACHE_CMD=$(ls -d "$CLAUDE_DIR"/plugins/cache/yolo-marketplace/yolo/*/commands 2>/dev/null | sort -V | tail -1); if [ -d "$YOLO_CACHE_CMD" ]; then mkdir -p "$CLAUDE_DIR/commands/yolo"; cp "$YOLO_CACHE_CMD"/*.md "$CLAUDE_DIR/commands/yolo/" 2>/dev/null; fi'
 ```
 
 ### Step 5.5: Ensure YOLO statusline
@@ -77,13 +81,13 @@ Use jq to write (backup, update, restore on failure). Display `✓ Statusline re
 ### Step 6: Verify update
 
 ```bash
-NEW_CACHED=$(cat "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/*/VERSION 2>/dev/null | sort -V | tail -1)
+bash -c 'CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"; for i in 1 2 3; do V=$(cat "$CLAUDE_DIR"/plugins/cache/yolo-marketplace/yolo/*/VERSION 2>/dev/null | sort -V | tail -1); [ -n "$V" ] && echo "$V" && exit 0; sleep 1; done; echo ""'
 ```
-Use NEW_CACHED as authoritative version. If empty or equals old_version when it shouldn't: "⚠ Update may not have applied. Try /yolo:update again after restart."
+Use result as authoritative version. If empty or equals old_version when it shouldn't: "Cache not populated yet. Restart Claude Code — files will appear on next session."
 
 ### Step 7: Display result
 
-Use NEW_CACHED for all display. Same version = "YOLO Cache Refreshed" banner. Different = "YOLO Updated" banner with old→new + "Restart Claude Code" + "/yolo:whats-new" suggestion.
+Use verified version from Step 6 for all display. Same version = "YOLO Cache Refreshed" banner. Different = "YOLO Updated" banner with old→new + "Restart Claude Code" + "/yolo:whats-new" suggestion.
 
 ## Output Format
 
