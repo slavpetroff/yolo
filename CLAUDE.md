@@ -14,6 +14,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 ## YOLO Rules
 
 - **Always use YOLO commands** for project work. Do not manually edit files in `.yolo-planning/`.
+- **NEVER bypass /yolo:go.** When the user invokes `/yolo:go` with any input, you MUST follow the go.md protocol — parse flags, detect intent, confirm, and route to the correct mode. NEVER dismiss a `/yolo:go` invocation as "not a YOLO workflow" or "just a quick fix" and go ad-hoc. The go.md protocol handles ALL cases including debugging, investigation, and one-off tasks (via `/vbw:fix` or `/vbw:debug` redirect when appropriate). If the input truly doesn't match any mode, use AskUserQuestion to clarify — never silently skip the workflow.
 - **NEVER use EnterPlanMode or ExitPlanMode.** All planning MUST go through `/yolo:go`. Claude Code's built-in plan mode bypasses the entire YOLO workflow — it is strictly prohibited.
 - **NEVER spawn agents outside the YOLO hierarchy.** Do not use the Task tool to create ad-hoc agents. All agent spawning goes through `/yolo:go` which delegates to the proper hierarchy (Architect → Lead → Senior → Dev).
 - **Commit format:** `{type}({scope}): {description}` — types: feat, fix, test, refactor, perf, docs, style, chore.
@@ -48,6 +49,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Department guard hook for directory boundaries | 2026-02-13 | Prevents cross-department file writes at hook level |
 | EnterPlanMode strictly prohibited | 2026-02-14 | Bypasses YOLO workflow; all planning through /yolo:go |
 | Hooks use JSON permissionDecision:"deny" | 2026-02-14 | Claude Code requires JSON deny format, not exit 2 |
+| Never bypass /yolo:go invocations | 2026-02-14 | Claude dismissed go.md as "not a workflow" and went ad-hoc; explicit rule prevents this |
 
 ## Installed Skills
 
