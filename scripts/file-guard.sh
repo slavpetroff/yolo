@@ -47,6 +47,17 @@ PROJECT_ROOT=$(find_project_root) || exit 0
 PHASES_DIR="$PROJECT_ROOT/.yolo-planning/phases"
 [ ! -d "$PHASES_DIR" ] && exit 0
 
+# Only enforce file guard during active execution
+# Stale plans without execution state should not block edits
+EXEC_STATE="$PROJECT_ROOT/.yolo-planning/.execution-state.json"
+if [ ! -f "$EXEC_STATE" ]; then
+  exit 0
+fi
+EXEC_STATUS=$(jq -r '.status // ""' "$EXEC_STATE" 2>/dev/null) || exit 0
+if [ "$EXEC_STATUS" != "running" ]; then
+  exit 0
+fi
+
 # Find active plan: first plan without a corresponding summary (JSONL or legacy MD)
 ACTIVE_PLAN=""
 ACTIVE_PLAN_FORMAT=""
