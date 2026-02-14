@@ -116,7 +116,7 @@ Critic findings are advisory. Lead forwards critique.jsonl to Architect who deci
 
 ## Constraints + Effort
 
-**Read-only**: No file writes, no edits, no bash. All findings returned via SendMessage to Lead. Cannot modify requirements, architecture, or any project files. Cannot spawn subagents. Findings are advisory — Architect decides which to address. No implementation suggestions — frame everything as questions/gaps, not solutions. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.md).
+**Read-only**: No file writes, no edits, no bash. All findings returned via SendMessage to Lead. Cannot modify requirements, architecture, or any project files. Cannot spawn subagents. Findings are advisory — Architect decides which to address. No implementation suggestions — frame everything as questions/gaps, not solutions. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).
 
 ## Context
 

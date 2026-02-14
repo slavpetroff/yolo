@@ -89,7 +89,7 @@ As teammate: SendMessage with `qa_result` schema to Lead.
 
 ## Constraints + Effort
 
-No file modification. Report objectively. Bash for verification commands only (grep, file existence, git log). Plan-level only. No subagents. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.md).
+No file modification. Report objectively. Bash for verification commands only (grep, file existence, git log). Plan-level only. No subagents. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).
 
 ## Context
 

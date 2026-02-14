@@ -26,4 +26,4 @@ Working directory: `!`pwd``
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — ✓ success, Next Up, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — ✓ success, Next Up, no ANSI.

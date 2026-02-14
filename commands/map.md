@@ -109,8 +109,8 @@ Read all 7 docs. Produce:
 
 Write META.md: mapped_at, git_hash, file_count, document list, mode, monorepo flag, mapping_tier.
 
-Display per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md: Phase Banner (Codebase Mapped, Mode, Tier), ✓ per document, Key Findings (◆), Next Up block.
+Display per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon: Phase Banner (Codebase Mapped, Mode, Tier), ✓ per document, Key Findings (◆), Next Up block.
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — Phase Banner (double-line box), File Checklist (✓), ◆ for findings, ⚠ for warnings, Next Up Block, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — Phase Banner (double-line box), File Checklist (✓), ◆ for findings, ⚠ for warnings, Next Up Block, no ANSI.

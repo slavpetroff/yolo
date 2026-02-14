@@ -60,7 +60,7 @@ Follow protocol: reproduce, hypothesize, gather evidence, diagnose, fix, verify,
 If you apply a fix, commit with: fix({scope}): {description}.
 ```
 
-4. **Present:** Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md:
+4. **Present:** Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon:
 ```
 ┌──────────────────────────────────────────┐
 │  Bug Investigation Complete              │

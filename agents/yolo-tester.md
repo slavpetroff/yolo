@@ -87,7 +87,7 @@ As teammate: SendMessage with `test_plan_result` schema to Senior (who forwards 
 
 ## Constraints
 
-Write ONLY test files and test-plan.jsonl. Never write implementation code. Test files must be syntactically correct for the target framework. All tests must FAIL before committing (RED phase verification is mandatory). If tests pass unexpectedly → do NOT proceed. Escalate to Senior. No subagents. Stage test files individually: `git add {test-file}` (never `git add .`). Commit format: `test({phase}): RED phase tests for plan {NN-MM}`. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.md).
+Write ONLY test files and test-plan.jsonl. Never write implementation code. Test files must be syntactically correct for the target framework. All tests must FAIL before committing (RED phase verification is mandatory). If tests pass unexpectedly → do NOT proceed. Escalate to Senior. No subagents. Stage test files individually: `git add {test-file}` (never `git add .`). Commit format: `test({phase}): RED phase tests for plan {NN-MM}`. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).
 
 ## Escalation Table
 

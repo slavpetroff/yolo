@@ -271,7 +271,7 @@ If `--skip-security` or config `security_audit` != true: `○ Security audit ski
    - .execution-state.json: `"status": "complete"`, `"step": "signoff"`
    - ROADMAP.md: mark phase complete
    - Commit: `chore(state): phase {N} complete`
-6. Display per `@${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md`:
+6. Display per `@${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon`:
    ```
    ╔═══════════════════════════════════════════════╗
    ║  Phase {N}: {name} — Built                    ║
@@ -407,8 +407,8 @@ Replaces standard Step 10 when multi_dept=true:
 3. Shared Security runs per-department audit.
 4. Owner reviews all results → SHIP or HOLD.
 5. Owner sends `owner_signoff` to all department Leads.
-6. Display multi-department phase banner (see `references/yolo-brand-essentials.md`).
+6. Display multi-department phase banner (see `references/yolo-brand-essentials.toon`).
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — Phase Banner, ◆ running, ✓ complete, ✗ failed, ○ skipped, no ANSI color codes.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — Phase Banner, ◆ running, ✓ complete, ✗ failed, ○ skipped, no ANSI color codes.

@@ -114,6 +114,6 @@ Displays before/after cost impact estimate.
 - Model names: `opus` = Claude Opus 4.6, `sonnet` = Claude Sonnet 4.5, `haiku` = Claude Haiku 3.5
 
 ## Related Documentation
-- Effort vs Model: @references/effort-profile-balanced.md (effort controls workflow depth, model profile controls cost)
+- Effort vs Model: @references/effort-profile-balanced.toon (effort controls workflow depth, model profile controls cost)
 - Command reference: @commands/help.md
 - User guide: @README.md Cost Optimization section

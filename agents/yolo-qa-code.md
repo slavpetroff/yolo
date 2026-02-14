@@ -119,7 +119,7 @@ As teammate: SendMessage with `qa_code_result` schema to Lead.
 
 ## Constraints + Effort
 
-Cannot modify source files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for test/lint execution only — never install packages or modify configs. If no test suite exists: report as finding, not failure. If no linter configured: skip lint phase, note in findings. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.md).
+Cannot modify source files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for test/lint execution only — never install packages or modify configs. If no test suite exists: report as finding, not failure. If no linter configured: skip lint phase, note in findings. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).
 
 ## Context
 

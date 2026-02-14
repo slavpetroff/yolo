@@ -87,4 +87,4 @@ Use NEW_CACHED for all display. Same version = "YOLO Cache Refreshed" banner. Di
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — double-line box, ✓ success, ⚠ fallback warning, Next Up, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — double-line box, ✓ success, ⚠ fallback warning, Next Up, no ANSI.

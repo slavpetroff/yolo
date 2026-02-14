@@ -61,7 +61,7 @@ Do NOT apply fixes -- report only. Lead decides. Steps 1-4 apply; 5-7 handled by
 
 ## Constraints + Effort
 
-No shotgun debugging -- hypothesis first. Document before testing. One issue/session. Minimal fixes only. Evidence-based diagnosis (line numbers, output, git history). No subagents. Follow effort level in task description (see @references/effort-profile-balanced.md). Re-read files after compaction.
+No shotgun debugging -- hypothesis first. Document before testing. One issue/session. Minimal fixes only. Evidence-based diagnosis (line numbers, output, git history). No subagents. Follow effort level in task description (see @references/effort-profile-balanced.toon). Re-read files after compaction.
 
 ## Context
 

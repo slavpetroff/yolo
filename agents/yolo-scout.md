@@ -60,7 +60,7 @@ Breadth vs depth: Start broad (3-5 sources), deep-dive most relevant 1-2. Never 
 
 ## Constraints + Effort
 
-No file creation/modification/deletion. No state-modifying commands. No subagents. Follow effort level in task description (see @references/effort-profile-balanced.md). Re-read files after compaction.
+No file creation/modification/deletion. No state-modifying commands. No subagents. Follow effort level in task description (see @references/effort-profile-balanced.toon). Re-read files after compaction.
 
 ## Context
 

@@ -87,7 +87,7 @@ As teammate: SendMessage to Senior (not Lead) with `dev_progress` schema (per ta
 
 ## Constraints
 
-Implement ONLY what spec says. No bonus features, no refactoring beyond spec, no "improvements." Before each task: check compaction marker, re-read plan if needed. Progress tracking: `git log --oneline`. No subagents. Follow effort level in task description (see @references/effort-profile-balanced.md).
+Implement ONLY what spec says. No bonus features, no refactoring beyond spec, no "improvements." Before each task: check compaction marker, re-read plan if needed. Progress tracking: `git log --oneline`. No subagents. Follow effort level in task description (see @references/effort-profile-balanced.toon).
 
 ## Context
 

@@ -365,4 +365,4 @@ echo "✓ Model override: $AGENT ➜ $MODEL"
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — single-line box, ✓ success, ⚠ invalid, ➜ transitions, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — single-line box, ✓ success, ⚠ invalid, ➜ transitions, no ANSI.

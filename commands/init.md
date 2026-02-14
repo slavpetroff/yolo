@@ -504,7 +504,7 @@ If SKIP_INFERENCE=false (confirmed/corrected inference data):
 <!-- Final summary replaces old Step 4 auto-launch of /yolo:go -->
 <!-- User now has full project-defining files and can run /yolo:go when ready -->
 
-Display a Phase Banner (double-line box per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md) with the title "YOLO Initialization Complete".
+Display a Phase Banner (double-line box per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon) with the title "YOLO Initialization Complete".
 
 ```
 ╔══════════════════════════════════════╗
@@ -530,4 +530,4 @@ Display a Phase Banner (double-line box per @${CLAUDE_PLUGIN_ROOT}/references/yo
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — Phase Banner (double-line box), File Checklist (✓), ○ for pending, Next Up Block, no ANSI color codes.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — Phase Banner (double-line box), File Checklist (✓), ○ for pending, Next Up Block, no ANSI color codes.

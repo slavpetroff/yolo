@@ -25,4 +25,4 @@ Active milestone: `!`cat .yolo-planning/ACTIVE 2>/dev/null || echo "No active mi
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — double-line box, ➜ Next Up, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — double-line box, ➜ Next Up, no ANSI.

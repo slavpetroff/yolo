@@ -53,4 +53,4 @@ Return structured findings.
 
 ## Output Format
 
-Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md: single-line box for findings, ✓ high / ○ medium / ⚠ low confidence, Next Up Block, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon: single-line box for findings, ✓ high / ○ medium / ⚠ low confidence, Next Up Block, no ANSI.

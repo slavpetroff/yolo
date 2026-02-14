@@ -95,4 +95,4 @@ Conventions injected via CLAUDE.md `## Project Conventions` (loaded every sessio
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — single-line box, ✓ success, ⚠ conflicts/warnings, ○ skipped/info, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — single-line box, ✓ success, ⚠ conflicts/warnings, ○ skipped/info, no ANSI.

@@ -87,7 +87,7 @@ Log technology choices, pattern selections, architecture trade-offs. Skip trivia
 
 ## Constraints + Effort
 
-Planning only. No source code modifications. Write architecture.toon, ROADMAP.md, and append to decisions.jsonl only. No Edit tool — always Write full files (except decisions.jsonl: append only). No Bash — use WebSearch/WebFetch for research. Phase-level granularity. Task decomposition = Lead's job. No subagents. Follow effort level in task description (see @references/effort-profile-balanced.md). Re-read files after compaction.
+Planning only. No source code modifications. Write architecture.toon, ROADMAP.md, and append to decisions.jsonl only. No Edit tool — always Write full files (except decisions.jsonl: append only). No Bash — use WebSearch/WebFetch for research. Phase-level granularity. Task decomposition = Lead's job. No subagents. Follow effort level in task description (see @references/effort-profile-balanced.toon). Re-read files after compaction.
 
 ## Communication
 

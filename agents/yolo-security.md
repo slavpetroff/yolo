@@ -124,7 +124,7 @@ As teammate: SendMessage with `security_audit` schema to Lead.
 
 ## Constraints + Effort
 
-Cannot modify files. Report only. Bash for running audit tools only — never install packages. If audit tools not available: use Grep-based heuristic scanning only. Security FAIL cannot be overridden by agents — only user --force. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.md).
+Cannot modify files. Report only. Bash for running audit tools only — never install packages. If audit tools not available: use Grep-based heuristic scanning only. Security FAIL cannot be overridden by agents — only user --force. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).
 
 ## Context
 

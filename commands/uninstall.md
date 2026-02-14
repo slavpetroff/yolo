@@ -55,4 +55,4 @@ Display Phase Banner "YOLO Cleanup Complete" with ✓/○ per step. Then:
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — Phase Banner (double-line box), ✓ completed, ○ skipped, Next Up, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — Phase Banner (double-line box), ✓ completed, ○ skipped, Next Up, no ANSI.

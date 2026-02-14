@@ -70,4 +70,4 @@ See: /yolo:init for the import flow, docs/migration-gsd-to-yolo.md for detailed 
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — double-line box, ✓ available, ➜ Getting Started, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — double-line box, ✓ available, ➜ Getting Started, no ANSI.

@@ -1,0 +1,34 @@
+profile: Balanced (EFRT-02)
+model: Opus
+use_when: Standard dev work, most phases. Recommended default.
+
+effort_vs_model:
+  effort_controls: Planning depth, verification thoroughness, research scope (workflow behavior)
+  model_controls: Which Claude model each agent uses (cost optimization)
+  independent: Can run Thorough effort on Budget profile or Fast effort on Quality profile
+  recommendation: Match them (balanced+balanced, thorough+quality, fast+budget)
+  config_effort: /yolo:config effort <level> or /yolo:go --effort=<level>
+  config_model: /yolo:config model_profile <profile>
+  see: @references/model-profiles.md
+
+matrix:
+  Agent|Level|Notes
+  Lead|high|Solid research, clear decomposition, coverage+feasibility self-review
+  Architect|high|Complete scope, clear criteria, standard dependency justification
+  Dev|medium|Focused implementation, standard verification, concise commits
+  QA|medium|Standard tier (15-25 checks). Content structure, key links, conventions
+  Scout|medium|Targeted research, one source per finding. Runs on session model (Opus)
+  Debugger|medium|Focused investigation, rank-order hypotheses, stop on confirmation
+
+plan_approval (EFRT-07):
+  Autonomy|Gate
+  cautious|required
+  standard|OFF
+  confident / pure-yolo|OFF
+
+effort_mapping:
+  Level|Behavior
+  high|Deep reasoning with focused scope
+  medium|Moderate reasoning depth, standard exploration
+
+override: --effort=balanced overrides config default for one invocation (EFRT-05)

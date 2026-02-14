@@ -55,7 +55,7 @@ Active milestone:
 
 ## Display
 
-Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md:
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon:
 
 **Header:**
 ```

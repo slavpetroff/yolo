@@ -1,0 +1,33 @@
+profile: Turbo (EFRT-04)
+model: Sonnet
+use_when: Quick fixes, config changes, obvious tasks, low-stakes edits.
+
+effort_vs_model:
+  effort_controls: Planning depth, verification thoroughness, research scope (workflow behavior)
+  model_controls: Which Claude model each agent uses (cost optimization)
+  independent: Can run Thorough effort on Budget profile or Fast effort on Quality profile
+  recommendation: Match them (balanced+balanced, thorough+quality, fast+budget)
+  config_effort: /yolo:config effort <level> or /yolo:go --effort=<level>
+  config_model: /yolo:config model_profile <profile>
+  see: @references/model-profiles.md
+
+matrix:
+  Agent|Level|Notes
+  Lead|skip|Not spawned. No planning step
+  Architect|skip|Not spawned
+  Dev|low|Direct execution, no research, minimal change, brief commits
+  QA|skip|Not spawned. User judges output directly
+  Scout|skip|Not spawned
+  Debugger|low|Single hypothesis, targeted fix, minimal report (root cause + fix)
+
+plan_approval (EFRT-07):
+  Autonomy|Gate
+  All levels|OFF
+  note: No lead agent at Turbo; plan approval requires a lead.
+
+effort_mapping:
+  Level|Behavior
+  low|Minimal reasoning, direct execution
+  skip|Agent is not spawned at all
+
+override: --effort=turbo overrides config default for one invocation (EFRT-05)

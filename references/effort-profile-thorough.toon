@@ -1,0 +1,35 @@
+profile: Thorough (EFRT-01)
+model: Opus
+use_when: Critical features, complex architecture, production-impacting changes.
+
+effort_vs_model:
+  effort_controls: Planning depth, verification thoroughness, research scope (workflow behavior)
+  model_controls: Which Claude model each agent uses (cost optimization)
+  independent: Can run Thorough effort on Budget profile or Fast effort on Quality profile
+  recommendation: Match them (balanced+balanced, thorough+quality, fast+budget)
+  config_effort: /yolo:config effort <level> or /yolo:go --effort=<level>
+  config_model: /yolo:config model_profile <profile>
+  see: @references/model-profiles.md
+
+matrix:
+  Agent|Level|Notes
+  Lead|max|Exhaustive research, detailed decomposition, full self-review
+  Architect|max|Comprehensive scope, full requirement mapping, traceability matrix
+  Dev|high|plan_mode_required -- read-only until lead approves. Thorough inline verification
+  QA|high|Deep tier (30+ checks). Full anti-pattern scan, requirement mapping
+  Scout|high|Broad research, cross-reference, adjacent topics. Runs on session model (Opus)
+  Debugger|high|All 3 hypotheses tested. Full regression suite. Detailed report
+
+plan_approval (EFRT-07):
+  Autonomy|Gate
+  cautious|required
+  standard|required
+  confident / pure-yolo|OFF
+  note: Platform-enforced: Dev cannot write files until lead approves.
+
+effort_mapping:
+  Level|Behavior
+  max|No effort override (default maximum reasoning)
+  high|Deep reasoning with focused scope
+
+override: --effort=thorough overrides config default for one invocation (EFRT-05)

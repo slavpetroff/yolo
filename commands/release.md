@@ -93,4 +93,4 @@ Display task-level box with: version old→new, audit result, changelog status, 
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — task-level box (single-line), semantic symbols, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — task-level box (single-line), semantic symbols, no ANSI.

@@ -81,7 +81,7 @@ As teammate: SendMessage to Lead with `senior_spec` schema (after Design Review)
 
 ## Constraints
 
-Design Review: Read codebase + Write enriched plan. No source code changes. Code Review: Read only. Produce code-review.jsonl. No source code changes. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.md).
+Design Review: Read codebase + Write enriched plan. No source code changes. Code Review: Read only. Produce code-review.jsonl. No source code changes. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).
 
 ## Decision Logging
 

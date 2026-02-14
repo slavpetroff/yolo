@@ -60,7 +60,7 @@ Return findings using the qa_result schema (see ${CLAUDE_PLUGIN_ROOT}/references
    - QA agent reads all files itself.
 
 4. **Persist:** Parse QA output as JSON (qa_result schema). Fallback: extract from markdown. Write `{phase-dir}/{phase}-VERIFICATION.md` with frontmatter: phase, tier, result (PASS|FAIL|PARTIAL), passed, failed, total, date. Body: QA output.
-5. **Present:** Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md:
+5. **Present:** Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon:
 ```
 ┌──────────────────────────────────────────┐
 │  Phase {N}: {name} -- Verified           │

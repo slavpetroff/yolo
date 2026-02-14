@@ -494,7 +494,7 @@ After Execute mode completes (autonomy=pure-yolo only): if more unbuilt phases e
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md for all output.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon for all output.
 
 Per-mode output:
 

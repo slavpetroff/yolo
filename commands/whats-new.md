@@ -22,4 +22,4 @@ allowed-tools: Read, Glob
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — double-line box, ✓ up-to-date, Next Up, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — double-line box, ✓ up-to-date, Next Up, no ANSI.
