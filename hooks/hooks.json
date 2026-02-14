@@ -1,6 +1,6 @@
 {
   "description": "YOLO quality gates and continuous verification",
-  "_note": "All hooks route through hook-wrapper.sh for graceful degradation (DXP-01). The wrapper resolves the target script from the plugin cache, logs failures to .yolo-planning/.hook-errors.log, and always exits 0. No hook can break a session.",
+  "_note": "All hooks route through hook-wrapper.sh for graceful degradation (DXP-01). The wrapper resolves the target script from the plugin cache and passes stdout (JSON) through to Claude Code. Blocking hooks output JSON with permissionDecision:deny and exit 0. Script errors (non-zero exit) are logged to .yolo-planning/.hook-errors.log and converted to exit 0 (graceful degradation).",
   "hooks": {
     "PostToolUse": [
       {
@@ -60,6 +60,16 @@
             "type": "command",
             "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" validate-send-message.sh; exit 0'",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "TaskUpdate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" task-verify.sh; exit 0'",
+            "timeout": 15
           }
         ]
       }
@@ -150,28 +160,6 @@
         ]
       }
     ],
-    "TeammateIdle": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" qa-gate.sh; exit 0'",
-            "timeout": 30
-          }
-        ]
-      }
-    ],
-    "TaskCompleted": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" task-verify.sh; exit 0'",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
     "SessionStart": [
       {
         "hooks": [
@@ -242,6 +230,15 @@
             "type": "command",
             "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" notification-log.sh; exit 0'",
             "timeout": 3
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" qa-gate.sh; exit 0'",
+            "timeout": 30
           }
         ]
       }

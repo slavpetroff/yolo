@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # task-verify.bats — Unit tests for scripts/task-verify.sh
-# TaskCompleted hook: exit 2 = block, exit 0 = allow
+# PostToolUse[TaskUpdate] hook (task-verify): exit 2 = block, exit 0 = allow
 
 setup() {
   load '../test_helper/common'

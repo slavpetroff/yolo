@@ -25,7 +25,7 @@ allowed-tools: Read, Glob
 ## Architecture
 
 - /yolo:go --execute creates Dev team for parallel plans. /yolo:map creates Scout team. Session IS the lead.
-- Continuous verification via PostToolUse, TaskCompleted, TeammateIdle hooks. /yolo:qa is on-demand.
+- Continuous verification via PostToolUse, Notification, SubagentStop hooks. /yolo:qa is on-demand.
 - /yolo:config maps skills to hook events (skill-hook wiring).
 
 ## Model Profiles

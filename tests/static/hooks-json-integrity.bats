@@ -10,16 +10,33 @@ setup() {
   assert_success
 }
 
-@test "hooks.json has all 11 hook event types" {
+@test "hooks.json has all 9 hook event types" {
   local expected_events=(
     PostToolUse PreToolUse SubagentStart SubagentStop
-    TeammateIdle TaskCompleted SessionStart PreCompact
-    Stop UserPromptSubmit Notification
+    SessionStart PreCompact Stop UserPromptSubmit Notification
   )
   for event in "${expected_events[@]}"; do
     run jq -e ".hooks.\"$event\"" "$HOOKS_JSON"
     assert_success
   done
+}
+
+@test "hooks.json has no invalid event types" {
+  # TeammateIdle and TaskCompleted are not valid Claude Code hook events
+  for event in TeammateIdle TaskCompleted; do
+    run jq -e ".hooks.\"$event\"" "$HOOKS_JSON"
+    assert_failure
+  done
+}
+
+@test "qa-gate.sh is wired under Notification (not TeammateIdle)" {
+  run jq -r '.hooks.Notification[].hooks[].command' "$HOOKS_JSON"
+  assert_output --partial "qa-gate.sh"
+}
+
+@test "task-verify.sh is wired under PostToolUse[TaskUpdate] (not TaskCompleted)" {
+  run jq -r '.hooks.PostToolUse[] | select(.matcher == "TaskUpdate") | .hooks[].command' "$HOOKS_JSON"
+  assert_output --partial "task-verify.sh"
 }
 
 @test "every hook command references hook-wrapper.sh" {

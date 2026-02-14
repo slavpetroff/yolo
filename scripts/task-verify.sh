@@ -1,13 +1,13 @@
 #!/bin/bash
 set -u
-# TaskCompleted hook: Verify a recent git commit exists for the completed task
+# PostToolUse[TaskUpdate] hook (was TaskCompleted): Verify a recent git commit exists for the completed task
 # Exit 2 = block completion, Exit 0 = allow
 # Exit 0 on ANY error (fail-open: never block legitimate work)
 
 # Read stdin to get task context
 INPUT=$(cat 2>/dev/null) || exit 0
 
-# Extract task subject/description from TaskCompleted event JSON
+# Extract task subject/description from PostToolUse event JSON
 TASK_SUBJECT=""
 if [ -n "$INPUT" ]; then
   TASK_SUBJECT=$(echo "$INPUT" | jq -r '.task_subject // .task.subject // ""' 2>/dev/null) || true

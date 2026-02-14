@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # qa-gate.bats — Unit tests for scripts/qa-gate.sh
-# TeammateIdle hook: exit 2 = block idle, exit 0 = allow
+# Notification hook (qa-gate): exit 2 = block, exit 0 = allow
 
 setup() {
   load '../test_helper/common'

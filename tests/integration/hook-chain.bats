@@ -27,22 +27,24 @@ mk_phase_exact() {
 
 # --- PreToolUse: security-filter blocks .env ---
 
-@test "PreToolUse: security-filter blocks .env file with exit 2" {
+@test "PreToolUse: security-filter blocks .env file with JSON deny" {
   run bash -c "cd '$TEST_WORKDIR' && echo '{\"tool_input\":{\"file_path\":\".env\"}}' | bash '$SCRIPTS_DIR/security-filter.sh'"
-  assert_failure 2
+  assert_success
   assert_output --partial "Blocked: sensitive file"
+  assert_output --partial "permissionDecision"
 }
 
 # --- PreToolUse: file-guard blocks undeclared file ---
 
-@test "PreToolUse: file-guard blocks undeclared file with exit 2" {
+@test "PreToolUse: file-guard blocks undeclared file with JSON deny" {
   # Create an active plan (plan without summary)
   local dir
   dir=$(mk_phase_exact 1 setup 1 0)
 
   run bash -c "cd '$TEST_WORKDIR' && echo '{\"tool_input\":{\"file_path\":\"src/undeclared.ts\"}}' | bash '$SCRIPTS_DIR/file-guard.sh'"
-  assert_failure 2
+  assert_success
   assert_output --partial "not in active plan"
+  assert_output --partial "permissionDecision"
 }
 
 # --- PostToolUse: validate-summary runs on Write to .summary.jsonl ---
@@ -110,9 +112,9 @@ mk_phase_exact() {
   assert_file_not_exists "$TEST_WORKDIR/.yolo-planning/.active-agent"
 }
 
-# --- TeammateIdle: qa-gate enforces summary completeness ---
+# --- Notification: qa-gate enforces summary completeness ---
 
-@test "TeammateIdle: qa-gate blocks idle when summary gap exceeds threshold" {
+@test "Notification: qa-gate blocks when summary gap exceeds threshold" {
   mk_git_repo
   mk_planning_dir
 

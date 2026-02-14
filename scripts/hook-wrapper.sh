@@ -2,14 +2,16 @@
 # hook-wrapper.sh — Universal YOLO hook wrapper (DXP-01)
 #
 # Wraps every YOLO hook with error logging and graceful degradation.
-# No hook failure can ever break a session.
 #
 # Usage: hook-wrapper.sh <script-name.sh> [extra-args...]
 #
 # - Resolves the target script from the YOLO plugin cache (cached in /tmp)
 # - Passes through stdin (hook JSON context) and extra arguments
-# - Logs failures to .yolo-planning/.hook-errors.log
-# - Always exits 0
+# - Target script stdout (JSON) flows through to Claude Code
+# - Exit 0: allow (PreToolUse JSON deny decisions also use exit 0 with JSON stdout)
+# - Exit 2: block (passed through — used by Notification qa-gate, PostToolUse task-verify, etc.)
+# - Other non-zero: script error — logged and converted to exit 0 (graceful degradation)
+# - Logs errors to .yolo-planning/.hook-errors.log
 
 SCRIPT="$1"; shift
 [ -z "$SCRIPT" ] && exit 0
@@ -34,13 +36,15 @@ fi
 TARGET="${VDIR:-}/scripts/$SCRIPT"
 [ -f "$TARGET" ] || exit 0
 
-# Execute — stdin flows through to the target script
+# Execute — stdin and stdout flow through to the target script / Claude Code
 bash "$TARGET" "$@"
 RC=$?
 [ "$RC" -eq 0 ] && exit 0
 
-# --- All non-zero: log and exit 0 (non-blocking) ---
-# Note: dept-guard and security hooks run directly via Claude Code, NOT through this wrapper.
+# Exit 2 = intentional block decision (pass through to Claude Code)
+[ "$RC" -eq 2 ] && exit 2
+
+# --- Other non-zero: unexpected script error — log and exit 0 (graceful degradation) ---
 if [ -d ".yolo-planning" ]; then
   LOG=".yolo-planning/.hook-errors.log"
   TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%s")

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -u
-# TeammateIdle hook: Verify teammate's work via structural completion checks
-# Exit 2 = block (keep working), Exit 0 = allow idle
+# Notification hook (was TeammateIdle): Verify teammate's work via structural completion checks
+# Exit 2 = block, Exit 0 = allow
 # Exit 0 on ANY error (fail-open: never block legitimate work)
 
 # Read stdin to get task context
