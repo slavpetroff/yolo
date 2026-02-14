@@ -47,10 +47,22 @@ Set completed plans (with SUMMARY.md) to `"complete"`, others to `"pending"`.
 ### Step 3: Create Agent Team and execute
 
 **Team creation (multi-agent only):**
-When there are 2+ uncompleted plans (i.e., NOT turbo and NOT smart-routed to turbo for all plans):
+Read prefer_teams config to determine team creation:
+```bash
+PREFER_TEAMS=$(jq -r '.prefer_teams // "always"' .vbw-planning/config.json 2>/dev/null)
+```
+
+Decision tree:
+- `prefer_teams='always'`: Create team for ALL plan counts (even 1 plan), unless turbo or smart-routed to turbo
+- `prefer_teams='when_parallel'`: Create team only when 2+ uncompleted plans, unless turbo or smart-routed to turbo
+- `prefer_teams='auto'`: Same as when_parallel (use current behavior, smart routing can downgrade)
+
+When team should be created based on prefer_teams:
 - Create team via TeamCreate: `team_name="vbw-phase-{NN}"`, `description="Phase {N}: {phase-name}"`
 - All Dev and QA agents below MUST be spawned with `team_name: "vbw-phase-{NN}"` and `name: "dev-{MM}"` (from plan number) or `name: "qa"` parameters on the Task tool invocation.
-- When only 1 plan remains (or turbo/smart-routed turbo): skip TeamCreate — single agent, no team overhead.
+
+When team should NOT be created (1 plan with when_parallel/auto, or turbo, or smart-routed turbo):
+- Skip TeamCreate — single agent, no team overhead.
 
 **V3 Smart Routing (REQ-15):** If `v3_smart_routing=true` in config:
 - Before creating agent teams, assess each plan:
@@ -378,7 +390,7 @@ Note: "Run inline" means the execute-protocol agent runs the verify protocol dir
 
 ### Step 5: Update state and present summary
 
-**Shutdown:** If team was created (2+ plans): send shutdown to each teammate, wait for approval, re-request if rejected, then TeamDelete team "vbw-phase-{NN}". Wait for TeamDelete before state updates. If no team (single plan/turbo): skip shutdown sequence.
+**Shutdown:** If team was created (based on prefer_teams decision): send shutdown to each teammate, wait for approval, re-request if rejected, then TeamDelete team "vbw-phase-{NN}". Wait for TeamDelete before state updates. If no team: skip shutdown sequence.
 
 **Control Plane cleanup:** Lock and token state cleanup already handled by existing V3 Lock-Lite and Token Budget cleanup blocks.
 

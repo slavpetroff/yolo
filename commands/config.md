@@ -311,7 +311,7 @@ echo "✓ Model override: $AGENT ➜ $MODEL"
 | discovery_questions | boolean | true/false | true |
 | visual_format | string | unicode/ascii | unicode |
 | max_tasks_per_plan | number | 1-7 | 5 |
-| agent_teams | boolean | true/false | true |
+| prefer_teams | string | always/when_parallel/auto | always |
 | branch_per_milestone | boolean | true/false | false |
 | plain_summary | boolean | true/false | true |
 | active_profile | string | profile name or "custom" | default |
