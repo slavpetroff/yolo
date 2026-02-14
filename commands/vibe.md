@@ -608,6 +608,12 @@ If `planning_dir_exists=false`: display "Run /vbw:init first to set up your proj
        exit 1
      fi
      ```
+   - **Team creation (Scout+Lead only):** If `v3_plan_research_persist=true` AND effort != turbo AND Scout was spawned in step 3 (research needed):
+     - Create team via TeamCreate: `team_name="vbw-plan-{NN}"`, `description="Planning Phase {N}: {phase-name}"`
+     - Spawn Scout with `team_name: "vbw-plan-{NN}"`, `name: "scout"` parameters on the Task tool invocation.
+     - Spawn Lead with `team_name: "vbw-plan-{NN}"`, `name: "lead"` parameters on the Task tool invocation.
+     - After both complete: send shutdown to each teammate, then TeamDelete team "vbw-plan-{NN}".
+   - **Lead only (no research):** If Scout was NOT spawned (research exists or disabled): spawn vbw-lead as subagent via Task tool without team (single agent, no team overhead).
    - Spawn vbw-lead as subagent via Task tool with compiled context (or full file list as fallback).
    - **CRITICAL:** Add `model: "${LEAD_MODEL}"` parameter to the Task tool invocation.
    - Display `◆ Spawning Lead agent...` -> `✓ Lead agent complete`.

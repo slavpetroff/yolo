@@ -46,6 +46,12 @@ Set completed plans (with SUMMARY.md) to `"complete"`, others to `"pending"`.
 
 ### Step 3: Create Agent Team and execute
 
+**Team creation (multi-agent only):**
+When there are 2+ uncompleted plans (i.e., NOT turbo and NOT smart-routed to turbo for all plans):
+- Create team via TeamCreate: `team_name="vbw-phase-{NN}"`, `description="Phase {N}: {phase-name}"`
+- All Dev and QA agents below MUST be spawned with `team_name: "vbw-phase-{NN}"` and `name: "dev-{MM}"` (from plan number) or `name: "qa"` parameters on the Task tool invocation.
+- When only 1 plan remains (or turbo/smart-routed turbo): skip TeamCreate — single agent, no team overhead.
+
 **V3 Smart Routing (REQ-15):** If `v3_smart_routing=true` in config:
 - Before creating agent teams, assess each plan:
   ```bash
@@ -142,6 +148,7 @@ activeForm: "Executing {NN-MM}"
 Display: `◆ Spawning Dev teammate (${DEV_MODEL})...`
 
 **CRITICAL:** Pass `model: "${DEV_MODEL}"` parameter to the Task tool invocation when spawning Dev teammates.
+**CRITICAL:** When team was created (2+ plans), pass `team_name: "vbw-phase-{NN}"` and `name: "dev-{MM}"` parameters to each Task tool invocation. This enables colored agent labels and status bar entries.
 
 Wire dependencies via TaskUpdate: read `depends_on` from each plan's frontmatter, add `addBlockedBy: [task IDs of dependency plans]`. Plans with empty depends_on start immediately.
 
@@ -341,6 +348,7 @@ Display: `◆ Spawning QA agent (${QA_MODEL})...`
 **Post-build QA (Fast, QA_TIMING=post-build):** Spawn QA after ALL plans complete. Include in task description: "Phase context: {phase-dir}/.context-qa.md (if compiled). Model: ${QA_MODEL}. Your verification tier is {tier}. Run {5-10|15-25|30+} checks per the tier definitions in your agent protocol." Persist to `{phase-dir}/{phase}-VERIFICATION.md`.
 
 **CRITICAL:** Pass `model: "${QA_MODEL}"` parameter to the Task tool invocation when spawning QA agents.
+**CRITICAL:** When team was created (2+ plans), pass `team_name: "vbw-phase-{NN}"` and `name: "qa"` (or `name: "qa-wave{W}"` for per-wave QA) parameters to each QA Task tool invocation.
 
 ### Step 4.5: Human acceptance testing (UAT)
 
@@ -370,7 +378,7 @@ Note: "Run inline" means the execute-protocol agent runs the verify protocol dir
 
 ### Step 5: Update state and present summary
 
-**Shutdown:** Send shutdown to each teammate, wait for approval, re-request if rejected, then TeamDelete. Wait for TeamDelete before state updates.
+**Shutdown:** If team was created (2+ plans): send shutdown to each teammate, wait for approval, re-request if rejected, then TeamDelete team "vbw-phase-{NN}". Wait for TeamDelete before state updates. If no team (single plan/turbo): skip shutdown sequence.
 
 **Control Plane cleanup:** Lock and token state cleanup already handled by existing V3 Lock-Lite and Token Budget cleanup blocks.
 

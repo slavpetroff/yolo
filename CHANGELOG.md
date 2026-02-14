@@ -2,6 +2,28 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.20.6] - 2026-02-14
+
+### Community Contributions
+
+- **PR #38** (@navin-moorthy) -- Human UAT verification gate with CHECKPOINT UX
+
+### Added
+
+- **`commands/verify.md`** -- New `/vbw:verify` command for human acceptance testing with per-test CHECKPOINT loop, resume support, and severity inference
+- **`templates/UAT.md`** -- UAT result template with YAML frontmatter for structured pass/fail/partial tracking
+- **`execute-protocol`** -- Step 4.5 UAT gate after QA pass (autonomy-gated: cautious + standard only)
+- **`vibe.md`** -- `--verify` flag, Verify Mode section, and NL keyword detection (verify, uat, acceptance test, etc.)
+- **`execute-protocol`** -- TeamCreate for multi-agent execution (2+ plans get colored labels, status bar entries, peer messaging)
+- **`vibe.md`** -- TeamCreate for Plan mode when Scout + Lead co-spawn (research + planning as coordinated team)
+
+### Changed
+
+- **`suggest-next.sh`** -- UAT suggestions surfaced after QA passes (cautious + standard autonomy)
+- **`execute-protocol`** -- Step 5 shutdown now conditional on team existence (skip for single plan/turbo)
+
+---
+
 ## [1.20.5] - 2026-02-13
 
 ### Community Contributions
