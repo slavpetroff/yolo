@@ -2,6 +2,33 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.21.0] - 2026-02-14
+
+### Community Contributions
+
+- **PR #41** (@halindrome) — Statusline cache isolation: per-repo cache key with cross-platform hash
+- **PR #36** (@dpearson2699) — CI consolidation, contributor workflow improvements, ShellCheck fixes
+
+### Fixed
+
+- **`vbw-statusline.sh`** — Statusline cache key now includes a hash of `git rev-parse --show-toplevel`, preventing cross-repo cache leakage when running Claude Code in multiple repos. Cross-platform hash: `md5sum` (Linux) -> `md5` (macOS) -> `cksum` (fallback). Local-only repos (no remote) display directory name instead of leaking another repo's data. (Thanks @halindrome)
+- **`pre-push-hook.sh`** — Relaxed to consistency-only checks: verifies 4 version files match but no longer requires VERSION to change on every push. Removes ~30 lines of false-positive-prone enforcement. (Thanks @dpearson2699)
+- **`resolve-claude-dir.sh`** — Added `export` to `CLAUDE_DIR` assignment so sourcing scripts can access it. (Thanks @dpearson2699)
+- **`bootstrap-project.sh`** — Removed unused `CREATED` variable (ShellCheck SC2034). (Thanks @dpearson2699)
+- **`bootstrap-requirements.sh`** — Removed unused `COMPETITORS` and `ANSWERED_COUNT` variables (ShellCheck SC2034). (Thanks @dpearson2699)
+
+### Changed
+
+- **CI workflows** — Consolidated `.github/workflows/verification.yml` into `ci.yml`: shell syntax check + 4 contract verification steps now run as part of the test job. One workflow instead of two overlapping ones. (Thanks @dpearson2699)
+- **`CLAUDE.md`** — Removed version bump instruction (contributor concern, not end-user relevant); push guard retained. (Thanks @dpearson2699)
+- **`CONTRIBUTING.md`** — Rewritten Version Management section: describes manual merge-time bumping, no release-please references. (Thanks @dpearson2699)
+
+### Testing
+
+- **10 new tests** in `tests/statusline-cache-isolation.bats` for cache key isolation, cross-repo leakage prevention, no-remote directory name display, stale cleanup, and non-git directory handling. (Thanks @halindrome)
+
+---
+
 ## [1.20.9] - 2026-02-14
 
 ### Community Contributions
