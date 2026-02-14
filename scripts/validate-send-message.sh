@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# validate-send-message.sh — PostToolUse hook: enforce cross-department
-# communication rules for SendMessage.
+# validate-send-message.sh — PostToolUse hook: warn on cross-department
+# communication violations for SendMessage.
+#
+# NOTE: PostToolUse hooks CANNOT block — the message was already sent.
+# This hook provides advisory feedback via additionalContext.
 #
 # Rules:
 # - Same department: ALLOW
 # - Any Lead → Owner: ALLOW (escalation)
 # - Owner → any Lead: ALLOW (delegation)
 # - Shared agents (scout, debugger, security, critic): ALLOW any
-# - Cross-department non-Lead: BLOCK
-#
-# Exit codes:
-#   0 = allow
-#   2 = block (cross-department violation)
+# - Cross-department non-Lead: WARN (message already sent, but flag violation)
 
 INPUT=$(cat 2>/dev/null) || INPUT=""
 if [ -z "$INPUT" ]; then
@@ -80,5 +79,10 @@ if [ "$SENDER_DEPT" = "$RECIPIENT_DEPT" ]; then
 fi
 
 # Cross-department: only Leads can communicate (and only with Owner, already handled above)
-echo "BLOCKED: $SENDER ($SENDER_DEPT) cannot send message to $RECIPIENT ($RECIPIENT_DEPT). Cross-department communication must go through department Leads → Owner. Use escalation chain." >&2
-exit 2
+# PostToolUse cannot block (message already sent) — provide advisory feedback
+jq -n --arg reason "WARNING: $SENDER ($SENDER_DEPT) sent cross-department message to $RECIPIENT ($RECIPIENT_DEPT). Cross-department communication must go through department Leads → Owner. Use escalation chain." '{
+  hookSpecificOutput: {
+    additionalContext: $reason
+  }
+}'
+exit 0

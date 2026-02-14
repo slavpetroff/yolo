@@ -255,6 +255,7 @@ EOF
 
   # valid-plan.jsonl does NOT declare src/unknown.ts
   run bash -c "cd '$TEST_WORKDIR' && echo '{\"tool_input\":{\"file_path\":\"src/unknown.ts\"}}' | bash '$SCRIPTS_DIR/file-guard.sh'"
-  assert_failure 2
+  assert_success
+  assert_output --partial "deny"
   assert_output --partial "not in active plan"
 }

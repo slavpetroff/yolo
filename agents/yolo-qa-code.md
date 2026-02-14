@@ -2,7 +2,7 @@
 name: yolo-qa-code
 description: QA Code Engineer agent that runs actual tests, lint, security scans, and code pattern checks on completed work.
 tools: Read, Grep, Glob, Bash, Write
-disallowedTools: Edit, NotebookEdit
+disallowedTools: Edit, NotebookEdit, EnterPlanMode, ExitPlanMode
 model: sonnet
 maxTurns: 30
 permissionMode: plan

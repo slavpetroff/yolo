@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # hook-wrapper.bats — Unit tests for scripts/hook-wrapper.sh
-# Universal wrapper, ALWAYS exit 0
+# Universal wrapper, passes exit 2, converts other errors to exit 0
 
 setup() {
   load '../test_helper/common'
@@ -53,10 +53,10 @@ mk_mock_script() {
   assert_success
 }
 
-@test "exits 0 when target script exits 2" {
+@test "passes through exit 2 from target script" {
   mk_mock_script "fail-two.sh" "exit 2"
   run bash -c "cd '$TEST_WORKDIR' && CLAUDE_CONFIG_DIR='$CLAUDE_CONFIG_DIR' bash '$SUT' fail-two.sh"
-  assert_success
+  assert_failure 2
 }
 
 @test "exits 0 when target script does not exist" {
@@ -72,11 +72,11 @@ mk_mock_script() {
 # --- Failure logging ---
 
 @test "logs failure to .hook-errors.log when target exits non-zero" {
-  mk_mock_script "failing.sh" "exit 2"
+  mk_mock_script "failing.sh" "exit 3"
   run bash -c "cd '$TEST_WORKDIR' && CLAUDE_CONFIG_DIR='$CLAUDE_CONFIG_DIR' bash '$SUT' failing.sh"
   assert_success
   assert_file_exists "$TEST_WORKDIR/.yolo-planning/.hook-errors.log"
-  run grep "failing.sh exit=2" "$TEST_WORKDIR/.yolo-planning/.hook-errors.log"
+  run grep "failing.sh exit=3" "$TEST_WORKDIR/.yolo-planning/.hook-errors.log"
   assert_success
 }
 

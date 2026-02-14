@@ -14,6 +14,8 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 ## YOLO Rules
 
 - **Always use YOLO commands** for project work. Do not manually edit files in `.yolo-planning/`.
+- **NEVER use EnterPlanMode or ExitPlanMode.** All planning MUST go through `/yolo:go`. Claude Code's built-in plan mode bypasses the entire YOLO workflow — it is strictly prohibited.
+- **NEVER spawn agents outside the YOLO hierarchy.** Do not use the Task tool to create ad-hoc agents. All agent spawning goes through `/yolo:go` which delegates to the proper hierarchy (Architect → Lead → Senior → Dev).
 - **Commit format:** `{type}({scope}): {description}` — types: feat, fix, test, refactor, perf, docs, style, chore.
 - **One commit per task.** Each task in a plan gets exactly one atomic commit.
 - **Never commit secrets.** Do not stage .env, .pem, .key, credentials, or token files.
@@ -44,6 +46,8 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Per-department protocol files for token segregation | 2026-02-13 | 60% token reduction per agent vs monolithic hierarchy |
 | UX → FE+BE parallel workflow | 2026-02-13 | Design-first ensures Frontend/Backend build against specs |
 | Department guard hook for directory boundaries | 2026-02-13 | Prevents cross-department file writes at hook level |
+| EnterPlanMode strictly prohibited | 2026-02-14 | Bypasses YOLO workflow; all planning through /yolo:go |
+| Hooks use JSON permissionDecision:"deny" | 2026-02-14 | Claude Code requires JSON deny format, not exit 2 |
 
 ## Installed Skills
 

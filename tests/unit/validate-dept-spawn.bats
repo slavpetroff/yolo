@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # validate-dept-spawn.bats — Unit tests for scripts/validate-dept-spawn.sh
 # SubagentStart hook: validates department agent spawn based on config.
-# Exit codes: 0 = allow, 2 = block
+# SubagentStart hook — CANNOT block (advisory only). Outputs stderr warnings.
 
 setup() {
   load '../test_helper/common'
@@ -43,17 +43,15 @@ mk_config() {
 @test "frontend agent blocked when departments.frontend=false" {
   mk_config true false false backend_only
   run_validate "yolo-fe-dev"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "Blocked: Frontend agent"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "frontend agent blocked when workflow=backend_only" {
   mk_config true true false backend_only
   run_validate "yolo-fe-dev"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "backend_only"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "frontend lead allowed when frontend=true and parallel workflow" {
@@ -65,8 +63,8 @@ mk_config() {
 @test "frontend lead blocked when frontend=false" {
   mk_config true false false parallel
   run_validate "yolo-fe-lead"
-  assert_failure
-  [ "$status" -eq 2 ]
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 # --- UI/UX agent validation ---
@@ -80,17 +78,15 @@ mk_config() {
 @test "uiux agent blocked when departments.uiux=false" {
   mk_config true false false backend_only
   run_validate "yolo-ux-dev"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "Blocked: UX agent"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "uiux agent blocked when workflow=backend_only" {
   mk_config true false true backend_only
   run_validate "yolo-ux-dev"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "backend_only"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "uiux lead allowed when uiux=true and sequential workflow" {
@@ -102,8 +98,8 @@ mk_config() {
 @test "uiux lead blocked when uiux=false" {
   mk_config true false false sequential
   run_validate "yolo-ux-lead"
-  assert_failure
-  [ "$status" -eq 2 ]
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 # --- Owner agent validation ---
@@ -129,17 +125,15 @@ mk_config() {
 @test "owner blocked when frontend=false and uiux=false" {
   mk_config true false false backend_only
   run_validate "yolo-owner"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "no multi-department mode"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "owner blocked when workflow=backend_only" {
   mk_config true true false backend_only
   run_validate "yolo-owner"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "backend_only"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 # --- Backend agents ---
@@ -214,16 +208,16 @@ mk_config() {
   echo "{invalid json" > "$TEST_WORKDIR/.yolo-planning/config.json"
   run_validate "yolo-fe-dev"
   # Script falls back to defaults: false|false|backend_only
-  assert_failure
-  [ "$status" -eq 2 ]
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "missing departments key: uses defaults (frontend=false)" {
   mkdir -p "$TEST_WORKDIR/.yolo-planning"
   echo '{"department_workflow":"parallel"}' > "$TEST_WORKDIR/.yolo-planning/config.json"
   run_validate "yolo-fe-dev"
-  assert_failure
-  [ "$status" -eq 2 ]
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 # --- Non-yolo agents ---
@@ -257,8 +251,8 @@ mk_config() {
 @test "agent_name from tool_input.name: validated correctly" {
   mk_config true false false backend_only
   run bash -c "echo '{\"tool_input\":{\"name\":\"yolo-fe-dev\"}}' | bash '$SUT'"
-  assert_failure
-  [ "$status" -eq 2 ]
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 # --- Environment variable fallback ---
@@ -266,6 +260,6 @@ mk_config() {
 @test "agent name from TOOL_INPUT_agent_name env var" {
   mk_config true false false backend_only
   TOOL_INPUT_agent_name="yolo-fe-dev" run bash -c "echo '{}' | bash '$SUT'"
-  assert_failure
-  [ "$status" -eq 2 ]
+  assert_success
+  assert_output --partial "WARNING"
 }

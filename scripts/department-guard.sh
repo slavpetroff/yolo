@@ -5,7 +5,7 @@ set -euo pipefail
 # Called as a PreToolUse hook for Write|Edit|Bash operations.
 # Reads tool input from stdin (JSON with file_path or command).
 # Determines department from .yolo-planning/.active-agent (written by agent-start.sh).
-# Exits 0 (allow) or 2 (block with message).
+# Outputs JSON permissionDecision:"deny" + exit 0 to block, or plain exit 0 to allow.
 #
 # Rules:
 # - Backend agents cannot write to frontend/ or design/ directories
@@ -14,6 +14,18 @@ set -euo pipefail
 # - All agents can write to .yolo-planning/ (shared planning dir)
 # - If .active-agent not found, allow (graceful degradation)
 # - Bash tool: best-effort pattern matching for write operations
+
+# Helper: output deny JSON and exit 0 (Claude Code reads JSON on exit 0)
+deny() {
+  jq -n --arg reason "$1" '{
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: $reason
+    }
+  }'
+  exit 0
+}
 
 # Read tool input
 INPUT=$(cat 2>/dev/null) || INPUT=""
@@ -77,8 +89,7 @@ fi
 # Department boundary checks
 block_message() {
   local target_path="${FILE_PATH:-<bash command>}"
-  echo "BLOCKED: $AGENT ($DEPT department) cannot write to $target_path — owned by $1 department. Cross-department writes are not allowed." >&2
-  exit 2
+  deny "BLOCKED: $AGENT ($DEPT department) cannot write to $target_path — owned by $1 department. Cross-department writes are not allowed."
 }
 
 # Check paths against department boundaries
@@ -120,8 +131,8 @@ elif [ -n "${BASH_CMD:-}" ]; then
     uiux)     PROTECTED="src/|scripts/|agents/|hooks/|config/" ;;
   esac
   if [ -n "$PROTECTED" ]; then
-    # Check common write patterns: >, >>, tee, cp, mv, mkdir targeting protected dirs
-    if echo "$BASH_CMD" | grep -qE "(>|>>|tee |cp |mv |mkdir ).*(${PROTECTED})"; then
+    # Check common write patterns: >, >>, tee, cp, mv, mkdir, sed -i, install targeting protected dirs
+    if echo "$BASH_CMD" | grep -qE "(>|>>|tee |cp |mv |mkdir |sed -i|install ).*(${PROTECTED})"; then
       FILE_PATH="<detected in bash command>"
       block_message "another"
     fi

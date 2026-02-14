@@ -20,19 +20,22 @@ setup() {
 
 @test "blocks absolute path not in plan" {
   run_with_json '{"tool_input":{"file_path":"/Users/foo/bar.ts"}}' "$SCRIPTS_DIR/file-guard.sh"
-  assert_failure 2
+  assert_success
+  assert_output --partial "deny"
   assert_output --partial "not in active plan"
 }
 
 @test "blocks ./prefixed path not in plan" {
   run_with_json '{"tool_input":{"file_path":"./src/evil.ts"}}' "$SCRIPTS_DIR/file-guard.sh"
-  assert_failure 2
+  assert_success
+  assert_output --partial "deny"
   assert_output --partial "not in active plan"
 }
 
 @test "blocks path traversal ../../../etc/passwd" {
   run_with_json '{"tool_input":{"file_path":"../../../etc/passwd"}}' "$SCRIPTS_DIR/file-guard.sh"
-  assert_failure 2
+  assert_success
+  assert_output --partial "deny"
   assert_output --partial "not in active plan"
 }
 
@@ -59,7 +62,8 @@ setup() {
 @test "blocks file in subdirectory not declared" {
   # Plan has src/foo.ts but NOT src/sub/foo.ts
   run_with_json '{"tool_input":{"file_path":"src/sub/foo.ts"}}' "$SCRIPTS_DIR/file-guard.sh"
-  assert_failure 2
+  assert_success
+  assert_output --partial "deny"
   assert_output --partial "not in active plan"
 }
 
@@ -87,7 +91,8 @@ setup() {
 
   # src/foo.ts is in 01-01 (completed), should now be blocked since active plan is 01-02
   run_with_json '{"tool_input":{"file_path":"src/foo.ts"}}' "$SCRIPTS_DIR/file-guard.sh"
-  assert_failure 2
+  assert_success
+  assert_output --partial "deny"
 
   # src/second.ts is in 01-02 (active), should be allowed
   run_with_json '{"tool_input":{"file_path":"src/second.ts"}}' "$SCRIPTS_DIR/file-guard.sh"

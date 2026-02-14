@@ -20,6 +20,19 @@ fi
 
 WARNING=""
 
+# Check: Prompt might trigger EnterPlanMode bypass
+# Detect prompts that ask for planning/building outside YOLO commands
+if [ -f "$PLANNING_DIR/PROJECT.md" ]; then
+  # Project exists — any work should go through /yolo:go
+  if ! echo "$PROMPT" | grep -qi '^/yolo:'; then
+    # Not a YOLO command — check for action-oriented keywords
+    LOWER_PROMPT=$(echo "$PROMPT" | tr '[:upper:]' '[:lower:]')
+    if echo "$LOWER_PROMPT" | grep -qE '(plan|build|implement|create|add|refactor|fix|develop|design|architect|scope|decompose) '; then
+      WARNING="This project uses YOLO workflows. Use /yolo:go instead of direct prompts. NEVER use EnterPlanMode — all planning goes through /yolo:go."
+    fi
+  fi
+fi
+
 # Check: /yolo:go --execute when no PLAN.md exists
 if echo "$PROMPT" | grep -q '/yolo:go.*--execute'; then
   CURRENT_PHASE=""

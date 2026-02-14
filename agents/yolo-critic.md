@@ -2,7 +2,7 @@
 name: yolo-critic
 description: Brainstorm and gap-analysis agent that challenges assumptions, identifies missing requirements, and suggests improvements before architecture begins.
 tools: Read, Glob, Grep, WebSearch, WebFetch
-disallowedTools: Edit, Write, Bash
+disallowedTools: Edit, Write, Bash, EnterPlanMode, ExitPlanMode
 model: opus
 maxTurns: 25
 permissionMode: plan

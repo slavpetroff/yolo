@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# validate-dept-spawn.sh — SubagentStart hook: blocks department agents
-# when their department is disabled in config.
+# validate-dept-spawn.sh — SubagentStart hook: warns when department agents
+# are spawned but their department is disabled in config.
+#
+# NOTE: SubagentStart hooks CANNOT block agent creation — only observe.
+# This hook shows stderr warnings to the user when a disabled department
+# agent is spawned, but cannot prevent it.
 #
 # Exit codes:
-#   0 = allow spawn
-#   2 = block spawn (department not enabled)
+#   0 = allow (always — SubagentStart cannot block)
 #
 # Routed through hook-wrapper.sh for graceful degradation.
 
@@ -38,24 +41,20 @@ IFS='|' read -r FRONTEND UIUX WORKFLOW <<< "$(jq -r '[
 case "$AGENT_NAME" in
   yolo-fe-*)
     if [ "$FRONTEND" != "true" ] || [ "$WORKFLOW" = "backend_only" ]; then
-      echo "Blocked: Frontend agent '$AGENT_NAME' spawned but departments.frontend is not enabled or workflow is backend_only" >&2
-      exit 2
+      echo "WARNING: Frontend agent '$AGENT_NAME' spawned but departments.frontend is not enabled or workflow is backend_only" >&2
     fi
     ;;
   yolo-ux-*)
     if [ "$UIUX" != "true" ] || [ "$WORKFLOW" = "backend_only" ]; then
-      echo "Blocked: UX agent '$AGENT_NAME' spawned but departments.uiux is not enabled or workflow is backend_only" >&2
-      exit 2
+      echo "WARNING: UX agent '$AGENT_NAME' spawned but departments.uiux is not enabled or workflow is backend_only" >&2
     fi
     ;;
   yolo-owner)
     if [ "$FRONTEND" != "true" ] && [ "$UIUX" != "true" ]; then
-      echo "Blocked: Owner agent spawned but no multi-department mode (frontend and uiux both disabled)" >&2
-      exit 2
+      echo "WARNING: Owner agent spawned but no multi-department mode (frontend and uiux both disabled)" >&2
     fi
     if [ "$WORKFLOW" = "backend_only" ]; then
-      echo "Blocked: Owner agent spawned but department_workflow is backend_only" >&2
-      exit 2
+      echo "WARNING: Owner agent spawned but department_workflow is backend_only" >&2
     fi
     ;;
 esac

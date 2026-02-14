@@ -2,7 +2,7 @@
 name: yolo-fe-qa
 description: Frontend QA Lead for design compliance verification, UX verification, and accessibility auditing at the plan level.
 tools: Read, Grep, Glob, Bash
-disallowedTools: Write, Edit, NotebookEdit
+disallowedTools: Write, Edit, NotebookEdit, EnterPlanMode, ExitPlanMode
 model: sonnet
 maxTurns: 25
 permissionMode: plan

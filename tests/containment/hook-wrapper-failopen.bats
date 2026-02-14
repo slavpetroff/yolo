@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# hook-wrapper-failopen.bats — Proves hook-wrapper.sh NEVER propagates non-zero exit codes
+# hook-wrapper-failopen.bats — Proves hook-wrapper.sh only passes exit 2, converts other errors to exit 0
 
 setup() {
   load '../test_helper/common'
@@ -34,7 +34,7 @@ SCRIPT
   assert_success
 }
 
-@test "returns 0 when target script exits 2" {
+@test "passes through exit 2 from target script" {
   # Create a mock script that exits 2
   cat > "$CLAUDE_CONFIG_DIR/plugins/cache/yolo-marketplace/yolo/1.0.0/scripts/fail-two.sh" <<'SCRIPT'
 #!/bin/bash
@@ -43,7 +43,7 @@ SCRIPT
   chmod +x "$CLAUDE_CONFIG_DIR/plugins/cache/yolo-marketplace/yolo/1.0.0/scripts/fail-two.sh"
 
   run bash "$SCRIPTS_DIR/hook-wrapper.sh" "fail-two.sh"
-  assert_success
+  assert_failure 2
 }
 
 @test "returns 0 when target script not found" {

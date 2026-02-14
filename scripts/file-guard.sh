@@ -2,7 +2,20 @@
 set -u
 # file-guard.sh — PreToolUse guard for undeclared file modifications
 # Blocks Write/Edit to files not declared in active plan's files_modified
-# Fail-open design: exit 0 on any error, exit 2 only on definitive violations
+# Outputs JSON permissionDecision:"deny" + exit 0 to block tool calls.
+# Fail-open design: exit 0 on any error, deny only on definitive violations.
+
+# Helper: output deny JSON and exit 0 (Claude Code reads JSON on exit 0)
+deny() {
+  jq -n --arg reason "$1" '{
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: $reason
+    }
+  }'
+  exit 0
+}
 
 INPUT=$(cat 2>/dev/null) || exit 0
 [ -z "$INPUT" ] && exit 0
@@ -116,5 +129,4 @@ while IFS= read -r declared; do
 done <<< "$DECLARED_FILES"
 
 # File not declared — block the write
-echo "Blocked: $NORM_TARGET is not in active plan's files_modified ($ACTIVE_PLAN)" >&2
-exit 2
+deny "Blocked: $NORM_TARGET is not in active plan's files_modified ($ACTIVE_PLAN)"

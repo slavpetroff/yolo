@@ -91,7 +91,8 @@ mk_completed_plan() {
 @test "blocks file NOT declared in JSONL plan fm array" {
   mk_active_plan
   run bash -c "echo '{\"tool_input\":{\"file_path\":\"src/unknown.ts\"}}' | bash '$SUT'"
-  assert_failure 2
+  assert_success
+  assert_output --partial "deny"
 }
 
 # --- Path normalization ---
@@ -127,7 +128,8 @@ PLAN
   assert_success
 
   run bash -c "echo '{\"tool_input\":{\"file_path\":\"src/not-declared.ts\"}}' | bash '$SUT'"
-  assert_failure 2
+  assert_success
+  assert_output --partial "deny"
 }
 
 # --- JSONL plan is preferred over legacy MD ---

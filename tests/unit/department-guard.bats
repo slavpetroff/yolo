@@ -33,14 +33,16 @@ run_guard() {
 
 @test "backend agent blocked from frontend/" {
   run_guard "yolo-dev" "frontend/App.tsx"
-  assert_failure
+  assert_success
   assert_output --partial "BLOCKED"
+  assert_output --partial "permissionDecision"
 }
 
 @test "backend agent blocked from design/" {
   run_guard "yolo-dev" "design/tokens.json"
-  assert_failure
+  assert_success
   assert_output --partial "BLOCKED"
+  assert_output --partial "permissionDecision"
 }
 
 # --- Frontend agent boundary tests ---
@@ -57,20 +59,23 @@ run_guard() {
 
 @test "frontend agent blocked from scripts/" {
   run_guard "yolo-fe-dev" "scripts/foo.sh"
-  assert_failure
+  assert_success
   assert_output --partial "BLOCKED"
+  assert_output --partial "permissionDecision"
 }
 
 @test "frontend agent blocked from agents/" {
   run_guard "yolo-fe-dev" "agents/yolo-dev.md"
-  assert_failure
+  assert_success
   assert_output --partial "BLOCKED"
+  assert_output --partial "permissionDecision"
 }
 
 @test "frontend agent blocked from design/" {
   run_guard "yolo-fe-dev" "design/tokens.json"
-  assert_failure
+  assert_success
   assert_output --partial "BLOCKED"
+  assert_output --partial "permissionDecision"
 }
 
 # --- UI/UX agent boundary tests ---
@@ -87,14 +92,16 @@ run_guard() {
 
 @test "uiux agent blocked from src/" {
   run_guard "yolo-ux-dev" "src/components/Button.tsx"
-  assert_failure
+  assert_success
   assert_output --partial "BLOCKED"
+  assert_output --partial "permissionDecision"
 }
 
 @test "uiux agent blocked from scripts/" {
   run_guard "yolo-ux-dev" "scripts/foo.sh"
-  assert_failure
+  assert_success
   assert_output --partial "BLOCKED"
+  assert_output --partial "permissionDecision"
 }
 
 # --- Shared/Owner agents ---

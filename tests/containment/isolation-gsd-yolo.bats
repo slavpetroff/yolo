@@ -14,14 +14,16 @@ setup() {
 @test "security-filter blocks .planning/ when .active-agent exists" {
   mk_active_agent "dev"
   run_with_json '{"tool_input":{"file_path":".planning/intel/map.json"}}' "$SCRIPTS_DIR/security-filter.sh"
-  assert_failure 2
+  assert_success
+  assert_output --partial "deny"
   assert_output --partial "Blocked"
 }
 
 @test "security-filter blocks .planning/ when .yolo-session exists" {
   mk_yolo_session
   run_with_json '{"tool_input":{"file_path":".planning/intel/map.json"}}' "$SCRIPTS_DIR/security-filter.sh"
-  assert_failure 2
+  assert_success
+  assert_output --partial "deny"
   assert_output --partial "Blocked"
 }
 
@@ -36,7 +38,8 @@ setup() {
   # Remove any markers that might exist
   rm -f "$TEST_WORKDIR/.yolo-planning/.active-agent" "$TEST_WORKDIR/.yolo-planning/.yolo-session"
   run_with_json '{"tool_input":{"file_path":".yolo-planning/state.json"}}' "$SCRIPTS_DIR/security-filter.sh"
-  assert_failure 2
+  assert_success
+  assert_output --partial "deny"
   assert_output --partial "Blocked"
 }
 

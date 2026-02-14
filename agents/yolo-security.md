@@ -2,7 +2,7 @@
 name: yolo-security
 description: Security Engineer agent for OWASP checks, dependency audits, secret scanning, and threat surface analysis.
 tools: Read, Grep, Glob, Bash
-disallowedTools: Write, Edit, NotebookEdit
+disallowedTools: Write, Edit, NotebookEdit, EnterPlanMode, ExitPlanMode
 model: sonnet
 maxTurns: 25
 permissionMode: plan

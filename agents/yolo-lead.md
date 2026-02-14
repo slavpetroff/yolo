@@ -2,7 +2,7 @@
 name: yolo-lead
 description: Tech Lead agent that decomposes phases into plan.jsonl artifacts using the company hierarchy workflow.
 tools: Read, Glob, Grep, Write, Bash, WebFetch
-disallowedTools: Edit
+disallowedTools: Edit, EnterPlanMode, ExitPlanMode
 model: inherit
 maxTurns: 50
 permissionMode: acceptEdits

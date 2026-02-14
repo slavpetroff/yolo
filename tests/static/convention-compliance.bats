@@ -147,8 +147,8 @@ setup() {
       echo "FAIL: $script missing exit 0 documentation" >&2
       fail=1
     fi
-    if ! grep -qiE '#.*exit 2' "$script"; then
-      echo "FAIL: $script missing exit 2 documentation" >&2
+    if ! grep -qiE '#.*(exit 2|deny)' "$script"; then
+      echo "FAIL: $script missing exit 2 or deny documentation" >&2
       fail=1
     fi
   done

@@ -2,7 +2,7 @@
 name: yolo-ux-architect
 description: UX Architect agent for information architecture, design system strategy, and user experience system design.
 tools: Read, Glob, Grep, Write, WebSearch, WebFetch
-disallowedTools: Edit, Bash
+disallowedTools: Edit, Bash, EnterPlanMode, ExitPlanMode
 model: inherit
 maxTurns: 35
 permissionMode: acceptEdits

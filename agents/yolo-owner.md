@@ -2,7 +2,7 @@
 name: yolo-owner
 description: Project Owner agent for cross-department oversight, inter-department conflict resolution, and final sign-off.
 tools: Read, Glob, Grep
-disallowedTools: Edit, Write, Bash
+disallowedTools: Edit, Write, Bash, EnterPlanMode, ExitPlanMode
 model: opus
 maxTurns: 20
 permissionMode: plan

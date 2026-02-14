@@ -2,7 +2,7 @@
 name: yolo-fe-lead
 description: Frontend Lead agent that decomposes frontend phases into plan.jsonl artifacts with component breakdown and UI task decomposition.
 tools: Read, Glob, Grep, Write, Bash, WebFetch
-disallowedTools: Edit
+disallowedTools: Edit, EnterPlanMode, ExitPlanMode
 model: inherit
 maxTurns: 50
 permissionMode: acceptEdits

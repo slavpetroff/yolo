@@ -2,6 +2,7 @@
 name: yolo-fe-senior
 description: Frontend Senior Engineer for component spec enrichment, accessibility review, and frontend code review within the company hierarchy.
 tools: Read, Glob, Grep, Write, Edit, Bash
+disallowedTools: EnterPlanMode, ExitPlanMode
 model: opus
 maxTurns: 40
 permissionMode: acceptEdits

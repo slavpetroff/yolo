@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # validate-send-message.bats — Unit tests for scripts/validate-send-message.sh
 # PostToolUse hook: enforces cross-department communication rules.
-# Exit codes: 0 = allow, 2 = block
+# PostToolUse hook — CANNOT block (advisory only). Outputs JSON warning for violations.
 
 setup() {
   load '../test_helper/common'
@@ -164,73 +164,63 @@ run_validate() {
 
 @test "backend dev to frontend lead: BLOCKED" {
   run_validate "yolo-dev" "yolo-fe-lead"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "BLOCKED"
-  assert_output --partial "cannot send message to"
+  assert_success
+  assert_output --partial "WARNING"
+  assert_output --partial "cross-department message"
 }
 
 @test "backend dev to frontend dev: BLOCKED" {
   run_validate "yolo-dev" "yolo-fe-dev"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "BLOCKED"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "frontend dev to backend lead: BLOCKED" {
   run_validate "yolo-fe-dev" "yolo-lead"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "BLOCKED"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "frontend dev to backend dev: BLOCKED" {
   run_validate "yolo-fe-dev" "yolo-dev"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "BLOCKED"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "frontend dev to uiux lead: BLOCKED" {
   run_validate "yolo-fe-dev" "yolo-ux-lead"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "BLOCKED"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "frontend dev to uiux dev: BLOCKED" {
   run_validate "yolo-fe-dev" "yolo-ux-dev"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "BLOCKED"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "uiux dev to backend lead: BLOCKED" {
   run_validate "yolo-ux-dev" "yolo-lead"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "BLOCKED"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "uiux dev to frontend lead: BLOCKED" {
   run_validate "yolo-ux-dev" "yolo-fe-lead"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "BLOCKED"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "backend lead to frontend lead: BLOCKED (leads must use owner)" {
   run_validate "yolo-lead" "yolo-fe-lead"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "BLOCKED"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "frontend lead to uiux lead: BLOCKED (leads must use owner)" {
   run_validate "yolo-fe-lead" "yolo-ux-lead"
-  assert_failure
-  [ "$status" -eq 2 ]
-  assert_output --partial "BLOCKED"
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 # --- No .active-agent file: fail-open ---
@@ -291,18 +281,18 @@ run_validate() {
 @test "unknown sender agent: cross-dept blocked (unknown dept)" {
   echo "unknown-agent" > "$TEST_WORKDIR/.yolo-planning/.active-agent"
   run bash -c "jq -n --arg tool 'SendMessage' --arg rec 'yolo-fe-lead' '{tool_name:\$tool,tool_input:{recipient:\$rec}}' | bash '$SUT'"
-  # unknown-agent → unknown dept → frontend dept = blocked
-  assert_failure
-  [ "$status" -eq 2 ]
+  # unknown-agent → unknown dept → frontend dept = warning
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 @test "unknown recipient agent: cross-dept blocked" {
   echo "yolo-dev" > "$TEST_WORKDIR/.yolo-planning/.active-agent"
   run bash -c "jq -n --arg tool 'SendMessage' --arg rec 'unknown-agent' '{tool_name:\$tool,tool_input:{recipient:\$rec}}' | bash '$SUT'"
   # yolo-dev (backend) → unknown-agent (unknown)
-  # Backend != unknown = blocked
-  assert_failure
-  [ "$status" -eq 2 ]
+  # Backend != unknown = warning
+  assert_success
+  assert_output --partial "WARNING"
 }
 
 # --- Broadcast messages (no recipient) ---

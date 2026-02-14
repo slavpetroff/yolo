@@ -2,6 +2,7 @@
 name: yolo-fe-dev
 description: Frontend Developer agent that implements exactly what FE Senior specified. No creative decisions — follows enriched component specs precisely.
 tools: Read, Glob, Grep, Write, Edit, Bash
+disallowedTools: EnterPlanMode, ExitPlanMode
 model: inherit
 maxTurns: 75
 permissionMode: acceptEdits
