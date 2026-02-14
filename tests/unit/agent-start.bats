@@ -18,21 +18,21 @@ setup() {
   assert_success
   assert_file_exists "$TEST_WORKDIR/.yolo-planning/.active-agent"
   run cat "$TEST_WORKDIR/.yolo-planning/.active-agent"
-  assert_output "dev"
+  assert_output "yolo-dev"
 }
 
 @test "creates .active-agent marker for yolo-lead agent" {
   run bash -c "cd '$TEST_WORKDIR' && echo '{\"agent_type\":\"yolo-lead\"}' | bash '$SUT'"
   assert_success
   run cat "$TEST_WORKDIR/.yolo-planning/.active-agent"
-  assert_output "lead"
+  assert_output "yolo-lead"
 }
 
 @test "creates .active-agent marker for yolo-qa agent" {
   run bash -c "cd '$TEST_WORKDIR' && echo '{\"agent_type\":\"yolo-qa\"}' | bash '$SUT'"
   assert_success
   run cat "$TEST_WORKDIR/.yolo-planning/.active-agent"
-  assert_output "qa"
+  assert_output "yolo-qa"
 }
 
 # --- Ignores non-YOLO agents ---
@@ -53,13 +53,12 @@ setup() {
 
 # --- Handles all recognized agent types ---
 
-@test "strips yolo- prefix for all recognized agent types" {
+@test "preserves yolo- prefix for all recognized agent types" {
   for agent in yolo-lead yolo-dev yolo-qa yolo-scout yolo-debugger yolo-architect; do
     rm -f "$TEST_WORKDIR/.yolo-planning/.active-agent"
-    local expected="${agent#yolo-}"
     run bash -c "cd '$TEST_WORKDIR' && echo '{\"agent_type\":\"$agent\"}' | bash '$SUT'"
     assert_success
     run cat "$TEST_WORKDIR/.yolo-planning/.active-agent"
-    assert_output "$expected"
+    assert_output "$agent"
   done
 }

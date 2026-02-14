@@ -6,13 +6,17 @@ setup() {
   load '../test_helper/common'
   load '../test_helper/fixtures'
   mk_test_workdir
+  mk_planning_dir
   SUT="$SCRIPTS_DIR/department-guard.sh"
 }
 
 # Helper: run department-guard with agent and file path
+# Creates .active-agent file (script reads from file, not env var)
+# Uses proper Claude Code JSON format with tool_name + tool_input
 run_guard() {
   local agent="$1" file_path="$2"
-  YOLO_AGENT="$agent" run bash -c "echo '{\"file_path\":\"$file_path\"}' | bash '$SUT'"
+  echo "$agent" > "$TEST_WORKDIR/.yolo-planning/.active-agent"
+  run bash -c "cd '$TEST_WORKDIR' && echo '{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$file_path\"}}' | bash '$SUT'"
 }
 
 # --- Backend agent boundary tests ---
@@ -107,14 +111,15 @@ run_guard() {
 
 # --- Graceful degradation ---
 
-@test "no YOLO_AGENT env var allows all writes" {
-  unset YOLO_AGENT
-  run bash -c "echo '{\"file_path\":\"frontend/App.tsx\"}' | bash '$SUT'"
+@test "no .active-agent file allows all writes" {
+  rm -f "$TEST_WORKDIR/.yolo-planning/.active-agent"
+  run bash -c "cd '$TEST_WORKDIR' && echo '{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"frontend/App.tsx\"}}' | bash '$SUT'"
   assert_success
 }
 
 @test "empty stdin allows all writes" {
-  YOLO_AGENT="yolo-dev" run bash -c "echo '' | bash '$SUT'"
+  echo "yolo-dev" > "$TEST_WORKDIR/.yolo-planning/.active-agent"
+  run bash -c "cd '$TEST_WORKDIR' && echo '' | bash '$SUT'"
   assert_success
 }
 

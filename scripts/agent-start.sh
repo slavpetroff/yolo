@@ -1,7 +1,7 @@
 #!/bin/bash
 set -u
 # SubagentStart hook: Record active agent type for cost attribution
-# Writes stripped agent name to .yolo-planning/.active-agent
+# Writes agent name to .yolo-planning/.active-agent (full yolo-* prefix preserved)
 
 INPUT=$(cat)
 PLANNING_DIR=".yolo-planning"

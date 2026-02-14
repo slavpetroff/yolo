@@ -60,9 +60,9 @@ setup() {
   run_with_json '{"agent_type":"yolo-dev"}' "$SCRIPTS_DIR/agent-start.sh"
   assert_success
   assert_file_exists "$TEST_WORKDIR/.yolo-planning/.active-agent"
-  # agent-start strips the yolo- prefix
+  # agent-start preserves the full yolo-* prefix
   run cat "$TEST_WORKDIR/.yolo-planning/.active-agent"
-  assert_output "dev"
+  assert_output "yolo-dev"
 }
 
 @test "agent-start ignores non-YOLO agents" {

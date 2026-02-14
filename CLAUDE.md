@@ -7,8 +7,8 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 ## Active Context
 
 **Work:** No active milestone
-**Last shipped:** Multi-Department Architecture — 8 phases, 8 commits. 26 agents across 4 departments, cross-team handoff protocols, department guard enforcement, 591 tests.
-**Previous:** Company-Grade Engineering Workflow — 5 phases, 7 commits
+**Last shipped:** Agent Quality & Token Optimization — 3 phases, 12 commits. 26 agents enriched with expert personas, compressed 30-50%, reference files deduplicated, compile-context bugs fixed. ~800 lines removed total.
+**Previous:** Multi-Department Architecture — 8 phases, 8 commits
 **Next action:** Run /yolo:go to start a new milestone, or /yolo:status to review progress
 
 ## YOLO Rules

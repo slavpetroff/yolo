@@ -94,7 +94,7 @@ mk_phase_exact() {
   assert_file_exists "$TEST_WORKDIR/.yolo-planning/.active-agent"
 
   run cat "$TEST_WORKDIR/.yolo-planning/.active-agent"
-  assert_output "dev"
+  assert_output "yolo-dev"
 }
 
 # --- SubagentStop: agent-stop clears active agent ---
