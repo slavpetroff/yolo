@@ -227,15 +227,9 @@ case "$BASE_ROLE" in
       # Include codebase mapping summaries if available
       if [ -d "$PLANNING_DIR/codebase" ]; then
         echo "codebase:"
-        for base in index architecture patterns concerns; do
-          # Check .jsonl first, then .md (uppercase for .md files)
-          if [ -f "$PLANNING_DIR/codebase/${base}.jsonl" ]; then
-            echo "  @$PLANNING_DIR/codebase/${base}.jsonl"
-          else
-            base_upper=$(echo "$base" | tr '[:lower:]' '[:upper:]')
-            if [ -f "$PLANNING_DIR/codebase/${base_upper}.md" ]; then
-              echo "  @$PLANNING_DIR/codebase/${base_upper}.md"
-            fi
+        for base in INDEX ARCHITECTURE PATTERNS CONCERNS; do
+          if [ -f "$PLANNING_DIR/codebase/${base}.md" ]; then
+            echo "  @$PLANNING_DIR/codebase/${base}.md"
           fi
         done
       fi
@@ -299,9 +293,7 @@ case "$BASE_ROLE" in
       get_requirements
       echo ""
       # Codebase patterns for spec enrichment
-      if [ -f "$PLANNING_DIR/codebase/patterns.jsonl" ]; then
-        echo "patterns: @$PLANNING_DIR/codebase/patterns.jsonl"
-      elif [ -f "$PLANNING_DIR/codebase/PATTERNS.md" ]; then
+      if [ -f "$PLANNING_DIR/codebase/PATTERNS.md" ]; then
         echo "patterns: @$PLANNING_DIR/codebase/PATTERNS.md"
       fi
       echo ""
@@ -428,9 +420,7 @@ case "$BASE_ROLE" in
       fi
       echo ""
       # Codebase patterns for test conventions
-      if [ -f "$PLANNING_DIR/codebase/patterns.jsonl" ]; then
-        echo "patterns: @$PLANNING_DIR/codebase/patterns.jsonl"
-      elif [ -f "$PLANNING_DIR/codebase/PATTERNS.md" ]; then
+      if [ -f "$PLANNING_DIR/codebase/PATTERNS.md" ]; then
         echo "patterns: @$PLANNING_DIR/codebase/PATTERNS.md"
       fi
       echo ""
@@ -521,15 +511,9 @@ case "$BASE_ROLE" in
       # Include codebase mapping summaries if available
       if [ -d "$PLANNING_DIR/codebase" ]; then
         echo "codebase:"
-        for base in index architecture patterns concerns; do
-          # Check .jsonl first, then .md (uppercase for .md files)
-          if [ -f "$PLANNING_DIR/codebase/${base}.jsonl" ]; then
-            echo "  @$PLANNING_DIR/codebase/${base}.jsonl"
-          else
-            base_upper=$(echo "$base" | tr '[:lower:]' '[:upper:]')
-            if [ -f "$PLANNING_DIR/codebase/${base_upper}.md" ]; then
-              echo "  @$PLANNING_DIR/codebase/${base_upper}.md"
-            fi
+        for base in INDEX ARCHITECTURE PATTERNS CONCERNS; do
+          if [ -f "$PLANNING_DIR/codebase/${base}.md" ]; then
+            echo "  @$PLANNING_DIR/codebase/${base}.md"
           fi
         done
       fi

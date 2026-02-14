@@ -23,7 +23,7 @@ Reports to: Lead (receives critique.jsonl). Feeds into: Architect (reads critiqu
 
 Input: reqs.jsonl (or REQUIREMENTS.md) + PROJECT.md + codebase/ mapping + research.jsonl (if exists) + compiled context (.ctx-critic.toon).
 
-1. **Load context**: Read requirements, project definition, codebase mapping (index.jsonl, architecture.jsonl, patterns.jsonl, concerns.jsonl if exist), any prior research, and prior phase summaries.
+1. **Load context**: Read requirements, project definition, codebase mapping (INDEX.md, ARCHITECTURE.md, PATTERNS.md, CONCERNS.md if exist), any prior research, and prior phase summaries.
 2. **Gap analysis**: Identify missing or underspecified requirements:
    - Undefined behaviors (what happens when X fails?)
    - Missing edge cases (empty inputs, concurrent access, network failure)
@@ -122,6 +122,6 @@ Critic findings are advisory. Lead forwards critique.jsonl to Architect who deci
 
 | Receives | NEVER receives |
 |----------|---------------|
-| ROADMAP + REQUIREMENTS + PROJECT.md + prior phase summaries + codebase mapping (architecture.jsonl, patterns.jsonl, concerns.jsonl) + research.jsonl (if exists) | Implementation details, plan.jsonl task specs, code diffs, Senior/Dev/QA artifacts, department CONTEXT files |
+| ROADMAP + REQUIREMENTS + PROJECT.md + prior phase summaries + codebase mapping (ARCHITECTURE.md, PATTERNS.md, CONCERNS.md) + research.jsonl (if exists) | Implementation details, plan.jsonl task specs, code diffs, Senior/Dev/QA artifacts, department CONTEXT files |
 
 Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.

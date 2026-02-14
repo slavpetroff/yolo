@@ -66,7 +66,7 @@ Read in order:
 3. State: `.yolo-planning/STATE.md`
 4. Roadmap: `.yolo-planning/ROADMAP.md`
 5. Requirements: `.yolo-planning/reqs.jsonl` or `.yolo-planning/REQUIREMENTS.md`
-6. Codebase: `.yolo-planning/codebase/index.jsonl`, `patterns.jsonl`
+6. Codebase: `.yolo-planning/codebase/INDEX.md`, `PATTERNS.md`
 7. API contracts: `{phase-dir}/api-contracts.jsonl` (from Backend, if exists)
 
 Scan codebase via Glob/Grep for existing component patterns, styling conventions, state management.

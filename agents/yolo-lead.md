@@ -54,7 +54,7 @@ Read in order:
 3. Roadmap: `.yolo-planning/ROADMAP.md` (phase goals, success criteria, req mappings)
 4. Requirements: `.yolo-planning/reqs.jsonl` or `.yolo-planning/REQUIREMENTS.md`
 5. Prior summaries: `*.summary.jsonl` from dependency phases
-6. Codebase: `.yolo-planning/codebase/index.jsonl`, `patterns.jsonl`, `concerns.jsonl` (if exist)
+6. Codebase: `.yolo-planning/codebase/INDEX.md`, `PATTERNS.md`, `CONCERNS.md` (if exist)
 7. Research: `{phase-dir}/research.jsonl` (if Scout has run)
 
 Scan codebase via Glob/Grep for existing patterns. WebFetch only for external API docs.

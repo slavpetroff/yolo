@@ -141,35 +141,35 @@ run_cc() {
   assert_output --partial "tasks["
 }
 
-# --- Codebase JSONL references ---
+# --- Codebase mapping references ---
 
-@test "architect role references codebase JSONL files" {
-  cp "$FIXTURES_DIR/codebase/index.jsonl" "$TEST_WORKDIR/.yolo-planning/codebase/index.jsonl"
-  cp "$FIXTURES_DIR/codebase/patterns.jsonl" "$TEST_WORKDIR/.yolo-planning/codebase/patterns.jsonl"
+@test "architect role references codebase .md files" {
+  cp "$FIXTURES_DIR/codebase/INDEX.md" "$TEST_WORKDIR/.yolo-planning/codebase/INDEX.md"
+  cp "$FIXTURES_DIR/codebase/PATTERNS.md" "$TEST_WORKDIR/.yolo-planning/codebase/PATTERNS.md"
   run_cc 01 architect
   assert_success
   local ctx="$PHASES_DIR/01-setup/.ctx-architect.toon"
   run cat "$ctx"
-  assert_output --partial "index.jsonl"
-  assert_output --partial "patterns.jsonl"
+  assert_output --partial "INDEX.md"
+  assert_output --partial "PATTERNS.md"
 }
 
-@test "critic role references codebase JSONL files" {
-  cp "$FIXTURES_DIR/codebase/index.jsonl" "$TEST_WORKDIR/.yolo-planning/codebase/index.jsonl"
+@test "critic role references codebase .md files" {
+  cp "$FIXTURES_DIR/codebase/INDEX.md" "$TEST_WORKDIR/.yolo-planning/codebase/INDEX.md"
   run_cc 01 critic
   assert_success
   local ctx="$PHASES_DIR/01-setup/.ctx-critic.toon"
   run cat "$ctx"
-  assert_output --partial "index.jsonl"
+  assert_output --partial "INDEX.md"
 }
 
-@test "senior role references patterns JSONL" {
-  cp "$FIXTURES_DIR/codebase/patterns.jsonl" "$TEST_WORKDIR/.yolo-planning/codebase/patterns.jsonl"
+@test "senior role references PATTERNS.md" {
+  cp "$FIXTURES_DIR/codebase/PATTERNS.md" "$TEST_WORKDIR/.yolo-planning/codebase/PATTERNS.md"
   run_cc 01 senior
   assert_success
   local ctx="$PHASES_DIR/01-setup/.ctx-senior.toon"
   run cat "$ctx"
-  assert_output --partial "patterns.jsonl"
+  assert_output --partial "PATTERNS.md"
 }
 
 # --- Invalid role exits 1 ---

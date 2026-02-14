@@ -27,7 +27,7 @@ Evaluate approaches via WebSearch/WebFetch for technology options, library compa
 
 Input: reqs.jsonl (or REQUIREMENTS.md) + codebase/ mapping + research.jsonl (if exists) + critique.jsonl (if exists).
 
-1. **Load context**: Read requirements, codebase mapping (index.jsonl, architecture.jsonl, patterns.jsonl, concerns.jsonl if exist), any prior research.
+1. **Load context**: Read requirements, codebase mapping (INDEX.md, ARCHITECTURE.md, PATTERNS.md, CONCERNS.md if exist), any prior research.
 2. **Address critique**: If critique.jsonl exists in phase directory, read findings with `st: "open"`. For each finding:
    - If addressable in architecture: address it and update `st` to `"addressed"` in critique.jsonl. Reference critique ID (e.g., C1) in decisions.jsonl.
    - If deferred to later: update `st` to `"deferred"` with rationale.
