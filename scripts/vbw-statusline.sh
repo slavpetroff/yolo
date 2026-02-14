@@ -202,23 +202,52 @@ SLOW_CF="${_CACHE}-slow"
 
 if ! cache_fresh "$SLOW_CF" 60; then
   OAUTH_TOKEN=""
-  if [ "$_OS" = "Darwin" ]; then
-    CRED_JSON=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null)
-    if [ -n "$CRED_JSON" ]; then
-      OAUTH_TOKEN=$(echo "$CRED_JSON" | jq -r '.claudeAiOauth.accessToken // empty' 2>/dev/null)
+  AUTH_METHOD=""
+
+  # Priority 1: env var override (escape hatch for keychain issues)
+  if [ -n "${VBW_OAUTH_TOKEN:-}" ]; then
+    OAUTH_TOKEN="$VBW_OAUTH_TOKEN"
+  fi
+
+  # Priority 2: system credential store
+  if [ -z "$OAUTH_TOKEN" ]; then
+    if [ "$_OS" = "Darwin" ]; then
+      CRED_JSON=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null)
+      if [ -n "$CRED_JSON" ]; then
+        OAUTH_TOKEN=$(echo "$CRED_JSON" | jq -r '.claudeAiOauth.accessToken // empty' 2>/dev/null)
+      fi
+    else
+      # Linux: try secret-tool (GNOME Keyring) then pass (password-store)
+      if command -v secret-tool &>/dev/null; then
+        CRED_JSON=$(secret-tool lookup service "Claude Code-credentials" 2>/dev/null)
+        if [ -n "$CRED_JSON" ]; then
+          OAUTH_TOKEN=$(echo "$CRED_JSON" | jq -r '.claudeAiOauth.accessToken // empty' 2>/dev/null)
+        fi
+      elif command -v pass &>/dev/null; then
+        CRED_JSON=$(pass show "claude-code/credentials" 2>/dev/null)
+        if [ -n "$CRED_JSON" ]; then
+          OAUTH_TOKEN=$(echo "$CRED_JSON" | jq -r '.claudeAiOauth.accessToken // empty' 2>/dev/null)
+        fi
+      fi
     fi
-  else
-    # Linux: try secret-tool (GNOME Keyring) then pass (password-store)
-    if command -v secret-tool &>/dev/null; then
-      CRED_JSON=$(secret-tool lookup service "Claude Code-credentials" 2>/dev/null)
-      if [ -n "$CRED_JSON" ]; then
-        OAUTH_TOKEN=$(echo "$CRED_JSON" | jq -r '.claudeAiOauth.accessToken // empty' 2>/dev/null)
+  fi
+
+  # Priority 3: credentials file (check both with and without leading dot)
+  if [ -z "$OAUTH_TOKEN" ]; then
+    CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+    for _cred in "$CLAUDE_DIR/.credentials.json" "$CLAUDE_DIR/credentials.json"; do
+      if [ -f "$_cred" ]; then
+        OAUTH_TOKEN=$(jq -r '.claudeAiOauth.accessToken // empty' "$_cred" 2>/dev/null)
+        [ -n "$OAUTH_TOKEN" ] && break
       fi
-    elif command -v pass &>/dev/null; then
-      CRED_JSON=$(pass show "claude-code/credentials" 2>/dev/null)
-      if [ -n "$CRED_JSON" ]; then
-        OAUTH_TOKEN=$(echo "$CRED_JSON" | jq -r '.claudeAiOauth.accessToken // empty' 2>/dev/null)
-      fi
+    done
+  fi
+
+  # Priority 4: detect auth method via claude CLI (distinguishes OAuth vs API key)
+  if [ -z "$OAUTH_TOKEN" ]; then
+    AUTH_STATUS=$(CLAUDECODE="" claude auth status --json 2>/dev/null) || AUTH_STATUS=""
+    if [ -n "$AUTH_STATUS" ]; then
+      AUTH_METHOD=$(echo "$AUTH_STATUS" | jq -r '.authMethod // empty' 2>/dev/null)
     fi
   fi
 
@@ -268,13 +297,13 @@ if ! cache_fresh "$SLOW_CF" 60; then
     [ "$NEWEST" = "$REMOTE_VER" ] && UPDATE_AVAIL="$REMOTE_VER"
   fi
 
-  printf '%s\n' "${FIVE_PCT:-0}|${FIVE_EPOCH:-0}|${WEEK_PCT:-0}|${WEEK_EPOCH:-0}|${SONNET_PCT:--1}|${EXTRA_ENABLED:-0}|${EXTRA_PCT:--1}|${EXTRA_USED_C:-0}|${EXTRA_LIMIT_C:-0}|${FETCH_OK}|${UPDATE_AVAIL:-}" > "$SLOW_CF" 2>/dev/null
+  printf '%s\n' "${FIVE_PCT:-0}|${FIVE_EPOCH:-0}|${WEEK_PCT:-0}|${WEEK_EPOCH:-0}|${SONNET_PCT:--1}|${EXTRA_ENABLED:-0}|${EXTRA_PCT:--1}|${EXTRA_USED_C:-0}|${EXTRA_LIMIT_C:-0}|${FETCH_OK}|${UPDATE_AVAIL:-}|${AUTH_METHOD:-}" > "$SLOW_CF" 2>/dev/null
 fi
 
 if [ -O "$SLOW_CF" ]; then
   IFS='|' read -r FIVE_PCT FIVE_EPOCH WEEK_PCT WEEK_EPOCH SONNET_PCT \
                   EXTRA_ENABLED EXTRA_PCT EXTRA_USED_C EXTRA_LIMIT_C \
-                  FETCH_OK UPDATE_AVAIL < "$SLOW_CF"
+                  FETCH_OK UPDATE_AVAIL AUTH_METHOD < "$SLOW_CF"
 fi
 
 # --- Cost cache: delta attribution per render ---
@@ -350,6 +379,8 @@ elif [ "$FETCH_OK" = "auth" ]; then
   USAGE_LINE="${D}Limits: auth expired (run /login)${X}"
 elif [ "$FETCH_OK" = "fail" ]; then
   USAGE_LINE="${D}Limits: fetch failed (retry in 60s)${X}"
+elif [ "$AUTH_METHOD" = "claude.ai" ]; then
+  USAGE_LINE="${D}Limits: keychain access denied (allow Terminal in Keychain Access.app or set VBW_OAUTH_TOKEN)${X}"
 else
   USAGE_LINE="${D}Limits: N/A (using API key)${X}"
 fi

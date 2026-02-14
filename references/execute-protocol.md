@@ -46,6 +46,24 @@ Set completed plans (with SUMMARY.md) to `"complete"`, others to `"pending"`.
 
 ### Step 3: Create Agent Team and execute
 
+**Team creation (multi-agent only):**
+Read prefer_teams config to determine team creation:
+```bash
+PREFER_TEAMS=$(jq -r '.prefer_teams // "always"' .vbw-planning/config.json 2>/dev/null)
+```
+
+Decision tree:
+- `prefer_teams='always'`: Create team for ALL plan counts (even 1 plan), unless turbo or smart-routed to turbo
+- `prefer_teams='when_parallel'`: Create team only when 2+ uncompleted plans, unless turbo or smart-routed to turbo
+- `prefer_teams='auto'`: Same as when_parallel (use current behavior, smart routing can downgrade)
+
+When team should be created based on prefer_teams:
+- Create team via TeamCreate: `team_name="vbw-phase-{NN}"`, `description="Phase {N}: {phase-name}"`
+- All Dev and QA agents below MUST be spawned with `team_name: "vbw-phase-{NN}"` and `name: "dev-{MM}"` (from plan number) or `name: "qa"` parameters on the Task tool invocation.
+
+When team should NOT be created (1 plan with when_parallel/auto, or turbo, or smart-routed turbo):
+- Skip TeamCreate — single agent, no team overhead.
+
 **V3 Smart Routing (REQ-15):** If `v3_smart_routing=true` in config:
 - Before creating agent teams, assess each plan:
   ```bash
@@ -142,6 +160,7 @@ activeForm: "Executing {NN-MM}"
 Display: `◆ Spawning Dev teammate (${DEV_MODEL})...`
 
 **CRITICAL:** Pass `model: "${DEV_MODEL}"` parameter to the Task tool invocation when spawning Dev teammates.
+**CRITICAL:** When team was created (2+ plans), pass `team_name: "vbw-phase-{NN}"` and `name: "dev-{MM}"` parameters to each Task tool invocation. This enables colored agent labels and status bar entries.
 
 Wire dependencies via TaskUpdate: read `depends_on` from each plan's frontmatter, add `addBlockedBy: [task IDs of dependency plans]`. Plans with empty depends_on start immediately.
 
@@ -341,10 +360,37 @@ Display: `◆ Spawning QA agent (${QA_MODEL})...`
 **Post-build QA (Fast, QA_TIMING=post-build):** Spawn QA after ALL plans complete. Include in task description: "Phase context: {phase-dir}/.context-qa.md (if compiled). Model: ${QA_MODEL}. Your verification tier is {tier}. Run {5-10|15-25|30+} checks per the tier definitions in your agent protocol." Persist to `{phase-dir}/{phase}-VERIFICATION.md`.
 
 **CRITICAL:** Pass `model: "${QA_MODEL}"` parameter to the Task tool invocation when spawning QA agents.
+**CRITICAL:** When team was created (2+ plans), pass `team_name: "vbw-phase-{NN}"` and `name: "qa"` (or `name: "qa-wave{W}"` for per-wave QA) parameters to each QA Task tool invocation.
+
+### Step 4.5: Human acceptance testing (UAT)
+
+**Autonomy gate:**
+
+| Autonomy | UAT active |
+|----------|-----------|
+| cautious | YES |
+| standard | YES |
+| confident | OFF |
+| pure-vibe | OFF |
+
+Read autonomy from config: `jq -r '.autonomy // "standard"' .vbw-planning/config.json`
+
+If autonomy is confident or pure-vibe: display "○ UAT verification skipped (autonomy: {level})" and proceed to Step 5.
+
+**UAT execution (cautious + standard):**
+
+1. Check if `{phase-dir}/{phase}-UAT.md` already exists with `status: complete`. If so: "○ UAT already complete" and proceed to Step 5.
+2. Generate test scenarios from completed SUMMARY.md files (same logic as `commands/verify.md`).
+3. Run CHECKPOINT loop inline (same protocol as `commands/verify.md` Steps 4-8).
+4. After all tests complete:
+   - If no issues: proceed to Step 5
+   - If issues found: display issue summary, suggest `/vbw:fix`, STOP (do not proceed to Step 5)
+
+Note: "Run inline" means the execute-protocol agent runs the verify protocol directly, not by invoking /vbw:verify as a command. The protocol is the same; the entry point differs.
 
 ### Step 5: Update state and present summary
 
-**Shutdown:** Send shutdown to each teammate, wait for approval, re-request if rejected, then TeamDelete. Wait for TeamDelete before state updates.
+**Shutdown:** If team was created (based on prefer_teams decision): send shutdown to each teammate, wait for approval, re-request if rejected, then TeamDelete team "vbw-phase-{NN}". Wait for TeamDelete before state updates. If no team: skip shutdown sequence.
 
 **Control Plane cleanup:** Lock and token state cleanup already handled by existing V3 Lock-Lite and Token Budget cleanup blocks.
 

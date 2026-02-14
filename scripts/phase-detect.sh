@@ -31,7 +31,7 @@ else
   echo "config_autonomy=standard"
   echo "config_auto_commit=true"
   echo "config_verification_tier=standard"
-  echo "config_agent_teams=false"
+  echo "config_prefer_teams=always"
   echo "config_max_tasks_per_plan=5"
   echo "config_context_compiler=true"
   echo "has_codebase_map=false"
@@ -147,7 +147,7 @@ CFG_EFFORT="balanced"
 CFG_AUTONOMY="standard"
 CFG_AUTO_COMMIT="true"
 CFG_VERIFICATION_TIER="standard"
-CFG_AGENT_TEAMS="true"
+CFG_PREFER_TEAMS="always"
 CFG_MAX_TASKS="5"
 CFG_COMPACTION="130000"
 CFG_CONTEXT_COMPILER="true"
@@ -159,7 +159,7 @@ if [ "$JQ_AVAILABLE" = true ] && [ -f "$CONFIG_FILE" ]; then
     "CFG_AUTONOMY=\(.autonomy // "standard")",
     "CFG_AUTO_COMMIT=\(if .auto_commit == null then true else .auto_commit end)",
     "CFG_VERIFICATION_TIER=\(.verification_tier // "standard")",
-    "CFG_AGENT_TEAMS=\(if .agent_teams == null then true else .agent_teams end)",
+    "CFG_PREFER_TEAMS=\(.prefer_teams // "always")",
     "CFG_MAX_TASKS=\(.max_tasks_per_plan // 5)",
     "CFG_CONTEXT_COMPILER=\(if .context_compiler == null then true else .context_compiler end)",
     "CFG_COMPACTION=\(.compaction_threshold // 130000)"
@@ -170,7 +170,7 @@ echo "config_effort=$CFG_EFFORT"
 echo "config_autonomy=$CFG_AUTONOMY"
 echo "config_auto_commit=$CFG_AUTO_COMMIT"
 echo "config_verification_tier=$CFG_VERIFICATION_TIER"
-echo "config_agent_teams=$CFG_AGENT_TEAMS"
+echo "config_prefer_teams=$CFG_PREFER_TEAMS"
 echo "config_max_tasks_per_plan=$CFG_MAX_TASKS"
 echo "config_context_compiler=$CFG_CONTEXT_COMPILER"
 echo "config_compaction_threshold=$CFG_COMPACTION"
