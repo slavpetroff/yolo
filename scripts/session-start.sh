@@ -44,14 +44,14 @@ else
 fi
 
 if [ ! -f "$CACHE" ] || [ $((NOW - MT)) -gt 86400 ]; then
-  # Get installed version from plugin.json next to this script
+  # Get installed version from VERSION file next to this script
   SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-  LOCAL_VER=$(jq -r '.version // "0.0.0"' "$SCRIPT_DIR/../.claude-plugin/plugin.json" 2>/dev/null)
+  LOCAL_VER=$(tr -d '[:space:]' < "$SCRIPT_DIR/../VERSION" 2>/dev/null || echo "0.0.0")
 
   # Fetch latest version from GitHub (3s timeout)
   REMOTE_VER=$(curl -sf --max-time 3 \
-    "https://raw.githubusercontent.com/slavpetroff/yolo/main/.claude-plugin/plugin.json" \
-    2>/dev/null | jq -r '.version // "0.0.0"' 2>/dev/null)
+    "https://raw.githubusercontent.com/slavpetroff/yolo/main/VERSION" \
+    2>/dev/null | tr -d '[:space:]')
 
   # Cache the result regardless
   echo "${LOCAL_VER:-0.0.0}|${REMOTE_VER:-0.0.0}" > "$CACHE" 2>/dev/null
@@ -126,7 +126,7 @@ if [ -d "$MKT_DIR/.git" ] && [ -d "$CACHE_DIR" ]; then
         git reset --hard origin/main --quiet 2>/dev/null
       else
         echo "YOLO: marketplace checkout has local modifications — skipping reset" >&2
-      fi) &
+      fi)
   fi
   # Content staleness: compare command counts
   if [ -d "$MKT_DIR/commands" ] && [ -d "$CACHE_DIR" ]; then
