@@ -16,6 +16,8 @@ mk_active_plan() {
   local dir="$TEST_WORKDIR/.yolo-planning/phases/01-setup"
   mkdir -p "$dir"
   cp "$FIXTURES_DIR/plans/valid-plan.jsonl" "$dir/01-01.plan.jsonl"
+  # file-guard requires active execution state to enforce blocking
+  echo '{"status":"running"}' > "$TEST_WORKDIR/.yolo-planning/.execution-state.json"
   echo "$dir"
 }
 
@@ -114,6 +116,8 @@ mk_completed_plan() {
 @test "falls back to legacy MD plan when no JSONL plan exists" {
   local dir="$TEST_WORKDIR/.yolo-planning/phases/01-setup"
   mkdir -p "$dir"
+  # file-guard requires active execution state to enforce blocking
+  echo '{"status":"running"}' > "$TEST_WORKDIR/.yolo-planning/.execution-state.json"
   # Create a legacy MD plan with files_modified in YAML frontmatter
   cat > "$dir/01-01-PLAN.md" <<'PLAN'
 ---

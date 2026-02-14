@@ -137,8 +137,10 @@ Dept Dev → Dept Senior → Dept Lead → Dept Architect → Owner → User  (m
 2. **If report-to cannot resolve → they escalate to THEIR report-to.** Chain propagates upward.
 3. **Dev NEVER contacts Lead, Architect, or User.** Senior is Dev's single contact.
 4. **QA/Tester NEVER contact Architect.** Findings route through Lead.
-5. **Only Architect escalates to User.** Only Security FAIL bypasses chain → User.
-6. **Escalation includes evidence.** Use `escalation` handoff schema with issue + evidence + recommendation.
+5. **Only Owner/go.md talks to the User.** In single-dept mode, Architect escalates to go.md (which acts as Owner proxy) → User. In multi-dept mode, Architect escalates to Owner → User. No other agent communicates with the user directly.
+6. **Only Security FAIL bypasses chain** → User (via go.md/Owner).
+7. **Escalation includes evidence.** Use `escalation` handoff schema with issue + evidence + recommendation.
+8. **Stay in your lane.** Each agent decides ONLY within their Decision Authority (see matrix above). Out-of-scope questions escalate immediately.
 
 ### QA Remediation Chain
 
@@ -155,6 +157,29 @@ Senior: changes_requested → Dev fixes per exact instructions
 Cycle 2 fail              → Senior escalates to Lead
 Lead decides              → Accept with known issues OR escalate to Architect
 ```
+
+## Decision Authority Matrix (STRICT — STAY IN YOUR LANE)
+
+Each agent has a defined area of capability. Questions or decisions outside that area MUST escalate up the chain. The receiving agent either handles it (if in their area) or escalates further. Escalation carries context from the lower agent upward.
+
+| Agent | CAN Decide (Area of Authority) | MUST Escalate (Out of Scope) |
+|-------|-------------------------------|------------------------------|
+| Dev | Implementation details within spec (variable names, loop structure, error messages), which library API to call per spec, test fixes within spec boundaries | Spec ambiguity, missing requirements, architectural choices, new file/module creation not in spec, performance tradeoffs, API design |
+| Tester | Test structure, mock strategy, assertion approach, test naming | Test scope beyond `ts` field, testing infrastructure changes, whether a feature needs tests |
+| Senior | Spec enrichment details, code review decisions (approve/request changes), implementation patterns within architecture, test spec design | Architecture changes, new dependencies, scope changes, cross-phase impacts, design pattern choices that affect architecture |
+| Lead | Plan decomposition, task ordering, wave grouping, resource allocation, which tasks to parallelize, remediation assignment routing | Architecture decisions, technology choices, scope changes, cross-department coordination, user-facing decisions |
+| Architect | Technology choices, design patterns, system architecture, dependency decisions, performance strategy, addressing critique findings | Scope changes (add/remove features), budget/timeline decisions, user preference questions, business priority changes |
+| QA Lead | Pass/fail determination, finding severity classification, whether gaps need remediation | Whether to ship with known issues (→ Lead), scope reduction to pass QA (→ Lead) |
+| QA Code | Test execution, lint/coverage assessment, pattern compliance | Changing test expectations, modifying source code, architectural feedback (→ Lead) |
+| Security | Vulnerability severity, compliance assessment, audit pass/fail | FAIL = hard STOP → User. Remediation approach (→ Lead → Senior) |
+| Critic | Gap identification, risk assessment, alternative suggestions | All findings are advisory — Lead decides what to act on |
+| Scout | Research methodology, source selection, information synthesis | All findings are advisory — Lead decides relevance |
+| Debugger | Investigation methodology, evidence gathering, root cause diagnosis, fix recommendation | Whether to apply fix (→ Lead decides), scope of fix (→ Senior if architectural) |
+| Owner | Cross-department priority, conflict resolution, ship/hold decisions, department dispatch order | Scope changes, new features, budget decisions (→ User) |
+
+**Rule: If a question doesn't fit your "CAN Decide" column, escalate immediately. Include the question, your context, and a recommendation. Never guess or make out-of-scope decisions.**
+
+**Escalation carries context upward:** When escalating, the lower agent provides: (1) the question/blocker, (2) relevant context from their work, (3) their recommendation if they have one. The receiving agent uses this context plus their own broader context to make the decision, then pushes the answer back down.
 
 ## Context Isolation
 
