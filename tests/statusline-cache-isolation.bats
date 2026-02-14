@@ -9,6 +9,11 @@ STATUSLINE="$SCRIPTS_DIR/vbw-statusline.sh"
 setup() {
   setup_temp_dir
   export ORIG_UID=$(id -u)
+  # Ensure git identity is available (CI runners may not have global config)
+  export GIT_AUTHOR_NAME="test"
+  export GIT_AUTHOR_EMAIL="test@test.local"
+  export GIT_COMMITTER_NAME="test"
+  export GIT_COMMITTER_EMAIL="test@test.local"
   # Clean any existing caches
   rm -f /tmp/vbw-*-"${ORIG_UID}"-* /tmp/vbw-*-"${ORIG_UID}" 2>/dev/null || true
 }
@@ -96,12 +101,14 @@ teardown() {
   git -C "$repo" commit --allow-empty -m "test(init): seed" -q
 
   cd "$repo"
+  local branch
+  branch=$(git branch --show-current)
   local output
   output=$(echo '{}' | bash "$STATUSLINE" 2>&1 | head -1)
   cd "$PROJECT_ROOT"
 
-  # Should contain directory name and branch
-  echo "$output" | grep -q "my-local-project:main"
+  # Should contain directory name and branch (branch varies: main or master)
+  echo "$output" | grep -q "my-local-project:${branch}"
 }
 
 @test "no-remote repo does not show another repo's name" {
@@ -130,6 +137,23 @@ teardown() {
   local output
   output=$(echo '{}' | bash "$STATUSLINE" 2>&1 | head -1)
   # Should contain the OSC 8 link escape sequence (clickable link)
+  echo "$output" | grep -q ']8;;https://'
+}
+
+@test "detached HEAD repo with remote still shows GitHub link" {
+  local repo="$TEST_TEMP_DIR/detached-remote-repo"
+  mkdir -p "$repo"
+  git -C "$repo" init -q
+  git -C "$repo" commit --allow-empty -m "test(init): seed" -q
+  git -C "$repo" remote add origin "https://github.com/example/detached-remote-repo.git"
+  git -C "$repo" checkout --detach -q
+
+  cd "$repo"
+  local output
+  output=$(echo '{}' | bash "$STATUSLINE" 2>&1 | head -1)
+  cd "$PROJECT_ROOT"
+
+  # Detached HEAD has no branch name, but remote repos should still render OSC 8 links
   echo "$output" | grep -q ']8;;https://'
 }
 
