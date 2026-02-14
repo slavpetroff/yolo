@@ -12,28 +12,10 @@ teardown() {
 }
 
 @test "research-persistence: validates Phase 1 RESEARCH.md sections" {
-  # Create a RESEARCH.md from the template (the real file lives in .vbw-planning/
-  # which is gitignored, so we generate the fixture inline)
+  # Source repo tests should use tracked fixtures/templates, not local runtime
+  # planning state from a project checkout.
   RESEARCH_FILE="$TEST_TEMP_DIR/01-RESEARCH.md"
-  cat > "$RESEARCH_FILE" <<'EOF'
-# Phase 01: Config Migration — Research
-
-## Findings
-
-Key discoveries from Scout research relevant to this phase
-
-## Relevant Patterns
-
-Existing codebase patterns that apply to this phase's work
-
-## Risks
-
-Technical risks, unknowns, or potential blockers identified
-
-## Recommendations
-
-Suggested approaches based on research findings
-EOF
+  cp "$PROJECT_ROOT/templates/RESEARCH.md" "$RESEARCH_FILE"
 
   # Verify file exists
   [ -f "$RESEARCH_FILE" ]
@@ -125,27 +107,9 @@ EOF
 **Requirements**: Not available
 ROADMAP
 
-  # Create RESEARCH.md fixture inline (the real file lives in .vbw-planning/
-  # which is gitignored, so we generate it from the template structure)
-  cat > "$TEMP_PHASES/01-test-phase/01-RESEARCH.md" <<'RESEARCH'
-# Phase 01: Test Phase — Research
-
-## Findings
-
-Key discoveries from Scout research relevant to this phase
-
-## Relevant Patterns
-
-Existing codebase patterns that apply to this phase's work
-
-## Risks
-
-Technical risks, unknowns, or potential blockers identified
-
-## Recommendations
-
-Suggested approaches based on research findings
-RESEARCH
+  # Use tracked template as fixture source to avoid dependence on local runtime
+  # .vbw-planning state in the plugin source repository.
+  cp "$PROJECT_ROOT/templates/RESEARCH.md" "$TEMP_PHASES/01-test-phase/01-RESEARCH.md"
 
   # Temporarily override CLAUDE_DIR to use isolated planning dir
   ORIG_CLAUDE_DIR="$CLAUDE_DIR"
