@@ -2,54 +2,21 @@
 
 All notable changes to VBW will be documented in this file.
 
-## [1.20.8] - 2026-02-14
-
-### Added
-
-- **`config`** -- New `prefer_teams` config option (`always`|`when_parallel`|`auto`) replaces boolean `agent_teams`. Default `always` creates Agent Teams for all operations, maximizing color-coded UI visibility
-- **`vibe.md`** -- Plan mode respects `prefer_teams` — creates team even for Lead-only when set to `always`
-- **`debug.md`** -- Debug mode respects `prefer_teams` — uses team path for all bugs when set to `always`
-
-### Fixed
-
-- **`init.md`** -- Config scaffold creates `prefer_teams` instead of deprecated `agent_teams`
-- **`session-start.sh`** -- Reads `prefer_teams` config instead of `agent_teams`
-- **`phase-detect.sh`** -- Reads `prefer_teams` config instead of `agent_teams`
+## [Unreleased]
 
 ### Changed
 
-- **`config.md`** -- Settings reference table updated for `prefer_teams` enum
-- **`test_helper.bash`** -- Test fixtures updated for `prefer_teams` config
-
----
-
-## [1.20.7] - 2026-02-14
-
-### Fixed
-
-- **`vbw-statusline.sh`** -- OAuth token lookup now detects keychain access denial vs API key usage. Users with OAuth (Pro/Max) whose keychain blocks terminal access now see an actionable diagnostic message instead of misleading "N/A (using API key)". Added `VBW_OAUTH_TOKEN` env var as escape hatch. Uses `claude auth status` to distinguish auth methods when credential store fails.
-
----
-
-## [1.20.6] - 2026-02-14
-
-### Community Contributions
-
-- **PR #38** (@navin-moorthy) -- Human UAT verification gate with CHECKPOINT UX
+- **`pre-push hook`** -- Relaxed to consistency-only check. No longer requires a version bump on every push; only verifies that all 4 version files match each other. Fixes false positives on merge commits and eliminates version conflicts across concurrent contributors. (Issue #33)
 
 ### Added
 
-- **`commands/verify.md`** -- New `/vbw:verify` command for human acceptance testing with per-test CHECKPOINT loop, resume support, and severity inference
-- **`templates/UAT.md`** -- UAT result template with YAML frontmatter for structured pass/fail/partial tracking
-- **`execute-protocol`** -- Step 4.5 UAT gate after QA pass (autonomy-gated: cautious + standard only)
-- **`vibe.md`** -- `--verify` flag, Verify Mode section, and NL keyword detection (verify, uat, acceptance test, etc.)
-- **`execute-protocol`** -- TeamCreate for multi-agent execution (2+ plans get colored labels, status bar entries, peer messaging)
-- **`vibe.md`** -- TeamCreate for Plan mode when Scout + Lead co-spawn (research + planning as coordinated team)
+- **`bump-version.yml`** -- New GitHub Action that automatically bumps the version when a PR is merged to `main`. Runs `scripts/bump-version.sh --offline` and commits the result. Contributors no longer need to touch version files.
 
-### Changed
+### Updated
 
-- **`suggest-next.sh`** -- UAT suggestions surfaced after QA passes (cautious + standard autonomy)
-- **`execute-protocol`** -- Step 5 shutdown now conditional on team existence (skip for single plan/turbo)
+- **`CONTRIBUTING.md`** -- Rewritten Version Management and Push Workflow sections to reflect merge-time bumping.
+- **`copilot-instructions.md`** -- Updated Version Management and Contributing sections.
+- **`CLAUDE.md`** -- Updated VBW Rules to reference automatic merge-time version bumps.
 
 ---
 
