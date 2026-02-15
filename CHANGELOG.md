@@ -2,6 +2,14 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.21.5] - 2026-02-15
+
+### Fixed
+
+- **`hooks.json` + `hook-wrapper.sh`** — Hooks now resolve `CLAUDE_PLUGIN_ROOT` via dual fallback: cache path first, then `--plugin-dir` path. Previously, `--plugin-dir` installs had no `CLAUDE_PLUGIN_ROOT` set, causing all hook scripts to silently fail. New `resolve-claude-dir.bats` and `sessionstart-compact-hooks.bats` tests added. (PR #54, @dpearson2699)
+
+---
+
 ## [1.21.4] - 2026-02-15
 
 ### Fixed
