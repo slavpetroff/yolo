@@ -1,6 +1,6 @@
 ---
 name: research
-description: Run standalone research by spawning Scout agent(s) for web searches and documentation lookups.
+description: Run standalone research via Lead-scoped Scout dispatch for web searches and documentation lookups.
 argument-hint: <research-topic> [--parallel]
 allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch
 disable-model-invocation: true
@@ -24,33 +24,38 @@ Current project:
 ## Steps
 
 1. **Parse:** Topic (required). --parallel: spawn multiple Scouts on sub-topics.
-2. **Scope:** Single question = 1 Scout. Multi-faceted or --parallel = 2-4 sub-topics.
-3. **Spawn Scout:**
-   - Resolve Scout model:
-     ```bash
-     SCOUT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-     if [ $? -ne 0 ]; then echo "$SCOUT_MODEL" >&2; exit 1; fi
-     ```
-   - Display: `◆ Spawning Scout (${SCOUT_MODEL})...`
-   - Spawn yolo-scout as subagent(s) via Task tool. **Add `model: "${SCOUT_MODEL}"` parameter.**
+2. **Spawn Lead:**
+- Resolve models:
+  ```bash
+  LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+  if [ $? -ne 0 ]; then echo "$LEAD_MODEL" >&2; exit 1; fi
+  SCOUT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+  if [ $? -ne 0 ]; then echo "$SCOUT_MODEL" >&2; exit 1; fi
+  ```
+- Display: `◆ Spawning Lead (${LEAD_MODEL}) for research scoping...`
+- Spawn yolo-lead as subagent via Task tool. **Add `model: "${LEAD_MODEL}"` parameter.**
 ```
-Research: {topic or sub-topic}.
-Project context: {tech stack, constraints from PROJECT.md if relevant}.
-Return structured findings.
+Research dispatch. Topic: {topic}. Parallel: {true|false}. Project context: {tech stack from PROJECT.md if relevant}. Scout model: ${SCOUT_MODEL}.
+(1) Scope research: break topic into precise questions. Identify codebase-answerable (use Glob/Grep) vs web-research (needs Scout).
+(2) If --parallel or multi-faceted topic: generate 2-4 sub-topics, spawn up to 4 yolo-scout subagents (model: SCOUT_MODEL each) with one scoped question each. If single question: spawn 1 yolo-scout (model: SCOUT_MODEL).
+(3) Each Scout gets: exact research question, project context if relevant, instruction to return findings via scout_findings schema with confidence levels.
+(4) Synthesize: merge Scout findings, resolve contradictions, rank by confidence (high/medium/low).
+(5) Persist decision: ask go.md (caller) whether to save. If yes: write research.jsonl lines using jq -cn, one JSON line per finding with keys q,src,finding,conf,dt,rel. Write to .yolo-planning/phases/{phase-dir}/research.jsonl (if active phase) or .yolo-planning/research.jsonl (global). Append if file exists.
+(6) Return: synthesized findings with confidence levels.
 ```
-   - Parallel: up to 4 simultaneous Tasks, each with same `model: "${SCOUT_MODEL}"`.
-4. **Synthesize:** Single: present directly. Parallel: merge, note contradictions, rank by confidence.
-5. **Persist:** Ask "Save findings? (y/n)". If yes: convert findings to research.jsonl (one JSON line per finding):
-   ```json
-   {"q":"topic","src":"web","finding":"key finding text","conf":"high","dt":"YYYY-MM-DD","rel":"why relevant"}
-   ```
-   Write to `.yolo-planning/phases/{phase-dir}/research.jsonl` (if active phase) or `.yolo-planning/research.jsonl` (global).
-   Use `jq -cn` to produce each line. Append if file exists.
+3. **Present:** Display Lead's synthesized findings using brand essentials format.
 ```
 ➜ Next Up
   /yolo:go --plan {N} -- Plan using research findings
   /yolo:go --discuss {N} -- Discuss phase approach
 ```
+
+## Escalation
+
+- Scout -> Lead: Scout reports findings or inability to find information. Scout NEVER presents results to user directly.
+- Lead -> go.md: Lead synthesizes all Scout findings, resolves contradictions, presents final output to go.md (Owner proxy).
+- Contradictions: If Scouts return conflicting findings, Lead flags contradictions with confidence levels and recommends which to trust.
+- Scope concerns: If research reveals the topic needs deeper investigation or impacts architecture, Lead recommends /yolo:go --discuss to the user.
 
 ## Output Format
 
