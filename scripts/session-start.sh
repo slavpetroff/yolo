@@ -362,6 +362,11 @@ if [ -d "$PLANNING_DIR" ]; then
   cleanup_orphaned_agents || true
 fi
 
+# --- Stale Team Cleanup ---
+if [ -d "$PLANNING_DIR" ] && [ -f "$SCRIPT_DIR/clean-stale-teams.sh" ]; then
+  bash "$SCRIPT_DIR/clean-stale-teams.sh" 2>/dev/null || true
+fi
+
 # --- tmux Detach Watchdog ---
 # Launch watchdog when in tmux to cleanup orphaned agents on detach.
 # Watchdog runs in background and monitors for session detachment.
