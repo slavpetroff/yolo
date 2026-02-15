@@ -2,6 +2,12 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.21.15] - 2026-02-15
+
+### Added
+
+- **`agents`** -- New docs agent (vbw-docs) for documentation tasks with Sonnet as default model across all profiles, plus `qa_skip_agents` config to auto-skip QA for documentation work.
+
 ## [1.21.14] - 2026-02-15
 
 ### Fixed
