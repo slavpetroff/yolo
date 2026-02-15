@@ -251,7 +251,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 **Steps:**
 
 1. **Parse args:** Phase number (optional, auto-detected), --effort (optional, falls back to config).
-2. **Phase Discovery (if applicable):** Skip if already planned, phase dir has `{phase}-CONTEXT.md`, or DISCOVERY_DEPTH=skip. Otherwise: read `${CLAUDE_PLUGIN_ROOT}/references/discovery-protocol.md` Phase Discovery mode. Generate phase-scoped questions (quick=1, standard=1-2, thorough=2-3). Skip categories already in `discovery.json.answered[]`. Present via AskUserQuestion. Append to `discovery.json`. Write `{phase}-CONTEXT.md`.
+2. **Phase Discovery (if applicable):** Skip if already planned or DISCOVERY_DEPTH=skip. If phase dir has `{phase}-CONTEXT.md`: AskUserQuestion "Existing context found for this phase. What would you like to do?" Options: (1) "Reuse existing context (Recommended)" — skip Phase Discovery, use existing file. (2) "Gather fresh context" — delete `{phase}-CONTEXT.md` and run Phase Discovery below. If no CONTEXT.md exists, run Phase Discovery: read `${CLAUDE_PLUGIN_ROOT}/references/discovery-protocol.md` Phase Discovery mode. Generate phase-scoped questions (quick=1, standard=1-2, thorough=2-3). Skip categories already in `discovery.json.answered[]`. Present via AskUserQuestion. Append to `discovery.json`. Write `{phase}-CONTEXT.md`.
 3. **Context compilation:** If `config_context_compiler=true`, compile context for the appropriate leads (see step 5/6).
 4. **Turbo shortcut:** If effort=turbo, skip Lead. Read phase reqs from ROADMAP.md, create single lightweight plan.jsonl inline (header + tasks, no spec field).
 5. **Single-department planning (when `multi_dept=false` from resolve-departments.sh above):**
