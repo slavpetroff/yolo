@@ -229,11 +229,19 @@ case "$ACTION" in
     ;;
   cleanup)
     log_action "cleanup started"
+
+    # Collect counts before cleanup
+    local teams_count=$(scan_stale_teams | wc -l | tr -d ' ')
+    local orphan_count=$(scan_orphaned_processes | wc -l | tr -d ' ')
+    local pid_count=$(scan_dangling_pids | wc -l | tr -d ' ')
+    local marker_count=$(scan_stale_markers | wc -l | tr -d ' ')
+
     cleanup_stale_teams
     cleanup_orphaned_processes
     cleanup_dangling_pids
     cleanup_stale_markers
-    log_action "cleanup complete"
+
+    log_action "cleanup complete: teams=$teams_count, orphans=$orphan_count, pids=$pid_count, markers=$marker_count"
     ;;
   *)
     echo "Usage: $0 {scan|cleanup}" >&2
