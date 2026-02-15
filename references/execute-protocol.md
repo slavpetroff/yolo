@@ -181,6 +181,8 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 
 ### Step 6: Implementation (Dev Agents)
 
+**ENTRY GATE:** Verify enriched plan.jsonl exists with `spec` fields populated. If test-plan.jsonl should exist (step 5 was not skipped): verify `{phase-dir}/test-plan.jsonl` exists with `red: true` entries. Check via: `jq -r '.steps.test_authoring.status' .yolo-planning/.execution-state.json` — if `"complete"`, verify test-plan.jsonl exists; if `"skipped"`, proceed without it. If step 5 is `"complete"` but test-plan.jsonl missing: STOP "Step 5 artifact missing — test-plan.jsonl not found. Run step 5 first."
+
 1. Update execution state: `"step": "implementation"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} dev {phases_dir} {plan_path}`
 3. For each uncompleted plan, TaskCreate:
@@ -211,7 +213,11 @@ When Dev reports completion:
 2. If missing: message Dev to write it. If unavailable: write from git log.
 3. Only after verification: mark plan `"complete"` in .execution-state.json.
 
+**EXIT GATE:** For each plan, verify `{phase-dir}/{plan_id}.summary.jsonl` exists with valid JSONL. Update `.execution-state.json`: set `steps.implementation.status` to `"complete"`, `steps.implementation.completed_at` to ISO timestamp, `steps.implementation.artifact` to `"summary.jsonl"`. Commit: `chore(state): implementation complete phase {N}`.
+
 ### Step 7: Code Review (Senior Agent)
+
+**ENTRY GATE:** For each plan, verify `{phase-dir}/{plan_id}.summary.jsonl` exists with valid JSONL (`jq empty`). If not: STOP "Step 6 artifact missing — summary.jsonl not found for plan {plan_id}. Run step 6 first."
 
 1. Update execution state: `"step": "code_review"`
 2. For each completed plan:
@@ -233,10 +239,13 @@ When Dev reports completion:
    - Otherwise → proceed to Step 8.
 7. Senior commits: `docs({phase}): code review {NN-MM}`
 8. Verify: code-review.jsonl exists with `r: "approve"`.
+9. **EXIT GATE:** Verify `{phase-dir}/code-review.jsonl` exists with `r: "approve"` in line 1 verdict (`jq -r .r`). Update `.execution-state.json`: set `steps.code_review.status` to `"complete"`, `steps.code_review.completed_at` to ISO timestamp, `steps.code_review.artifact` to `"{phase-dir}/code-review.jsonl"`. Commit: `chore(state): code_review complete phase {N}`.
 
 ### Step 8: QA (QA Lead + QA Code)
 
-If `--skip-qa` or turbo: `○ QA skipped ({reason})`
+**Guard:** If `--skip-qa` or `--effort=turbo` → **Skip Output:** Display `○ QA skipped ({reason: --skip-qa flag | turbo effort})`. Update `.execution-state.json`: set `steps.qa.status` to `"skipped"`, `steps.qa.reason` to `"{--skip-qa | turbo effort}"`, `steps.qa.skipped_at` to ISO timestamp. Commit: `chore(state): qa skipped phase {N}`. Proceed to Step 9.
+
+**ENTRY GATE:** Verify `{phase-dir}/code-review.jsonl` exists with `r: "approve"` in line 1 (`jq -r .r` equals `"approve"`). If not: STOP "Step 7 artifact missing — code-review.jsonl not found or not approved. Run step 7 first."
 
 1. Update execution state: `"step": "qa"`
 2. **Tier resolution:** turbo=skip, fast=quick, balanced=standard, thorough=deep.
@@ -290,10 +299,13 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
     - Major/minor failure → Lead assigns to Senior for re-spec → Dev fixes
     - After fix → re-run manual QA for failed items only
 12. If all PASS (automated + manual) → proceed to Step 9.
+13. **EXIT GATE:** Verify `{phase-dir}/verification.jsonl` exists with valid JSONL (`jq empty`). Verify `{phase-dir}/qa-code.jsonl` exists with valid JSONL. Update `.execution-state.json`: set `steps.qa.status` to `"complete"`, `steps.qa.completed_at` to ISO timestamp, `steps.qa.artifact` to `"{phase-dir}/verification.jsonl"`. Commit: `chore(state): qa complete phase {N}`.
 
 ### Step 9: Security Audit (optional)
 
-If `--skip-security` or config `security_audit` != true: `○ Security audit skipped`
+**Guard:** If `--skip-security` or config `security_audit` != true → **Skip Output:** Display `○ Security audit skipped ({reason: --skip-security flag | security_audit disabled})`. Update `.execution-state.json`: set `steps.security.status` to `"skipped"`, `steps.security.reason` to `"{--skip-security | security_audit disabled}"`, `steps.security.skipped_at` to ISO timestamp. Commit: `chore(state): security skipped phase {N}`. Proceed to Step 10.
+
+**ENTRY GATE:** Verify `{phase-dir}/verification.jsonl` exists OR `steps.qa.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 8 artifact missing — verification.jsonl not found. Run step 8 first."
 
 1. Update execution state: `"step": "security"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} security {phases_dir}`
@@ -307,8 +319,11 @@ If `--skip-security` or config `security_audit` != true: `○ Security audit ski
    - If `config.approval_gates.security_warn` is true: pause for user approval.
    - Otherwise: continue.
 7. If `r: "PASS"`: continue.
+8. **EXIT GATE:** Verify `{phase-dir}/security-audit.jsonl` exists with valid JSONL (`jq empty`). Update `.execution-state.json`: set `steps.security.status` to `"complete"`, `steps.security.completed_at` to ISO timestamp, `steps.security.artifact` to `"{phase-dir}/security-audit.jsonl"`. Commit: `chore(state): security complete phase {N}`.
 
 ### Step 10: Sign-off (Lead)
+
+**ENTRY GATE:** Verify `{phase-dir}/security-audit.jsonl` exists OR `steps.security.status` is `"skipped"` in `.execution-state.json`. Also verify `{phase-dir}/code-review.jsonl` exists with `r: "approve"`. If security artifact missing AND security not skipped: STOP "Step 9 artifact missing — security-audit.jsonl not found. Run step 9 first."
 
 1. Update execution state: `"step": "signoff"`
 2. Review all artifacts:
@@ -343,6 +358,7 @@ If `--skip-security` or config `security_audit` != true: `○ Security audit ski
      Deviations: {count}
    ```
 7. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh execute {qa-result}`
+8. **EXIT GATE:** Verify `.execution-state.json` has `status: "complete"` and `step: "signoff"`. Verify ROADMAP.md is updated. Final state commit already done in item 5 — no additional commit needed.
 
 ## Execution State Transitions
 
