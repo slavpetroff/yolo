@@ -81,7 +81,9 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 
 ### Step 1: Critique / Brainstorm (Critic Agent)
 
-**Guard:** Skip if `--effort=turbo` or critique.jsonl already exists in phase directory.
+**Guard:** If `--effort=turbo` or critique.jsonl already exists in phase directory → **Skip Output:** Display `○ Critique skipped ({reason: turbo effort | critique exists})`. Update `.execution-state.json`: set `steps.critique.status` to `"skipped"`, `steps.critique.reason` to `"{turbo effort | critique.jsonl exists}"`, `steps.critique.skipped_at` to ISO timestamp. Commit: `chore(state): critique skipped phase {N}`. Proceed to Step 2.
+
+**ENTRY GATE:** None (first step). Verify phase directory exists: `[ -d "{phase-dir}" ]`. If not: STOP "Phase directory missing. Run /yolo:go --plan first."
 
 1. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} critic {phases_dir}`
 2. Spawn yolo-critic with Task tool:
@@ -94,10 +96,13 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 5. Write critique.jsonl from Critic's findings to phase directory.
 6. Commit: `docs({phase}): critique and gap analysis`
 7. **User gate (balanced/thorough effort):** Display critique summary. If critical findings exist, AskUserQuestion "Address these before architecture?" Options: "Proceed (Architect will address)" / "Pause to discuss".
+8. **EXIT GATE:** Verify `{phase-dir}/critique.jsonl` exists and is valid JSONL (`jq empty`). Update `.execution-state.json`: set `steps.critique.status` to `"complete"`, `steps.critique.completed_at` to ISO timestamp, `steps.critique.artifact` to `"{phase-dir}/critique.jsonl"`. Commit: `chore(state): critique complete phase {N}`.
 
 ### Step 2: Architecture (Architect Agent)
 
-**Guard:** Skip if architecture.toon already exists in phase directory.
+**Guard:** If architecture.toon already exists in phase directory → **Skip Output:** Display `○ Architecture skipped (architecture.toon exists)`. Update `.execution-state.json`: set `steps.architecture.status` to `"skipped"`, `steps.architecture.reason` to `"architecture.toon exists"`, `steps.architecture.skipped_at` to ISO timestamp. Commit: `chore(state): architecture skipped phase {N}`. Proceed to Step 3.
+
+**ENTRY GATE:** Verify `{phase-dir}/critique.jsonl` exists OR `steps.critique.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 1 artifact missing — critique.jsonl not found. Run step 1 first."
 
 1. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} architect {phases_dir}`
 2. Spawn yolo-architect with Task tool:
@@ -107,8 +112,11 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 3. Display: `◆ Spawning Architect (${ARCHITECT_MODEL})...` → `✓ Architecture complete`
 4. Verify: architecture.toon exists in phase directory.
 5. Architect addresses critique.jsonl findings (updates `st` field) and commits: `docs({phase}): architecture design`
+6. **EXIT GATE:** Verify `{phase-dir}/architecture.toon` exists and is non-empty (`[ -s ]`). Update `.execution-state.json`: set `steps.architecture.status` to `"complete"`, `steps.architecture.completed_at` to ISO timestamp, `steps.architecture.artifact` to `"{phase-dir}/architecture.toon"`. Commit: `chore(state): architecture complete phase {N}`.
 
 ### Step 3: Load Plans and Detect Resume State
+
+**ENTRY GATE:** Verify `{phase-dir}/architecture.toon` exists OR `steps.architecture.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 2 artifact missing — architecture.toon not found. Run step 2 first."
 
 1. Glob `*.plan.jsonl` in phase dir. Read each plan header (line 1, parse with jq).
 2. Check existing summary.jsonl files (complete plans).
@@ -130,10 +138,13 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
    - If artifact path specified, verify file exists
    - Unsatisfied → STOP with fix instructions
    - All satisfied: `✓ Cross-phase dependencies verified`
+9. **EXIT GATE:** Verify `.yolo-planning/.execution-state.json` exists with `status: "running"` and at least one plan entry. Verify at least one `*.plan.jsonl` exists in phase dir. Update `.execution-state.json`: set `steps.planning.status` to `"complete"`, `steps.planning.completed_at` to ISO timestamp. Commit: `chore(state): planning complete phase {N}`.
 
 ### Step 4: Design Review (Senior Agent)
 
 **Delegation directive:** You are the Lead. NEVER implement tasks yourself.
+
+**ENTRY GATE:** Verify at least one `*.plan.jsonl` file exists in phase dir (`ls {phase-dir}/*.plan.jsonl`). If none: STOP "Step 3 artifact missing — no plan.jsonl files found. Run step 3 first."
 
 1. Update execution state: `"step": "design_review"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} senior {phases_dir}`
@@ -146,10 +157,13 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 4. Senior reads plan, researches codebase, enriches each task with `spec` field AND `ts` (test_spec) field.
 5. Senior commits enriched plan: `docs({phase}): enrich plan {NN-MM} specs`
 6. Verify: all tasks in plan.jsonl have non-empty `spec` field. Tasks with testable logic should have `ts` field.
+7. **EXIT GATE:** For each plan.jsonl, verify all tasks have non-empty `spec` field (`jq -r .spec` on each task line is non-empty). Update `.execution-state.json`: set `steps.design_review.status` to `"complete"`, `steps.design_review.completed_at` to ISO timestamp, `steps.design_review.artifact` to `"enriched plan.jsonl"`. Commit: `chore(state): design_review complete phase {N}`.
 
 ### Step 5: Test Authoring — RED Phase (Tester Agent)
 
-**Guard:** Skip if `--effort=turbo` or no tasks have `ts` fields in any plan.jsonl.
+**Guard:** If `--effort=turbo` or no tasks have `ts` fields in any plan.jsonl → **Skip Output:** Display `○ Test Authoring skipped ({reason: turbo effort | no ts fields})`. Update `.execution-state.json`: set `steps.test_authoring.status` to `"skipped"`, `steps.test_authoring.reason` to `"{turbo effort | no ts fields}"`, `steps.test_authoring.skipped_at` to ISO timestamp. Commit: `chore(state): test_authoring skipped phase {N}`. Proceed to Step 6.
+
+**ENTRY GATE:** Verify enriched plan.jsonl exists with `spec` fields populated (check at least one task has non-empty `spec` via `jq -r .spec`). If not: STOP "Step 4 artifact missing — plan.jsonl tasks have no spec fields. Run step 4 first."
 
 1. Update execution state: `"step": "test_authoring"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} tester {phases_dir} {plan_path}`
@@ -163,6 +177,7 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 6. Tester produces test-plan.jsonl and commits: `test({phase}): RED phase tests for plan {NN-MM}`
 7. Verify: test-plan.jsonl exists with `red: true` for all entries.
 8. Display: `✓ RED phase complete — {N} test files, {M} test cases (all failing)`
+9. **EXIT GATE:** Verify `{phase-dir}/test-plan.jsonl` exists with valid JSONL (`jq empty`) and all entries have `red: true`. Update `.execution-state.json`: set `steps.test_authoring.status` to `"complete"`, `steps.test_authoring.completed_at` to ISO timestamp, `steps.test_authoring.artifact` to `"{phase-dir}/test-plan.jsonl"`. Commit: `chore(state): test_authoring complete phase {N}`.
 
 ### Step 6: Implementation (Dev Agents)
 
