@@ -129,7 +129,19 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
    {
      "phase": N, "phase_name": "{slug}", "status": "running",
      "started_at": "{ISO 8601}", "step": "planning", "wave": 1, "total_waves": N,
-     "plans": [{"id": "NN-MM", "title": "...", "wave": W, "status": "pending|complete"}]
+     "plans": [{"id": "NN-MM", "title": "...", "wave": W, "status": "pending|complete"}],
+     "steps": {
+       "critique": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+       "architecture": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+       "planning": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+       "design_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+       "test_authoring": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+       "implementation": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+       "code_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+       "qa": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+       "security": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+       "signoff": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""}
+     }
    }
    ```
    Commit: `chore(state): execution state phase {N}`
@@ -360,22 +372,51 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 7. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh execute {qa-result}`
 8. **EXIT GATE:** Verify `.execution-state.json` has `status: "complete"` and `step: "signoff"`. Verify ROADMAP.md is updated. Final state commit already done in item 5 — no additional commit needed.
 
-## Execution State Transitions
+## Execution State Transitions (Enforcement Contract)
 
-| Step | state.step | Commits |
-|------|-----------|---------|
-| Critique | critique | critique.jsonl |
-| Architecture | architecture | architecture.toon |
-| Load Plans | planning | .execution-state.json |
-| Design Review | design_review | enriched plan.jsonl |
-| Test Authoring | test_authoring | test files + test-plan.jsonl |
-| Implementation | implementation | source code + summary.jsonl |
-| Code Review | code_review | code-review.jsonl |
-| QA | qa | verification.jsonl + qa-code.jsonl |
-| Security | security | security-audit.jsonl |
-| Sign-off | signoff | state.json + ROADMAP.md |
+**This table is the enforcement contract.** go.md MUST verify the Entry Artifact column before running each step and verify the Exit Artifact column after each step completes. No exceptions.
 
-Each transition commits .execution-state.json so resume works on exit.
+| Step | state.step | Entry Artifact | Exit Artifact | Commit Format | Skip Conditions |
+|------|-----------|----------------|---------------|---------------|----------------|
+| 1. Critique | `critique` | Phase dir exists | `critique.jsonl` | `docs({phase}): critique and gap analysis` | `--effort=turbo`, critique.jsonl exists |
+| 2. Architecture | `architecture` | `critique.jsonl` OR step 1 skipped | `architecture.toon` | `docs({phase}): architecture design` | architecture.toon exists |
+| 3. Load Plans | `planning` | `architecture.toon` OR step 2 skipped | `.execution-state.json` + `*.plan.jsonl` | `chore(state): execution state phase {N}` | NONE (mandatory) |
+| 4. Design Review | `design_review` | `*.plan.jsonl` exists | enriched `plan.jsonl` (all tasks have `spec`) | `docs({phase}): enrich plan {NN-MM} specs` | NONE (mandatory) |
+| 5. Test Authoring | `test_authoring` | enriched `plan.jsonl` with `spec` fields | `test-plan.jsonl` + test files | `test({phase}): RED phase tests for plan {NN-MM}` | `--effort=turbo`, no `ts` fields |
+| 6. Implementation | `implementation` | enriched `plan.jsonl` + `test-plan.jsonl` (if step 5 ran) | `{plan_id}.summary.jsonl` per plan | `{type}({phase}-{plan}): {task}` per task | NONE (mandatory) |
+| 7. Code Review | `code_review` | `{plan_id}.summary.jsonl` for each plan | `code-review.jsonl` with `r: "approve"` | `docs({phase}): code review {NN-MM}` | NONE (mandatory) |
+| 8. QA | `qa` | `code-review.jsonl` with `r: "approve"` | `verification.jsonl` + `qa-code.jsonl` | `docs({phase}): verification results` | `--skip-qa`, `--effort=turbo` |
+| 9. Security | `security` | `verification.jsonl` OR step 8 skipped | `security-audit.jsonl` | `docs({phase}): security audit` | `--skip-security`, config `security_audit` != true |
+| 10. Sign-off | `signoff` | `security-audit.jsonl` OR step 9 skipped + `code-review.jsonl` approved | `.execution-state.json` complete + ROADMAP.md | `chore(state): phase {N} complete` | NONE (mandatory) |
+
+Each transition commits `.execution-state.json` so resume works on exit. The `steps` object in `.execution-state.json` tracks per-step state:
+
+```json
+{
+  "phase": 1,
+  "phase_name": "{slug}",
+  "status": "running",
+  "started_at": "{ISO 8601}",
+  "step": "{current_step_name}",
+  "wave": 1,
+  "total_waves": 1,
+  "plans": [{"id": "NN-MM", "title": "...", "wave": 1, "status": "pending|complete"}],
+  "steps": {
+    "critique": {"status": "complete|skipped|pending", "started_at": "{ISO}", "completed_at": "{ISO}", "artifact": "{path}", "reason": ""},
+    "architecture": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "planning": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "design_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "test_authoring": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "implementation": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "code_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "qa": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "security": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "signoff": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""}
+  }
+}
+```
+
+Per-step status values: `"pending"` (not started), `"running"` (in progress), `"complete"` (finished successfully), `"skipped"` (guard condition triggered). The `reason` field is populated only for skipped steps. The `artifact` field stores the path to the step output file. Step 3 (Load Plans) initializes this `steps` object with all 10 entries set to `"pending"`.
 
 ## Multi-Department Execution
 
