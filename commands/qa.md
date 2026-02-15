@@ -1,6 +1,6 @@
 ---
 name: qa
-description: Run deep verification on completed phase work using the QA agent.
+description: Run deep verification on completed phase work via Lead-dispatched QA hierarchy.
 argument-hint: [phase-number] [--tier=quick|standard|deep] [--effort=thorough|balanced|fast|turbo]
 allowed-tools: Read, Write, Bash, Glob, Grep
 disable-model-invocation: true
@@ -39,29 +39,33 @@ Note: Continuous verification handled by hooks. This command is for deep, on-dem
 
 ## Steps
 
-1. **Resolve tier:** Priority: --tier flag > --effort flag > config default > Standard. Effort mapping: turbo=skip (exit "QA skipped in turbo mode"), fast=quick, balanced=standard, thorough=deep. Read `${CLAUDE_PLUGIN_ROOT}/references/effort-profile-{profile}.md`. Context overrides: >15 requirements or last phase before ship → Deep.
+1. **Resolve tier:** Priority: --tier flag > --effort flag > config default > Standard. Effort mapping: turbo=skip (exit "QA skipped in turbo mode"), fast=quick, balanced=standard, thorough=deep. Read `${CLAUDE_PLUGIN_ROOT}/references/effort-profile-{profile}.md`. Context overrides: >15 requirements or last phase before ship -> Deep.
 2. **Resolve milestone:** If .yolo-planning/ACTIVE exists, use milestone-scoped paths.
-3. **Spawn QA:**
-   - Resolve QA model:
-     ```bash
-     QA_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-     if [ $? -ne 0 ]; then echo "$QA_MODEL" >&2; exit 1; fi
-     ```
-   - Display: `◆ Spawning QA agent (${QA_MODEL})...`
-   - Spawn yolo-qa as subagent via Task tool. **Add `model: "${QA_MODEL}"` parameter.**
+3. **Spawn Lead:**
+- Resolve models:
+  ```bash
+  LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+  if [ $? -ne 0 ]; then echo "$LEAD_MODEL" >&2; exit 1; fi
+  QA_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+  if [ $? -ne 0 ]; then echo "$QA_MODEL" >&2; exit 1; fi
+  QA_CODE_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa-code .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+  if [ $? -ne 0 ]; then echo "$QA_CODE_MODEL" >&2; exit 1; fi
+  ```
+- Display: `◆ Spawning Lead (${LEAD_MODEL}) for QA dispatch...`
+- Spawn yolo-lead as subagent via Task tool. **Add `model: "${LEAD_MODEL}"` parameter.**
 ```
-Verify phase {N}. Tier: {ACTIVE_TIER}.
-Plans: {paths to PLAN.md files}
-Summaries: {paths to SUMMARY.md files}
-Phase success criteria: {section from ROADMAP.md}
-Convention baseline: .yolo-planning/codebase/CONVENTIONS.md (if exists)
-Verification protocol: ${CLAUDE_PLUGIN_ROOT}/references/verification-protocol.md
-Return findings using the qa_result schema (see ${CLAUDE_PLUGIN_ROOT}/references/handoff-schemas.md).
+QA dispatch coordinator. Phase: {N}. Tier: {tier}. QA model: ${QA_MODEL}. QA-Code model: ${QA_CODE_MODEL}.
+Plans: {paths to plan.jsonl files}. Summaries: {paths to summary.jsonl files}.
+Phase success criteria: {from ROADMAP.md}. Convention baseline: .yolo-planning/codebase/CONVENTIONS.md (if exists).
+Verification protocol: ${CLAUDE_PLUGIN_ROOT}/references/verification-protocol.md.
+(1) Dispatch QA Lead (yolo-qa, model: QA_MODEL): plan-level verification -- must_haves, done criteria, requirement traceability. Provide plan.jsonl + summary.jsonl + .ctx-qa.toon context. QA Lead returns qa_result schema.
+(2) Dispatch QA Code (yolo-qa-code, model: QA_CODE_MODEL): code-level verification -- tests, lint, coverage, regression, patterns. Provide summary.jsonl (file list) + test-plan.jsonl + .ctx-qa-code.toon context. QA Code returns qa_code_result schema.
+(3) Synthesize: combine qa_result + qa_code_result into unified verdict: PASS (both pass), PARTIAL (one partial), FAIL (any fail).
+(4) Write {phase-dir}/{phase}-VERIFICATION.md with frontmatter: phase, tier, result, passed, failed, total, date. Body: combined QA output.
+(5) Remediation (if FAIL or PARTIAL with critical findings): spawn yolo-senior (resolve model first) to re-spec failing items; Senior spawns yolo-dev to fix; then re-dispatch QA for verification. Max 2 remediation cycles. After 2nd fail: escalate to Architect via escalation schema.
+(6) Return: unified result, path to VERIFICATION.md.
 ```
-   - QA agent reads all files itself.
-
-4. **Persist:** Parse QA output as JSON (qa_result schema). Fallback: extract from markdown. Write `{phase-dir}/{phase}-VERIFICATION.md` with frontmatter: phase, tier, result (PASS|FAIL|PARTIAL), passed, failed, total, date. Body: QA output.
-5. **Present:** Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon:
+4. **Present:** Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon:
 ```
 ┌──────────────────────────────────────────┐
 │  Phase {N}: {name} -- Verified           │
@@ -76,3 +80,12 @@ Return findings using the qa_result schema (see ${CLAUDE_PLUGIN_ROOT}/references
 
 ```
 Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh qa {result}` and display.
+
+## Escalation and Remediation
+
+- QA Lead -> Lead: QA Lead reports plan-level findings via qa_result schema. QA Lead NEVER contacts Architect or user.
+- QA Code -> Lead: QA Code reports code-level findings via qa_code_result schema. QA Code NEVER modifies source code.
+- Lead synthesis: Lead combines both QA reports into unified PASS/FAIL/PARTIAL verdict.
+- Remediation chain (FAIL/PARTIAL with critical): Lead assigns Senior to re-spec failing items -> Senior spawns Dev to fix -> Lead re-dispatches QA to verify fix. Max 2 cycles.
+- Escalation on 3rd failure: Lead escalates to Architect via escalation schema for design re-evaluation.
+- No QA agent contacts Architect directly. All findings route through Lead.
