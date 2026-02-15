@@ -6,7 +6,7 @@
 # Usage: bash detect-stack.sh [project-dir]
 # Output: JSON object with detected stack, installed skills, and suggestions.
 
-set -eo pipefail
+set -euo pipefail
 
 # --- jq dependency check ---
 if ! command -v jq &>/dev/null; then
@@ -129,7 +129,7 @@ while IFS='|' read -r category name description skills_csv detect_csv; do
   # Check each detect pattern
   matched=false
   IFS=';' read -ra patterns <<< "$detect_csv"
-  for pattern in "${patterns[@]}"; do
+  for pattern in ${patterns[@]+"${patterns[@]}"}; do
     if check_pattern "$pattern"; then
       matched=true
       break
@@ -146,7 +146,7 @@ while IFS='|' read -r category name description skills_csv detect_csv; do
 
     # Add recommended skills
     IFS=';' read -ra skill_list <<< "$skills_csv"
-    for skill in "${skill_list[@]}"; do
+    for skill in ${skill_list[@]+"${skill_list[@]}"}; do
       if ! echo ",$RECOMMENDED_SKILLS," | grep -qF ",$skill,"; then
         if [ -n "$RECOMMENDED_SKILLS" ]; then
           RECOMMENDED_SKILLS="$RECOMMENDED_SKILLS,$skill"
@@ -161,7 +161,7 @@ done <<< "$ENTRIES"
 # --- Compute suggestions (recommended but not installed) ---
 SUGGESTIONS=""
 IFS=',' read -ra rec_arr <<< "$RECOMMENDED_SKILLS"
-for skill in "${rec_arr[@]}"; do
+for skill in ${rec_arr[@]+"${rec_arr[@]}"}; do
   [ -z "$skill" ] && continue
   if ! echo ",$ALL_INSTALLED," | grep -qF ",$skill,"; then
     if [ -n "$SUGGESTIONS" ]; then

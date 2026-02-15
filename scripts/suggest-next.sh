@@ -17,7 +17,7 @@
 #   - Map staleness: percentage from META.md git hash comparison
 #   - Phase name: human-readable slug from directory name
 
-set -eo pipefail
+set -euo pipefail
 
 CMD="${1:-}"
 RESULT="${2:-}"
@@ -42,6 +42,10 @@ active_phase_plans=0
 deviation_count=0
 failing_plan_ids=""
 map_staleness=-1
+last_phase_dir=""
+last_phase_num=""
+last_phase_name=""
+last_phase_plans=0
 
 if [ -d "$PLANNING_DIR" ]; then
   has_planning=true
