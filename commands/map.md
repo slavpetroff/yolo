@@ -111,7 +111,7 @@ Read all 7 docs. Produce:
 
 ### Step 5: Create META.md and present summary
 
-**Shutdown:** Solo: no team. Duo/Quad: send shutdown to each teammate, wait for approval, re-request if rejected, then TeamDelete.
+**HARD GATE — Shutdown before presenting results:** Solo: no team, skip. Duo/Quad: send `shutdown_request` to each teammate, wait for `shutdown_response` (approve=true), re-request if rejected, then TeamDelete. Only THEN proceed to META.md and user output. Failure to shut down leaves agents running and consuming API credits.
 
 Write META.md: mapped_at, git_hash, file_count, document list, mode, monorepo flag, mapping_tier.
 

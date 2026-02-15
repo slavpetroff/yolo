@@ -54,7 +54,7 @@ Decision tree:
 - Spawn 3 vbw-debugger teammates, one task each. **Add `model: "${DEBUGGER_MODEL}"` parameter to each Task spawn.**
 - Wait for completion. Synthesize: strongest evidence + highest confidence wins. Multiple confirmed = contributing factors.
 - Winning hypothesis with fix: apply + commit `fix({scope}): {description}`
-- Shutdown: send shutdown to each teammate, wait for approval, re-request if rejected, then TeamDelete.
+- **HARD GATE — Shutdown before presenting results:** Send `shutdown_request` to each teammate, wait for `shutdown_response` (approve=true), re-request if rejected, then TeamDelete. Only THEN present results to user. Failure to shut down leaves agents running and consuming API credits.
 
 **Path B: Standard** (all other cases):
 - Resolve Debugger model:
