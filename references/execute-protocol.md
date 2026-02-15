@@ -79,6 +79,24 @@ When a step's Guard condition triggers a skip:
 
 Every step in the 10-step workflow below MUST follow these templates. Entry gates run before any step logic. Exit gates run after step logic completes. Skip output runs instead of step logic when guard conditions are met.
 
+### Mandatory vs Skippable Steps
+
+Skippable steps (have Guard conditions that allow skip):
+- **Step 1 — Critique:** Skip when `--effort=turbo` or `critique.jsonl` already exists.
+- **Step 2 — Architecture:** Skip when `architecture.toon` already exists.
+- **Step 5 — Test Authoring:** Skip when `--effort=turbo` or no tasks have `ts` fields.
+- **Step 8 — QA:** Skip when `--skip-qa` flag or `--effort=turbo`.
+- **Step 9 — Security:** Skip when `--skip-security` flag or config `security_audit` != true.
+
+Mandatory steps (NO skip path — failure halts execution with STOP):
+- **Step 3 — Load Plans:** Must always run to initialize execution state.
+- **Step 4 — Design Review:** Must always run to enrich specs.
+- **Step 6 — Implementation:** Must always run to produce code.
+- **Step 7 — Code Review:** Must always run to verify quality.
+- **Step 10 — Sign-off:** Must always run to finalize phase.
+
+If a mandatory step fails, execution halts with a STOP message. There is no `--force` override for mandatory steps. The only recovery is to fix the issue and re-run.
+
 ### Step 1: Critique / Brainstorm (Critic Agent)
 
 **Guard:** If `--effort=turbo` or critique.jsonl already exists in phase directory → **Skip Output:** Display `○ Critique skipped ({reason: turbo effort | critique exists})`. Update `.execution-state.json`: set `steps.critique.status` to `"skipped"`, `steps.critique.reason` to `"{turbo effort | critique.jsonl exists}"`, `steps.critique.skipped_at` to ISO timestamp. Commit: `chore(state): critique skipped phase {N}`. Proceed to Step 2.
