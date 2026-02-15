@@ -186,8 +186,9 @@ mk_config() {
   run_resolve
   assert_success
   # Should use defaults: backend=true, frontend=false, uiux=false
+  # Runtime warning corrects parallel→backend_only when no non-backend depts
   assert_output --partial "multi_dept=false"
-  assert_output --partial "workflow=parallel"
+  assert_output --partial "workflow=backend_only"
   assert_output --partial "active_depts=backend"
   assert_output --partial "fe_active=false"
   assert_output --partial "ux_active=false"
@@ -257,4 +258,52 @@ mk_config() {
   # Wave 1: ux-lead
   # Wave 2: fe-lead,lead (parallel)
   assert_output --partial "leads_to_spawn=ux-lead|fe-lead,lead"
+}
+
+# --- Defaults.json consistency ---
+
+@test "defaults.json produces backend_only" {
+  mkdir -p "$TEST_WORKDIR/.yolo-planning"
+  cp "$CONFIG_DIR/defaults.json" "$TEST_WORKDIR/.yolo-planning/config.json"
+  run_resolve
+  assert_success
+  assert_output --partial "multi_dept=false"
+  assert_output --partial "workflow=backend_only"
+  assert_output --partial "active_depts=backend"
+  assert_output --partial "leads_to_spawn=lead"
+  assert_output --partial "spawn_order=single"
+  assert_output --partial "owner_active=false"
+  assert_output --partial "fe_active=false"
+  assert_output --partial "ux_active=false"
+}
+
+@test "defaults.json output matches no-config output exactly" {
+  run_resolve "$TEST_WORKDIR/nonexistent.json"
+  assert_success
+  local no_config_output="$output"
+
+  mkdir -p "$TEST_WORKDIR/.yolo-planning"
+  cp "$CONFIG_DIR/defaults.json" "$TEST_WORKDIR/.yolo-planning/config.json"
+  run_resolve
+  assert_success
+
+  assert_equal "$no_config_output" "$output"
+}
+
+@test "parallel with no non-backend depts emits warning and falls back" {
+  mk_config true false false parallel
+  run_resolve
+  assert_success
+  assert_output --partial "[warn]"
+  assert_output --partial "workflow=backend_only"
+  assert_output --partial "multi_dept=false"
+}
+
+@test "sequential with no non-backend depts emits warning and falls back" {
+  mk_config true false false sequential
+  run_resolve
+  assert_success
+  assert_output --partial "[warn]"
+  assert_output --partial "workflow=backend_only"
+  assert_output --partial "multi_dept=false"
 }
