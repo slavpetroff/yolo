@@ -97,3 +97,14 @@ Result: {N}/15 passed, {W} warnings, {F} failures
 ```
 
 Use checkmark for PASS, warning triangle for WARN, X for FAIL.
+
+### Cleanup
+
+If any WARN from checks 11-14:
+- Show cleanup preview listing all findings
+- Display: "Run `/vbw:doctor --cleanup` to apply cleanup"
+
+If user invoked with `--cleanup` (check for this in the command arguments):
+- Run `bash scripts/doctor-cleanup.sh cleanup 2>&1`
+- Report what was cleaned
+- Show updated counts
