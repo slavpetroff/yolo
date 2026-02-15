@@ -371,6 +371,7 @@ echo "✓ Model override: $AGENT ➜ $MODEL"
 | custom_profiles | object | user-defined profiles | {} |
 | model_profile | string | quality/balanced/budget | quality |
 | model_overrides | object | agent-to-model map | {} |
+| agent_max_turns | object | per-agent turns (number), 0/false disables | scout=15, qa=25, architect=30, debugger=80, lead=50, dev=75 |
 | context_compiler | boolean | true/false | true |
 | v3_delta_context | boolean | true/false | false |
 | v3_context_cache | boolean | true/false | false |
