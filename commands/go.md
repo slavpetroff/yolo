@@ -273,6 +273,8 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
    Read `${CLAUDE_PLUGIN_ROOT}/references/cross-team-protocol.md` for workflow order.
 
    a. **Owner Context Gathering + Context Splitting (FIRST — before any department leads spawn):**
+      **Replan gate:** Before running the questionnaire, check if department CONTEXT files already exist in the phase directory (glob: `{phase-dir}/{phase}-CONTEXT-*.md`). If ANY exist: AskUserQuestion "Existing department context files found from a previous planning run. What would you like to do?" Options: (1) "Reuse existing context (Recommended)" — skip questionnaire entirely, proceed to step 6b with existing files. Display: `✓ Reusing existing department context ({N} files)`. (2) "Gather fresh context" — delete all `{phase}-CONTEXT-*.md` files in the phase directory, then run the full questionnaire below. Display: `◆ Refreshing department context...`. If NO existing CONTEXT files found, proceed directly to the questionnaire.
+
       The Owner is the SOLE point of contact with the user. In multi-department mode, go.md acts as the Owner's proxy to gather ALL requirements before ANY department lead is spawned. NO other agent talks to the user — ONLY the Owner does.
 
       **Questionnaire** — ask via AskUserQuestion in 2-3 adaptive rounds. Keep asking until ALL context is gathered and NO ambiguity remains:
