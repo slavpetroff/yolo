@@ -286,6 +286,82 @@ if [ -f "$EXEC_STATE" ]; then
   fi
 fi
 
+# --- Orphan Agent Cleanup ---
+# Detect and terminate orphaned claude processes (PPID=1) from crashed sessions.
+# These processes can consume up to 30GB each and accumulate indefinitely.
+# Only processes with PPID=1 (init-adopted, truly orphaned) are targeted.
+# Cross-platform: macOS uses BSD ps, Linux uses GNU ps.
+
+cleanup_orphaned_agents() {
+  # Graceful degradation: skip if ps command unavailable
+  if ! command -v ps >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local orphan_pids=""
+  local current_session_pid=$$
+
+  # Detect claude processes with PPID=1 (orphaned, adopted by init)
+  # Platform-specific ps syntax
+  if [ "$(uname)" = "Darwin" ]; then
+    # macOS: BSD ps syntax
+    orphan_pids=$(ps -eo pid,ppid,comm 2>/dev/null | awk '$2 == 1 && $3 ~ /claude/ {print $1}' || true)
+  else
+    # Linux: GNU ps syntax
+    orphan_pids=$(ps -eo pid,ppid,comm 2>/dev/null | awk '$2 == 1 && $3 ~ /claude/ {print $1}' || true)
+  fi
+
+  # Validate PIDs are numeric and exclude current session
+  local validated_pids=""
+  for pid in $orphan_pids; do
+    # Numeric validation
+    if ! echo "$pid" | grep -qE '^[0-9]+$'; then
+      continue
+    fi
+    # Skip current session's own process
+    if [ "$pid" = "$current_session_pid" ]; then
+      continue
+    fi
+    validated_pids="$validated_pids $pid"
+  done
+
+  # No orphans found
+  if [ -z "$validated_pids" ]; then
+    return 0
+  fi
+
+  # Log orphan detection
+  local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%d %H:%M:%S")
+  local orphan_count=$(echo "$validated_pids" | wc -w | tr -d ' ')
+  echo "[$timestamp] Orphan cleanup: found $orphan_count orphaned claude process(es)" >> "$PLANNING_DIR/.hook-errors.log" 2>/dev/null || true
+
+  # Terminate with SIGTERM (graceful)
+  for pid in $validated_pids; do
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "[$timestamp] Terminating orphan claude process PID=$pid (SIGTERM)" >> "$PLANNING_DIR/.hook-errors.log" 2>/dev/null || true
+      kill -TERM "$pid" 2>/dev/null || true
+    fi
+  done
+
+  # Wait 2 seconds for graceful shutdown
+  sleep 2
+
+  # SIGKILL fallback for survivors
+  for pid in $validated_pids; do
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "[$timestamp] Orphan claude process PID=$pid survived SIGTERM, sending SIGKILL" >> "$PLANNING_DIR/.hook-errors.log" 2>/dev/null || true
+      kill -KILL "$pid" 2>/dev/null || true
+    fi
+  done
+
+  return 0
+}
+
+# Run cleanup if not in compaction mode and planning directory exists
+if [ -d "$PLANNING_DIR" ]; then
+  cleanup_orphaned_agents || true
+fi
+
 # --- Project state ---
 
 if [ ! -d "$PLANNING_DIR" ]; then
