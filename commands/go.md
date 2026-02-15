@@ -411,9 +411,9 @@ This mode delegates to protocol files. Before reading:
 
   Follow `multi-dept-protocol.md` dispatch flow — each department runs its own 10-step using department-prefixed agents (fe-*, ux-*). Workflow order from `workflow` variable:
 
-  **Owner Context Gathering + Splitting** (if `{phase}-CONTEXT-backend.md` does NOT exist) → **Owner Critique Review** → UX 10-step (if ux_active) → Handoff Gate → FE+BE parallel 10-step → Integration QA → Security → **Owner Sign-off**.
+  **Owner Context Gathering + Splitting** (reuse/refresh gate: if `{phase}-CONTEXT-*.md` files exist, AskUserQuestion with options "Reuse existing context" or "Gather fresh context"; if no files exist, run full questionnaire) → **Owner Critique Review** → UX 10-step (if ux_active) → Handoff Gate → FE+BE parallel 10-step → Integration QA → Security → **Owner Sign-off**.
 
-  The Owner is the SOLE point of contact with the user. If department context files are missing, run the Owner questionnaire + context splitting from Plan Mode step 6a before any department execution begins. No department lead or agent talks to the user — only the Owner does.
+  The Owner is the SOLE point of contact with the user. If department context files are missing, run the Owner questionnaire + context splitting from Plan Mode step 6a. If files exist, apply the same reuse/refresh gate as Plan Mode step 6a (AskUserQuestion: reuse existing or gather fresh). No department lead or agent talks to the user — only the Owner does.
 
   **Context isolation (STRICT):** Each department's 10-step execution receives ONLY its department context file. Within each department, context cascades DOWN the hierarchy with progressive scoping:
   - Lead receives: department CONTEXT + ROADMAP + REQUIREMENTS
