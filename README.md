@@ -132,6 +132,7 @@ Think of it as project management for the post-dignity era of software developme
 - [The Agents](#the-agents)
 - [Effort Profiles](#effort-profiles)
 - [Autonomy Levels](#autonomy-levels)
+- [Planning & Git](#planning--git)
 - [Feature Flags Reference](#feature-flags-reference)
 - [Project Structure](#project-structure)
 - [Requirements](#requirements)
@@ -612,6 +613,50 @@ Autonomy interacts with effort profiles. At `cautious`, plan approval expands to
 | "Already complete" warning | Confirm | Confirm | Skip | Skip |
 | Plan approval (Thorough) | Required | Required | Off | Off |
 | Plan approval (Balanced) | Required | Off | Off | Off |
+
+<br>
+
+---
+
+<br>
+
+## Planning & Git
+
+VBW generates 15+ files in `.vbw-planning/` during bootstrap, planning, execution, and QA — but by default none of them are committed. The Dev agent only commits source code files listed in each task's `Files:` section. Two settings control what happens to planning artifacts and when code gets pushed.
+
+### `planning_tracking`
+
+Controls whether `.vbw-planning/` artifacts are committed, gitignored, or left for you to manage.
+
+```
+/vbw:config planning_tracking commit
+```
+
+| Value | What It Does | When To Use It |
+| :--- | :--- | :--- |
+| **`manual`** | Default. No commits, no gitignore. Planning files accumulate as untracked in `git status`. You manage them yourself. | When you want full control, or aren't sure yet. |
+| **`ignore`** | Adds `.vbw-planning/` to `.gitignore` during `/vbw:init`. Planning files exist locally but never enter version control. Clean `git status`. | Solo projects, prototyping, or when planning history doesn't matter. |
+| **`commit`** | Auto-commits `.vbw-planning/` artifacts at lifecycle boundaries — after bootstrap, after planning, after archive. Commit format: `chore(vbw): {action}`. Transient files (`.execution-state.json`, `.contracts/`, `.locks/`, `.token-state/`, compiled context) are excluded via `.vbw-planning/.gitignore`. | Teams that want an audit trail of planning decisions in version control. |
+
+> **Note:** `auto_commit` (the existing boolean) only controls source-task commits during Execute mode. It has no effect on planning artifacts — that's what `planning_tracking` is for.
+
+### `auto_push`
+
+Controls whether VBW pushes commits automatically, and when.
+
+```
+/vbw:config auto_push after_phase
+```
+
+| Value | What It Does | When To Use It |
+| :--- | :--- | :--- |
+| **`never`** | Default. Never pushes. Commits stay local until you explicitly run `git push`. Follows the "do not push until asked" rule. | When you review commits before sharing, or work on protected branches. |
+| **`after_phase`** | Pushes once after phase execution completes, batching all task commits from that phase into a single push. | Power users who want remote backup after each phase without per-commit noise. |
+| **`always`** | Pushes after every commit — both source-task commits and planning commits (if `planning_tracking=commit`). | CI/CD pipelines, pair programming setups, or when you want real-time remote visibility. |
+
+<br>
+
+---
 
 <br>
 
