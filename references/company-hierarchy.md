@@ -266,3 +266,22 @@ On session re-entry (session-start.sh):
 3. Check git log → correlate commits with tasks
 4. Re-compile .ctx-{role}.toon from JSONL artifacts on disk
 5. Resume at exact point — everything is committed
+
+## Command Routing Table
+
+Every command enters through go.md (Owner proxy) and dispatches through the company hierarchy. No command spawns specialist agents directly.
+
+| Command | Entry Point | Primary Spawn | Hierarchy Chain | Escalation Path |
+|---------|-------------|---------------|-----------------|------------------|
+| /yolo:go (execute) | go.md | Critic, Architect, Lead | go.md -> Critic -> Architect -> Lead -> Senior -> Tester -> Dev -> QA -> Security -> Sign-off | Per-step escalation (see 10-Step Workflow above) |
+| /yolo:debug | go.md | Lead | go.md -> Lead -> Debugger(s) | Debugger -> Lead -> Architect (if >3 files or interface change) |
+| /yolo:fix | go.md | Lead | go.md -> Lead -> {trivial: Dev, needs-spec: Senior -> Dev} | Dev -> Senior -> Lead -> go.md (scope too large -> /yolo:go) |
+| /yolo:research | go.md | Lead | go.md -> Lead -> Scout(s) | Scout -> Lead -> go.md (contradictions or architecture impact) |
+| /yolo:qa | go.md | Lead | go.md -> Lead -> QA Lead + QA Code | QA -> Lead -> Senior -> Architect (after 3rd failure) |
+
+**Rules:**
+1. go.md is always the entry point. It acts as the Owner proxy for user communication.
+2. Lead is the primary dispatcher for all specialist commands (debug, fix, research, qa).
+3. Specialists (Debugger, Scout, QA, Dev) are spawned BY Lead, never directly by go.md.
+4. Escalation follows the chain strictly -- no level skipping.
+5. Only go.md talks to the user. No spawned agent communicates with the user directly.
