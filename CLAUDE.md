@@ -6,10 +6,10 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** VBW Cleanup & Owner-First Communication — 3 phases
-**Last shipped:** Test Fixes & Token Format Standardization — 4 phases, 5 commits
-**Previous:** Agent Quality & Token Optimization — 3 phases, 12 commits
-**Next action:** Run /yolo:go to continue execution
+**Work:** Workflow Enforcement milestone active
+**Last shipped:** Concerns Fix -- 3 phases, 7 commits
+**Previous:** VBW Cleanup & Owner-First Communication -- 3 phases, 4 commits
+**Next action:** Run /yolo:status for milestone progress
 
 ## YOLO Rules
 
@@ -23,6 +23,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 - **Plan before building.** Use /yolo:go for all lifecycle actions. Plans are the source of truth.
 - **Do not fabricate content.** Only use what the user explicitly states in project-defining flows.
 - **Do not bump version or push until asked.** Never run `scripts/bump-version.sh` or `git push` unless the user explicitly requests it. Commit locally and wait.
+- **All commands route through the company hierarchy.** No command spawns specialist agents directly. /yolo:debug, /yolo:fix, /yolo:research, and /yolo:qa all dispatch through Lead first.
 
 ## Key Decisions
 
@@ -52,6 +53,9 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Never bypass /yolo:go invocations | 2026-02-14 | Claude dismissed go.md as "not a workflow" and went ad-hoc; explicit rule prevents this |
 | Owner-first: sole user contact in all modes | 2026-02-14 | No subagent talks to user directly; go.md acts as Owner proxy; escalation flows up chain |
 | go.md routes debug/fix/research via NL parser | 2026-02-14 | Prevents ambiguous routing to removed VBW commands; explicit keyword matching |
+| Verification gates in execute-protocol.md | 2026-02-16 | Prevents silent step skipping; entry/exit gates on every step |
+| Commands route through Lead hierarchy | 2026-02-16 | debug/fix/research/qa all delegate through Lead, not directly to specialists |
+| 10-step workflow expanded to enforcement contract | 2026-02-16 | Entry/exit gates with mandatory artifact verification on every step |
 
 ## Installed Skills
 
