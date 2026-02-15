@@ -62,7 +62,6 @@ if [ -f "$PLANNING_DIR/.gsd-isolation" ]; then
   elif is_expanded_vbw_prompt "$PROMPT"; then
     echo "session" > "$PLANNING_DIR/.vbw-session"
   fi
-  fi
   # Plain text prompts: leave marker unchanged (continuation of active flow)
 fi
 
