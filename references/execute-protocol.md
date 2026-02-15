@@ -44,6 +44,41 @@ When spawning each agent via Task tool, include ONLY the listed inputs. Do NOT p
 
 **Escalation context flow:** When an agent escalates UP, the receiving agent has broader context to resolve. When resolution pushes back DOWN, it comes as an updated artifact (amended spec, architecture addendum), not as raw context files.
 
+## Verification Gate Protocol
+
+### Gate Check
+
+**ENTRY GATE:** Verify {predecessor_artifact} exists in {phase-dir}.
+- File check: `[ -f "{phase-dir}/{artifact}" ]`
+- JSONL validity (if .jsonl): `jq empty "{phase-dir}/{artifact}" 2>/dev/null`
+- TOON validity (if .toon): `[ -s "{phase-dir}/{artifact}" ]`
+- If artifact was produced by a skippable step, also accept: step status is "skipped" in .execution-state.json (check via `jq -r '.steps["{step_name}"].status' .yolo-planning/.execution-state.json`)
+- If NEITHER artifact exists NOR step is skipped: **STOP** "{Step N} artifact missing — {artifact} not found in {phase-dir}. Run step {N} first."
+
+### State Commit
+
+**EXIT GATE:** After step completes successfully:
+1. Update `.yolo-planning/.execution-state.json`:
+   - Set `steps.{step_name}.status` to `"complete"`
+   - Set `steps.{step_name}.completed_at` to ISO 8601 timestamp
+   - Set `steps.{step_name}.artifact` to the path of the produced artifact
+   - Set top-level `step` to `"{step_name}"`
+2. Verify this step's output artifact exists: `[ -f "{phase-dir}/{output_artifact}" ]`
+3. Commit: `chore(state): {step_name} complete phase {N}`
+
+### Skip Output
+
+When a step's Guard condition triggers a skip:
+1. Display: `○ {Step Name} skipped ({reason})`
+2. Update `.yolo-planning/.execution-state.json`:
+   - Set `steps.{step_name}.status` to `"skipped"`
+   - Set `steps.{step_name}.reason` to `"{reason}"`
+   - Set `steps.{step_name}.skipped_at` to ISO 8601 timestamp
+3. Commit: `chore(state): {step_name} skipped phase {N}`
+4. Proceed to next step.
+
+Every step in the 10-step workflow below MUST follow these templates. Entry gates run before any step logic. Exit gates run after step logic completes. Skip output runs instead of step logic when guard conditions are met.
+
 ### Step 1: Critique / Brainstorm (Critic Agent)
 
 **Guard:** Skip if `--effort=turbo` or critique.jsonl already exists in phase directory.
