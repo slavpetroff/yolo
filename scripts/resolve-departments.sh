@@ -53,6 +53,17 @@ if [ "$FRONTEND" = "true" ] || [ "$UIUX" = "true" ]; then
   fi
 fi
 
+# Warn on incoherent config: parallel workflow with no non-backend departments
+if [ "$WORKFLOW" = "parallel" ] && [ "$FRONTEND" = "false" ] && [ "$UIUX" = "false" ]; then
+  echo "[warn] department_workflow=parallel but no non-backend departments enabled; behaving as backend_only" >&2
+  WORKFLOW="backend_only"
+fi
+
+if [ "$WORKFLOW" = "sequential" ] && [ "$FRONTEND" = "false" ] && [ "$UIUX" = "false" ]; then
+  echo "[warn] department_workflow=sequential but no non-backend departments enabled; behaving as backend_only" >&2
+  WORKFLOW="backend_only"
+fi
+
 # Build active departments list
 ACTIVE_DEPTS="backend"
 if [ "$FRONTEND" = "true" ]; then ACTIVE_DEPTS="${ACTIVE_DEPTS},frontend"; fi
