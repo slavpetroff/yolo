@@ -31,7 +31,8 @@ LOG="$PLANNING_DIR/.watchdog.log"
 mkdir -p "$PLANNING_DIR"
 
 log() {
-  local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%d %H:%M:%S")
+  local timestamp
+  timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%d %H:%M:%S")
   echo "[$timestamp] $*" >> "$LOG" 2>/dev/null || echo "[$timestamp] $*" >&2
 }
 

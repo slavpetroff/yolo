@@ -28,7 +28,8 @@ mkdir -p "$TEMP_DIR"
 # Logging helper (fail-silent)
 log_cleanup() {
   local msg="$1"
-  local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
+  local timestamp
+  timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
   echo "[$timestamp] $msg" >> "$LOG_FILE" 2>/dev/null || true
 }
 

@@ -32,7 +32,8 @@ get_mtime() {
 # Logging helper (fail-silent)
 log_action() {
   local msg="$1"
-  local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
+  local timestamp
+  timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
   echo "[$timestamp] Doctor cleanup: $msg" >> "$LOG_FILE" 2>/dev/null || true
 }
 
@@ -40,12 +41,14 @@ log_action() {
 scan_stale_teams() {
   [ ! -d "$TEAMS_DIR" ] && return 0
 
-  local now=$(date +%s)
+  local now
+  now=$(date +%s)
 
   for team_dir in "$TEAMS_DIR"/*; do
     [ ! -d "$team_dir" ] && continue
 
-    local team_name=$(basename "$team_dir")
+    local team_name
+    team_name=$(basename "$team_dir")
     local inbox_dir="$team_dir/inboxes"
 
     [ ! -d "$inbox_dir" ] && continue
@@ -54,7 +57,8 @@ scan_stale_teams() {
     local inbox_mtime=0
     for inbox_file in "$inbox_dir"/*; do
       [ ! -e "$inbox_file" ] && continue
-      local file_mtime=$(get_mtime "$inbox_file")
+      local file_mtime
+      file_mtime=$(get_mtime "$inbox_file")
       [ "$file_mtime" -gt "$inbox_mtime" ] && inbox_mtime=$file_mtime
     done
 
@@ -93,7 +97,8 @@ scan_stale_markers() {
   # Check watchdog PID
   local watchdog_pid_file="$PLANNING_DIR/.watchdog-pid"
   if [ -f "$watchdog_pid_file" ]; then
-    local watchdog_pid=$(cat "$watchdog_pid_file" 2>/dev/null)
+    local watchdog_pid
+    watchdog_pid=$(cat "$watchdog_pid_file" 2>/dev/null)
     if [ -n "$watchdog_pid" ] && ! kill -0 "$watchdog_pid" 2>/dev/null; then
       echo "stale_marker|.watchdog-pid|dead process"
     fi
@@ -102,8 +107,10 @@ scan_stale_markers() {
   # Check compaction marker age
   local compaction_marker="$PLANNING_DIR/.compaction-marker"
   if [ -f "$compaction_marker" ]; then
-    local marker_mtime=$(get_mtime "$compaction_marker")
-    local now=$(date +%s)
+    local marker_mtime
+    marker_mtime=$(get_mtime "$compaction_marker")
+    local now
+    now=$(date +%s)
     local age=$((now - marker_mtime))
     if [ "$age" -gt 60 ]; then
       echo "stale_marker|.compaction-marker|age: ${age}s"
@@ -126,16 +133,18 @@ cleanup_stale_teams() {
 }
 
 cleanup_orphaned_processes() {
-  local orphans=$(scan_orphaned_processes)
+  local orphans
+  orphans=$(scan_orphaned_processes)
   [ -z "$orphans" ] && return 0
 
   local count=0
-  echo "$orphans" | while IFS='|' read -r category pid comm; do
-    [ -z "$pid" ] && continue
+  local _category _pid _comm
+  echo "$orphans" | while IFS='|' read -r _category _pid _comm; do
+    [ -z "$_pid" ] && continue
 
     # SIGTERM first
-    if kill -TERM "$pid" 2>/dev/null; then
-      log_action "sent SIGTERM to orphan process $pid ($comm)"
+    if kill -TERM "$_pid" 2>/dev/null; then
+      log_action "sent SIGTERM to orphan process $_pid ($_comm)"
       count=$((count + 1))
     fi
   done
@@ -144,10 +153,10 @@ cleanup_orphaned_processes() {
   sleep 2
 
   # SIGKILL survivors
-  echo "$orphans" | while IFS='|' read -r category pid comm; do
-    [ -z "$pid" ] && continue
-    if kill -0 "$pid" 2>/dev/null; then
-      kill -KILL "$pid" 2>/dev/null && log_action "sent SIGKILL to survivor process $pid ($comm)"
+  echo "$orphans" | while IFS='|' read -r _category _pid _comm; do
+    [ -z "$_pid" ] && continue
+    if kill -0 "$_pid" 2>/dev/null; then
+      kill -KILL "$_pid" 2>/dev/null && log_action "sent SIGKILL to survivor process $_pid ($_comm)"
     fi
   done
 
@@ -193,12 +202,15 @@ cleanup_stale_markers() {
 
       case "$marker" in
         .watchdog-pid)
-          local watchdog_pid=$(cat "$marker_file" 2>/dev/null)
+          local watchdog_pid
+          watchdog_pid=$(cat "$marker_file" 2>/dev/null)
           [ -n "$watchdog_pid" ] && ! kill -0 "$watchdog_pid" 2>/dev/null && is_stale=true
           ;;
         .compaction-marker)
-          local marker_mtime=$(get_mtime "$marker_file")
-          local now=$(date +%s)
+          local marker_mtime
+          marker_mtime=$(get_mtime "$marker_file")
+          local now
+          now=$(date +%s)
           local age=$((now - marker_mtime))
           [ "$age" -gt 60 ] && is_stale=true
           ;;

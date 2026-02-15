@@ -9,12 +9,13 @@ INPUT=$(cat)
 PROMPT=$(echo "$INPUT" | jq -r '.prompt // .content // ""' 2>/dev/null)
 [ -z "$PROMPT" ] && exit 0
 
-# GSD Isolation: manage .vbw-session marker
+# GSD Isolation: create .vbw-session marker on VBW command invocation.
+# Only CREATE the marker here; removal is handled by session-stop.sh at session end.
+# Deleting on non-/vbw: prompts caused false blocks mid-workflow when users send
+# follow-up messages (plan approvals, answers) that don't start with /vbw:.
 if [ -f "$PLANNING_DIR/.gsd-isolation" ]; then
   if echo "$PROMPT" | grep -qi '^/vbw:'; then
     echo "session" > "$PLANNING_DIR/.vbw-session"
-  else
-    rm -f "$PLANNING_DIR/.vbw-session"
   fi
 fi
 

@@ -372,8 +372,10 @@ cleanup_orphaned_agents() {
   fi
 
   # Log orphan detection
-  local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%d %H:%M:%S")
-  local orphan_count=$(echo "$validated_pids" | wc -w | tr -d ' ')
+  local timestamp
+  timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%d %H:%M:%S")
+  local orphan_count
+  orphan_count=$(echo "$validated_pids" | wc -w | tr -d ' ')
   echo "[$timestamp] Orphan cleanup: found $orphan_count orphaned claude process(es)" >> "$PLANNING_DIR/.hook-errors.log" 2>/dev/null || true
 
   # Terminate with SIGTERM (graceful)
