@@ -3,32 +3,26 @@
   "phase_name": "agent-teams-integration",
   "status": "running",
   "started_at": "2026-02-16T10:30:00Z",
-  "step": "architecture",
+  "step": "planning",
   "wave": 1,
-  "total_waves": 3,
+  "total_waves": 2,
   "plans": [
     {
       "id": "02-01",
-      "title": "Team Lifecycle Scripts",
+      "title": "Department Coordination Scripts",
       "wave": 1,
       "status": "pending"
     },
     {
       "id": "02-02",
-      "title": "Hook Adaptations for Team-Aware Tracking",
+      "title": "Hook and State Adaptations",
       "wave": 1,
       "status": "pending"
     },
     {
       "id": "02-03",
-      "title": "Protocol Updates for Teammate API",
+      "title": "Protocol and Documentation Updates",
       "wave": 2,
-      "status": "pending"
-    },
-    {
-      "id": "02-04",
-      "title": "Go.md Integration and End-to-End Wiring",
-      "wave": 3,
       "status": "pending"
     }
   ],
@@ -49,9 +43,9 @@
     },
     "planning": {
       "status": "complete",
-      "started_at": "2026-02-16T10:25:00Z",
-      "completed_at": "2026-02-16T10:30:00Z",
-      "artifact": "4 plan.jsonl files (18 tasks)",
+      "started_at": "2026-02-17T01:00:00Z",
+      "completed_at": "2026-02-17T01:05:00Z",
+      "artifact": "3 plan.jsonl files (11 tasks, 2 waves)",
       "reason": ""
     },
     "design_review": {
