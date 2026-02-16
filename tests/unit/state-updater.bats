@@ -243,3 +243,102 @@ mk_phase_complete() {
   run_updater "src/foo.ts"
   assert_success
 }
+
+# --- Multi-department orchestration state ---
+
+# Helper: create .phase-orchestration.json in a phase dir
+mk_phase_orchestration() {
+  local phase_dir="$1" content="$2"
+  echo "$content" > "$phase_dir/.phase-orchestration.json"
+}
+
+@test "summary write updates .phase-orchestration.json department step" {
+  mk_state_md 1 2
+  mk_state_json 1 2 "executing"
+  mk_execution_state "01" "01-01"
+
+  local dir
+  dir=$(mk_phase_plans_only 1 setup 1)
+
+  mk_phase_orchestration "$dir" '{"departments":{"backend":{"status":"running","step":"planning"}},"gates":{"all-depts":{"status":"pending"}}}'
+  printf '%s' "yolo-lead" > "$TEST_WORKDIR/.yolo-planning/.active-agent"
+
+  local summary_file="$dir/01-01.summary.jsonl"
+  echo '{"p":"01","n":"01-01","s":"complete","fm":["src/foo.ts"]}' > "$summary_file"
+
+  run_updater "$summary_file"
+  assert_success
+
+  run jq -r '.departments.backend.step' "$dir/.phase-orchestration.json"
+  assert_output "implementation"
+
+  run jq -r '.departments.backend.updated_at' "$dir/.phase-orchestration.json"
+  refute_output ""
+  refute_output "null"
+}
+
+@test "all depts complete triggers gate update in .phase-orchestration.json" {
+  mk_state_md 1 2
+  mk_state_json 1 2 "executing"
+  mk_execution_state "01" "01-01"
+
+  local dir
+  dir=$(mk_phase_plans_only 1 setup 1)
+
+  mk_phase_orchestration "$dir" '{"departments":{"backend":{"status":"complete","step":"signoff"},"frontend":{"status":"complete","step":"signoff"}},"gates":{"all-depts":{"status":"pending"}}}'
+  printf '%s' "yolo-lead" > "$TEST_WORKDIR/.yolo-planning/.active-agent"
+
+  local summary_file="$dir/01-01.summary.jsonl"
+  echo '{"p":"01","n":"01-01","s":"complete","fm":["src/foo.ts"]}' > "$summary_file"
+
+  run_updater "$summary_file"
+  assert_success
+
+  run jq -r '.gates["all-depts"].status' "$dir/.phase-orchestration.json"
+  assert_output "passed"
+}
+
+@test "missing .phase-orchestration.json has no effect" {
+  mk_state_md 1 2
+  mk_state_json 1 2 "executing"
+  mk_execution_state "01" "01-01"
+
+  local dir
+  dir=$(mk_phase_plans_only 1 setup 1)
+
+  printf '%s' "yolo-lead" > "$TEST_WORKDIR/.yolo-planning/.active-agent"
+
+  local summary_file="$dir/01-01.summary.jsonl"
+  echo '{"p":"01","n":"01-01","s":"complete","fm":["src/foo.ts"]}' > "$summary_file"
+
+  run_updater "$summary_file"
+  assert_success
+
+  assert_file_not_exists "$dir/.phase-orchestration.json"
+}
+
+@test "existing .execution-state.json update still works with orchestration" {
+  mk_state_md 1 2
+  mk_state_json 1 2 "executing"
+  mk_execution_state "01" "01-01"
+
+  local dir
+  dir=$(mk_phase_plans_only 1 setup 1)
+
+  mk_phase_orchestration "$dir" '{"departments":{"backend":{"status":"running","step":"planning"}},"gates":{"all-depts":{"status":"pending"}}}'
+  printf '%s' "yolo-lead" > "$TEST_WORKDIR/.yolo-planning/.active-agent"
+
+  local summary_file="$dir/01-01.summary.jsonl"
+  echo '{"p":"01","n":"01-01","s":"complete","fm":["src/foo.ts"]}' > "$summary_file"
+
+  run_updater "$summary_file"
+  assert_success
+
+  # Verify .execution-state.json was updated
+  run jq -r '.phases["01"]["01-01"].status' "$TEST_WORKDIR/.yolo-planning/.execution-state.json"
+  assert_output "complete"
+
+  # Verify .phase-orchestration.json was also updated
+  run jq -r '.departments.backend.step' "$dir/.phase-orchestration.json"
+  assert_output "implementation"
+}
