@@ -61,9 +61,9 @@ Active milestone: `!`cat .vbw-planning/ACTIVE 2>/dev/null || echo "No active mil
      - "Remove it" — remove from Pending Todos (completed or no longer needed)
      - "Go back" — return to list
 
-8. **Execute action:**
-   - **Work on it now:** Remove the todo line from `### Pending Todos` in STATE.md. If no todos remain, replace with "None." Confirm: "✓ Removed todo — ready to work." Then present the todo context and ask how to proceed.
-   - **Remove it:** Remove the todo line from `### Pending Todos` in STATE.md. If no todos remain, replace with "None." Confirm: "✓ Todo removed."
+8. **Execute action:** Remove/edit within whichever section the todo was found in (i.e., `### Pending Todos` or the `## Todos` fallback from Step 2).
+   - **Work on it now:** Remove the todo line from the todos section in STATE.md. If no todos remain, replace with "None." Confirm: "✓ Removed todo — ready to work." Then present the todo context and ask how to proceed.
+   - **Remove it:** Remove the todo line from the todos section in STATE.md. If no todos remain, replace with "None." Confirm: "✓ Todo removed."
    - **Go back:** Return to step 4.
 
 ## Output Format
