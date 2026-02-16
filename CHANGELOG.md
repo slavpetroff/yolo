@@ -2,19 +2,43 @@
 
 All notable changes to VBW will be documented in this file.
 
-## [1.21.22] - 2026-02-16
+## [1.21.28] - 2026-02-16
 
 ### Added
 
+- **`debugger`** -- Codebase mapping bootstrap now references PATTERNS.md and DEPENDENCIES.md in addition to ARCHITECTURE.md and CONCERNS.md. Compiled context includes dynamic "Codebase Map Available" hint section for debugger role. Cache invalidation when mapping files change. (PR #77 by @dpearson2699)
+- **`debug`** -- Codebase bootstrap instruction added to both Path A (team) and Path B (single) debugger task prompts. (PR #77 by @dpearson2699)
+
+### Fixed
+
+- **`statusline`** -- Replace `tr` with `sed` for UTF-8 progress bar characters on Linux. GNU `tr` corrupts multi-byte characters (█ ░ ▓) by processing byte-by-byte.
+
+## [1.21.26] - 2026-02-16
+
+### Added
+
+- **`discussion-engine`** -- Unified discussion engine replacing three competing subsystems (bootstrap discovery, phase discovery, phase discussion). One engine, three entry points (`/vbw:vibe`, `/vbw:vibe --discuss N`, `/vbw:discuss N`). Auto-calibrates between Builder and Architect modes from conversation signals. Generates phase-specific gray areas instead of keyword-matched templates. ~1095 lines removed, ~180 lines added.
+- **`discuss`** -- New `/vbw:discuss [N]` standalone command for explicit phase discussions.
 - **`agent-health`** -- New agent health monitoring system with start/stop/idle/cleanup/orphan-recovery subcommands, lifecycle hooks (SubagentStart, SubagentStop, TeammateIdle, Stop), and integration tests.
 - **`circuit-breaker`** -- Circuit breaker protocol added to all agent definitions for resilient failure handling.
 - **`compaction`** -- Enhanced compaction recovery with TaskGet reminder for better context restoration.
 - **`debugger`** -- Bootstrap investigation from codebase mapping when available.
 
+### Changed
+
+- **`vibe`** -- Bootstrap B2 now delegates to the discussion engine instead of 6-round rigid questioning. Plan mode no longer auto-asks 1-3 questions; users run `/vbw:discuss` explicitly if they want context. Discuss mode replaced with a 5-line engine delegation.
+- **`bootstrap-requirements`** -- Removed tier-based annotation (table_stakes/differentiators/anti_features) and research cross-referencing. Reads simplified `discovery.json` schema directly.
+- **`readme`** -- Updated all counts (31k lines, 81 scripts, 23 commands, 7 agents, 461 tests). Added `/vbw:discuss` command, Docs agent, agent health monitoring, discussion engine references.
+
+### Removed
+
+- **`discovery-protocol`** -- Deleted 800-line `references/discovery-protocol.md`. Replaced by `references/discussion-engine.md` (~150 lines).
+
 ### Fixed
 
 - **`teams`** -- Remove stale tmux forced in-process workaround, restore split-pane mode.
 - **`token-budget`** -- Switch from line-based to character-based budgets, default to head truncation, remove cross-task escalation.
+- **`ci`** -- Add executable bit to `agent-health.sh`. Remove unused variables in `token-baseline.sh` (SC2034). Use `CLAUDE_CONFIG_DIR` fallback in `agent-health.sh`.
 
 ## [1.21.18] - 2026-02-16
 
