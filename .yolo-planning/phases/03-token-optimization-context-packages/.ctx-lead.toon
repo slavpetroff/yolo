@@ -1,0 +1,12 @@
+phase: 03
+goal: Offload more LLM work to scripts, reorganize references into department packages, adapt agent tool permissions per project type
+
+
+decisions:
+  | Decision | Date | Rationale |
+  |----------|------|-----------|
+  | Extensible project type config (7 types + custom) | 2026-02-16 | Users can add custom types via JSON config |
+  | Hybrid TOON generation (init + refresh) | 2026-02-16 | Fast agent spawn + auto-refresh on stack change |
+  | Wave 1 parallel (config + templates) | 2026-02-16 | No file conflicts, faster planning |
+
+success_criteria: Not available
