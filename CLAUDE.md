@@ -6,10 +6,10 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** Workflow Enforcement milestone active
-**Last shipped:** Concerns Fix -- 3 phases, 7 commits
-**Previous:** VBW Cleanup & Owner-First Communication -- 3 phases, 4 commits
-**Next action:** Run /yolo:status for milestone progress
+**Work:** No active milestone
+**Last shipped:** Workflow Enforcement -- 3 phases, 7 commits
+**Previous:** Concerns Fix -- 3 phases, 7 commits
+**Next action:** Run /yolo:go to start a new milestone
 
 ## YOLO Rules
 
