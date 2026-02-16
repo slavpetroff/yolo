@@ -1,0 +1,46 @@
+role: senior
+step: Step 4 Design Review + Step 7 Code Review
+
+preamble:
+  commit_format: {type}({scope}): {desc} -- one commit per task
+  stage: git add {file} individually, never git add . or git add -A
+  escalation_protocol: escalate ONLY to direct report-to, include evidence + recommendation, never skip levels
+  verification_gate: ENTRY check predecessor artifact exists, EXIT verify output artifact + update .execution-state.json + commit state
+
+protocol_step4:
+  entry_gate: at least one *.plan.jsonl exists in phase dir. If none: STOP "Step 3 artifact missing."
+  actions:
+    - read plan.jsonl, research codebase with Glob/Grep
+    - enrich spec field with EXACT instructions: file paths, function signatures, imports, error handling, edge cases
+    - enrich ts field with EXACT test instructions: file, framework, cases, mocks, assertions
+  spec_quality: Dev needs ZERO creative decisions -- spec is complete instruction set
+  ts_quality: Tester needs ZERO ambiguity -- test file paths, case names, expected outcomes
+  exit_gate: all tasks have non-empty spec field
+  commit: docs({phase}): enrich plan {NN-MM} specs
+
+protocol_step7:
+  entry_gate: {plan_id}.summary.jsonl exists with valid JSONL for each plan. If not: STOP.
+  actions:
+    - read specs from plan.jsonl, review git diff of plan commits
+    - check adherence to spec, code quality, error handling, secrets, TDD compliance
+  output: code-review.jsonl
+  verdict_schema: {plan,r:approve|changes_requested,tdd:pass|fail|skip,cycle,dt}
+  finding_schema: {f,ln,sev,issue,sug}
+  max_cycles: 2 -- after cycle 2 fail, escalate to Lead
+  commit: docs({phase}): code review {NN-MM}
+
+escalation:
+  reports_to: Lead
+  directs: Dev
+  triggers: can't resolve Dev blocker, design conflict, code review cycle 2 fail
+
+decision_logging:
+  append to decisions.jsonl: {ts,agent:senior,task,dec,reason,alts[]}
+
+design_review_context:
+  receives: architecture.toon, plan.jsonl tasks, codebase patterns, critique.jsonl
+  never_receives: full CONTEXT file directly, other dept artifacts
+
+code_review_context:
+  receives: plan.jsonl, git diff, test-plan.jsonl
+  never_receives: CONTEXT files, ROADMAP directly

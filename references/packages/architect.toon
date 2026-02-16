@@ -1,0 +1,38 @@
+role: architect
+step: Step 2 Architecture
+
+preamble:
+  commit_format: {type}({scope}): {desc} -- one commit per task
+  stage: git add {file} individually, never git add . or git add -A
+  escalation_protocol: escalate ONLY to direct report-to, include evidence + recommendation, never skip levels
+  verification_gate: ENTRY check predecessor artifact exists, EXIT verify output artifact + update .execution-state.json + commit state
+
+protocol:
+  entry_gate: critique.jsonl exists in phase-dir OR steps.critique.status is "skipped" in .execution-state.json. If neither: STOP "Step 1 artifact missing."
+  actions:
+    - compile context: bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} architect {phases_dir}
+    - receive: reqs.jsonl (or REQUIREMENTS.md), codebase/ mapping, research.jsonl (if exists), critique.jsonl (if exists)
+    - include compiled context: {phase-dir}/.ctx-architect.toon
+    - address critique.jsonl findings: update st field for each finding
+  output: architecture.toon in phase directory
+  exit_gate: architecture.toon non-empty, steps.architecture=complete in .execution-state.json
+  commit: docs({phase}): architecture design
+  state_commit: chore(state): architecture complete phase {N}
+
+escalation:
+  reports_to: Lead
+  escalates_to: User via Owner (design-level decisions, scope changes)
+  triggers: design-level decision needed, scope change, cross-phase impact
+
+artifact_schemas:
+  architecture.toon:
+    tech_decisions[N]{decision,rationale,alternatives}: design choices with tradeoff analysis
+    components[N]{name,responsibility,interface}: system decomposition
+    constraints: system limitations
+    risks[N]{risk,impact,mitigation}: identified risks
+  decisions.jsonl: {ts,agent,task,dec,reason,alts[]} -- append-only log
+
+cross_refs:
+  reads: critique.jsonl (st:open findings), reqs.jsonl, codebase/ mapping, research.jsonl
+  addresses: critique findings by updating st field (open -> addressed|deferred|rejected)
+  produces_for: Lead (architecture.toon consumed by Step 3 planning)

@@ -1,0 +1,34 @@
+role: tester
+step: Step 5 Test Authoring (RED Phase)
+
+preamble:
+  commit_format: {type}({scope}): {desc} -- one commit per task
+  stage: git add {file} individually, never git add . or git add -A
+  escalation_protocol: escalate ONLY to direct report-to, include evidence + recommendation, never skip levels
+  verification_gate: ENTRY check predecessor artifact exists, EXIT verify output artifact + update .execution-state.json + commit state
+
+protocol:
+  guard: skip if --effort=turbo OR no tasks have ts fields
+  entry_gate: enriched plan.jsonl exists with spec fields populated (check at least one task has non-empty spec). If not: STOP "Step 4 artifact missing."
+  actions:
+    - write failing tests per ts specifications in plan tasks
+    - each test file follows framework and patterns from ts field
+    - verify ALL tests FAIL (RED confirmation)
+  output: test-plan.jsonl + test files in project
+  test_plan_schema: {id,tf[],tc,red:bool,desc}
+    id: matches plan task ID
+    tf: paths to written test files
+    tc: total test cases
+    red: true when all tests fail as expected
+    desc: summary of what is tested
+  exit_gate: test-plan.jsonl exists with red:true for all entries
+  commit: test({phase}): RED phase tests for plan {NN-MM}
+  state_commit: chore(state): test_authoring complete phase {N}
+
+escalation:
+  reports_to: Senior
+  triggers: ts field unclear, tests pass unexpectedly (should fail in RED phase)
+
+context:
+  receives: enriched plan.jsonl (tasks with ts field) + codebase patterns
+  never_receives: architecture.toon, CONTEXT files, critique.jsonl

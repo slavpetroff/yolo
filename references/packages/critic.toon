@@ -1,0 +1,31 @@
+role: critic
+step: Step 1 Critique / Brainstorm
+
+preamble:
+  commit_format: {type}({scope}): {desc} -- one commit per task
+  stage: git add {file} individually, never git add . or git add -A
+  escalation_protocol: escalate ONLY to direct report-to, include evidence + recommendation, never skip levels
+  verification_gate: ENTRY check predecessor artifact exists, EXIT verify output artifact + update .execution-state.json + commit state
+
+protocol:
+  guard: skip if --effort=turbo OR critique.jsonl already exists
+  entry_gate: phase directory exists ([ -d "{phase-dir}" ]). If not: STOP "Phase directory missing."
+  actions:
+    - analyze reqs.jsonl (or REQUIREMENTS.md) + PROJECT.md + codebase/ mapping + research.jsonl
+    - identify: gaps, risks, improvements, questions, alternatives
+    - return findings via SendMessage (Critic has no Write tool)
+  output: critique.jsonl (written by Lead from Critic findings)
+  exit_gate: critique.jsonl exists with valid JSONL
+  commit: docs({phase}): critique and gap analysis
+  state_commit: chore(state): critique complete phase {N}
+
+escalation:
+  reports_to: Lead
+  findings: advisory -- Lead decides what to act on
+
+artifact_schemas:
+  critique.jsonl: one line per finding
+    {id:C1-CN, cat, sev, q, ctx, sug, st}
+    cat values: gap, risk, improvement, question, alternative
+    sev values: critical, major, minor
+    st values: open, addressed, deferred, rejected

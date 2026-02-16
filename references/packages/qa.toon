@@ -1,0 +1,41 @@
+role: qa
+step: Step 8 QA (Plan-level)
+
+preamble:
+  commit_format: {type}({scope}): {desc} -- one commit per task
+  stage: git add {file} individually, never git add . or git add -A
+  escalation_protocol: escalate ONLY to direct report-to, include evidence + recommendation, never skip levels
+  verification_gate: ENTRY check predecessor artifact exists, EXIT verify output artifact + update .execution-state.json + commit state
+
+protocol:
+  guard: skip if --skip-qa OR --effort=turbo
+  entry_gate: code-review.jsonl exists with r:approve in line 1 (jq -r .r equals "approve"). If not: STOP "Step 7 artifact missing."
+  tiers:
+    quick: 5-10 checks (--effort=fast)
+    standard: 15-25 checks (--effort=balanced)
+    deep: 30+ checks (--effort=thorough)
+  methodology:
+    - goal-backward from success criteria
+    - read plan mh: tr (truths/invariants), ar (artifact requirements), kl (key links)
+    - read summary.jsonl for completed work
+    - derive checks, execute, collect evidence
+  output: verification.jsonl
+  result:
+    PASS: all checks pass
+    PARTIAL: some fail but core must_have checks ok
+    FAIL: critical must_have check failed
+  remediation:
+    FAIL -> Lead assigns -> Senior re-specs -> Dev fixes -> QA re-verifies
+    max 2 remediation cycles
+  exit_gate: verification.jsonl exists with valid JSONL
+  commit: docs({phase}): verification results
+  state_commit: chore(state): qa complete phase {N}
+
+escalation:
+  reports_to: Lead
+  triggers: verification findings, FAIL result, scope reduction needed
+
+artifact_schemas:
+  verification.jsonl_line1: {tier,r,ps,fl,tt,dt}
+  verification.jsonl_lines2+: {c,r,ev,cat}
+    cat values: must_have, artifact, key_link, anti_pattern, convention

@@ -1,0 +1,44 @@
+role: lead
+step: Step 3 Load Plans + Step 10 Sign-off
+
+preamble:
+  commit_format: {type}({scope}): {desc} -- one commit per task
+  stage: git add {file} individually, never git add . or git add -A
+  escalation_protocol: escalate ONLY to direct report-to, include evidence + recommendation, never skip levels
+  verification_gate: ENTRY check predecessor artifact exists, EXIT verify output artifact + update .execution-state.json + commit state
+
+protocol_step3:
+  entry_gate: architecture.toon exists in phase-dir OR steps.architecture.status is "skipped". If neither: STOP.
+  actions:
+    - glob *.plan.jsonl in phase dir, read headers with jq
+    - check existing summary.jsonl files (complete plans)
+    - git log --oneline -20 for crash recovery
+    - build remaining plans list, filter with --plan=NN if set
+    - write .execution-state.json with phase, plans, steps, wave info
+  execution_state_schema:
+    phase: N, phase_name: slug, status: running, started_at: ISO8601
+    step: planning, wave: 1, total_waves: N
+    plans: [{id,title,wave,status}]
+    steps: {critique,architecture,planning,design_review,test_authoring,implementation,code_review,qa,security,signoff} each {status,started_at,completed_at,artifact,reason}
+  cross_phase_deps: verify referenced plan summary.jsonl exists with s:complete
+  exit_gate: .execution-state.json exists (status running, plans listed)
+  commit: chore(state): execution state phase {N}
+
+protocol_step10:
+  entry_gate: security-audit.jsonl exists OR step 9 skipped, AND code-review.jsonl r:approve
+  actions:
+    - review all artifacts: critique, code-review, verification, qa-code, security-audit
+    - decide SHIP (mark phase complete) or HOLD (generate remediation)
+    - update .execution-state.json status:complete, step:signoff
+    - update ROADMAP.md: mark phase complete
+  commit: chore(state): phase {N} complete
+
+escalation:
+  reports_to: Architect
+  directs: Senior, Tester, Dev, QA, QA-Code, Debugger
+  triggers: can't resolve Senior escalation, design conflict, cross-phase issue
+
+artifact_schemas:
+  plan.jsonl_header: {p,n,t,w,d[],xd[],mh,obj,sk[],fm[],auto}
+  plan.jsonl_task: {id,tp,a,f[],v,done,spec,ts}
+  summary.jsonl: {p,n,t,s,dt,tc,tt,ch[],fm[],dv[],built[],tst}

@@ -1,0 +1,37 @@
+role: security
+step: Step 9 Security Audit
+
+preamble:
+  commit_format: {type}({scope}): {desc} -- one commit per task
+  stage: git add {file} individually, never git add . or git add -A
+  escalation_protocol: escalate ONLY to direct report-to, include evidence + recommendation, never skip levels
+  verification_gate: ENTRY check predecessor artifact exists, EXIT verify output artifact + update .execution-state.json + commit state
+
+protocol:
+  guard: skip if --skip-security OR config security_audit != true
+  entry_gate: verification.jsonl exists in phase-dir OR steps.qa.status is "skipped". If neither: STOP "Step 8 artifact missing."
+  actions:
+    - audit file list from summary.jsonl
+    - check for secrets (.env, .pem, .key, credentials, tokens)
+    - dependency vulnerability scan
+    - OWASP checks (injection, XSS, auth, etc.)
+    - configuration audit
+  output: security-audit.jsonl
+  result_handling:
+    PASS: continue to Step 10
+    WARN: display warnings, pause if config.approval_gates.security_warn is true
+    FAIL: HARD STOP -- display findings, only user --force overrides
+  exit_gate: security-audit.jsonl exists with valid JSONL
+  commit: docs({phase}): security audit
+  state_commit: chore(state): security complete phase {N}
+
+escalation:
+  reports_to: Lead
+  FAIL_override: bypasses chain -> User via go.md (security FAIL is HARD STOP)
+
+artifact_schemas:
+  security-audit.jsonl_line1: {r,findings,critical,dt}
+    r values: PASS, FAIL, WARN
+  security-audit.jsonl_lines2+: {cat,sev,f,issue,fix}
+    cat values: owasp, secrets, deps, config
+    sev values: critical, high, medium, low
