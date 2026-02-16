@@ -1,0 +1,47 @@
+{
+  "_description": "Project-type-aware tool permission overrides. Maps project type to per-role tool additions/removals. Merged with agent YAML base tools by resolve-tool-permissions.sh. Only WebSearch, WebFetch, and NotebookEdit are valid remove_tools candidates.",
+  "_protected_tools": ["Bash", "Read", "Glob", "Grep", "Write", "Edit"],
+  "types": {
+    "generic": {},
+    "web-app": {},
+    "api-service": {},
+    "mobile-app": {},
+    "monorepo": {},
+    "cli-tool": {
+      "architect": {
+        "add_tools": [],
+        "remove_tools": []
+      },
+      "scout": {
+        "add_tools": [],
+        "remove_tools": []
+      },
+      "critic": {
+        "add_tools": [],
+        "remove_tools": []
+      },
+      "lead": {
+        "add_tools": [],
+        "remove_tools": ["WebFetch"]
+      }
+    },
+    "library": {
+      "architect": {
+        "add_tools": [],
+        "remove_tools": []
+      },
+      "lead": {
+        "add_tools": [],
+        "remove_tools": ["WebFetch"]
+      },
+      "scout": {
+        "add_tools": [],
+        "remove_tools": []
+      },
+      "critic": {
+        "add_tools": [],
+        "remove_tools": []
+      }
+    }
+  }
+}
