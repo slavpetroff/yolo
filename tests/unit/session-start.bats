@@ -135,6 +135,20 @@ setup_stub_bin() {
   assert_output "quality"
 }
 
+# --- 8b. Auto-migrates config when team_mode missing ---
+
+@test "auto-migrates config.json to add team_mode" {
+  setup_stub_bin
+  mk_planning_dir
+  touch "$CLAUDE_CONFIG_DIR/.yolo-welcomed"
+  # Overwrite config with one that has model_profile but lacks team_mode
+  echo '{"effort":"balanced","autonomy":"standard","model_profile":"balanced"}' > "$TEST_WORKDIR/.yolo-planning/config.json"
+  run_session_start
+  assert_success
+  run jq -r '.team_mode' "$TEST_WORKDIR/.yolo-planning/config.json"
+  assert_output "task"
+}
+
 # --- 9. Next action suggests /yolo:init when PROJECT.md missing ---
 
 @test "suggests /yolo:init when PROJECT.md is missing" {
