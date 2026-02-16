@@ -164,6 +164,46 @@ cmd_idle() {
     }'
 }
 
+cmd_stop() {
+  local input role health_file pid advisory
+  input=$(cat)
+
+  # Extract role from hook JSON
+  role=$(echo "$input" | jq -r '.agent_type // .agent_name // .name // ""' 2>/dev/null)
+  role=$(echo "$role" | sed -E 's/^@?vbw[:-]//i' | tr '[:upper:]' '[:lower:]')
+
+  if [ -z "$role" ]; then
+    exit 0
+  fi
+
+  health_file="$HEALTH_DIR/${role}.json"
+  advisory=""
+
+  if [ -f "$health_file" ]; then
+    # Load PID and check liveness
+    pid=$(jq -r '.pid // ""' "$health_file" 2>/dev/null)
+
+    if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
+      # PID is dead — call orphan recovery
+      advisory=$(orphan_recovery "$role" "$pid")
+    fi
+
+    # Remove health file
+    rm -f "$health_file"
+  fi
+
+  # Output hook response
+  jq -n \
+    --arg event "SubagentStop" \
+    --arg context "$advisory" \
+    '{
+      hookSpecificOutput: {
+        hookEventName: $event,
+        additionalContext: $context
+      }
+    }'
+}
+
 CMD="${1:-}"
 
 case "$CMD" in
@@ -174,7 +214,7 @@ case "$CMD" in
     cmd_idle
     ;;
   stop)
-    exit 0
+    cmd_stop
     ;;
   cleanup)
     exit 0
