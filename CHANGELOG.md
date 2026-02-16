@@ -2,6 +2,17 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **`debugger`** -- Codebase mapping bootstrap now references PATTERNS.md and DEPENDENCIES.md in addition to ARCHITECTURE.md and CONCERNS.md. Compiled context includes dynamic "Codebase Map Available" hint section for debugger role. Cache invalidation when mapping files change. (PR #77 by @dpearson2699)
+- **`debug`** -- Codebase bootstrap instruction added to both Path A (team) and Path B (single) debugger task prompts. (PR #77 by @dpearson2699)
+
+### Fixed
+
+- **`statusline`** -- Replace `tr` with `sed` for UTF-8 progress bar characters on Linux. GNU `tr` corrupts multi-byte characters (█ ░ ▓) by processing byte-by-byte.
+
 ## [1.21.26] - 2026-02-16
 
 ### Added

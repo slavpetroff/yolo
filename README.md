@@ -25,7 +25,7 @@
 
 ## VBW Token Efficiency vs Stock Opus 4.6 Agent Teams
 
-VBW wraps Claude Code's native Agent Teams with optimization mechanisms across multiple architectural layers. The codebase has grown to ~31,000 lines across 81 scripts, 23 commands, 7 agents, and 11 reference files — yet per-request overhead keeps *decreasing* because every new capability is shell-only. Scripts handle state computation, protocol enforcement, config migration, security filtering, and session lifecycle as bash subprocesses at zero model token cost. Vibe consolidation replaced 10 commands with a single `/vbw:vibe`, and 461 automated tests validate the entire stack.
+VBW wraps Claude Code's native Agent Teams with optimization mechanisms across multiple architectural layers. The codebase has grown to ~33,000 lines across 86 scripts, 23 commands, 7 agents, and 11 reference files — yet per-request overhead keeps *decreasing* because every new capability is shell-only. Scripts handle state computation, protocol enforcement, config migration, security filtering, and session lifecycle as bash subprocesses at zero model token cost. Vibe consolidation replaced 10 commands with a single `/vbw:vibe`, and 480 automated tests validate the entire stack.
 
 Stock teams load all command descriptions into every request, run every agent on Opus, coordinate via expensive message round-trips, and let each agent independently discover project state by reading the same files. VBW replaces all of that with shell pre-computation, deterministic context routing via `compile-context.sh`, configurable model profiles (Scout on Haiku, QA on Sonnet), disk-based coordination, pre-computed state injection, feature-flagged shell hooks, and terse compressed instructions.
 
