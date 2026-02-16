@@ -7,7 +7,7 @@ V2 inter-agent messages use strict JSON schemas. Every message includes a mandat
 ```json
 {
   "id": "uuid-v4",
-  "type": "scout_findings|plan_contract|execution_update|blocker_report|qa_verdict|approval_request|approval_response",
+  "type": "scout_findings|plan_contract|execution_update|blocker_report|qa_verdict|approval_request|approval_response|shutdown_request|shutdown_response",
   "phase": 1,
   "task": "1-1-T3",
   "author_role": "lead|dev|qa|scout|debugger|architect",
@@ -29,6 +29,8 @@ V2 inter-agent messages use strict JSON schemas. Every message includes a mandat
 | qa_verdict | qa | lead |
 | approval_request | dev, lead | lead, architect |
 | approval_response | lead, architect | dev, lead |
+| shutdown_request | lead (orchestrator) | dev, qa, scout, lead, debugger, docs |
+| shutdown_response | dev, qa, scout, lead, debugger, docs | lead (orchestrator) |
 
 Unauthorized sender -> message rejected (v2_typed_protocol=true) or logged (false).
 
@@ -213,6 +215,52 @@ Response to an approval request.
   }
 }
 ```
+
+## `shutdown_request` (Orchestrator -> All teammates)
+
+Graceful termination signal sent by the orchestrator after phase/plan work is complete.
+
+```json
+{
+  "id": "shut-001",
+  "type": "shutdown_request",
+  "phase": 1,
+  "task": "",
+  "author_role": "lead",
+  "timestamp": "2026-02-12T10:30:00Z",
+  "schema_version": "2.0",
+  "confidence": "high",
+  "payload": {
+    "reason": "phase_complete|plan_complete|user_abort",
+    "team_name": "vbw-phase-01"
+  }
+}
+```
+
+## `shutdown_response` (Teammate -> Orchestrator)
+
+Acknowledgment from a teammate that it will terminate.
+
+```json
+{
+  "id": "shut-resp-001",
+  "type": "shutdown_response",
+  "phase": 1,
+  "task": "",
+  "author_role": "dev",
+  "timestamp": "2026-02-12T10:30:05Z",
+  "schema_version": "2.0",
+  "confidence": "high",
+  "payload": {
+    "request_id": "shut-001",
+    "approve": true,
+    "final_status": "complete|idle|in_progress",
+    "pending_work": ""
+  }
+}
+```
+
+On receiving `shutdown_request`: respond with `shutdown_response` (approve=true), finish any in-progress tool call, then STOP all further work. Do NOT start new tasks, fix additional issues, or take any action after responding. The orchestrator will call TeamDelete after collecting all responses.
 
 ## Backward Compatibility
 
