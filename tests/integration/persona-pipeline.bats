@@ -2,7 +2,7 @@
 # persona-pipeline.bats — End-to-end integration tests for the full
 # detect-stack -> classify -> generate-department-toons -> compile-context pipeline.
 # Tests web-app, shell/cli-tool, and YOLO self-detection scenarios.
-# RED PHASE: All tests expected to FAIL until implementation in plans 01-01 through 01-04.
+# GREEN PHASE: All 23 tests passing after plans 01-01 through 01-04 implementation.
 
 setup() {
   load '../test_helper/common'
