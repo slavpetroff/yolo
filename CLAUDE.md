@@ -6,10 +6,10 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** Dynamic Departments & Agent Teams (3 phases)
-**Last shipped:** Phase 2: Agent Teams Integration -- 3 plans, 11 tasks, 15 commits, 71 tests
-**Previous:** Phase 1: Dynamic Personas -- 4 plans, 13 tasks, 16 commits, 63 tests
-**Next action:** Phase 3 pending (or run /yolo:go to start next)
+**Work:** No active milestone
+**Last shipped:** Dynamic Departments & Agent Teams -- 3 phases, 11 plans, 38 tasks, 49 commits, 209 tests
+**Previous:** Workflow Enforcement -- 3 phases, 7 commits
+**Next action:** Run /yolo:go to start a new milestone
 
 ## Department Architecture
 
