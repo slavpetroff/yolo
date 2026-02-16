@@ -45,9 +45,9 @@ Active milestone: `!`cat .vbw-planning/ACTIVE 2>/dev/null || echo "No active mil
      - "Remove it" — remove from todos (completed or no longer needed)
      - "Go back" — return to list
 
-7. **Execute action:** Remove/edit within whichever section the script reported (the `section` field — either `### Pending Todos` or `## Todos`).
-   - **Work on it now:** Remove the `line` value from the section in STATE.md. If no todos remain, replace with "None." Confirm: "✓ Removed todo — ready to work." Then present the todo context and ask how to proceed.
-   - **Remove it:** Remove the `line` value from the section in STATE.md. If no todos remain, replace with "None." Confirm: "✓ Todo removed." Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh list-todos` and display.
+7. **Execute action:** Remove/edit within whichever section the script reported (the `section` field — either `## Todos` or `### Pending Todos` for legacy STATE.md).
+   - **Work on it now:** Remove the `line` value from the section in STATE.md. If no todos remain, replace with "None." Log the removed todo to `## Recent Activity` with format `- {YYYY-MM-DD}: Completed todo: {text}`. Confirm: "✓ Removed todo — ready to work." Then present the todo context and ask how to proceed.
+   - **Remove it:** Remove the `line` value from the section in STATE.md. If no todos remain, replace with "None." Log the removed todo to `## Recent Activity` with format `- {YYYY-MM-DD}: Removed todo: {text}`. Confirm: "✓ Todo removed." Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh list-todos` and display.
    - **Go back:** Return to step 3.
 
 ## Output Format

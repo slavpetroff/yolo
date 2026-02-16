@@ -31,9 +31,9 @@ check() {
 
 echo "=== Template + Command Contracts ==="
 check "INIT-01" "template has ## Todos section" grep -q '^## Todos$' "$TEMPLATE"
-check "INIT-02" "template has ### Pending Todos subsection" grep -q '^### Pending Todos$' "$TEMPLATE"
+check "INIT-02" "template has no ### Pending Todos subsection (flat)" test ! "$(grep -c '^### Pending Todos$' "$TEMPLATE")" -gt 0
 check "TODO-01" "todo command anchors insertion on ## Todos" grep -q 'Find `## Todos`' "$TODO_CMD"
-check "TODO-02" "todo command handles missing Pending subsection" grep -q 'create it under `## Todos`' "$TODO_CMD"
+check "TODO-02" "todo command does not reference Pending Todos" test ! "$(grep -c 'Pending Todos' "$TODO_CMD")" -gt 0
 
 echo ""
 echo "=== Bootstrap Output Contracts ==="
@@ -43,7 +43,7 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 BOOTSTRAP_STATE="$TMP_DIR/STATE.md"
 check "BOOT-01" "bootstrap script executes" bash "$BOOTSTRAP" "$BOOTSTRAP_STATE" "Test Project" "Test Milestone" 2
 check "BOOT-02" "bootstrap output has ## Todos section" grep -q '^## Todos$' "$BOOTSTRAP_STATE"
-check "BOOT-03" "bootstrap output has ### Pending Todos subsection" grep -q '^### Pending Todos$' "$BOOTSTRAP_STATE"
+check "BOOT-03" "bootstrap output has no ### Pending Todos (flat)" test ! "$(grep -c '^### Pending Todos$' "$BOOTSTRAP_STATE")" -gt 0
 check "BOOT-04" "bootstrap output initializes empty todo placeholder" grep -q '^None\.$' "$BOOTSTRAP_STATE"
 
 echo ""

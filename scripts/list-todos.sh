@@ -6,14 +6,14 @@ set -euo pipefail
 # Usage: list-todos.sh [priority-filter]
 #   priority-filter: optional "high", "low", or "normal" (case-insensitive)
 #
-# Resolves milestone-scoped STATE.md, extracts ### Pending Todos (or ## Todos
-# fallback), parses priority tags and dates, computes relative ages, and outputs
-# a ready-to-display numbered list.
+# Resolves milestone-scoped STATE.md, extracts ## Todos (or ### Pending Todos
+# for legacy/pre-migration STATE.md), parses priority tags and dates, computes
+# relative ages, and outputs a ready-to-display numbered list.
 #
 # Output (JSON):
 #   { "status": "ok"|"empty"|"no-match"|"error",
 #     "state_path": "...",
-#     "section": "### Pending Todos"|"## Todos",
+#     "section": "## Todos"|"### Pending Todos",
 #     "count": N,
 #     "filter": "high"|"low"|"normal"|null,
 #     "display": "formatted numbered list",
@@ -58,24 +58,27 @@ extract_todos() {
   local section_name=""
   local lines=""
 
-  # Try ### Pending Todos first
+  # Try ## Todos first (current format — items directly under heading)
+  # Must NOT match items inside a ### subsection
   lines=$(awk '
-    /^### Pending Todos$/ { found=1; next }
+    /^## Todos$/ { found=1; next }
     found && /^##/ { exit }
-    found && /^- / { print }
+    found && /^### / { sub_found=1; next }
+    found && sub_found && /^##/ { exit }
+    found && !sub_found && /^- / { print }
   ' "$file")
 
   if [ -n "$lines" ]; then
-    section_name="### Pending Todos"
+    section_name="## Todos"
   else
-    # Fallback to ## Todos
+    # Legacy fallback: ### Pending Todos subsection (pre-migration STATE.md)
     lines=$(awk '
-      /^## Todos$/ { found=1; next }
+      /^### Pending Todos$/ { found=1; next }
       found && /^##/ { exit }
       found && /^- / { print }
     ' "$file")
     if [ -n "$lines" ]; then
-      section_name="## Todos"
+      section_name="### Pending Todos"
     fi
   fi
 

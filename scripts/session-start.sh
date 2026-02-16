@@ -64,6 +64,31 @@ if [ -d "$PLANNING_DIR" ] && [ ! -f "$PLANNING_DIR/.claude-md-migrated" ]; then
   echo "1" > "$PLANNING_DIR/.claude-md-migrated" 2>/dev/null || true
 fi
 
+# --- Migrate ## Todos / ### Pending Todos to flat ## Todos (one-time) ---
+# Old STATE.md had a ### Pending Todos subsection under ## Todos.
+# New format puts items directly under ## Todos. This migration:
+#   1. Finds all STATE.md files (root + milestones)
+#   2. Removes the "### Pending Todos" line, leaving items under ## Todos
+if [ -d "$PLANNING_DIR" ] && [ ! -f "$PLANNING_DIR/.todo-flat-migrated" ]; then
+  # Collect all STATE.md files to migrate
+  _todo_state_files=""
+  [ -f "$PLANNING_DIR/STATE.md" ] && _todo_state_files="$PLANNING_DIR/STATE.md"
+  if [ -d "$PLANNING_DIR/milestones" ]; then
+    for _ms_dir in "$PLANNING_DIR"/milestones/*/; do
+      [ -f "${_ms_dir}STATE.md" ] && _todo_state_files="$_todo_state_files ${_ms_dir}STATE.md"
+    done
+  fi
+
+  for _sf in $_todo_state_files; do
+    if grep -q '^### Pending Todos$' "$_sf" 2>/dev/null; then
+      # Remove the ### Pending Todos heading — items stay under ## Todos
+      grep -v '^### Pending Todos$' "$_sf" > "${_sf}.tmp" && mv "${_sf}.tmp" "$_sf"
+    fi
+  done
+
+  echo "1" > "$PLANNING_DIR/.todo-flat-migrated" 2>/dev/null || true
+fi
+
 # --- Session-level config cache (performance optimization, REQ-01 #9) ---
 # Write commonly-read config flags to a flat file for fast sourcing.
 # Invalidation: overwritten every session start. Scripts can opt-in:
