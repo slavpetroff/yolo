@@ -213,6 +213,48 @@ advance_phase() {
   fi
 }
 
+update_phase_orchestration() {
+  local phase_dir="$1" file_path="$2"
+  local ORCH_FILE="$phase_dir/.phase-orchestration.json"
+  [ -f "$ORCH_FILE" ] || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+
+  # Detect department from active agent
+  local ACTIVE_AGENT=""
+  [ -f ".yolo-planning/.active-agent" ] && ACTIVE_AGENT=$(<".yolo-planning/.active-agent")
+  local ORCH_DEPT
+  case "${ACTIVE_AGENT:-}" in
+    yolo-fe-*) ORCH_DEPT="frontend" ;;
+    yolo-ux-*) ORCH_DEPT="uiux" ;;
+    yolo-*) ORCH_DEPT="backend" ;;
+    *) return 0 ;;
+  esac
+
+  # Determine step from file path
+  local ORCH_STEP
+  case "$file_path" in
+    *plan.jsonl) ORCH_STEP="planning" ;;
+    *summary.jsonl) ORCH_STEP="implementation" ;;
+    *) return 0 ;;
+  esac
+
+  # Update department step atomically
+  local tmp="${ORCH_FILE}.tmp.$$"
+  jq --arg dept "$ORCH_DEPT" --arg step "$ORCH_STEP" --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '.departments[$dept].step = $step | .departments[$dept].updated_at = $now' \
+    "$ORCH_FILE" > "$tmp" 2>/dev/null && mv "$tmp" "$ORCH_FILE" 2>/dev/null || rm -f "$tmp" 2>/dev/null
+
+  # Check if all departments are complete
+  local all_complete
+  all_complete=$(jq '[.departments[]] | all(.status == "complete")' "$ORCH_FILE" 2>/dev/null) || true
+  if [ "${all_complete:-}" = "true" ]; then
+    local tmp2="${ORCH_FILE}.tmp.$$"
+    jq --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      '.gates["all-depts"].status = "passed" | .gates["all-depts"].passed_at = $now' \
+      "$ORCH_FILE" > "$tmp2" 2>/dev/null && mv "$tmp2" "$ORCH_FILE" 2>/dev/null || rm -f "$tmp2" 2>/dev/null
+  fi
+}
+
 commit_state_artifacts() {
   local msg="${1:-state transition}"
   # Non-blocking: fail silently if git unavailable or nothing to commit
@@ -226,6 +268,12 @@ commit_state_artifacts() {
       files_to_add="$files_to_add $f"
     fi
   done
+
+  if [ -n "${PHASE_DIR:-}" ] && [ -f "$PHASE_DIR/.phase-orchestration.json" ]; then
+    if git diff --name-only "$PHASE_DIR/.phase-orchestration.json" 2>/dev/null | grep -q .; then
+      files_to_add="$files_to_add $PHASE_DIR/.phase-orchestration.json"
+    fi
+  fi
 
   [ -z "$files_to_add" ] && return 0
 
@@ -254,6 +302,7 @@ if echo "$FILE_PATH" | grep -qE 'phases/[^/]+/[0-9]+-[0-9]+\.plan\.jsonl$' || ec
   update_state_md "$PHASE_DIR"
   update_roadmap "$PHASE_DIR" "$CACHED_PHASE_NUM"
   update_state_json "$PHASE_DIR" "$CACHED_PHASE_NUM"
+  update_phase_orchestration "$PHASE_DIR" "$FILE_PATH"
   # Status: ready → active when a plan is written
   _sm=".yolo-planning/STATE.md"
   if [ -f "$_sm" ] && grep -q '^Status: ready' "$_sm" 2>/dev/null; then
@@ -335,6 +384,7 @@ update_roadmap "$PHASE_DIR" "$CACHED_PHASE_NUM"
 update_state_json "$PHASE_DIR" "$CACHED_PHASE_NUM"
 update_model_profile
 advance_phase "$PHASE_DIR"
+update_phase_orchestration "$PHASE_DIR" "$FILE_PATH"
 
 # Stage summary + commit all state artifacts
 git add "$FILE_PATH" 2>/dev/null || true
