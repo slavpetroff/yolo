@@ -3,7 +3,7 @@
   "phase_name": "03-token-optimization-context-packages",
   "status": "running",
   "started_at": "2026-02-16T20:00:00Z",
-  "step": "critique",
+  "step": "architecture",
   "wave": 1,
   "total_waves": 2,
   "plans": [
@@ -13,7 +13,7 @@
     {"id": "03-04", "title": "Context Compiler & Protocol Integration", "wave": 2, "status": "pending"}
   ],
   "steps": {
-    "critique": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "critique": {"status": "complete", "started_at": "2026-02-16T20:10:00Z", "completed_at": "2026-02-16T20:12:00Z", "artifact": "critique.jsonl", "reason": ""},
     "architecture": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
     "planning": {"status": "complete", "started_at": "2026-02-16T20:00:00Z", "completed_at": "2026-02-16T20:05:00Z", "artifact": "03-*.plan.jsonl", "reason": ""},
     "design_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
