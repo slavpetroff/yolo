@@ -110,7 +110,7 @@ for file in "$COMMANDS_DIR"/*.md; do
   body_no_context="$(printf '%s\n' "$body" | awk '/^## Context$/{skip=1; next} /^## /{skip=0} !skip')"
 
   # Check if the command body (outside Context) references milestone-scoped paths
-  if ! printf '%s\n' "$body_no_context" | grep -qi 'milestone.scoped\|milestone.*ACTIVE\|ACTIVE.*milestone'; then
+  if ! printf '%s\n' "$body_no_context" | grep -qi 'milestone[-_ ]scoped\|milestone.*ACTIVE\|ACTIVE.*milestone'; then
     continue
   fi
 
@@ -122,7 +122,7 @@ for file in "$COMMANDS_DIR"/*.md; do
 
   has_bash=false
   FRONTMATTER="$(extract_frontmatter "$file")"
-  if printf '%s\n' "$FRONTMATTER" | grep '^allowed-tools:' | grep -q 'Bash'; then
+  if printf '%s\n' "$FRONTMATTER" | grep '^allowed-tools:' | grep -qw 'Bash'; then
     has_bash=true
   fi
 
