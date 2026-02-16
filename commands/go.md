@@ -39,6 +39,12 @@ Department routing (via resolve-departments.sh):
 !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-departments.sh .yolo-planning/config.json 2>/dev/null || echo "multi_dept=false"`
 ```
 
+Team mode (via resolve-team-mode.sh):
+
+```
+!`bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-team-mode.sh .yolo-planning/config.json 2>/dev/null || echo "team_mode=task"`
+```
+
 Key variables from above (MANDATORY — read these before any mode):
 
 - `multi_dept`: true = multi-department orchestration active, false = single backend lead only
@@ -47,6 +53,8 @@ Key variables from above (MANDATORY — read these before any mode):
 - `spawn_order`: single | wave | sequential
 - `owner_active`: true if Owner agent should be spawned for cross-dept review
 - `fe_active` / `ux_active`: individual department flags
+- `team_mode`: task = spawn agents via Task tool (default), teammate = spawn agents via Teammate API (experimental)
+- `fallback_notice`: true if team_mode was downgraded from teammate to task (display notice to user)
 
 ## Input Parsing
 
