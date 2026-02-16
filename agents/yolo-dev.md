@@ -78,6 +78,49 @@ Commit: `docs({phase}): summary {NN-MM}`
 
 As teammate: SendMessage to Senior (not Lead) with `dev_progress` schema (per task completion), `dev_blocker` schema (when blocked).
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely. Use Task tool result returns and file-based artifacts instead.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Communication via SendMessage
+
+Replace Task tool result returns with direct SendMessage to Senior's teammate ID:
+
+**Progress reporting (per task):** Send `dev_progress` schema to Senior after each task commit:
+```json
+{
+  "type": "dev_progress",
+  "task": "{plan_id}/T{N}",
+  "plan_id": "{plan_id}",
+  "commit": "{hash}",
+  "status": "complete",
+  "concerns": []
+}
+```
+
+**Blocker escalation:** Send `dev_blocker` schema to Senior when blocked:
+```json
+{
+  "type": "dev_blocker",
+  "task": "{plan_id}/T{N}",
+  "plan_id": "{plan_id}",
+  "blocker": "{description}",
+  "needs": "{what is needed}",
+  "attempted": ["{what was tried}"]
+}
+```
+
+**Receive instructions:** Listen for `code_review_changes` from Senior with exact fix instructions. Follow precisely (unchanged from task mode behavior).
+
+### Unchanged Behavior
+
+- Escalation target: Senior ONLY (never Lead or Architect)
+- One commit per task, stage files individually
+- TDD RED/GREEN protocol unchanged
+- Summary.jsonl production unchanged
+
 ## Constraints & Effort
 
 Implement ONLY what spec says. No bonus features, no refactoring beyond spec, no "improvements." One commit per task (never batch, never split except TDD: 2-3). Format: `{type}({phase}-{plan}): {task-name}`. Stage: `git add {file}` only. Before each task: check compaction marker, re-read plan if needed. Progress tracking: `git log --oneline`. No subagents. Follow effort level in task description (see @references/effort-profile-balanced.toon).
