@@ -196,6 +196,10 @@ When `departments.frontend` or `departments.uiux` is true in config, YOLO operat
 
 Each department runs the same 10-step workflow independently. Cross-department coordination follows `references/cross-team-protocol.md`. Full multi-department orchestration: `references/multi-dept-protocol.md`.
 
+**Parallel execution model:** When `department_workflow` = "parallel", department Leads are spawned as **background Task subagents** (`run_in_background=true`). go.md orchestrates wave-based dispatch: UX first (if active), then FE + BE in parallel after the UX handoff gate passes. Each Lead runs its full 10-step workflow using foreground Task subagents internally. This uses the proven Task tool architecture -- no Teammate API (spawnTeam/SendMessage) dependency.
+
+**File-based coordination:** Cross-department synchronization uses file-based gates in the phase directory: `.dept-status-{dept}.json` for per-department status tracking, `.handoff-*` sentinel files for handoff gates, and `.phase-orchestration.json` for master orchestration state. All writes are atomic via flock locking in `scripts/dept-status.sh`. See `references/multi-dept-protocol.md` for coordination file schemas and `references/cross-team-protocol.md` for gate validation commands.
+
 ### Department Escalation (STRICT)
 
 ```

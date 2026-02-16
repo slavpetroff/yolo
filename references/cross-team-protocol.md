@@ -65,7 +65,7 @@ Phase Start
 
 ### Rules
 1. **Cross-department communication goes through Leads only.** Individual agents (Dev, Senior, QA) NEVER send messages across department boundaries.
-2. **All cross-department data passes through handoff artifacts.** No ad-hoc SendMessage between departments — use defined schemas.
+2. **All cross-department data passes through handoff artifacts.** No ad-hoc messaging between departments — all cross-department data passes through handoff artifacts and file-based gates.
 3. **Backend-UI/UX isolation is absolute.** Backend agents cannot read UI/UX artifacts directly. Frontend relays relevant information.
 4. **Owner communicates only with Leads.** Strategic decisions, not technical details.
 
@@ -86,13 +86,23 @@ See @references/company-hierarchy.md ## Context Isolation for full rules and per
 
 **Validation:**
 ```bash
-# All must pass before Frontend/Backend can start
-jq -e '.status == "complete"' design-handoff.jsonl
-jq -e 'all(.status == "ready")' component-specs.jsonl
-test -f design-tokens.jsonl
+# Automated gate check via dept-gate.sh
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/dept-gate.sh \
+  --gate ux-complete --phase-dir {phase-dir} --no-poll
+# Exit 0: gate satisfied (sentinel exists + artifacts valid)
+# Exit 1: gate not satisfied
+# Exit 2: validation error
+
+# dept-gate.sh internally validates:
+# - .handoff-ux-complete sentinel file exists
+# - design-handoff.jsonl exists with status: "complete"
+# - design-tokens.jsonl exists
+# - component-specs.jsonl exists with all status: "ready"
 ```
 
 **If gate fails:** UX Lead must resolve before Frontend/Backend can proceed. UX Lead may need to scope down (mark non-ready components as deferred).
+
+**Timeout:** 30 minutes (configurable). On timeout: `dept-cleanup.sh --phase-dir {phase-dir} --reason timeout`. UX Lead must resolve.
 
 ### Gate 2: Frontend ↔ Backend API Contract
 
@@ -106,16 +116,28 @@ test -f design-tokens.jsonl
 
 **If conflict:** Both Leads escalate to Owner for priority resolution.
 
+**Validation:** `bash dept-gate.sh --gate api-contract --phase-dir {phase-dir} --no-poll`. Checks api-contracts.jsonl has at least one entry with `status: "agreed"`. Non-blocking gate — FE and BE proceed in parallel and negotiate async. Both use flock locking via dept-status.sh for atomic writes to api-contracts.jsonl.
+
 ### Gate 3: Integration QA
 
 **Trigger:** All active departments complete their 10-step workflows.
 
-**Required:**
-- Each department's `department_result` sent to Owner
+**Gate check:**
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/dept-gate.sh \
+  --gate all-depts --phase-dir {phase-dir} --no-poll
+# Validates:
+# - Every active department has .dept-status-{dept}.json with status: "complete"
+# - Every department has at least one summary.jsonl
+```
+
+**Required after gate passes:**
 - Cross-department integration points tested:
   - Frontend consumes Backend API correctly
   - Frontend renders UI/UX design tokens correctly
   - Backend validates data shapes Frontend sends
+
+**Timeout:** 60 minutes (configurable). On timeout: display per-department status report from .dept-status-{dept}.json files.
 
 ### Gate 4: Owner Sign-off
 
