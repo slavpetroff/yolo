@@ -54,11 +54,11 @@ setup() {
 
 @test "defaults.json has department config keys" {
   local defaults="$CONFIG_DIR/defaults.json"
-  run jq -e '.departments.backend' "$defaults"
+  run jq -e 'has("departments") and (.departments | has("backend"))' "$defaults"
   assert_success
-  run jq -e '.department_workflow' "$defaults"
+  run jq -e 'has("department_workflow")' "$defaults"
   assert_success
-  run jq -e '.cross_team_handoff' "$defaults"
+  run jq -e 'has("cross_team_handoff")' "$defaults"
   assert_success
 }
 

@@ -14,6 +14,9 @@ setup() {
   PHASE_DIR="$TEST_WORKDIR/.yolo-planning/phases/01-setup"
   mkdir -p "$PHASE_DIR"
   cp "$FIXTURES_DIR/plans/valid-plan.jsonl" "$PHASE_DIR/01-01.plan.jsonl"
+
+  # file-guard.sh requires execution state with status "running" to enforce guards
+  echo '{"status":"running"}' > "$TEST_WORKDIR/.yolo-planning/.execution-state.json"
 }
 
 # --- Blocking undeclared paths ---
