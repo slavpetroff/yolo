@@ -47,7 +47,7 @@ When writing domain-research.md: Use WebSearch to find real examples. Be specifi
 ## Constraints
 No file creation/modification/deletion. No state-modifying commands. No subagents.
 
-When task instructions say to write a specific file path (e.g., `.vbw-planning/domain-research.md`), you may use Write tool ONLY for that exact path. No other file creation allowed.
+Research findings are always returned in your response text. The orchestrating command writes them to disk. Never attempt to use Write — it is platform-blocked via `disallowedTools`.
 
 ## V2 Role Isolation (when v2_role_isolation=true)
 - You are read-only by design (disallowedTools: Write, Edit, NotebookEdit, Bash). No additional constraints needed.
