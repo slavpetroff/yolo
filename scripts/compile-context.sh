@@ -147,6 +147,36 @@ get_dept_conventions() {
   return 0
 }
 
+# --- Helper: get per-role reference package path (D3/D6) ---
+# Returns the path to references/packages/{BASE_ROLE}.toon if it exists.
+# Backward compatible: returns 1 when packages/ dir absent (D6).
+get_reference_package() {
+  local PACKAGE_PATH="references/packages/${BASE_ROLE}.toon"
+  if [ -f "$PACKAGE_PATH" ]; then
+    echo "$PACKAGE_PATH"
+    return 0
+  fi
+  return 1
+}
+
+# --- Helper: get tool restrictions from resolve-tool-permissions.sh (D4) ---
+# Emits tool_restrictions section when disallowed_tools exist for this role/project.
+# Silently returns 0 when resolve-tool-permissions.sh is absent (pre-phase-3).
+get_tool_restrictions() {
+  local RESOLVE_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")" && pwd)/..}/scripts/resolve-tool-permissions.sh"
+  if [ -x "$RESOLVE_SCRIPT" ]; then
+    local TOOL_JSON
+    TOOL_JSON=$(bash "$RESOLVE_SCRIPT" --role "$ROLE" --project-dir "." 2>/dev/null) || return 0
+    local DISALLOWED
+    DISALLOWED=$(echo "$TOOL_JSON" | jq -r '.disallowed_tools // [] | join(", ")' 2>/dev/null) || return 0
+    if [ -n "$DISALLOWED" ]; then
+      echo "tool_restrictions:"
+      echo "  Do NOT use: $DISALLOWED"
+    fi
+  fi
+  return 0
+}
+
 # --- Helper: get architecture summary ---
 get_architecture() {
   local arch_file="$PHASE_DIR/architecture.toon"
@@ -287,6 +317,8 @@ case "$BASE_ROLE" in
         echo ""
       fi
       echo "success_criteria: $PHASE_SUCCESS"
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
@@ -324,6 +356,8 @@ case "$BASE_ROLE" in
         echo ""
       fi
       echo "success_criteria: $PHASE_SUCCESS"
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
@@ -368,6 +402,8 @@ case "$BASE_ROLE" in
         echo 'dept_conventions:'
         echo "$DEPT_CONV" | sed 's/^/  /'
       fi
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
@@ -416,6 +452,8 @@ case "$BASE_ROLE" in
           done <<< "$SKILLS"
         fi
       fi
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
@@ -441,6 +479,8 @@ case "$BASE_ROLE" in
         echo "conventions[${CONV_COUNT}]{category,rule}:"
         echo "$CONVENTIONS"
       fi
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
@@ -473,6 +513,8 @@ case "$BASE_ROLE" in
         echo "$DEPT_CONV" | sed 's/^/  /'
       fi
       get_research
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
@@ -506,6 +548,8 @@ case "$BASE_ROLE" in
         echo 'dept_conventions:'
         echo "$DEPT_CONV" | sed 's/^/  /'
       fi
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
@@ -530,6 +574,8 @@ case "$BASE_ROLE" in
       if [ -f "$PHASE_DIR/api-contracts.jsonl" ]; then
         echo "api_contracts: @$PHASE_DIR/api-contracts.jsonl"
       fi
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
@@ -554,6 +600,8 @@ case "$BASE_ROLE" in
           echo "  $manifest"
         fi
       done
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
@@ -573,6 +621,8 @@ case "$BASE_ROLE" in
         echo "known_gaps:"
         jq -r 'select((.desc // empty) != "") | "  \(.sev // ""): \(.desc)"' "$PHASE_DIR/gaps.jsonl" 2>/dev/null || true
       fi
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
@@ -599,6 +649,8 @@ case "$BASE_ROLE" in
       fi
       echo ""
       echo "success_criteria: $PHASE_SUCCESS"
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
@@ -607,6 +659,8 @@ case "$BASE_ROLE" in
       emit_header
       echo ""
       get_requirements
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
