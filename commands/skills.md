@@ -35,18 +35,14 @@ From Context JSON: display installed skills (`installed.global[]` + `installed.p
 
 ### Step 3: Curated suggestions
 
-From `suggestions[]` in Context JSON (recommended but not installed). Display in single-line box with `(curated)` tag.
-- suggestions non-empty: show them
-- empty + stack detected: "✓ All recommended skills already installed."
-- no stack + no suggestions + find-skills available: suggest example searches
-- no stack + find-skills unavailable: "○ No stack detected. Use --search <query>."
+From `suggestions[]` in Context JSON (recommended but not installed). Display with `(curated)` tag. Empty + stack: "✓ All recommended installed." No stack + find-skills: suggest searches. No stack + no find-skills: "○ Use --search."
 
 ### Step 4: Dynamic registry search
 
 **4a.** If `find_skills_available` is false: AskUserQuestion to install find-skills (`npx skills add vercel-labs/skills --skill find-skills -g -y`). Declined → skip to Step 5.
 
 **4b.** Search when: --search passed (search for query) | no --search but unmapped stack items (auto-search each) | all mapped → skip.
-Run `npx skills find "<query>"`. Display results with `(registry)` tag. If npx unavailable: "⚠ skills CLI not found."
+Run `npx skills find "<query>"`. Display results with `(registry)` tag. If npx unavailable: "⚠ Skills CLI is not installed. Run: npx skills --help to verify."
 
 ### Step 5: Offer installation
 
@@ -58,4 +54,4 @@ Combine curated + registry, deduplicate, rank (curated first). AskUserQuestion m
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — single-line box, ✓ installed, ○ suggested, ✗ failed, ⚠ warning, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- single-line box, ✓/○/✗/⚠ symbols, no ANSI.

@@ -71,16 +71,7 @@ Phase Start
 
 ## Context Isolation Rules (STRICT — NO CONTEXT BLEED)
 
-See @references/company-hierarchy.md ## Context Isolation for full rules on:
-- Per-Agent Context Scoping (within a department)
-- Cross-Department Context Isolation (multi-department mode)
-- Escalation Restores Context
-
-**Quick summary for cross-department:**
-- Owner splits context into `{phase}-CONTEXT-{dept}.md` files (backend, uiux, frontend)
-- Each department receives ONLY their context file
-- Backend NEVER reads UX/FE context; UX NEVER reads BE/FE context; FE reads own + UX handoff only
-- Context narrows down the hierarchy: Lead → Architect → Senior → Dev (Dev sees spec field ONLY)
+See @references/company-hierarchy.md ## Context Isolation for full rules and per-agent scoping.
 
 ## Handoff Gates
 
@@ -154,26 +145,4 @@ When departments conflict:
 
 ## Handoff Artifact Schemas
 
-### `design_handoff` (UX Lead → Frontend Lead + Backend Lead)
-
-```jsonl
-{"type":"design_handoff","phase":"01","dept":"uiux","artifacts":{"tokens":"phases/01/design-tokens.jsonl","specs":"phases/01/component-specs.jsonl","flows":"phases/01/user-flows.jsonl"},"ready":["LoginForm","AuthProvider"],"deferred":["PasswordReset"],"ac":["All components pass A11y audit","Design tokens cover all states"],"status":"complete"}
-```
-
-### `api_contract` (Frontend Lead ↔ Backend Lead)
-
-```jsonl
-{"type":"api_contract","dir":"fe_to_be|be_to_fe","endpoints":[{"m":"POST","p":"/auth/login","req":{"email":"string","password":"string"},"res":{"token":"string","user":"object"}}],"status":"proposed|agreed|implemented"}
-```
-
-### `department_result` (Department Lead → Owner)
-
-```jsonl
-{"type":"department_result","dept":"backend|frontend|uiux","phase":"01","r":"PASS|PARTIAL|FAIL","pc":3,"pt":3,"qa":"PASS","sec":"PASS","tdd":"red_green"}
-```
-
-### `owner_signoff` (Owner → All Leads)
-
-```jsonl
-{"type":"owner_signoff","phase":"01","dec":"SHIP|HOLD","depts":["backend","frontend","uiux"],"iq":"PASS","notes":""}
-```
+Handoff artifact schemas (design_handoff, api_contract, department_result, owner_signoff): see @references/handoff-schemas.md ## Cross-Department Schemas for full definitions.

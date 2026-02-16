@@ -3,6 +3,15 @@ set -u
 # PostToolUse: Auto-update STATE.md, state.json, ROADMAP.md + .execution-state.json on PLAN/SUMMARY writes
 # Non-blocking, fail-open (always exit 0)
 
+# --- Shared helper: count plans+summaries via bash glob (no subprocesses) ---
+count_plans_summaries() {
+  local dir="$1"
+  local plans=0 summaries=0
+  for f in "$dir"/*.plan.jsonl "$dir"/*-PLAN.md; do [ -f "$f" ] && plans=$((plans+1)); done
+  for f in "$dir"/*.summary.jsonl "$dir"/*-SUMMARY.md; do [ -f "$f" ] && summaries=$((summaries+1)); done
+  echo "$plans $summaries"
+}
+
 update_state_md() {
   local phase_dir="$1"
   local state_md=".yolo-planning/STATE.md"
@@ -10,8 +19,7 @@ update_state_md() {
   [ -f "$state_md" ] || return 0
 
   local plan_count summary_count pct
-  plan_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
-  summary_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
+  read -r plan_count summary_count <<< "$(count_plans_summaries "$phase_dir")"
 
   if [ "$plan_count" -gt 0 ]; then
     pct=$(( (summary_count * 100) / plan_count ))
@@ -31,17 +39,14 @@ slug_to_name() {
 
 update_roadmap() {
   local phase_dir="$1"
+  local phase_num="$2"
   local roadmap=".yolo-planning/ROADMAP.md"
 
   [ -f "$roadmap" ] || return 0
-
-  local dirname phase_num plan_count summary_count status date_str
-  dirname=$(basename "$phase_dir")
-  phase_num=$(echo "$dirname" | sed 's/^\([0-9]*\).*/\1/;s/^0*//')
   [ -z "$phase_num" ] && return 0
 
-  plan_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
-  summary_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
+  local plan_count summary_count status date_str
+  read -r plan_count summary_count <<< "$(count_plans_summaries "$phase_dir")"
 
   [ "$plan_count" -eq 0 ] && return 0
 
@@ -106,27 +111,24 @@ update_model_profile() {
 
 update_state_json() {
   local phase_dir="$1"
+  local phase_num="$2"
   local state_json=".yolo-planning/state.json"
 
   [ -f "$state_json" ] || return 0
   command -v jq >/dev/null 2>&1 || return 0
-
-  local dirname phase_num plan_count summary_count pct phases_dir total status
-  dirname=$(basename "$phase_dir")
-  phase_num=$(echo "$dirname" | sed 's/^\([0-9]*\).*/\1/;s/^0*//')
   [ -z "$phase_num" ] && return 0
 
-  plan_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
-  summary_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
-
-  # Compute overall progress across all phases
+  # Compute overall progress across all phases using glob counting
+  local phases_dir total pct
   phases_dir=$(dirname "$phase_dir")
   total=0
   local total_plans=0 total_summaries=0
   for dir in $(command ls -d "$phases_dir"/*/ 2>/dev/null | sort); do
     total=$((total + 1))
-    total_plans=$((total_plans + $(find "$dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')))
-    total_summaries=$((total_summaries + $(find "$dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')))
+    local dp ds
+    read -r dp ds <<< "$(count_plans_summaries "$dir")"
+    total_plans=$((total_plans + dp))
+    total_summaries=$((total_summaries + ds))
   done
 
   if [ "$total_plans" -gt 0 ]; then
@@ -135,19 +137,15 @@ update_state_json() {
     pct=0
   fi
 
-  # Determine status
-  status=$(jq -r '.st // "planning"' "$state_json" 2>/dev/null)
-  if [ "$total_plans" -gt 0 ] && [ "$total_summaries" -eq "$total_plans" ]; then
-    status="complete"
-  elif [ "$total_summaries" -gt 0 ]; then
-    status="executing"
-  elif [ "$total_plans" -gt 0 ]; then
-    status="executing"
-  fi
-
+  # Determine status and write in a single jq call (batch read+write)
   local tmp="${state_json}.tmp.$$"
-  jq --argjson ph "$phase_num" --argjson tt "$total" --argjson pr "$pct" --arg st "$status" \
-    '.ph = $ph | .tt = $tt | .pr = $pr | .st = $st' "$state_json" > "$tmp" 2>/dev/null && \
+  jq --argjson ph "$phase_num" --argjson tt "$total" --argjson pr "$pct" \
+    --argjson tp "$total_plans" --argjson ts "$total_summaries" \
+    '.ph = $ph | .tt = $tt | .pr = $pr |
+     if ($tp > 0 and $ts == $tp) then .st = "complete"
+     elif ($ts > 0) then .st = "executing"
+     elif ($tp > 0) then .st = "executing"
+     else . end' "$state_json" > "$tmp" 2>/dev/null && \
     mv "$tmp" "$state_json" 2>/dev/null || rm -f "$tmp" 2>/dev/null
 }
 
@@ -157,31 +155,31 @@ advance_phase() {
 
   [ -f "$state_md" ] || return 0
 
-  # Check if triggering phase is complete
+  # Check if triggering phase is complete using glob counting
   local plan_count summary_count
-  plan_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
-  summary_count=$(find "$phase_dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
+  read -r plan_count summary_count <<< "$(count_plans_summaries "$phase_dir")"
   [ "$plan_count" -gt 0 ] && [ "$summary_count" -eq "$plan_count" ] || return 0
 
   # Scan all phase dirs to find next incomplete
   local phases_dir total next_num next_name all_done
   phases_dir=$(dirname "$phase_dir")
-  total=$(command ls -d "$phases_dir"/*/ 2>/dev/null | wc -l | tr -d ' ')
+  total=0
+  for _d in $(command ls -d "$phases_dir"/*/ 2>/dev/null); do total=$((total + 1)); done
   next_num=""
   next_name=""
   all_done=true
 
   for dir in $(command ls -d "$phases_dir"/*/ 2>/dev/null | sort); do
-    local dirname p s
-    dirname=$(basename "$dir")
-    p=$(find "$dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
-    s=$(find "$dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
+    local dirname_base p s
+    dirname_base=$(basename "$dir")
+    read -r p s <<< "$(count_plans_summaries "$dir")"
 
     if [ "$p" -eq 0 ] || [ "$s" -lt "$p" ]; then
       if [ -z "$next_num" ]; then
-        next_num=$(echo "$dirname" | sed 's/^\([0-9]*\).*/\1/;s/^0*//')
+        next_num=${dirname_base%%-*}
+        next_num=$(( 10#$next_num ))
         [ -z "$next_num" ] && next_num=0
-        next_name=$(slug_to_name "$dirname")
+        next_name=$(slug_to_name "$dirname_base")
       fi
       all_done=false
       break
@@ -195,7 +193,7 @@ advance_phase() {
   if [ "$all_done" = true ]; then
     sed "s/^Status: .*/Status: complete/" "$state_md" > "$tmp" 2>/dev/null && \
       mv "$tmp" "$state_md" 2>/dev/null || rm -f "$tmp" 2>/dev/null
-    # Update state.json to complete
+    # Update state.json to complete (single jq call)
     if [ -f "$state_json" ] && command -v jq >/dev/null 2>&1; then
       local jtmp="${state_json}.tmp.$$"
       jq '.st = "complete" | .pr = 100' "$state_json" > "$jtmp" 2>/dev/null && \
@@ -205,7 +203,7 @@ advance_phase() {
     sed -e "s/^Phase: .*/Phase: ${next_num} of ${total} (${next_name})/" \
         -e "s/^Status: .*/Status: ready/" "$state_md" > "$tmp" 2>/dev/null && \
       mv "$tmp" "$state_md" 2>/dev/null || rm -f "$tmp" 2>/dev/null
-    # Advance state.json to next phase
+    # Advance state.json to next phase (single jq call)
     if [ -f "$state_json" ] && command -v jq >/dev/null 2>&1; then
       local jtmp="${state_json}.tmp.$$"
       jq --argjson ph "$next_num" --argjson tt "$total" '.ph = $ph | .tt = $tt | .st = "planning" | .step = "plan"' \
@@ -235,14 +233,27 @@ commit_state_artifacts() {
   git commit -m "chore(state): $msg" --no-verify 2>/dev/null || return 0
 }
 
+# --- OPTIMIZATION 1: Early exit via bash case before jq parsing ---
 INPUT=$(cat)
+# Quick pattern check: bail immediately if not a plan/summary file path
+case "$INPUT" in
+  *plan.jsonl*|*PLAN.md*|*summary.jsonl*|*SUMMARY.md*) ;;
+  *) exit 0 ;;
+esac
+
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null)
+
+# --- OPTIMIZATION 3: Cache dirname and phase_num once ---
+PHASE_DIR=$(dirname "$FILE_PATH")
+PHASE_DIR_BASE=$(basename "$PHASE_DIR")
+CACHED_PHASE_NUM=${PHASE_DIR_BASE%%-*}
+CACHED_PHASE_NUM=$(( 10#$CACHED_PHASE_NUM )) 2>/dev/null || CACHED_PHASE_NUM=""
 
 # Plan trigger: update plan count + activate status (JSONL or legacy MD)
 if echo "$FILE_PATH" | grep -qE 'phases/[^/]+/[0-9]+-[0-9]+\.plan\.jsonl$' || echo "$FILE_PATH" | grep -qE 'phases/[^/]+/[0-9]+-[0-9]+-PLAN\.md$'; then
-  update_state_md "$(dirname "$FILE_PATH")"
-  update_roadmap "$(dirname "$FILE_PATH")"
-  update_state_json "$(dirname "$FILE_PATH")"
+  update_state_md "$PHASE_DIR"
+  update_roadmap "$PHASE_DIR" "$CACHED_PHASE_NUM"
+  update_state_json "$PHASE_DIR" "$CACHED_PHASE_NUM"
   # Status: ready → active when a plan is written
   _sm=".yolo-planning/STATE.md"
   if [ -f "$_sm" ] && grep -q '^Status: ready' "$_sm" 2>/dev/null; then
@@ -319,11 +330,11 @@ jq --arg phase "$PHASE" --arg plan "$PLAN" --arg status "$STATUS" '
   end
 ' "$STATE_FILE" > "$TEMP_FILE" 2>/dev/null && mv "$TEMP_FILE" "$STATE_FILE" 2>/dev/null
 
-update_state_md "$(dirname "$FILE_PATH")"
-update_roadmap "$(dirname "$FILE_PATH")"
-update_state_json "$(dirname "$FILE_PATH")"
+update_state_md "$PHASE_DIR"
+update_roadmap "$PHASE_DIR" "$CACHED_PHASE_NUM"
+update_state_json "$PHASE_DIR" "$CACHED_PHASE_NUM"
 update_model_profile
-advance_phase "$(dirname "$FILE_PATH")"
+advance_phase "$PHASE_DIR"
 
 # Stage summary + commit all state artifacts
 git add "$FILE_PATH" 2>/dev/null || true

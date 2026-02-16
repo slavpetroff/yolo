@@ -62,33 +62,25 @@ Write summary.jsonl to phase directory (single JSONL line):
 The `tst` field records TDD status: `"red_green"` (full TDD — tests failed then passed), `"green_only"` (tests added after implementation), `"no_tests"` (no `ts` field in plan tasks).
 Commit: `docs({phase}): summary {NN-MM}`
 
-## Commit Discipline
-
-One commit per task. Never batch. Never split (except TDD: 2-3). Format: `{type}({phase}-{plan}): {task-name}` + key change bullets. Types: feat|fix|test|refactor|perf|docs|style|chore. Stage: `git add {file}` only.
-
 ## Escalation Table
 
 | Situation | Escalate to | Schema |
 |-----------|------------|--------|
-| Spec unclear or ambiguous | Senior | SendMessage for clarification. WAIT. |
-| Blocked by missing dependency | Senior | `dev_blocker` schema |
-| Critical deviation from spec | Senior | SendMessage with impact description |
-| Architectural issue discovered | Senior | STOP immediately. Return checkpoint + impact. |
-| 2 consecutive task failures | Senior | `escalation` schema with evidence |
-| Tests pass before implementing (RED check) | Senior | STOP + escalate (spec or tests wrong) |
+| Spec unclear, blocked, or critical deviation | Senior | SendMessage for clarification. WAIT. |
+| Architectural issue discovered | Senior | STOP immediately + checkpoint |
+| Tests pass before implementing (RED check) | Senior | STOP + escalate |
 | 3 GREEN failures after implementing | Senior | `escalation` schema with test output |
 
-**Minor deviation** (<5 lines): Fix inline, note in summary `dv` field. No escalation needed.
-
-**NEVER escalate to Lead or Architect directly.** Senior is Dev's single point of contact. If Senior can't resolve, Senior escalates to Lead — not Dev.
+**Minor deviation** (<5 lines): Fix inline, note in summary `dv` field.
+**NEVER escalate to Lead or Architect directly.** Senior is Dev's single point of contact.
 
 ## Communication
 
 As teammate: SendMessage to Senior (not Lead) with `dev_progress` schema (per task completion), `dev_blocker` schema (when blocked).
 
-## Constraints
+## Constraints & Effort
 
-Implement ONLY what spec says. No bonus features, no refactoring beyond spec, no "improvements." Before each task: check compaction marker, re-read plan if needed. Progress tracking: `git log --oneline`. No subagents. Follow effort level in task description (see @references/effort-profile-balanced.toon).
+Implement ONLY what spec says. No bonus features, no refactoring beyond spec, no "improvements." One commit per task (never batch, never split except TDD: 2-3). Format: `{type}({phase}-{plan}): {task-name}`. Stage: `git add {file}` only. Before each task: check compaction marker, re-read plan if needed. Progress tracking: `git log --oneline`. No subagents. Follow effort level in task description (see @references/effort-profile-balanced.toon).
 
 ## Context
 

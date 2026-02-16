@@ -15,29 +15,26 @@ allowed-tools: Read, Glob
 
 ## Commands
 
-**Lifecycle:** ✓ init (scaffold) · ✓ vibe (smart router -- plan, execute, discuss, archive, and more)
-**Monitoring:** ✓ status (dashboard) · ✓ qa (deep verify)
-**Quick Actions:** ✓ fix (quick fix) · ✓ debug (investigation) · ✓ todo (backlog)
-**Session:** ✓ pause (save notes) · ✓ resume (restore context)
-**Codebase:** ✓ map (Scout analysis) · ✓ research (standalone)
-**Config:** ✓ skills (community skills) · ✓ config (settings, model profiles) · ✓ help (this) · ✓ whats-new (changelog) · ✓ update (version) · ✓ uninstall (removal)
+**Lifecycle:** ✓ /yolo:init (scaffold), ✓ /yolo:go (smart router -- plan, execute, discuss, archive, and more)
+**Monitoring:** ✓ /yolo:status (dashboard), ✓ /yolo:qa (deep verify)
+**Quick Actions:** ✓ /yolo:fix (quick fix), ✓ /yolo:debug (investigation), ✓ /yolo:todo (backlog)
+**Session:** ✓ /yolo:pause (save notes), ✓ /yolo:resume (restore context)
+**Codebase:** ✓ /yolo:map (Scout analysis), ✓ /yolo:research (standalone)
+**Config:** ✓ /yolo:skills (community skills), ✓ /yolo:config (settings, model profiles), ✓ /yolo:help (this), ✓ /yolo:whats-new (changelog), ✓ /yolo:update (version), ✓ /yolo:uninstall (removal)
 
 ## Architecture
 
-- /yolo:go --execute creates Dev team for parallel plans. /yolo:map creates Scout team. Session IS the lead.
-- Continuous verification via PostToolUse, Notification, SubagentStop hooks. /yolo:qa is on-demand.
-- /yolo:config maps skills to hook events (skill-hook wiring).
+Dev teams (execute) + Scout teams (map). Continuous verification via hooks; /yolo:qa on-demand. Skill-hook wiring via /yolo:config.
 
 ## Model Profiles
 
-Control which Claude model each agent uses (cost optimization):
-- `/yolo:config model_profile quality` -- Opus for Lead/Dev/Debugger/Architect, Sonnet for QA, Haiku for Scout (~$2.80/phase)
-- `/yolo:config model_profile balanced` -- Sonnet for most, Haiku for Scout (~$1.40/phase, default)
-- `/yolo:config model_profile budget` -- Sonnet for critical agents, Haiku for QA/Scout (~$0.70/phase)
-- `/yolo:config model_override dev opus` -- Override single agent without changing profile
-- Interactive mode: Select "Model Profile" → "Configure each agent individually" to set models per-agent (6 questions across 2 rounds). Status display marks overridden agents with asterisk (*).
+| Profile | Leads | Cost/phase |
+|---------|-------|-----------|
+| quality | Opus leads | ~$2.80 |
+| balanced | Sonnet leads | ~$1.40 |
+| budget | Haiku QA | ~$0.70 |
 
-See: @references/model-profiles.md for full preset definitions and cost comparison.
+`/yolo:config model_profile <name>` or `/yolo:config model_override <agent> <model>`. Interactive: per-agent config with asterisk (*) for overrides. See: @references/model-profiles.md.
 
 ## Getting Started
 
@@ -47,27 +44,10 @@ Optional: /yolo:config model_profile <quality|balanced|budget> to optimize cost
 
 ## GSD Import
 
-Migrating from GSD? YOLO automatically detects existing GSD projects during initialization.
+Migrating from GSD? Run /yolo:init in your GSD project. YOLO detects `.planning/` and offers to import work history to `.yolo-planning/gsd-archive/` (original preserved). Generates INDEX.json for agent reference. GSD isolation prevents cross-contamination.
 
-**During /yolo:init:**
-- Detects `.planning/` directory (GSD's planning folder)
-- Prompts: "GSD project detected. Import work history?"
-- If approved: copies `.planning/` to `.yolo-planning/gsd-archive/` (original preserved)
-- Generates INDEX.json with phase metadata, milestones, and quick paths
-- Continues with normal YOLO initialization
-
-**What's archived:**
-- All GSD planning files (ROADMAP, PROJECT, phases, summaries, plans)
-- Lightweight JSON index for fast agent reference
-- Original `.planning/` remains untouched (continues working with GSD if needed)
-
-**After import:**
-- YOLO agents can reference archived GSD files when needed
-- Index provides quick lookup: phases completed, milestones, key file paths
-- GSD isolation can be enabled to prevent cross-contamination
-
-See: /yolo:init for the import flow, docs/migration-gsd-to-yolo.md for detailed migration guide.
+See: `docs/migration-gsd-to-yolo.md` for detailed migration guide.
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — double-line box, ✓ available, ➜ Getting Started, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- double-line box, ✓/➜ symbols, no ANSI.

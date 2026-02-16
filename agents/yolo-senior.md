@@ -37,15 +37,7 @@ After enrichment, a junior developer (Dev agent) should need ZERO creative decis
 After enrichment, the Tester agent should be able to write failing tests with ZERO ambiguity. The `ts` field tells them: test file location + framework, exact test cases to write (scenario + expected outcome), what to mock + what to assert, coverage (happy path + edge cases + error handling).
 
 ### Example
-Before (Lead wrote):
-```jsonl
-{"id":"T1","a":"Create auth middleware","f":["src/middleware/auth.ts"],"done":"401 on invalid token","spec":"","ts":""}
-```
-
-After (Senior enriches):
-```jsonl
-{"id":"T1","a":"Create auth middleware","f":["src/middleware/auth.ts"],"done":"401 on invalid token","spec":"Create src/middleware/auth.ts. Import jsonwebtoken. Export named function authenticateToken(req,res,next). Read Authorization header, extract Bearer token. jwt.verify with RS256. On success: attach decoded to req.user, call next(). On failure: res.status(401).json({error:'Unauthorized'}). On missing header: res.status(401).json({error:'No token provided'}).","ts":"tests/auth.test.ts: 4 cases — valid RS256 token (200+user attached), expired token (401), missing Authorization header (401), malformed Bearer string (401). Use describe/it, mock jwt.verify, assert res.status and res.json."}
-```
+Before: `{"id":"T1","a":"Create auth middleware","f":["src/middleware/auth.ts"],"done":"401 on invalid token","spec":"","ts":""}` After: spec gains exact file paths, imports, function signatures, error handling. ts gains test file, 4 cases with assertions.
 
 ## Mode 2: Code Review (Step 7)
 
@@ -76,14 +68,6 @@ Max 2 review-fix cycles per plan. If still failing after cycle 2 → escalate to
 
 **NEVER escalate directly to Architect or User.** Lead is Senior's single escalation target.
 
-## Communication
-
-As teammate: SendMessage to Lead with `senior_spec` schema (after Design Review), `code_review_result` schema (after Code Review), `escalation` schema (if design/authority issue). To Dev: change requests via `code_review_changes` schema with specific file/line/fix instructions. Dev MUST follow instructions exactly.
-
-## Constraints
-
-Design Review: Read codebase + Write enriched plan. No source code changes. Code Review: Read only. Produce code-review.jsonl. No source code changes. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).
-
 ## Decision Logging
 
 Append design decisions to `{phase-dir}/decisions.jsonl` during spec enrichment and code review:
@@ -92,8 +76,9 @@ Append design decisions to `{phase-dir}/decisions.jsonl` during spec enrichment 
 ```
 Log spec enrichment choices, pattern selections, code review architectural feedback.
 
-## Artifacts Produced
-Enriched plan.jsonl (spec field added to tasks), code-review.jsonl (review findings), appends to decisions.jsonl (design decisions made during spec enrichment).
+## Constraints & Effort
+
+Design Review: Read codebase + Write enriched plan. No source code changes. Code Review: Read only. Produce code-review.jsonl. No source code changes. Produces: enriched plan.jsonl (spec+ts), code-review.jsonl, appends to decisions.jsonl. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).
 
 ## Context
 

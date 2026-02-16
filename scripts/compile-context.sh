@@ -39,11 +39,13 @@ get_arch_file() {
 }
 
 # Strip leading zeros for ROADMAP matching (ROADMAP uses "Phase 2:", not "Phase 02:")
-PHASE_NUM=$(echo "$PHASE" | sed 's/^0*//')
-if [ -z "$PHASE_NUM" ]; then PHASE_NUM="0"; fi
+# OPTIMIZATION 3: Use arithmetic instead of sed for leading zero removal
+PHASE_NUM=$(( 10#$PHASE ))
 
 # --- Find phase directory ---
-PHASE_DIR=$(find "$PHASES_DIR" -maxdepth 1 -type d -name "${PHASE}-*" 2>/dev/null | head -1)
+# OPTIMIZATION 1: Use ls glob instead of find for phase dir lookup
+PHASE_DIR=$(command ls -d "$PHASES_DIR/${PHASE}-"*/ 2>/dev/null | head -1)
+PHASE_DIR=${PHASE_DIR%/}
 if [ -z "$PHASE_DIR" ]; then
   echo "Phase ${PHASE} directory not found" >&2
   exit 1
@@ -56,13 +58,23 @@ PHASE_GOAL="Not available"
 PHASE_REQS="Not available"
 PHASE_SUCCESS="Not available"
 
+# OPTIMIZATION 2: Single awk for ROADMAP extraction (replaces 1 sed + 3 grep + 3 sed = 7 subprocesses)
 if [ -f "$ROADMAP" ]; then
-  PHASE_SECTION=$(sed -n "/^## Phase ${PHASE_NUM}:/,/^## Phase [0-9]/p" "$ROADMAP" 2>/dev/null | sed '$d') || true
-  if [ -n "${PHASE_SECTION:-}" ]; then
-    PHASE_GOAL=$(echo "$PHASE_SECTION" | grep '^\*\*Goal:\*\*' 2>/dev/null | sed 's/\*\*Goal:\*\* *//' ) || PHASE_GOAL="Not available"
-    PHASE_REQS=$(echo "$PHASE_SECTION" | grep '^\*\*Reqs:\*\*' 2>/dev/null | sed 's/\*\*Reqs:\*\* *//' ) || PHASE_REQS="Not available"
-    PHASE_SUCCESS=$(echo "$PHASE_SECTION" | grep '^\*\*Success' 2>/dev/null | sed 's/\*\*Success.*:\*\* *//' ) || PHASE_SUCCESS="Not available"
-  fi
+  IFS=$'\t' read -r PHASE_GOAL PHASE_REQS PHASE_SUCCESS <<< "$(awk -v pn="$PHASE_NUM" '
+    BEGIN { g="Not available"; r="Not available"; s="Not available" }
+    /^## Phase / {
+      if (found) exit
+      if ($0 ~ "^## Phase " pn ":") found=1
+      next
+    }
+    found && /^\*\*Goal:\*\*/ { gsub(/\*\*Goal:\*\* */, ""); g=$0 }
+    found && /^\*\*Reqs:\*\*/ { gsub(/\*\*Reqs:\*\* */, ""); r=$0 }
+    found && /^\*\*Success/ { gsub(/\*\*Success.*:\*\* */, ""); s=$0 }
+    END { printf "%s\t%s\t%s", g, r, s }
+  ' "$ROADMAP" 2>/dev/null)" || true
+  : "${PHASE_GOAL:=Not available}"
+  : "${PHASE_REQS:=Not available}"
+  : "${PHASE_SUCCESS:=Not available}"
 fi
 
 # --- Build REQ grep pattern from comma-separated REQ IDs ---
@@ -111,17 +123,13 @@ get_architecture() {
 }
 
 # --- Helper: get requirements ---
+# OPTIMIZATION 4: Batch requirements jq (single jq call instead of N*2 per-line calls)
 get_requirements() {
   if [ -n "$REQ_PATTERN" ]; then
     if [ -f "$PLANNING_DIR/reqs.jsonl" ]; then
       echo "reqs:"
-      grep -E "($REQ_PATTERN)" "$PLANNING_DIR/reqs.jsonl" 2>/dev/null | while IFS= read -r line; do
-        local id; id=$(echo "$line" | jq -r '.id // empty' 2>/dev/null) || true
-        local title; title=$(echo "$line" | jq -r '.t // .title // empty' 2>/dev/null) || true
-        if [ -n "$id" ]; then
-          echo "  $id,$title"
-        fi
-      done
+      grep -E "($REQ_PATTERN)" "$PLANNING_DIR/reqs.jsonl" 2>/dev/null | \
+        jq -r 'select((.id // empty) != "") | "  \(.id),\(.t // .title // "")"' 2>/dev/null || true
     elif [ -f "$PLANNING_DIR/REQUIREMENTS.md" ]; then
       echo "reqs:"
       grep -E "($REQ_PATTERN)" "$PLANNING_DIR/REQUIREMENTS.md" 2>/dev/null | head -10 | while IFS= read -r line; do
@@ -151,60 +159,61 @@ get_budget() {
   esac
 }
 
-estimate_tokens() {
-  local file="$1"
-  local chars
-  chars=$(( $(wc -c < "$file") ))
-  echo $(( chars / 4 ))
-}
-
-# Truncation step 1: conventions tag-only (drop rule text after comma)
-truncate_conventions_tag_only() {
-  local file="$1"
-  local tmp="${file}.trunc.$$"
-  sed 's/^\(  [a-z_-]*\),.*/\1/' "$file" > "$tmp" 2>/dev/null && mv "$tmp" "$file" || rm -f "$tmp"
-}
-
-# Truncation step 2: requirements ID-only (drop title after comma)
-truncate_reqs_id_only() {
-  local file="$1"
-  local tmp="${file}.trunc.$$"
-  # Lines under "reqs:" section: "  REQ-NN,title" → "  REQ-NN"
-  sed '/^reqs:/,/^[^ ]/{s/^\(  REQ-[0-9]*\),.*/\1/;}' "$file" > "$tmp" 2>/dev/null && mv "$tmp" "$file" || rm -f "$tmp"
-}
-
-# Truncation step 3: drop prose content, keep section headings
-truncate_headings_only() {
-  local file="$1"
-  local tmp="${file}.trunc.$$"
-  # Keep lines that are section headers (no leading space) or metadata, drop indented content
-  awk '/^[^ ]/ || /^$/ { print }' "$file" > "$tmp" 2>/dev/null && mv "$tmp" "$file" || rm -f "$tmp"
-}
-
+# OPTIMIZATION 5: Single-pass awk truncation (replaces 3 sed/awk passes + 4 wc calls)
 enforce_budget() {
   local file="$1"
   local budget="$2"
-  local tokens
 
-  tokens=$(estimate_tokens "$file")
+  # Quick check: if file is within budget, skip entirely
+  local chars
+  chars=$(( $(wc -c < "$file") ))
+  local tokens=$(( chars / 4 ))
   [ "$tokens" -le "$budget" ] && return 0
 
-  # Step 1: conventions tag-only
-  truncate_conventions_tag_only "$file"
-  tokens=$(estimate_tokens "$file")
-  [ "$tokens" -le "$budget" ] && return 0
+  # Single awk pass that applies increasingly aggressive truncation
+  local budget_chars=$(( budget * 4 ))
+  local tmp="${file}.trunc.$$"
+  awk -v budget_chars="$budget_chars" '
+    BEGIN { bytes=0; level=0; in_reqs=0 }
+    {
+      line = $0
+      len = length(line) + 1
 
-  # Step 2: requirements ID-only
-  truncate_reqs_id_only "$file"
-  tokens=$(estimate_tokens "$file")
-  [ "$tokens" -le "$budget" ] && return 0
+      # Check if we need to escalate truncation level
+      if (bytes + len > budget_chars && level == 0) level = 1
+      if (bytes + len > budget_chars * 1.2 && level == 1) level = 2
+      if (bytes + len > budget_chars * 1.4 && level == 2) level = 3
 
-  # Step 3: headings-only
-  truncate_headings_only "$file"
+      # Track reqs section
+      if (line ~ /^reqs:/) in_reqs = 1
+      else if (line ~ /^[^ ]/ && line !~ /^$/) in_reqs = 0
+
+      # Level 1: conventions tag-only (drop rule text after comma for convention lines)
+      if (level >= 1 && !in_reqs && line ~ /^  [a-z_-]+,/) {
+        sub(/,.*/, "", line)
+      }
+
+      # Level 2: requirements ID-only (drop title after comma for REQ lines)
+      if (level >= 2 && in_reqs && line ~ /^  REQ-[0-9]+,/) {
+        sub(/,.*/, "", line)
+      }
+
+      # Level 3: headings-only (drop indented content)
+      if (level >= 3 && line ~ /^  / && line !~ /^$/) next
+
+      bytes += length(line) + 1
+      print line
+    }
+  ' "$file" > "$tmp" 2>/dev/null && mv "$tmp" "$file" || rm -f "$tmp"
 }
 
 BUDGET=$(get_budget "$ROLE")
 ARCH_FILE=$(get_arch_file)
+
+# OPTIMIZATION 6: Cache file existence flags (avoid repeated stat syscalls)
+ARCH_EXISTS=false; [ -f "$ARCH_FILE" ] && ARCH_EXISTS=true
+DECISIONS_EXISTS=false; [ -f "$PHASE_DIR/decisions.jsonl" ] && DECISIONS_EXISTS=true
+HAS_CODEBASE=false; [ -d "$PLANNING_DIR/codebase" ] && HAS_CODEBASE=true
 
 # --- Department-aware header (adds department tag to context) ---
 emit_header() {
@@ -225,7 +234,7 @@ case "$BASE_ROLE" in
       get_research
       echo ""
       # Include codebase mapping summaries if available
-      if [ -d "$PLANNING_DIR/codebase" ]; then
+      if [ "$HAS_CODEBASE" = true ]; then
         echo "codebase:"
         for base in INDEX ARCHITECTURE PATTERNS CONCERNS; do
           if [ -f "$PLANNING_DIR/codebase/${base}.md" ]; then
@@ -248,7 +257,7 @@ case "$BASE_ROLE" in
       emit_header
       echo ""
       # Architecture summary if available (department-specific)
-      if [ -f "$ARCH_FILE" ]; then
+      if [ "$ARCH_EXISTS" = true ]; then
         echo "architecture:"
         head -5 "$ARCH_FILE" | sed 's/^/  /'
         echo ""
@@ -256,7 +265,7 @@ case "$BASE_ROLE" in
       get_requirements
       echo ""
       # Decisions from decisions.jsonl (preferred) or STATE.md (fallback)
-      if [ -f "$PHASE_DIR/decisions.jsonl" ]; then
+      if [ "$DECISIONS_EXISTS" = true ]; then
         get_decisions
       elif [ -f "$PLANNING_DIR/STATE.md" ]; then
         DECISIONS=$(sed -n '/^## Key Decisions/,/^## [A-Z]/p' "$PLANNING_DIR/STATE.md" 2>/dev/null | sed '$d' | tail -n +2) || true
@@ -285,7 +294,7 @@ case "$BASE_ROLE" in
       emit_header
       echo ""
       # Full architecture context (department-specific)
-      if [ -f "$ARCH_FILE" ]; then
+      if [ "$ARCH_EXISTS" = true ]; then
         echo "architecture:"
         sed 's/^/  /' "$ARCH_FILE"
         echo ""
@@ -509,7 +518,7 @@ case "$BASE_ROLE" in
       get_research
       echo ""
       # Include codebase mapping summaries if available
-      if [ -d "$PLANNING_DIR/codebase" ]; then
+      if [ "$HAS_CODEBASE" = true ]; then
         echo "codebase:"
         for base in INDEX ARCHITECTURE PATTERNS CONCERNS; do
           if [ -f "$PLANNING_DIR/codebase/${base}.md" ]; then

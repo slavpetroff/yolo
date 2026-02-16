@@ -19,19 +19,13 @@ Current project:
 
 ## Guard
 
-- No $ARGUMENTS: STOP "Usage: /yolo:research <topic> [--parallel]"
+- No $ARGUMENTS: STOP "Missing required input. Usage: /yolo:research <topic> [--parallel]"
 
 ## Steps
 
 1. **Parse:** Topic (required). --parallel: spawn multiple Scouts on sub-topics.
 2. **Spawn Lead:**
-- Resolve models:
-  ```bash
-  LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-  if [ $? -ne 0 ]; then echo "$LEAD_MODEL" >&2; exit 1; fi
-  SCOUT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-  if [ $? -ne 0 ]; then echo "$SCOUT_MODEL" >&2; exit 1; fi
-  ```
+- Resolve models (lead, scout) via `resolve-agent-model.sh` with config.json + model-profiles.json. Abort on failure.
 - Display: `◆ Spawning Lead (${LEAD_MODEL}) for research scoping...`
 - Spawn yolo-lead as subagent via Task tool. **Add `model: "${LEAD_MODEL}"` parameter.**
 ```
@@ -59,4 +53,4 @@ Research dispatch. Topic: {topic}. Parallel: {true|false}. Project context: {tec
 
 ## Output Format
 
-Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon: single-line box for findings, ✓ high / ○ medium / ⚠ low confidence, Next Up Block, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- single-line box, ✓/○/⚠ symbols, Next Up, no ANSI.

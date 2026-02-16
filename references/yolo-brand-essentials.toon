@@ -5,14 +5,23 @@ semantic_symbols:
   Success/complete|✓|U+2713|Task done, check passed
   Failure/error|✗|U+2717|Task failed, check error
   In progress|◆|U+25C6|Currently executing
-  Pending/queued|○|U+25CB|Waiting to start
-  Action/lightning|⚡|U+26A1|Command invocation
+  Pending/queued/neutral|○|U+25CB|Waiting to start, medium confidence, unselected option
   Warning|⚠|U+26A0|Non-blocking concern
   Info/arrow|➜|U+279C|Navigation, next step
+  Separator/explanation|--|U+2014|Inline explanation or description separator
+  Active/override|*|U+002A|Marks active profile or model override in tables
+  Transition|->|U+2192|Value change display (old -> new), distinct from info arrow
 
 box_drawing:
   critical_phase (double-line): ╔ (U+2554) ═ (U+2550) ╗ (U+2557) ║ (U+2551) ╚ (U+255A) ╝ (U+255D)
   standard_task (single-line): ┌ (U+250C) ─ (U+2500) ┐ (U+2510) │ (U+2502) └ (U+2514) ┘ (U+2518)
+
+box_semantic_mapping:
+  double-line (critical_phase):
+    lifecycle: go, init, pause, resume, update, uninstall, whats-new
+    monitoring: status, help, map
+  single-line (standard_task):
+    task-level: config, debug, qa, research, release, skills, teach, profile, fix, todo
 
 progress_bars:
   format: [filled][empty] using block elements
@@ -20,6 +29,65 @@ progress_bars:
   empty: ░ (U+2591)
   example: ███████░░░ 70%
   width: Always 10 chars for visual consistency
+
+output_patterns:
+  next_up_block:
+    when: Every command output, after main content
+    format: Blank line, then 1-3 lines each prefixed with ➜
+    source: suggest-next.sh where available, or hardcoded contextual suggestion
+    example: |
+      ➜ Run /yolo:status to check progress
+      ➜ Run /yolo:go to continue building
+
+  metrics_block:
+    when: Displaying configuration, progress, or summary data
+    format: Key-value pairs, one per line, labels left-padded to 14 chars
+    example: |
+         Project: my-app
+           Phase: 02 of 05
+        Progress: ███████░░░ 70%
+
+  file_checklist:
+    when: Displaying file creation, mapping, or removal results
+    format: 2-space indent + symbol + space + filename
+    symbols: ✓ (created/completed), ○ (skipped), ✗ (failed)
+    example: |
+      ✓ .yolo-planning/config.json
+      ✓ .yolo-planning/ROADMAP.md
+      ○ .yolo-planning/conventions.md
+
+  agent_spawn:
+    when: Delegating work to a subagent
+    start: "  ◆ Spawning {AgentName}..."
+    end: "  ✓ {AgentName} complete"
+
+  stop_message:
+    when: Blocking error that halts command execution
+    format: "✗ {What went wrong}. {How to fix it}."
+    rule: Every STOP message must have two parts -- problem description and remediation action
+    example: "✗ Phase 3 does not exist. Run /yolo:status to see available phases."
+
+  ask_user_question:
+    when: Requesting user input via AskUserQuestion tool
+    format: Question text on first line (no symbol prefix), options as lettered list
+    single_select: "Pick one."
+    multi_select: "Select all that apply."
+    example: |
+      What feeling should the design give? Pick one.
+        (A) Clean and professional
+        (B) Bold and modern
+        (C) Fun and colorful
+        (D) I will provide design mockups
+
+  cost_display:
+    when: Showing estimated or actual cost information
+    format: "$X.XX estimated" -- always use dollar format
+    rule: Never use abstract "units" -- always approximate to dollars
+
+  version_display:
+    when: Showing version transitions
+    format: "v{old} -> v{new}" using transition arrow U+2192
+    example: "v0.1.7 -> v0.1.8"
 
 rules:
   1: No ANSI color codes -- not rendered in Claude Code model output

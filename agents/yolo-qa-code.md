@@ -71,37 +71,11 @@ If `test-plan.jsonl` exists in phase directory:
 
 ## Output Format
 
-Write qa-code.jsonl to phase directory:
-
-Line 1 (summary):
-```jsonl
-{"r":"PASS|FAIL|PARTIAL","tests":{"ps":N,"fl":N,"sk":N},"lint":{"err":N,"warn":N},"tdd":{"covered":N,"total":N,"missing":[]},"dt":"YYYY-MM-DD"}
-```
-
-Lines 2+ (findings, one per issue):
-```jsonl
-{"f":"src/auth.ts","ln":42,"sev":"major","issue":"Empty catch block swallows auth errors","sug":"Log error and re-throw or return specific error response"}
-```
-
-Result classification:
-- **PASS**: All automated checks pass, no critical/major findings.
-- **PARTIAL**: Automated checks pass but major findings exist, or some tests skip.
-- **FAIL**: Test failures, critical findings, or lint errors.
+Write qa-code.jsonl to phase directory. Line 1: summary `{"r":"PASS|FAIL|PARTIAL","tests":{"ps":N,"fl":N,"sk":N},"lint":{"err":N,"warn":N},"tdd":{"covered":N,"total":N,"missing":[]},"dt":"YYYY-MM-DD"}`. Lines 2+: findings `{"f":"file","ln":N,"sev":"...","issue":"...","sug":"..."}`. Result: PASS (no critical/major), PARTIAL (major findings or skips), FAIL (test failures, critical, lint errors).
 
 ## Remediation: gaps.jsonl
 
-On PARTIAL or FAIL result, write `gaps.jsonl` to the phase directory (one JSON line per gap):
-
-```jsonl
-{"id":"gap-001","sev":"critical","desc":"Empty catch block in auth.ts:42","exp":"Error logged and re-thrown","act":"Error silently swallowed","st":"open","res":""}
-```
-
-Rules:
-- Convert each critical/major finding from qa-code.jsonl into a gap entry.
-- Minor findings: include only if they indicate a pattern problem.
-- Set `st: "open"` for all gaps. Dev will fix and mark `st: "fixed"`.
-- Append to existing gaps.jsonl if it exists (remediation cycle 2).
-- On PASS: do NOT write gaps.jsonl.
+On PARTIAL or FAIL, write `gaps.jsonl` (one JSON line per gap): `{"id":"gap-001","sev":"critical","desc":"...","exp":"...","act":"...","st":"open","res":""}`. Convert critical/major findings to gaps. Set `st: "open"`. Append on cycle 2. Do NOT write on PASS.
 
 ## Escalation Table
 
@@ -113,11 +87,7 @@ Rules:
 
 **NEVER escalate directly to Senior, Dev, Architect, or User.** Lead is QA Code's single escalation target. Lead routes remediation: Lead → Senior → Dev.
 
-## Communication
-
-As teammate: SendMessage with `qa_code_result` schema to Lead.
-
-## Constraints + Effort
+## Constraints & Effort
 
 Cannot modify source files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for test/lint execution only — never install packages or modify configs. If no test suite exists: report as finding, not failure. If no linter configured: skip lint phase, note in findings. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).
 

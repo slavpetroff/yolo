@@ -6,29 +6,11 @@ set -u
 # Fail-open design: exit 0 on any error, deny only on definitive violations.
 
 # Helper: output deny JSON and exit 0 (Claude Code reads JSON on exit 0)
+# Uses printf instead of jq -n to save ~7.3ms per deny call.
 deny() {
-  jq -n --arg reason "$1" '{
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: $reason
-    }
-  }'
+  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"%s"}}\n' "$1"
   exit 0
 }
-
-INPUT=$(cat 2>/dev/null) || exit 0
-[ -z "$INPUT" ] && exit 0
-
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null) || exit 0
-[ -z "$FILE_PATH" ] && exit 0
-
-# Exempt planning artifacts — these are always allowed
-case "$FILE_PATH" in
-  *.yolo-planning/*|*SUMMARY.md|*VERIFICATION.md|*STATE.md|*CLAUDE.md|*.execution-state.json|*.summary.jsonl|*.verification.jsonl|*decisions.jsonl|*research.jsonl)
-    exit 0
-    ;;
-esac
 
 # Find project root by walking up from $PWD
 find_project_root() {
@@ -44,11 +26,8 @@ find_project_root() {
 }
 
 PROJECT_ROOT=$(find_project_root) || exit 0
-PHASES_DIR="$PROJECT_ROOT/.yolo-planning/phases"
-[ ! -d "$PHASES_DIR" ] && exit 0
 
-# Only enforce file guard during active execution
-# Stale plans without execution state should not block edits
+# EARLY EXIT: check execution state BEFORE reading stdin (saves cat+jq when not running)
 EXEC_STATE="$PROJECT_ROOT/.yolo-planning/.execution-state.json"
 if [ ! -f "$EXEC_STATE" ]; then
   exit 0
@@ -58,32 +37,71 @@ if [ "$EXEC_STATUS" != "running" ]; then
   exit 0
 fi
 
-# Find active plan: first plan without a corresponding summary (JSONL or legacy MD)
+# Now read stdin and parse (only when execution is active)
+INPUT=$(cat 2>/dev/null) || exit 0
+[ -z "$INPUT" ] && exit 0
+
+FILE_PATH=$(jq -r '.tool_input.file_path // ""' <<< "$INPUT" 2>/dev/null) || exit 0
+[ -z "$FILE_PATH" ] && exit 0
+
+# Exempt planning artifacts — these are always allowed
+case "$FILE_PATH" in
+  *.yolo-planning/*|*SUMMARY.md|*VERIFICATION.md|*STATE.md|*CLAUDE.md|*.execution-state.json|*.summary.jsonl|*.verification.jsonl|*decisions.jsonl|*research.jsonl)
+    exit 0
+    ;;
+esac
+
+PHASES_DIR="$PROJECT_ROOT/.yolo-planning/phases"
+[ ! -d "$PHASES_DIR" ] && exit 0
+
+# Find active plan: check cache first, fallback to glob on miss
 ACTIVE_PLAN=""
 ACTIVE_PLAN_FORMAT=""
+ACTIVE_PLAN_CACHE="$PROJECT_ROOT/.yolo-planning/.active-plan-cache"
 
-# Check JSONL plans first
-for PLAN_FILE in "$PHASES_DIR"/*/*.plan.jsonl; do
-  [ ! -f "$PLAN_FILE" ] && continue
-  SUMMARY_FILE="${PLAN_FILE%.plan.jsonl}.summary.jsonl"
-  if [ ! -f "$SUMMARY_FILE" ]; then
-    ACTIVE_PLAN="$PLAN_FILE"
-    ACTIVE_PLAN_FORMAT="jsonl"
-    break
+# Cache hit path: read cached plan path, validate it's still active
+if [ -f "$ACTIVE_PLAN_CACHE" ]; then
+  _cached=$(<"$ACTIVE_PLAN_CACHE")
+  if [ -f "$_cached" ]; then
+    SUMMARY_FILE="${_cached%.plan.jsonl}.summary.jsonl"
+    if [ ! -f "$SUMMARY_FILE" ]; then
+      ACTIVE_PLAN="$_cached"
+      ACTIVE_PLAN_FORMAT="jsonl"
+    fi
+    # If summary exists, cache is stale — fall through to glob
   fi
-done
+fi
 
-# Fall back to legacy MD plans
+# Cache miss: glob through phase dirs
 if [ -z "$ACTIVE_PLAN" ]; then
-  for PLAN_FILE in "$PHASES_DIR"/*/*-PLAN.md; do
+  # Check JSONL plans first
+  for PLAN_FILE in "$PHASES_DIR"/*/*.plan.jsonl; do
     [ ! -f "$PLAN_FILE" ] && continue
-    SUMMARY_FILE="${PLAN_FILE%-PLAN.md}-SUMMARY.md"
+    SUMMARY_FILE="${PLAN_FILE%.plan.jsonl}.summary.jsonl"
     if [ ! -f "$SUMMARY_FILE" ]; then
       ACTIVE_PLAN="$PLAN_FILE"
-      ACTIVE_PLAN_FORMAT="md"
+      ACTIVE_PLAN_FORMAT="jsonl"
       break
     fi
   done
+
+  # Fall back to legacy MD plans
+  if [ -z "$ACTIVE_PLAN" ]; then
+    for PLAN_FILE in "$PHASES_DIR"/*/*-PLAN.md; do
+      [ ! -f "$PLAN_FILE" ] && continue
+      SUMMARY_FILE="${PLAN_FILE%-PLAN.md}-SUMMARY.md"
+      if [ ! -f "$SUMMARY_FILE" ]; then
+        ACTIVE_PLAN="$PLAN_FILE"
+        ACTIVE_PLAN_FORMAT="md"
+        break
+      fi
+    done
+  fi
+
+  # Write cache on successful glob (JSONL only — MD plans are legacy)
+  if [ -n "$ACTIVE_PLAN" ] && [ "$ACTIVE_PLAN_FORMAT" = "jsonl" ]; then
+    printf '%s' "$ACTIVE_PLAN" > "$ACTIVE_PLAN_CACHE" 2>/dev/null
+  fi
 fi
 
 # No active plan found — fail-open

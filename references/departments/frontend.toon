@@ -28,28 +28,21 @@ conventions:
 
 workflow:
   steps: 10-step standard with FE domain specializations
-  1_critique: Shared Critic, includes component architecture review
-  2_architecture: FE Architect, component hierarchy, state management, routing
-  3_planning: FE Lead, component breakdown, page decomposition
-  4_design_review: FE Senior, enriches with component specs, prop types, state shapes
-  5_test_red: FE Tester, component tests, interaction tests, E2E specs
-  6_implementation: FE Dev, component code, styles, state logic, API integration
-  7_code_review: FE Senior, a11y, performance, design compliance
-  8_qa: FE QA Lead + FE QA Code, design compliance, UX verification, a11y audit, bundle size
-  9_security: Shared Security, XSS prevention, CSP compliance, auth token handling
-  10_signoff: FE Lead/Owner, dept result to Owner
+  1: Critic (shared), component architecture review
+  2: FE Architect, component hierarchy + state mgmt + routing
+  3: FE Lead, component breakdown
+  4: FE Senior, component specs + prop types + state shapes
+  5: FE Tester, component + interaction + E2E tests
+  6: FE Dev, components + styles + state + API
+  7: FE Senior, a11y + perf + design compliance review
+  8: FE QA Lead + Code, design + UX + a11y + bundle
+  9: Security (shared), XSS + CSP + auth tokens
+  10: FE Lead/Owner, dept result
 
 cross_dept:
-  receives_from_ux:
-    design-tokens.jsonl: colors, typography, spacing, breakpoints
-    component-specs.jsonl: component layout, behavior, interactions, states
-    user-flows.jsonl: user journey maps, navigation structure
-    design-handoff.jsonl: summary with acceptance criteria
-  communicates_with_backend:
-    FE Lead sends api_contract to BE Lead (proposed endpoints, request/response schemas)
-    FE Lead receives api_contract from BE Lead (implemented endpoints)
-  reports_to_owner:
-    FE Lead sends department_result at phase completion
+  from_ux: design-tokens.jsonl, component-specs.jsonl, user-flows.jsonl, design-handoff.jsonl
+  with_backend: FE Lead sends/receives api_contract to/from BE Lead
+  to_owner: FE Lead sends department_result at phase completion
   STRICT: FE agents NEVER bypass FE Lead for cross-dept communication.
   ref: references/cross-team-protocol.md
 

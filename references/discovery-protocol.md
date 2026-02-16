@@ -75,11 +75,13 @@ Example after learning the project is customer-facing:
 ```
 Which of these does your project need?
 
-  □ User accounts (people log in and have profiles)
-  □ Payments (customers pay you money through the site)
-  □ Email notifications (the system sends emails automatically)
-  □ Admin dashboard (you manage things through a control panel)
+  ○ User accounts (people log in and have profiles) -- this means building a registration flow, password reset, and profile page
+  ○ Payments (customers pay you money through the site) -- this means integrating a payment provider, handling refunds, and storing transaction records
+  ○ Email notifications (the system sends emails automatically) -- this means building a notification system and managing delivery preferences
+  ○ Admin dashboard (you manage things through a control panel) -- this means a separate interface with access controls and data views
 ```
+
+Every checklist item should include a "this means..." explanation so the user understands the technical implication of selecting it.
 
 Format as AskUserQuestion with `multiSelect: true`.
 
@@ -91,7 +93,7 @@ Format as AskUserQuestion with `multiSelect: true`.
 2. **Examples over definitions:** Don't explain what caching is — ask "Should the site load instantly even if the data is a few minutes old, or always show the absolute latest?"
 3. **Cause and effect:** Every technical choice should explain what happens. "If you pick A, your site loads faster but shows slightly old data. If you pick B, it's always fresh but might feel slower."
 4. **Concrete over abstract:** "What happens when someone's internet drops mid-purchase?" not "How should the system handle network failures?"
-5. **No jargon in questions:** Terms like REST, GraphQL, microservices, CI/CD, Docker, etc. should never appear in questions. Use their effects instead.
+5. **No jargon in questions:** Terms like REST, GraphQL, microservices, CI/CD, Docker, SSR, component library, Auth, API, endpoint should never appear in questions. Use their effects instead.
 6. **Jargon in requirements:** The answers GET translated to technical requirements in REQUIREMENTS.md. Questions are friendly, outputs are precise.
 
 ## Question Categories
@@ -102,8 +104,8 @@ Use these to ensure coverage. Not every category applies to every project — se
 |----------|-----------|-------|-----------------|
 | Scope | Always | If ambiguous | "You mentioned X — does that include Y, or just Z?" |
 | Users | Always | Rarely | "Who uses this? Just you, your team, or the public?" |
-| Scale | If unclear | Rarely | "Are we talking dozens of users or thousands?" |
-| Data | If relevant | If data phase | "What happens to someone's data if they delete their account?" |
+| Scale | If unclear | Rarely | "Are we talking dozens of users or thousands?" (CLI variant: "Will one person use this at a time, or could many run it simultaneously?") |
+| Data | If relevant | If data phase | "What happens to someone's data if they delete their account?" (CLI variant: "Should this tool remember your settings between runs, or start fresh each time?") |
 | Edge cases | Standard+ | Always | "What should happen when [unexpected situation]?" |
 | Integrations | If mentioned | If integration phase | "Does this need to talk to any other tools you already use?" |
 | Priorities | Always | Always | "If you had to pick one: speed, features, or polish?" |
@@ -152,8 +154,8 @@ When `false`, implement proceeds directly to requirements gathering (bootstrap) 
 
 | Command | Mode | When |
 |---------|------|------|
-| vibe bootstrap mode | Bootstrap | After project description, before REQUIREMENTS.md |
-| vibe plan mode | Phase | Before planning, after phase auto-detection |
-| vibe --discuss | N/A | Explicit discuss mode, not gated by discovery_questions |
+| go bootstrap mode | Bootstrap | After project description, before REQUIREMENTS.md |
+| go plan mode | Phase | Before planning, after phase auto-detection |
+| /yolo:go --discuss | N/A | Explicit discuss mode, not gated by discovery_questions |
 
 `/yolo:go --discuss` remains independent — it's a manual deep-dive the user triggers explicitly. Discovery is the automatic layer.

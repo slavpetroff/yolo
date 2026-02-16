@@ -14,8 +14,8 @@ Working directory: `!`pwd``
 
 ## Guard
 
-1. **Not initialized** (no .yolo-planning/ dir): STOP "Run /yolo:init first."
-2. **Missing description:** STOP: "Usage: /yolo:todo <description> [--priority=high|normal|low]"
+1. Guard: no .yolo-planning/ -> STOP "YOLO is not set up yet. Run /yolo:init to get started."
+2. **Missing description:** STOP: "Missing required input. Usage: /yolo:todo <description> [--priority=high|normal|low]"
 
 ## Steps
 
@@ -26,4 +26,4 @@ Working directory: `!`pwd``
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — ✓ success, Next Up, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- single-line box, ✓ symbols, Next Up, no ANSI.

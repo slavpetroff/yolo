@@ -22,7 +22,7 @@ Agent Teams: `!`echo "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-0}"``
 
 ## Guard
 
-1. **Not initialized** (no .yolo-planning/ dir): STOP "Run /yolo:init first."
+1. Guard: no .yolo-planning/ -> STOP "YOLO is not set up yet. Run /yolo:init to get started."
 2. **No git:** WARN "Not a git repo -- incremental mapping disabled." Continue in full mode.
 3. **Empty project:** No source files → STOP: "No source code found to map."
 
@@ -40,13 +40,7 @@ Agent Teams: `!`echo "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-0}"``
 
 Count source files (Glob), excluding: .yolo-planning/, node_modules/, .git/, vendor/, dist/, build/, target/, .next/, __pycache__/, .venv/, coverage/. If --package, scope to that dir. Store SOURCE_FILE_COUNT.
 
-| Tier | Files | Strategy | Scouts |
-|------|-------|----------|--------|
-| solo | <200 | Orchestrator maps inline | 0 |
-| duo | 200-1000 | 2 scouts, combined domains | 2 |
-| quad | 1000+ | Full 4-scout team | 4 |
-
-Overrides: --tier flag forces tier. Agent Teams not enabled → force solo (`⚠ Agent Teams not enabled — using solo mode`).
+Tiers: solo (<200 files, inline, 0 scouts) | duo (200-1000, 2 scouts) | quad (1000+, 4 scouts). Override: --tier flag forces tier. No Agent Teams → force solo (`⚠ Agent Teams not enabled — using solo mode`).
 Display: `◆ Sizing: {SOURCE_FILE_COUNT} source files → {tier} mode`
 
 ### Step 2: Detect monorepo
@@ -113,4 +107,4 @@ Display per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon: Phase 
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — Phase Banner (double-line box), File Checklist (✓), ◆ for findings, ⚠ for warnings, Next Up Block, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- double-line box, ✓/◆/⚠ symbols, Next Up, no ANSI.

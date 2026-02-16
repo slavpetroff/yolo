@@ -36,7 +36,7 @@ Active milestone:
 
 ## Guard
 
-- Not initialized (no .yolo-planning/ dir): STOP "Run /yolo:init first."
+- Guard: no .yolo-planning/ -> STOP "YOLO is not set up yet. Run /yolo:init to get started."
 - No ROADMAP.md or has template placeholders: STOP "No roadmap found. Run /yolo:go to set up your project."
 
 ## Steps
@@ -56,7 +56,7 @@ Active milestone:
 
 ## Display
 
-Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon:
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- double-line box, ✓/◆/○/⚠ symbols, Next Up, no ANSI.
 
 **Header:**
 ```
@@ -77,22 +77,8 @@ Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon:
 
 **Agent Teams** (if active): `◆/✓/○ {Agent}: Plan {N} ({status})`
 
-**Velocity:**
-```
-  Velocity:
-    Plans completed:  {N}
-    Average duration: {time}
-    Total time:       {time}
-```
+**Velocity:** Plans completed, average duration, total time. When estimate data exists, append label: "Ahead of estimate", "On pace", or "Behind estimate".
 
-**Economy** (only if .cost-ledger.json exists AND total > $0.00): Read ledger with jq. Sort agents by cost desc. Show dollar + pct per agent. Include cache hit rate if available.
-```
-  Economy:
-    Total cost:   ${total}
-    Per agent:
-      Dev          $0.82   70%
-      Lead         $0.15   13%
-    Cache hit rate: {percent}%
-```
+**Economy** (only if .cost-ledger.json exists AND total > $0.00): Read ledger with jq. Show total, per-agent costs (sorted desc with $+%), cache hit rate if available.
 
 **Next Up:** Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh status` and display.

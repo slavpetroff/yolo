@@ -4,24 +4,12 @@ Extends `references/execute-protocol.md` for multi-department orchestration. Loa
 
 ## Pre-Execution Extensions
 
-After standard pre-execution:
+After standard pre-execution from @references/execute-protocol.md ## Pre-Execution:
+1. **Detect active departments** from config (jq .departments from config.json)
+2. **Resolve models** for all active department agents (same pattern as execute-protocol.md step 3, for fe-* and ux-* roles)
+3. **Validate department readiness** (verify agent files + dept protocol files exist)
 
-1. **Detect active departments** from config:
-   ```bash
-   BACKEND=$(jq -r '.departments.backend' config.json)   # always true
-   FRONTEND=$(jq -r '.departments.frontend' config.json)
-   UIUX=$(jq -r '.departments.uiux' config.json)
-   WORKFLOW=$(jq -r '.department_workflow' config.json)
-   ```
-
-2. **Resolve models for all active department agents:**
-   Same process as @references/execute-protocol.md ## Pre-Execution step 3, but for all 26 agents across active departments (backend, fe-*, ux-*, owner).
-
-3. **Validate department readiness:**
-   - If `departments.frontend` true: verify all 7 `yolo-fe-*.md` agent files exist
-   - If `departments.uiux` true: verify all 7 `yolo-ux-*.md` agent files exist
-   - Verify `references/departments/{dept}.md` exists for each active department
-   - Verify `references/cross-team-protocol.md` exists if multiple departments active
+See execute-protocol.md ## Multi-Department Pre-Execution for full bash examples.
 
 ## Phase Execution: Multi-Department Flow
 
@@ -53,13 +41,7 @@ If Owner is active (multiple departments):
 
 ### Context Delegation Protocol (MANDATORY — NO CONTEXT BLEED)
 
-See @references/company-hierarchy.md ## Context Isolation for full protocol.
-
-**TL;DR:**
-- Owner splits context into department-specific files (no bleed)
-- Context narrows down hierarchy: Lead (full) → Architect → Senior → Dev (spec only)
-- Escalation flows UP with evidence, resolution flows DOWN as updated artifacts
-- UX → Frontend handoff via design-handoff.jsonl only (FE never reads UX internal plans)
+See @references/company-hierarchy.md ## Context Isolation. Key rule: Owner splits context, no bleed, escalation restores context upward.
 
 ### Step 1-10: Department Dispatch
 

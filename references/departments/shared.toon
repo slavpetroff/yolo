@@ -27,26 +27,11 @@ owner_protocol:
   constraints: Read-only (no writes, no edits, no bash). Communicates ONLY with dept Leads. Strategic decisions only. Cannot spawn subagents.
 
 dispatch_rules:
-  critic:
-    frequency: Once per dept per phase (before architecture)
-    multi_dept: Reviews cross-dept implications
-    returns: Findings to dept Lead (no Write tool)
-    single_dept: Dispatched by Lead as normal
-  scout:
-    frequency: On demand by any Lead
-    returns: scout_findings to requesting Lead
-    scope: Can investigate technology for any dept
-    note: Lightweight (Haiku), use for quick lookups not deep analysis
-  debugger:
-    frequency: On incident by Lead (any dept)
-    access: Full tool access for investigation
-    returns: debugger_report to requesting Lead
-    note: Lead decides action, Debugger is advisory
-  security:
-    frequency: Once per dept after QA passes (Step 9)
-    multi_dept: Separate audit per dept
-    STRICT: FAIL = hard STOP (only user --force overrides)
-    STRICT: Security FAIL bypasses normal escalation > User directly
+  agent|frequency|returns|notes
+  Critic|Once per dept per phase (before arch)|Findings to Lead (no Write)|Multi-dept: reviews cross-dept implications
+  Scout|On demand by any Lead|scout_findings to Lead|Haiku, quick lookups not deep analysis
+  Debugger|On incident by any Lead|debugger_report to Lead|Full tool access; Lead decides action
+  Security|Once per dept after QA (Step 9)|security-audit.jsonl|FAIL = hard STOP > User directly
 
 escalation_table:
   agent|escalates_to|trigger

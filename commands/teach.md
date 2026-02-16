@@ -19,24 +19,12 @@ Codebase map: `!`ls .yolo-planning/codebase/INDEX.md 2>/dev/null && echo "EXISTS
 
 ## Guard
 
-If no .yolo-planning/ dir: STOP "Run /yolo:init first." (check `.yolo-planning/config.json`)
+Guard: no .yolo-planning/ -> STOP "YOLO is not set up yet. Run /yolo:init to get started."
 
 ## Convention Structure
 
-Stored in `.yolo-planning/conventions.json`:
-```json
-{
-  "conventions": [{
-    "id": "CONV-001", "rule": "API routes go in src/routes/{resource}.ts",
-    "source": "auto-detected", "category": "file-structure",
-    "confidence": "high", "detected_from": "PATTERNS.md", "added": "2026-02-10"
-  }]
-}
-```
-
-**Sources:** `auto-detected` (from codebase map) | `user-defined` (manual via /yolo:teach)
-**Categories:** file-structure | naming | testing | style | tooling | patterns | other
-**Confidence** (auto-detected only): high (80%+) | medium (50-80%) | low (<50%)
+Stored in `.yolo-planning/conventions.json` as `{"conventions": [{id, rule, source, category, confidence, detected_from, added}]}`.
+Sources: `auto-detected` | `user-defined`. Categories: file-structure | naming | testing | style | tooling | patterns | other. Confidence (auto only): high (80%+) | medium (50-80%) | low (<50%).
 
 ## Behavior
 
@@ -69,7 +57,7 @@ Stored in `.yolo-planning/conventions.json`:
 
 ### `remove <id>`: Remove a convention
 
-1. Parse ID, find in conventions.json. Not found: `⚠ Convention not found: {id}`
+1. Parse ID, find in conventions.json. Not found: `⚠ Convention "{id}" not found. Run /yolo:teach to see all conventions.`
 2. Display convention, ask confirmation
 3. Remove from conventions.json, update CLAUDE.md
 4. Display: `✓ Removed {id}: {rule}`
@@ -95,4 +83,6 @@ Conventions injected via CLAUDE.md `## Project Conventions` (loaded every sessio
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — single-line box, ✓ success, ⚠ conflicts/warnings, ○ skipped/info, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- single-line box, ✓/⚠/○ symbols, Next Up, no ANSI.
+
+Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh teach` and display.

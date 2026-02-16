@@ -6,7 +6,7 @@ Implements the 10-step company-grade engineering workflow. See `references/compa
 
 ## Owner-First Communication Rule
 
-**No agent in the execution chain communicates directly with the user.** All user interaction flows through go.md (which acts as the Owner proxy). If any agent encounters an issue requiring user input, it escalates UP the chain (Dev → Senior → Lead → Owner/go.md → User). The user never hears from a Dev, Senior, QA, or Lead agent directly.
+**No agent communicates directly with the user.** All user interaction flows through go.md (Owner proxy). Escalation chain: Dev → Senior → Lead → Owner/go.md → User.
 
 ## Pre-Execution
 
@@ -24,9 +24,7 @@ Implements the 10-step company-grade engineering workflow. See `references/compa
 
 ### Context Scoping Protocol (MANDATORY)
 
-Each agent receives ONLY what it needs. Context flows down the hierarchy with progressive scoping — lower agents see less, not more. This prevents context bleed and ensures clean delegation.
-
-When spawning each agent via Task tool, include ONLY the listed inputs. Do NOT pass extra context "for reference."
+Each agent receives ONLY what it needs (progressive scoping — lower agents see less). When spawning via Task tool, include ONLY listed inputs. No extra context "for reference."
 
 | Step | Agent | Receives (include in Task prompt) | NEVER pass |
 |------|-------|----------------------------------|-----------|
@@ -40,9 +38,7 @@ When spawning each agent via Task tool, include ONLY the listed inputs. Do NOT p
 | 8 | QA | plan.jsonl, summary.jsonl, .ctx-qa.toon | CONTEXT, architecture.toon |
 | 9 | Security | summary.jsonl (file list), .ctx-security.toon | CONTEXT, plans |
 
-**Key principle:** Dev receives the enriched `spec` field as its COMPLETE instruction set. If spec is unclear, Dev escalates to Senior — never reads more context files.
-
-**Escalation context flow:** When an agent escalates UP, the receiving agent has broader context to resolve. When resolution pushes back DOWN, it comes as an updated artifact (amended spec, architecture addendum), not as raw context files.
+**Key principle:** Dev's `spec` field IS its complete instruction set. Escalation flows UP (broader context to resolve), resolution flows DOWN as updated artifacts (never raw context files).
 
 ## Verification Gate Protocol
 
@@ -81,25 +77,13 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 
 ### Mandatory vs Skippable Steps
 
-Skippable steps (have Guard conditions that allow skip):
-- **Step 1 — Critique:** Skip when `--effort=turbo` or `critique.jsonl` already exists.
-- **Step 2 — Architecture:** Skip when `architecture.toon` already exists.
-- **Step 5 — Test Authoring:** Skip when `--effort=turbo` or no tasks have `ts` fields.
-- **Step 8 — QA:** Skip when `--skip-qa` flag or `--effort=turbo`.
-- **Step 9 — Security:** Skip when `--skip-security` flag or config `security_audit` != true.
+**Skippable:** Step 1 (turbo or exists), Step 2 (exists), Step 5 (turbo or no `ts`), Step 8 (--skip-qa or turbo), Step 9 (--skip-security or config off).
 
-Mandatory steps (NO skip path — failure halts execution with STOP):
-- **Step 3 — Load Plans:** Must always run to initialize execution state.
-- **Step 4 — Design Review:** Must always run to enrich specs.
-- **Step 6 — Implementation:** Must always run to produce code.
-- **Step 7 — Code Review:** Must always run to verify quality.
-- **Step 10 — Sign-off:** Must always run to finalize phase.
-
-If a mandatory step fails, execution halts with a STOP message. There is no `--force` override for mandatory steps. The only recovery is to fix the issue and re-run.
+**Mandatory (failure = STOP, no --force):** Steps 3, 4, 6, 7, 10.
 
 ### Step 1: Critique / Brainstorm (Critic Agent)
 
-**Guard:** If `--effort=turbo` or critique.jsonl already exists in phase directory → **Skip Output:** Display `○ Critique skipped ({reason: turbo effort | critique exists})`. Update `.execution-state.json`: set `steps.critique.status` to `"skipped"`, `steps.critique.reason` to `"{turbo effort | critique.jsonl exists}"`, `steps.critique.skipped_at` to ISO timestamp. Commit: `chore(state): critique skipped phase {N}`. Proceed to Step 2.
+**Guard:** Skip if `--effort=turbo` OR `critique.jsonl` exists. Skip Output per template. Commit: `chore(state): critique skipped phase {N}`.
 
 **ENTRY GATE:** None (first step). Verify phase directory exists: `[ -d "{phase-dir}" ]`. If not: STOP "Phase directory missing. Run /yolo:go --plan first."
 
@@ -114,11 +98,11 @@ If a mandatory step fails, execution halts with a STOP message. There is no `--f
 5. Write critique.jsonl from Critic's findings to phase directory.
 6. Commit: `docs({phase}): critique and gap analysis`
 7. **User gate (balanced/thorough effort):** Display critique summary. If critical findings exist, AskUserQuestion "Address these before architecture?" Options: "Proceed (Architect will address)" / "Pause to discuss".
-8. **EXIT GATE:** Verify `{phase-dir}/critique.jsonl` exists and is valid JSONL (`jq empty`). Update `.execution-state.json`: set `steps.critique.status` to `"complete"`, `steps.critique.completed_at` to ISO timestamp, `steps.critique.artifact` to `"{phase-dir}/critique.jsonl"`. Commit: `chore(state): critique complete phase {N}`.
+8. **EXIT GATE:** Artifact: `critique.jsonl` (valid JSONL). State: `steps.critique = complete`. Commit: `chore(state): critique complete phase {N}`.
 
 ### Step 2: Architecture (Architect Agent)
 
-**Guard:** If architecture.toon already exists in phase directory → **Skip Output:** Display `○ Architecture skipped (architecture.toon exists)`. Update `.execution-state.json`: set `steps.architecture.status` to `"skipped"`, `steps.architecture.reason` to `"architecture.toon exists"`, `steps.architecture.skipped_at` to ISO timestamp. Commit: `chore(state): architecture skipped phase {N}`. Proceed to Step 3.
+**Guard:** Skip if `architecture.toon` exists. Skip Output per template. Commit: `chore(state): architecture skipped phase {N}`.
 
 **ENTRY GATE:** Verify `{phase-dir}/critique.jsonl` exists OR `steps.critique.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 1 artifact missing — critique.jsonl not found. Run step 1 first."
 
@@ -130,7 +114,7 @@ If a mandatory step fails, execution halts with a STOP message. There is no `--f
 3. Display: `◆ Spawning Architect (${ARCHITECT_MODEL})...` → `✓ Architecture complete`
 4. Verify: architecture.toon exists in phase directory.
 5. Architect addresses critique.jsonl findings (updates `st` field) and commits: `docs({phase}): architecture design`
-6. **EXIT GATE:** Verify `{phase-dir}/architecture.toon` exists and is non-empty (`[ -s ]`). Update `.execution-state.json`: set `steps.architecture.status` to `"complete"`, `steps.architecture.completed_at` to ISO timestamp, `steps.architecture.artifact` to `"{phase-dir}/architecture.toon"`. Commit: `chore(state): architecture complete phase {N}`.
+6. **EXIT GATE:** Artifact: `architecture.toon` (non-empty). State: `steps.architecture = complete`. Commit: `chore(state): architecture complete phase {N}`.
 
 ### Step 3: Load Plans and Detect Resume State
 
@@ -168,7 +152,7 @@ If a mandatory step fails, execution halts with a STOP message. There is no `--f
    - If artifact path specified, verify file exists
    - Unsatisfied → STOP with fix instructions
    - All satisfied: `✓ Cross-phase dependencies verified`
-9. **EXIT GATE:** Verify `.yolo-planning/.execution-state.json` exists with `status: "running"` and at least one plan entry. Verify at least one `*.plan.jsonl` exists in phase dir. Update `.execution-state.json`: set `steps.planning.status` to `"complete"`, `steps.planning.completed_at` to ISO timestamp. Commit: `chore(state): planning complete phase {N}`.
+9. **EXIT GATE:** Artifact: `.execution-state.json` (status running, plans listed) + `*.plan.jsonl`. State: `steps.planning = complete`. Commit: `chore(state): planning complete phase {N}`.
 
 ### Step 4: Design Review (Senior Agent)
 
@@ -187,11 +171,11 @@ If a mandatory step fails, execution halts with a STOP message. There is no `--f
 4. Senior reads plan, researches codebase, enriches each task with `spec` field AND `ts` (test_spec) field.
 5. Senior commits enriched plan: `docs({phase}): enrich plan {NN-MM} specs`
 6. Verify: all tasks in plan.jsonl have non-empty `spec` field. Tasks with testable logic should have `ts` field.
-7. **EXIT GATE:** For each plan.jsonl, verify all tasks have non-empty `spec` field (`jq -r .spec` on each task line is non-empty). Update `.execution-state.json`: set `steps.design_review.status` to `"complete"`, `steps.design_review.completed_at` to ISO timestamp, `steps.design_review.artifact` to `"enriched plan.jsonl"`. Commit: `chore(state): design_review complete phase {N}`.
+7. **EXIT GATE:** Artifact: enriched plan.jsonl (all tasks have non-empty `spec`). State: `steps.design_review = complete`. Commit: `chore(state): design_review complete phase {N}`.
 
 ### Step 5: Test Authoring — RED Phase (Tester Agent)
 
-**Guard:** If `--effort=turbo` or no tasks have `ts` fields in any plan.jsonl → **Skip Output:** Display `○ Test Authoring skipped ({reason: turbo effort | no ts fields})`. Update `.execution-state.json`: set `steps.test_authoring.status` to `"skipped"`, `steps.test_authoring.reason` to `"{turbo effort | no ts fields}"`, `steps.test_authoring.skipped_at` to ISO timestamp. Commit: `chore(state): test_authoring skipped phase {N}`. Proceed to Step 6.
+**Guard:** Skip if `--effort=turbo` OR no tasks have `ts` fields. Skip Output per template. Commit: `chore(state): test_authoring skipped phase {N}`.
 
 **ENTRY GATE:** Verify enriched plan.jsonl exists with `spec` fields populated (check at least one task has non-empty `spec` via `jq -r .spec`). If not: STOP "Step 4 artifact missing — plan.jsonl tasks have no spec fields. Run step 4 first."
 
@@ -207,7 +191,7 @@ If a mandatory step fails, execution halts with a STOP message. There is no `--f
 6. Tester produces test-plan.jsonl and commits: `test({phase}): RED phase tests for plan {NN-MM}`
 7. Verify: test-plan.jsonl exists with `red: true` for all entries.
 8. Display: `✓ RED phase complete — {N} test files, {M} test cases (all failing)`
-9. **EXIT GATE:** Verify `{phase-dir}/test-plan.jsonl` exists with valid JSONL (`jq empty`) and all entries have `red: true`. Update `.execution-state.json`: set `steps.test_authoring.status` to `"complete"`, `steps.test_authoring.completed_at` to ISO timestamp, `steps.test_authoring.artifact` to `"{phase-dir}/test-plan.jsonl"`. Commit: `chore(state): test_authoring complete phase {N}`.
+9. **EXIT GATE:** Artifact: `test-plan.jsonl` (valid JSONL, all `red: true`). State: `steps.test_authoring = complete`. Commit: `chore(state): test_authoring complete phase {N}`.
 
 ### Step 6: Implementation (Dev Agents)
 
@@ -243,7 +227,7 @@ When Dev reports completion:
 2. If missing: message Dev to write it. If unavailable: write from git log.
 3. Only after verification: mark plan `"complete"` in .execution-state.json.
 
-**EXIT GATE:** For each plan, verify `{phase-dir}/{plan_id}.summary.jsonl` exists with valid JSONL. Update `.execution-state.json`: set `steps.implementation.status` to `"complete"`, `steps.implementation.completed_at` to ISO timestamp, `steps.implementation.artifact` to `"summary.jsonl"`. Commit: `chore(state): implementation complete phase {N}`.
+**EXIT GATE:** Artifact: `{plan_id}.summary.jsonl` per plan (valid JSONL). State: `steps.implementation = complete`. Commit: `chore(state): implementation complete phase {N}`.
 
 ### Step 7: Code Review (Senior Agent)
 
@@ -269,11 +253,11 @@ When Dev reports completion:
    - Otherwise → proceed to Step 8.
 7. Senior commits: `docs({phase}): code review {NN-MM}`
 8. Verify: code-review.jsonl exists with `r: "approve"`.
-9. **EXIT GATE:** Verify `{phase-dir}/code-review.jsonl` exists with `r: "approve"` in line 1 verdict (`jq -r .r`). Update `.execution-state.json`: set `steps.code_review.status` to `"complete"`, `steps.code_review.completed_at` to ISO timestamp, `steps.code_review.artifact` to `"{phase-dir}/code-review.jsonl"`. Commit: `chore(state): code_review complete phase {N}`.
+9. **EXIT GATE:** Artifact: `code-review.jsonl` (r: "approve"). State: `steps.code_review = complete`. Commit: `chore(state): code_review complete phase {N}`.
 
 ### Step 8: QA (QA Lead + QA Code)
 
-**Guard:** If `--skip-qa` or `--effort=turbo` → **Skip Output:** Display `○ QA skipped ({reason: --skip-qa flag | turbo effort})`. Update `.execution-state.json`: set `steps.qa.status` to `"skipped"`, `steps.qa.reason` to `"{--skip-qa | turbo effort}"`, `steps.qa.skipped_at` to ISO timestamp. Commit: `chore(state): qa skipped phase {N}`. Proceed to Step 9.
+**Guard:** Skip if `--skip-qa` OR `--effort=turbo`. Skip Output per template. Commit: `chore(state): qa skipped phase {N}`.
 
 **ENTRY GATE:** Verify `{phase-dir}/code-review.jsonl` exists with `r: "approve"` in line 1 (`jq -r .r` equals `"approve"`). If not: STOP "Step 7 artifact missing — code-review.jsonl not found or not approved. Run step 7 first."
 
@@ -333,7 +317,7 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 
 ### Step 9: Security Audit (optional)
 
-**Guard:** If `--skip-security` or config `security_audit` != true → **Skip Output:** Display `○ Security audit skipped ({reason: --skip-security flag | security_audit disabled})`. Update `.execution-state.json`: set `steps.security.status` to `"skipped"`, `steps.security.reason` to `"{--skip-security | security_audit disabled}"`, `steps.security.skipped_at` to ISO timestamp. Commit: `chore(state): security skipped phase {N}`. Proceed to Step 10.
+**Guard:** Skip if `--skip-security` OR config `security_audit` != true. Skip Output per template. Commit: `chore(state): security skipped phase {N}`.
 
 **ENTRY GATE:** Verify `{phase-dir}/verification.jsonl` exists OR `steps.qa.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 8 artifact missing — verification.jsonl not found. Run step 8 first."
 
@@ -349,7 +333,7 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
    - If `config.approval_gates.security_warn` is true: pause for user approval.
    - Otherwise: continue.
 7. If `r: "PASS"`: continue.
-8. **EXIT GATE:** Verify `{phase-dir}/security-audit.jsonl` exists with valid JSONL (`jq empty`). Update `.execution-state.json`: set `steps.security.status` to `"complete"`, `steps.security.completed_at` to ISO timestamp, `steps.security.artifact` to `"{phase-dir}/security-audit.jsonl"`. Commit: `chore(state): security complete phase {N}`.
+8. **EXIT GATE:** Artifact: `security-audit.jsonl` (valid JSONL). State: `steps.security = complete`. Commit: `chore(state): security complete phase {N}`.
 
 ### Step 10: Sign-off (Lead)
 
@@ -388,7 +372,7 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
      Deviations: {count}
    ```
 7. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh execute {qa-result}`
-8. **EXIT GATE:** Verify `.execution-state.json` has `status: "complete"` and `step: "signoff"`. Verify ROADMAP.md is updated. Final state commit already done in item 5 — no additional commit needed.
+8. **EXIT GATE:** Artifact: `.execution-state.json` (status: complete, step: signoff) + ROADMAP.md updated. State commit in item 5 -- no additional commit.
 
 ## Execution State Transitions (Enforcement Contract)
 
@@ -407,136 +391,24 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 | 9. Security | `security` | `verification.jsonl` OR step 8 skipped | `security-audit.jsonl` | `docs({phase}): security audit` | `--skip-security`, config `security_audit` != true |
 | 10. Sign-off | `signoff` | `security-audit.jsonl` OR step 9 skipped + `code-review.jsonl` approved | `.execution-state.json` complete + ROADMAP.md | `chore(state): phase {N} complete` | NONE (mandatory) |
 
-Each transition commits `.execution-state.json` so resume works on exit. The `steps` object in `.execution-state.json` tracks per-step state:
-
-```json
-{
-  "phase": 1,
-  "phase_name": "{slug}",
-  "status": "running",
-  "started_at": "{ISO 8601}",
-  "step": "{current_step_name}",
-  "wave": 1,
-  "total_waves": 1,
-  "plans": [{"id": "NN-MM", "title": "...", "wave": 1, "status": "pending|complete"}],
-  "steps": {
-    "critique": {"status": "complete|skipped|pending", "started_at": "{ISO}", "completed_at": "{ISO}", "artifact": "{path}", "reason": ""},
-    "architecture": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
-    "planning": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
-    "design_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
-    "test_authoring": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
-    "implementation": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
-    "code_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
-    "qa": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
-    "security": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
-    "signoff": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""}
-  }
-}
-```
-
-Per-step status values: `"pending"` (not started), `"running"` (in progress), `"complete"` (finished successfully), `"skipped"` (guard condition triggered). The `reason` field is populated only for skipped steps. The `artifact` field stores the path to the step output file. Step 3 (Load Plans) initializes this `steps` object with all 10 entries set to `"pending"`.
+Each transition commits `.execution-state.json` so resume works on exit. Schema: see Step 3 item 7 above. Per-step status values: `"pending"`, `"running"`, `"complete"`, `"skipped"`. The `reason` field is populated only for skipped steps.
 
 ## Multi-Department Execution
 
-**Detection:** Check `multi_dept` from resolve-departments.sh output (pre-computed in go.md context).
-- If `multi_dept=false`: SKIP this section entirely. The standard 10-step above is sufficient.
-- If `multi_dept=true`: Follow the multi-department flow below.
+**Detection:** `multi_dept` from resolve-departments.sh. If false: skip this section.
 
-**Protocol files (MUST Read when multi_dept=true):**
-- `references/multi-dept-protocol.md` — Full dispatch sequence, department tracking, Owner review
-- `references/cross-team-protocol.md` — Handoff gates, communication rules, workflow modes
+**When multi_dept=true:** Read @references/multi-dept-protocol.md and @references/cross-team-protocol.md for full protocol.
 
-### Multi-Department Pre-Execution
+**Summary:**
+- Step 0a: Owner gathers context, splits into dept-specific CONTEXT files (no bleed)
+- Step 0b: Owner critique review (balanced/thorough only)
+- Steps 1-10: Each active dept runs same 10-step workflow with dept-prefixed agents
+- Dispatch: UX first (if active) > Handoff Gate > FE + BE parallel
+- Handoff gates: see @references/cross-team-protocol.md
+- Integration QA + Security after all depts complete
+- Owner sign-off: SHIP or HOLD
 
-In addition to standard pre-execution (resolve models for Steps 1-10 above):
-
-1. **Resolve models for all active department agents:**
-   ```bash
-   # Owner (always for multi-dept)
-   OWNER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh owner .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-
-   # Frontend agents (if fe_active=true)
-   if [[ "$fe_active" == "true" ]]; then
-     for role in architect lead senior tester dev qa qa-code; do
-       eval "FE_${role^^}_MODEL=\$(bash \${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-$role .yolo-planning/config.json \${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)"
-     done
-   fi
-
-   # UI/UX agents (if ux_active=true)
-   if [[ "$ux_active" == "true" ]]; then
-     for role in architect lead senior tester dev qa qa-code; do
-       eval "UX_${role^^}_MODEL=\$(bash \${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh ux-$role .yolo-planning/config.json \${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)"
-     done
-   fi
-   ```
-
-2. **Validate department readiness:**
-   - If `fe_active=true`: verify all 7 `yolo-fe-*.md` agent files exist
-   - If `ux_active=true`: verify all 7 `yolo-ux-*.md` agent files exist
-   - Verify `references/departments/{dept}.md` for each active department
-   - Verify `references/cross-team-protocol.md` exists
-
-### Multi-Department Dispatch Flow
-
-Follow `workflow` variable and `leads_to_spawn` from resolve-departments.sh:
-
-**Step 0a: Owner Context Gathering + Splitting** (if `{phase}-CONTEXT-backend.md` does NOT exist)
-The Owner is the SOLE point of contact with the user — no department lead talks to user directly.
-1. go.md acts as Owner proxy: run questionnaire via AskUserQuestion (2-3 rounds: vision, dept-specific, gaps/features/constraints). Keep asking until ZERO ambiguity.
-2. Split into department-specific context files (NO bleed): `{phase}-CONTEXT-backend.md`, `{phase}-CONTEXT-uiux.md`, `{phase}-CONTEXT-frontend.md`. Each contains ONLY that department's concerns.
-3. If department context files already exist (from Plan Mode): skip to Step 0b.
-4. Display: `◆ Owner gathering context...` → `✓ Context gathered — split into dept briefs`
-
-**Step 0b: Owner Critique Review** (balanced/thorough effort only)
-1. Run shared Critic (Step 1 above) as normal.
-2. Spawn yolo-owner (model: "${OWNER_MODEL}") with `owner_review` mode.
-3. Input: critique.jsonl, reqs.jsonl, department config, CONTEXT.md.
-4. Owner determines department priorities and dispatch order.
-5. Display: `◆ Spawning Owner for critique review...` → `✓ Owner review complete`
-
-**Steps 1-10: Per-Department Execution**
-
-Each active department runs the SAME 10-step workflow above, using department-prefixed agents:
-- Backend: yolo-critic, yolo-architect, yolo-lead, yolo-senior, yolo-tester, yolo-dev, yolo-qa, yolo-qa-code
-- Frontend (if active): yolo-fe-architect, yolo-fe-lead, yolo-fe-senior, yolo-fe-tester, yolo-fe-dev, yolo-fe-qa, yolo-fe-qa-code
-- UI/UX (if active): yolo-ux-architect, yolo-ux-lead, yolo-ux-senior, yolo-ux-tester, yolo-ux-dev, yolo-ux-qa, yolo-ux-qa-code
-
-Dispatch order follows `leads_to_spawn` pattern from resolve-departments.sh:
-- **Parallel workflow**: UX department runs first (if active) → Handoff Gate → FE + BE run in parallel
-- **Sequential workflow**: UX → FE → BE (strict sequential)
-
-**Handoff gates** (from cross-team-protocol.md):
-- After UX completes: validate design-handoff.jsonl, design-tokens.jsonl, component-specs.jsonl exist
-- After FE+BE complete: validate api_contract status
-- Integration QA: cross-department verification
-- Shared Security: per-department audit
-- Owner Sign-off: final SHIP/HOLD decision
-
-### Multi-Department Execution State
-
-`.execution-state.json` gains department tracking when multi_dept=true:
-```json
-{
-  "phase": 1,
-  "departments": {
-    "uiux": {"status": "complete", "step": "signoff", "result": "PASS"},
-    "frontend": {"status": "running", "step": "implementation"},
-    "backend": {"status": "running", "step": "code_review"}
-  },
-  "integration_qa": "pending",
-  "owner_signoff": "pending"
-}
-```
-
-### Multi-Department Sign-off
-
-Replaces standard Step 10 when multi_dept=true:
-1. Each department Lead sends `department_result` to Owner.
-2. Integration QA runs cross-department verification.
-3. Shared Security runs per-department audit.
-4. Owner reviews all results → SHIP or HOLD.
-5. Owner sends `owner_signoff` to all department Leads.
-6. Display multi-department phase banner (see `references/yolo-brand-essentials.toon`).
+**Execution state extension:** `.execution-state.json` gains `departments` object when multi_dept=true. See @references/multi-dept-protocol.md ## Execution State Extensions.
 
 ## Output Format
 

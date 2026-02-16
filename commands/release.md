@@ -28,19 +28,11 @@ Git status:
 
 Skip if `--skip-audit`.
 
-**Audit 1:** Find commits since last release: `git log --oneline --grep="chore: release" -1`, extract hash (fallback: root commit). List all commits since: `git log {hash}..HEAD --oneline`.
-
-**Audit 2:** Check changelog completeness. Extract [Unreleased] content. For each commit, check if scope/key terms appear. Classify as documented or undocumented.
-
-**Audit 3:** README staleness: compare command count (`ls commands/*.md | wc -l`), hook count, and modified-command table coverage against README.
-
-**Audit 4:** Display branded audit report: commit count, changelog coverage, undocumented commits (⚠), README staleness (⚠ or ✓).
-
-**Audit 5: Remediation** (if issues found):
-- **Changelog:** Generate entries by commit prefix (feat→Added, fix→Fixed, refactor/perf→Changed, other→Changed). Format: `- **\`{scope}\`** -- {description}`. Show for review, insert under [Unreleased] on confirmation.
-- **README:** Show specific corrections, apply on confirmation.
-- **Dry-run:** Show suggestions only, no writes: "○ Dry run -- no changes written."
-Both require explicit user confirmation.
+1. Find commits since last release (`git log --grep="chore: release" -1`, fallback root)
+2. Check changelog completeness (match commits to [Unreleased] content)
+3. README staleness (command count, hook count, table coverage)
+4. Display audit report: commit count, changelog coverage, undocumented (⚠), README (⚠/✓)
+5. **Remediation** (if issues): Changelog entries by prefix (feat→Added, fix→Fixed, etc.), README corrections. Dry-run shows only. Both require confirmation.
 
 ## Steps
 
@@ -68,7 +60,7 @@ No [Unreleased]: display ○.
 
 ### Step 4: Verify version sync
 
-`bash scripts/bump-version.sh --verify`. Fail → STOP: "Version sync failed after bump."
+`bash scripts/bump-version.sh --verify`. Fail → STOP: "Version sync failed. Run scripts/bump-version.sh --verify to check."
 
 ### Step 5: Commit
 
@@ -85,12 +77,14 @@ Otherwise: `git push` + `git push --tags`. Display ✓.
 
 ### Step 8: GitHub Release
 
---no-push: skip. Otherwise: extract changelog for this version. Auth: extract token from git remote URL (https://user:TOKEN@github.com/...), use as GH_TOKEN env prefix. Run `gh release create v{new-version} --title "v{new-version}" --notes "{content}"`. Fallback to gh auth. If gh unavailable/fails: "⚠ GitHub release failed -- create manually."
+--no-push: skip. Otherwise: extract changelog for this version. Auth: extract token from git remote URL (https://user:TOKEN@github.com/...), use as GH_TOKEN env prefix. Run `gh release create v{new-version} --title "v{new-version}" --notes "{content}"`. Fallback to gh auth. If gh unavailable/fails: "⚠ GitHub release could not be created. Create it at: https://github.com/{owner}/{repo}/releases/new?tag=v{version}"
 
 ### Step 9: Present summary
 
 Display task-level box with: version old→new, audit result, changelog status, commit hash, tag, push status, release status, files updated list.
 
+Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh release` and display.
+
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — task-level box (single-line), semantic symbols, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- single-line box, ✓/⚠/○ symbols, Next Up, no ANSI.

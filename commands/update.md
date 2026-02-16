@@ -55,28 +55,13 @@ claude plugin marketplace update yolo-marketplace 2>&1
 ```
 If fails: "⚠ Marketplace refresh failed — trying update anyway..."
 
-Try in order (stop at first success):
-- **A) Platform update:** `claude plugin update yolo@yolo-marketplace 2>&1`
-- **B) Reinstall:** `claude plugin uninstall yolo@yolo-marketplace 2>&1 && claude plugin install yolo@yolo-marketplace 2>&1`
-- **C) Manual fallback:** display commands for user to run manually, STOP.
+Try in order (stop at first success): A) `claude plugin update yolo@yolo-marketplace` B) Uninstall + reinstall C) Manual fallback, STOP.
 
-**Wait for cache population** (after A or B succeeds):
-```bash
-bash -c 'CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"; for i in 1 2 3; do [ -f "$CLAUDE_DIR/plugins/cache/yolo-marketplace/yolo/"*/VERSION ] && break; sleep 1; done'
-```
-
-**Re-sync global commands** (after cache populated):
-```bash
-bash -c 'CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"; YOLO_CACHE_CMD=$(ls -d "$CLAUDE_DIR"/plugins/cache/yolo-marketplace/yolo/*/commands 2>/dev/null | sort -V | tail -1); if [ -d "$YOLO_CACHE_CMD" ]; then mkdir -p "$CLAUDE_DIR/commands/yolo"; cp "$YOLO_CACHE_CMD"/*.md "$CLAUDE_DIR/commands/yolo/" 2>/dev/null; fi'
-```
+Wait for cache population (poll 3x with 1s sleep for VERSION file). Re-sync global commands (copy from cache to CLAUDE_DIR/commands/yolo/).
 
 ### Step 5.5: Ensure YOLO statusline
 
-Read `CLAUDE_DIR/settings.json`, check `statusLine` (string or object .command). If contains `yolo-statusline`: skip. Otherwise update to:
-```json
-{"type": "command", "command": "bash -c 'f=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/yolo-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"$f\" ] && exec bash \"$f\"'"}
-```
-Use jq to write (backup, update, restore on failure). Display `✓ Statusline restored (restart to activate)` if changed.
+Check `statusLine` in settings.json. If contains `yolo-statusline`: skip. Else set to statusline command object (same as init.md Step 0b). Use jq to write. Display `✓ Statusline restored (restart to activate)` if changed.
 
 ### Step 6: Verify update
 
@@ -91,4 +76,4 @@ Use verified version from Step 6 for all display. Same version = "YOLO Cache Ref
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — double-line box, ✓ success, ⚠ fallback warning, Next Up, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- double-line box, ✓/⚠ symbols, Next Up, no ANSI.

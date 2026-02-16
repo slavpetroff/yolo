@@ -19,8 +19,8 @@ Recent commits:
 
 ## Guard
 
-- Not initialized (no .yolo-planning/ dir): STOP "Run /yolo:init first."
-- No $ARGUMENTS: STOP "Usage: /yolo:debug \"description of the bug or error message\""
+- Guard: no .yolo-planning/ -> STOP "YOLO is not set up yet. Run /yolo:init to get started."
+- No $ARGUMENTS: STOP "Missing required input. Usage: /yolo:debug \"description of the bug or error message\""
 
 ## Steps
 
@@ -29,16 +29,7 @@ Recent commits:
 2. **Classify ambiguity:** 2+ signals = ambiguous: "intermittent/sometimes/random/unclear/inconsistent/flaky/sporadic/nondeterministic" keywords, multiple root cause areas, generic/missing error, previous reverted fixes in git log. Overrides: `--competing`/`--parallel` = always ambiguous; `--serial` = never.
 
 3. **Spawn Lead:**
-- Resolve Lead model:
-  ```bash
-  LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-  if [ $? -ne 0 ]; then echo "$LEAD_MODEL" >&2; exit 1; fi
-  ```
-- Resolve Debugger model:
-  ```bash
-  DEBUGGER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-  if [ $? -ne 0 ]; then echo "$DEBUGGER_MODEL" >&2; exit 1; fi
-  ```
+- Resolve models (lead, debugger) via `resolve-agent-model.sh` with config.json + model-profiles.json. Abort on failure.
 - Display: `◆ Spawning Lead (${LEAD_MODEL}) for bug investigation...`
 - Spawn yolo-lead as subagent via Task tool. **Add `model: "${LEAD_MODEL}"` parameter.**
 ```
@@ -53,7 +44,7 @@ PATH B: Spawn 1 yolo-debugger subagent (model: ${DEBUGGER_MODEL}). Give full bug
 (4) Report results back: root cause, fix status, files modified.
 ```
 
-4. **Present:** Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon:
+4. **Present:** Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- single-line box:
 ```
 ┌──────────────────────────────────────────┐
 │  Bug Investigation Complete              │
@@ -78,3 +69,7 @@ Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh debug` and display.
 - Trivial fix (1-2 lines, obvious): Debugger applies directly.
 - Standard fix: Lead spawns Dev with inline spec.
 - Complex fix: Lead escalates to Senior for spec, Dev implements.
+
+## Output Format
+
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- single-line box, ✓/◆ symbols, Next Up, no ANSI.

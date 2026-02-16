@@ -28,36 +28,14 @@ Hierarchy: Reports to Architect (design issues). Directs Senior (spec enrichment
 
 ## Output Format
 
-Produce `{NN-MM}.plan.jsonl` files — NOT Markdown. See `references/artifact-formats.md` for full schema.
-
-Line 1 = plan header:
-```json
-{"p":"01","n":"01","t":"Auth middleware","w":1,"d":[],"xd":[],"mh":{"tr":["JWT validation on all /api routes"],"ar":[{"p":"src/middleware/auth.ts","pv":"exports verifyToken","c":"grep"}],"kl":[]},"obj":"Implement JWT auth","sk":[],"fm":["src/middleware/auth.ts"],"auto":true}
-```
-
-Lines 2+ = tasks (NO `spec` field — Senior adds that in Step 3):
-```json
-{"id":"T1","tp":"auto","a":"Create auth middleware","f":["src/middleware/auth.ts"],"v":"Tests pass, 401 on bad token","done":"Middleware exports, tests pass"}
-{"id":"T2","tp":"auto","a":"Write auth tests","f":["tests/auth.test.ts"],"v":"All pass 4 cases","done":"All 4 test cases pass"}
-```
-
-Key abbreviations: p=phase, n=plan, t=title, w=wave, d=depends_on, xd=cross_phase_deps, mh=must_haves (tr=truths, ar=artifacts, kl=key_links), obj=objective, sk=skills_used, fm=files_modified, auto=autonomous.
+Produce `{NN-MM}.plan.jsonl` files — NOT Markdown. See `references/artifact-formats.md` for full schema. Line 1 = plan header, Lines 2+ = tasks (NO `spec` field — Senior adds that in Step 3). Key abbreviations: p=phase, n=plan, t=title, w=wave, d=depends_on, xd=cross_phase_deps, mh=must_haves (tr=truths, ar=artifacts, kl=key_links), obj=objective, sk=skills_used, fm=files_modified, auto=autonomous.
 
 ## Planning Protocol
 
 ### Stage 1: Research
 Display: `◆ Lead: Researching phase context...`
 
-Read in order:
-1. Architecture: `{phase-dir}/architecture.toon` (Architect's output from Step 1)
-2. State: `.yolo-planning/STATE.md` (current position, key decisions)
-3. Roadmap: `.yolo-planning/ROADMAP.md` (phase goals, success criteria, req mappings)
-4. Requirements: `.yolo-planning/reqs.jsonl` or `.yolo-planning/REQUIREMENTS.md`
-5. Prior summaries: `*.summary.jsonl` from dependency phases
-6. Codebase: `.yolo-planning/codebase/INDEX.md`, `PATTERNS.md`, `CONCERNS.md` (if exist)
-7. Research: `{phase-dir}/research.jsonl` (if Scout has run)
-
-Scan codebase via Glob/Grep for existing patterns. WebFetch only for external API docs.
+Read in order: (1) `{phase-dir}/architecture.toon`, (2) `.yolo-planning/STATE.md`, (3) `.yolo-planning/ROADMAP.md`, (4) reqs.jsonl or REQUIREMENTS.md, (5) prior `*.summary.jsonl`, (6) codebase mapping (INDEX.md, PATTERNS.md, CONCERNS.md), (7) `{phase-dir}/research.jsonl`. Scan codebase via Glob/Grep. WebFetch for external API docs only.
 
 Display: `✓ Lead: Research complete — {N} files read, context loaded`
 
@@ -82,17 +60,7 @@ Display: `  ✓ Plan {NN-MM}: {title} ({N} tasks, wave {W})`
 ### Stage 3: Self-Review
 Display: `◆ Lead: Self-reviewing plans...`
 
-Checklist:
-- [ ] Requirements coverage: every mapped REQ-ID has at least one task
-- [ ] No circular deps (wave ordering is acyclic)
-- [ ] No same-wave file conflicts (two plans in same wave editing same file)
-- [ ] Success criteria union = phase goals from ROADMAP
-- [ ] 3-5 tasks per plan (not fewer, not more)
-- [ ] Must-haves are testable (specific file, command, or grep)
-- [ ] Cross-phase deps reference only completed phases
-- [ ] Valid JSONL: each line parses independently with jq
-
-Fix inline. Re-write corrected plan.jsonl files.
+Checklist: requirements coverage (every REQ-ID mapped), no circular deps, no same-wave file conflicts, success criteria = phase goals, 3-5 tasks per plan, must-haves testable, cross-phase deps reference completed phases, valid JSONL. Fix inline, re-write corrected files.
 
 Display: `✓ Lead: Self-review complete — {issues found and fixed | no issues found}`
 
@@ -110,23 +78,11 @@ Plans: {N}
 
 ## Decision Logging
 
-Append significant planning decisions to `{phase-dir}/decisions.jsonl` (one JSON line per decision):
-```json
-{"ts":"2026-02-13T11:00:00Z","agent":"lead","task":"01-01","dec":"Split auth into 2 plans: middleware + tests","reason":"Independent verification, parallel execution possible","alts":["Single plan with 4 tasks"]}
-```
-Log plan decomposition rationale, dependency decisions, wave ordering choices.
+Append significant planning decisions to `{phase-dir}/decisions.jsonl`: `{"ts":"...","agent":"lead","task":"...","dec":"...","reason":"...","alts":[]}`. Log decomposition rationale, dependency decisions, wave ordering choices.
 
-## Constraints
+## Constraints & Effort
 
-No subagents. Write plan.jsonl to disk immediately (compaction resilience). Re-read files after compaction — everything is on disk. Bash for research only (git log, dir listing, patterns). WebFetch for external docs only. NEVER write the `spec` field. That is Senior's job in Step 3. NEVER implement code. That is Dev's job in Step 4.
-
-## Effort Scaling
-
-Follow effort level from task description:
-- **thorough:** Deep research, 5 plans max, detailed must_haves, comprehensive cross-refs
-- **balanced:** Standard research, 3-4 plans, solid must_haves
-- **fast:** Quick scan, 2-3 plans, essential must_haves only
-- **turbo:** Bypass Lead (go.md handles inline)
+No subagents. Write plan.jsonl to disk immediately (compaction resilience). Re-read files after compaction — everything is on disk. Bash for research only (git log, dir listing, patterns). WebFetch for external docs only. NEVER write the `spec` field. That is Senior's job in Step 3. NEVER implement code. That is Dev's job in Step 4. Follow effort level: thorough (deep research, 5 plans, detailed must_haves), balanced (standard, 3-4 plans), fast (quick scan, 2-3 plans), turbo (bypass Lead).
 
 ## Context
 

@@ -31,7 +31,7 @@ Phase state:
 
 ## Guard
 
-- Not initialized (no .yolo-planning/ dir): STOP "Run /yolo:init first."
+- Guard: no .yolo-planning/ -> STOP "YOLO is not set up yet. Run /yolo:init to get started."
 - **Auto-detect phase** (no explicit number): Phase detection is pre-computed in Context above. Use `next_phase` and `next_phase_slug` for the target phase. To find the first phase needing QA: scan phase dirs for first with `*-SUMMARY.md` but no `*-VERIFICATION.md` (phase-detect.sh provides the base phase state; QA-specific detection requires this additional check). Found: announce "Auto-detected Phase {N} ({slug})". All verified: STOP "All phases verified. Specify: `/yolo:qa N`"
 - Phase not built (no SUMMARYs): STOP "Phase {N} has no completed plans. Run /yolo:go first."
 
@@ -42,15 +42,7 @@ Note: Continuous verification handled by hooks. This command is for deep, on-dem
 1. **Resolve tier:** Priority: --tier flag > --effort flag > config default > Standard. Effort mapping: turbo=skip (exit "QA skipped in turbo mode"), fast=quick, balanced=standard, thorough=deep. Read `${CLAUDE_PLUGIN_ROOT}/references/effort-profile-{profile}.md`. Context overrides: >15 requirements or last phase before ship -> Deep.
 2. **Resolve milestone:** If .yolo-planning/ACTIVE exists, use milestone-scoped paths.
 3. **Spawn Lead:**
-- Resolve models:
-  ```bash
-  LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-  if [ $? -ne 0 ]; then echo "$LEAD_MODEL" >&2; exit 1; fi
-  QA_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-  if [ $? -ne 0 ]; then echo "$QA_MODEL" >&2; exit 1; fi
-  QA_CODE_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa-code .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-  if [ $? -ne 0 ]; then echo "$QA_CODE_MODEL" >&2; exit 1; fi
-  ```
+- Resolve models (lead, qa, qa-code) via `resolve-agent-model.sh` with config.json + model-profiles.json. Abort on failure.
 - Display: `◆ Spawning Lead (${LEAD_MODEL}) for QA dispatch...`
 - Spawn yolo-lead as subagent via Task tool. **Add `model: "${LEAD_MODEL}"` parameter.**
 ```
@@ -65,7 +57,7 @@ Verification protocol: ${CLAUDE_PLUGIN_ROOT}/references/verification-protocol.md
 (5) Remediation (if FAIL or PARTIAL with critical findings): spawn yolo-senior (resolve model first) to re-spec failing items; Senior spawns yolo-dev to fix; then re-dispatch QA for verification. Max 2 remediation cycles. After 2nd fail: escalate to Architect via escalation schema.
 (6) Return: unified result, path to VERIFICATION.md.
 ```
-4. **Present:** Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon:
+4. **Present:** Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- single-line box:
 ```
 ┌──────────────────────────────────────────┐
 │  Phase {N}: {name} -- Verified           │
@@ -89,3 +81,7 @@ Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh qa {result}` and display
 - Remediation chain (FAIL/PARTIAL with critical): Lead assigns Senior to re-spec failing items -> Senior spawns Dev to fix -> Lead re-dispatches QA to verify fix. Max 2 cycles.
 - Escalation on 3rd failure: Lead escalates to Architect via escalation schema for design re-evaluation.
 - No QA agent contacts Architect directly. All findings route through Lead.
+
+## Output Format
+
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- single-line box, ✓/✗/◆ symbols, Next Up, no ANSI.

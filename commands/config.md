@@ -17,7 +17,7 @@ Config:
 
 ## Guard
 
-If no .yolo-planning/ dir: STOP "Run /yolo:init first." (check `.yolo-planning/config.json`)
+If no .yolo-planning/ dir: STOP "YOLO is not set up yet. Run /yolo:init to get started." (check `.yolo-planning/config.json`)
 
 ## Behavior
 
@@ -25,33 +25,10 @@ If no .yolo-planning/ dir: STOP "Run /yolo:init first." (check `.yolo-planning/c
 
 **Step 1:** Display current settings in single-line box table (setting, value, description) + skill-hook mappings.
 
-After the settings table, display Model Profile section:
-```bash
-PROFILE=$(jq -r '.model_profile // "balanced"' .yolo-planning/config.json)
-echo ""
-echo "Model Profile: $PROFILE"
-echo "Agent Models:"
-# Resolve each agent model
-LEAD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-DEV=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-QA=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-SCOUT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-DEBUGGER=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-ARCHITECT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-# Check for overrides and mark with asterisk
-LEAD_DISPLAY=$LEAD
-DEV_DISPLAY=$DEV
-QA_DISPLAY=$QA
-SCOUT_DISPLAY=$SCOUT
-DEBUGGER_DISPLAY=$DEBUGGER
-ARCHITECT_DISPLAY=$ARCHITECT
-if [ "$(jq -r '.model_overrides.lead // ""' .yolo-planning/config.json)" != "" ]; then LEAD_DISPLAY="${LEAD}*"; fi
-if [ "$(jq -r '.model_overrides.dev // ""' .yolo-planning/config.json)" != "" ]; then DEV_DISPLAY="${DEV}*"; fi
-if [ "$(jq -r '.model_overrides.qa // ""' .yolo-planning/config.json)" != "" ]; then QA_DISPLAY="${QA}*"; fi
-if [ "$(jq -r '.model_overrides.scout // ""' .yolo-planning/config.json)" != "" ]; then SCOUT_DISPLAY="${SCOUT}*"; fi
-if [ "$(jq -r '.model_overrides.debugger // ""' .yolo-planning/config.json)" != "" ]; then DEBUGGER_DISPLAY="${DEBUGGER}*"; fi
-if [ "$(jq -r '.model_overrides.architect // ""' .yolo-planning/config.json)" != "" ]; then ARCHITECT_DISPLAY="${ARCHITECT}*"; fi
-echo "  Lead: $LEAD_DISPLAY | Dev: $DEV_DISPLAY | QA: $QA_DISPLAY | Scout: $SCOUT_DISPLAY | Debugger: $DEBUGGER_DISPLAY | Architect: $ARCHITECT_DISPLAY"
+After the settings table, display Model Profile section. Resolve model for each of 6 agents (lead, dev, qa, scout, debugger, architect) via `resolve-agent-model.sh`. For each, check `model_overrides.{agent}` in config.json -- if non-empty, append asterisk to display. Show as:
+```
+Model Profile: $PROFILE
+  Lead: $L | Dev: $D | QA: $Q | Scout: $S | Debugger: $DB | Architect: $A
 ```
 
 **Step 2:** AskUserQuestion with up to 6 commonly changed settings (mark current values):
@@ -74,39 +51,13 @@ Store selection in variable `PROFILE_METHOD`.
 
 **Individual Configuration - Round 1 (4 agents):**
 
-Calculate OLD_COST before making changes (cost weights: opus=100, sonnet=20, haiku=2):
+**Cost utility** (used in individual config, profile switching, and cost display):
 ```bash
-CURRENT_PROFILE=$(jq -r '.model_profile // "balanced"' .yolo-planning/config.json)
-PROFILES_PATH="${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json"
-
-# Get current models (before changes)
-LEAD_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-DEV_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-QA_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-SCOUT_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-DEBUGGER_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-ARCHITECT_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-
-# Calculate cost based on model
-get_model_cost() {
-  case "$1" in
-    opus) echo 100 ;;
-    sonnet) echo 20 ;;
-    haiku) echo 2 ;;
-    *) echo 0 ;;
-  esac
-}
-
-OLD_COST=$(( $(get_model_cost "$LEAD_OLD") + $(get_model_cost "$DEV_OLD") + $(get_model_cost "$QA_OLD") + $(get_model_cost "$SCOUT_OLD") + $(get_model_cost "$DEBUGGER_OLD") + $(get_model_cost "$ARCHITECT_OLD") ))
+get_model_cost() { case "$1" in opus) echo 100 ;; sonnet) echo 20 ;; haiku) echo 2 ;; *) echo 0 ;; esac; }
 ```
+Cost weights: opus=100, sonnet=20, haiku=2. Total = sum of get_model_cost for all 6 agents.
 
-Get current models for Lead, Dev, QA, Scout:
-```bash
-CURRENT_LEAD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-CURRENT_DEV=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-CURRENT_QA=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh qa .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-CURRENT_SCOUT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-```
+Resolve current models for all 6 agents (lead, dev, qa, scout, debugger, architect) via `resolve-agent-model.sh`. Calculate OLD_COST before changes.
 
 AskUserQuestion with 4 questions:
 - Lead model (current: $CURRENT_LEAD): opus | sonnet | haiku
@@ -118,13 +69,7 @@ Store selections in variables `LEAD_MODEL`, `DEV_MODEL`, `QA_MODEL`, `SCOUT_MODE
 
 **Individual Configuration - Round 2 (2 agents):**
 
-Get current models for Debugger and Architect:
-```bash
-CURRENT_DEBUGGER=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-CURRENT_ARCHITECT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-```
-
-AskUserQuestion with 2 questions:
+AskUserQuestion with 2 questions (current models already resolved above):
 - Debugger model (current: $CURRENT_DEBUGGER): opus | sonnet | haiku
 - Architect model (current: $CURRENT_ARCHITECT): opus | sonnet | haiku
 
@@ -139,52 +84,14 @@ if ! jq -e '.model_overrides' .yolo-planning/config.json >/dev/null 2>&1; then
 fi
 ```
 
-Apply each agent override:
+Apply each override — for each AGENT in (lead, dev, qa, scout, debugger, architect):
 ```bash
-jq ".model_overrides.lead = \"$LEAD_MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-echo "✓ Model override: lead ➜ $LEAD_MODEL"
-
-jq ".model_overrides.dev = \"$DEV_MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-echo "✓ Model override: dev ➜ $DEV_MODEL"
-
-jq ".model_overrides.qa = \"$QA_MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-echo "✓ Model override: qa ➜ $QA_MODEL"
-
-jq ".model_overrides.scout = \"$SCOUT_MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-echo "✓ Model override: scout ➜ $SCOUT_MODEL"
-
-jq ".model_overrides.debugger = \"$DEBUGGER_MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-echo "✓ Model override: debugger ➜ $DEBUGGER_MODEL"
-
-jq ".model_overrides.architect = \"$ARCHITECT_MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-echo "✓ Model override: architect ➜ $ARCHITECT_MODEL"
+jq ".model_overrides.$AGENT = \"$MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
+echo "✓ Model override: $AGENT ➜ $MODEL"
 ```
 
 **Cost Estimate Display:**
-
-Calculate NEW_COST using selected models:
-```bash
-NEW_COST=$(( $(get_model_cost "$LEAD_MODEL") + $(get_model_cost "$DEV_MODEL") + $(get_model_cost "$QA_MODEL") + $(get_model_cost "$SCOUT_MODEL") + $(get_model_cost "$DEBUGGER_MODEL") + $(get_model_cost "$ARCHITECT_MODEL") ))
-
-# Calculate percentage difference
-if [ $OLD_COST -gt 0 ]; then
-  DIFF=$(( (NEW_COST - OLD_COST) * 100 / OLD_COST ))
-else
-  DIFF=0
-fi
-
-echo ""
-echo "Cost estimate (per phase):"
-echo "  Before: ${OLD_COST} units (~${CURRENT_PROFILE} profile)"
-if [ $DIFF -lt 0 ]; then
-  DIFF_ABS=$(( -DIFF ))
-  echo "  After:  ${NEW_COST} units (${DIFF_ABS}% reduction)"
-elif [ $DIFF -gt 0 ]; then
-  echo "  After:  ${NEW_COST} units (+${DIFF}% increase)"
-else
-  echo "  After:  ${NEW_COST} units (no change)"
-fi
-```
+Calculate NEW_COST using get_model_cost (defined above) for all 6 selected models. DIFF = (NEW-OLD)*100/OLD. Display: `Before: ~${OLD_DOLLARS} estimated (~{profile})`, `After: ~${NEW_DOLLARS} estimated ({diff}% change)`.
 
 **Step 2.6:** If "Departments" was selected in Step 2, show current department state and allow toggling.
 
@@ -257,92 +164,27 @@ Stored in config.json `skill_hooks`:
 
 ### Model profile switching: `model_profile <profile>`
 
-Validates profile name (quality/balanced/budget), shows before/after cost estimate, updates config.json model_profile field.
+Validate profile in model-profiles.json (`jq -e ".$PROFILE"`). Invalid: `⚠ Unknown profile. Valid: quality, balanced, budget`.
 
+Calculate OLD_COST and NEW_COST using get_model_cost (cost utility above) by counting opus/sonnet/haiku agents per profile. Display: `Switching from $OLD to $NEW (~{diff}% cost reduction/increase per phase)`.
+
+Update config.json:
 ```bash
-PROFILE="$1"
-PROFILES_PATH="${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json"
-
-# Validate profile
-if ! jq -e ".$PROFILE" "$PROFILES_PATH" >/dev/null 2>&1; then
-  echo "⚠ Unknown profile '$PROFILE'. Valid: quality, balanced, budget"
-  exit 0
-fi
-
-# Get current profile
-OLD_PROFILE=$(jq -r '.model_profile // "balanced"' .yolo-planning/config.json)
-
-# Calculate cost estimate
-# Cost weights: opus=100, sonnet=20, haiku=2
-calc_cost() {
-  local profile=$1
-  local opus=$(jq "[.$profile | to_entries[] | select(.value == \"opus\")] | length" "$PROFILES_PATH")
-  local sonnet=$(jq "[.$profile | to_entries[] | select(.value == \"sonnet\")] | length" "$PROFILES_PATH")
-  local haiku=$(jq "[.$profile | to_entries[] | select(.value == \"haiku\")] | length" "$PROFILES_PATH")
-  echo $(( opus * 100 + sonnet * 20 + haiku * 2 ))
-}
-
-OLD_COST=$(calc_cost "$OLD_PROFILE")
-NEW_COST=$(calc_cost "$PROFILE")
-DIFF=$(( (NEW_COST - OLD_COST) * 100 / OLD_COST ))
-
-if [ $DIFF -lt 0 ]; then
-  DIFF_ABS=$(( -DIFF ))
-  echo "Switching from $OLD_PROFILE to $PROFILE (~${DIFF_ABS}% cost reduction per phase)"
-else
-  echo "Switching from $OLD_PROFILE to $PROFILE (~${DIFF}% cost increase per phase)"
-fi
-
-# Update config.json
 jq ".model_profile = \"$PROFILE\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-
-echo "✓ Model profile ➜ $PROFILE"
 ```
+Display: `✓ Model profile ➜ $PROFILE`
 
 ### Per-agent override: `model_override <agent> <model>`
 
-Validates agent name (lead|dev|qa|scout|debugger|architect) and model (opus|sonnet|haiku). Updates config.json model_overrides object.
+Validate AGENT in (lead|dev|qa|scout|debugger|architect), MODEL in (opus|sonnet|haiku). Invalid: display `⚠` with valid values.
 
+Get current model via `resolve-agent-model.sh`. Display: `Set $AGENT model override: $MODEL (was: $OLD)`.
+
+Ensure model_overrides exists (same init pattern as individual config). Apply:
 ```bash
-AGENT="$1"
-MODEL="$2"
-
-# Validate agent
-case "$AGENT" in
-  lead|dev|qa|scout|debugger|architect)
-    # Valid
-    ;;
-  *)
-    echo "⚠ Unknown agent '$AGENT'. Valid: lead, dev, qa, scout, debugger, architect"
-    exit 0
-    ;;
-esac
-
-# Validate model
-case "$MODEL" in
-  opus|sonnet|haiku)
-    # Valid
-    ;;
-  *)
-    echo "⚠ Unknown model '$MODEL'. Valid: opus, sonnet, haiku"
-    exit 0
-    ;;
-esac
-
-# Get current model for this agent
-OLD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh "$AGENT" .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-
-echo "Set $AGENT model override: $MODEL (was: $OLD_MODEL)"
-
-# Update config.json - ensure model_overrides object exists
-if ! jq -e '.model_overrides' .yolo-planning/config.json >/dev/null 2>&1; then
-  jq '.model_overrides = {}' .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-fi
-
 jq ".model_overrides.$AGENT = \"$MODEL\"" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-
-echo "✓ Model override: $AGENT ➜ $MODEL"
 ```
+Display: `✓ Model override: $AGENT ➜ $MODEL`
 
 ## Settings Reference
 
@@ -365,4 +207,4 @@ echo "✓ Model override: $AGENT ➜ $MODEL"
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — single-line box, ✓ success, ⚠ invalid, ➜ transitions, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- single-line box, ✓/⚠/➜ symbols, no ANSI.

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -u
 # skill-hook-dispatch.sh — Runtime skill-hook dispatcher
-# Reads config.json skill_hooks at runtime and invokes matching skill scripts
+# Reads config.json skill_hooks and invokes matching skill scripts
 # Fail-open design: exit 0 on any error, never block legitimate work
 
 EVENT_TYPE="${1:-}"
@@ -10,49 +10,42 @@ EVENT_TYPE="${1:-}"
 INPUT=$(cat 2>/dev/null) || exit 0
 [ -z "$INPUT" ] && exit 0
 
-TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null) || exit 0
+TOOL_NAME=$(jq -r '.tool_name // ""' <<< "$INPUT" 2>/dev/null) || exit 0
 [ -z "$TOOL_NAME" ] && exit 0
 
-# Find config.json in .yolo-planning/ relative to project root
-# Walk up from $PWD looking for .yolo-planning/config.json
-find_config() {
-  local dir="$PWD"
-  while [ "$dir" != "/" ]; do
-    if [ -f "$dir/.yolo-planning/config.json" ]; then
-      echo "$dir/.yolo-planning/config.json"
-      return 0
+# Cached config path resolution (like vdir cache in hook-wrapper.sh)
+_CFG_CACHE="/tmp/yolo-cfgpath-$(id -u)"
+CONFIG_PATH=""
+if [ -f "$_CFG_CACHE" ]; then
+  CONFIG_PATH=$(<"$_CFG_CACHE")
+  [ -f "$CONFIG_PATH" ] || CONFIG_PATH=""  # validate cache
+fi
+if [ -z "$CONFIG_PATH" ]; then
+  # Walk up from PWD
+  _dir="$PWD"
+  while [ "$_dir" != "/" ]; do
+    if [ -f "$_dir/.yolo-planning/config.json" ]; then
+      CONFIG_PATH="$_dir/.yolo-planning/config.json"
+      printf '%s' "$CONFIG_PATH" > "$_CFG_CACHE" 2>/dev/null
+      break
     fi
-    dir=$(dirname "$dir")
+    _dir=$(dirname "$_dir")
   done
-  return 1
-}
+fi
+[ -z "$CONFIG_PATH" ] && exit 0
 
-CONFIG_PATH=$(find_config) || exit 0
-[ ! -f "$CONFIG_PATH" ] && exit 0
+# Single jq: filter skill_hooks to matching event+tool, output skill names
+MATCHES=$(jq -r --arg evt "$EVENT_TYPE" --arg tool "$TOOL_NAME" '
+  .skill_hooks // {} | to_entries[] |
+  select(.value.event == $evt) |
+  select(.value.tools | split("|") | any(. == $tool)) |
+  .key
+' "$CONFIG_PATH" 2>/dev/null) || exit 0
+[ -z "$MATCHES" ] && exit 0
 
-# Read skill_hooks from config.json
-# Format: { "skill_hooks": { "skill-name": { "event": "PostToolUse", "tools": "Write|Edit" } } }
-SKILL_HOOKS=$(jq -r '.skill_hooks // empty' "$CONFIG_PATH" 2>/dev/null) || exit 0
-[ -z "$SKILL_HOOKS" ] && exit 0
-
-# Iterate through each skill-hook mapping
-for SKILL_NAME in $(echo "$SKILL_HOOKS" | jq -r 'keys[]' 2>/dev/null); do
-  SKILL_EVENT=$(echo "$SKILL_HOOKS" | jq -r --arg s "$SKILL_NAME" '.[$s].event // ""' 2>/dev/null) || continue
-  SKILL_TOOLS=$(echo "$SKILL_HOOKS" | jq -r --arg s "$SKILL_NAME" '.[$s].tools // ""' 2>/dev/null) || continue
-
-  # Check event type matches
-  [ "$SKILL_EVENT" != "$EVENT_TYPE" ] && continue
-
-  # Check tool name matches (pipe-delimited pattern)
-  if ! echo "$TOOL_NAME" | grep -qE "^($SKILL_TOOLS)$"; then
-    continue
-  fi
-
-  # Find and invoke the skill's hook script from plugin cache (latest version)
+while IFS= read -r SKILL_NAME; do
   SCRIPT=$(command ls -1 "$HOME"/.claude/plugins/cache/yolo-marketplace/yolo/*/scripts/"${SKILL_NAME}-hook.sh" 2>/dev/null | sort -V | tail -1)
-  if [ -f "$SCRIPT" ]; then
-    echo "$INPUT" | bash "$SCRIPT" 2>/dev/null || true
-  fi
-done
+  [ -f "$SCRIPT" ] && echo "$INPUT" | bash "$SCRIPT" 2>/dev/null || true
+done <<< "$MATCHES"
 
 exit 0

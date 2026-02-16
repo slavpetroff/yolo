@@ -11,12 +11,16 @@ fi
 PLANNING_DIR=".yolo-planning"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 
-# Auto-migrate config if .yolo-planning exists
-if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ]; then
+# OPTIMIZATION 9: Config auto-migrate guard (only run once per version)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+LOCAL_VER=$(tr -d '[:space:]' < "$SCRIPT_DIR/../VERSION" 2>/dev/null || echo "0.0.0")
+MIGRATE_MARKER="$PLANNING_DIR/.config-migrated-${LOCAL_VER}"
+if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ] && [ ! -f "$MIGRATE_MARKER" ]; then
   if ! jq -e '.model_profile' "$PLANNING_DIR/config.json" >/dev/null 2>&1; then
     TMP=$(mktemp)
     jq '. + {model_profile: "quality", model_overrides: {}}' "$PLANNING_DIR/config.json" > "$TMP" && mv "$TMP" "$PLANNING_DIR/config.json"
   fi
+  touch "$MIGRATE_MARKER" 2>/dev/null
 fi
 
 # Clean compaction marker at session start (fresh-session guarantee, REQ-15)
@@ -43,34 +47,35 @@ else
   MT=$(stat -c %Y "$CACHE" 2>/dev/null || echo 0)
 fi
 
+# OPTIMIZATION 1: Async curl for update check (non-blocking)
 if [ ! -f "$CACHE" ] || [ $((NOW - MT)) -gt 86400 ]; then
-  # Get installed version from VERSION file next to this script
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-  LOCAL_VER=$(tr -d '[:space:]' < "$SCRIPT_DIR/../VERSION" 2>/dev/null || echo "0.0.0")
+  # Background the entire fetch — result available on NEXT session
+  { REMOTE_VER=$(curl -sf --max-time 3 \
+      "https://raw.githubusercontent.com/slavpetroff/yolo/main/VERSION" \
+      2>/dev/null | tr -d '[:space:]')
+    echo "${LOCAL_VER:-0.0.0}|${REMOTE_VER:-0.0.0}" > "$CACHE" 2>/dev/null
+  } &
+  disown
 
-  # Fetch latest version from GitHub (3s timeout)
-  REMOTE_VER=$(curl -sf --max-time 3 \
-    "https://raw.githubusercontent.com/slavpetroff/yolo/main/VERSION" \
-    2>/dev/null | tr -d '[:space:]')
-
-  # Cache the result regardless
-  echo "${LOCAL_VER:-0.0.0}|${REMOTE_VER:-0.0.0}" > "$CACHE" 2>/dev/null
-
-  if [ -n "$REMOTE_VER" ] && [ "$REMOTE_VER" != "0.0.0" ] && [ "$REMOTE_VER" != "$LOCAL_VER" ]; then
-    UPDATE_MSG=" UPDATE AVAILABLE: v${LOCAL_VER} -> v${REMOTE_VER}. Run /yolo:update to upgrade."
+  # Read stale cached value if available (or empty on first run)
+  if [ -f "$CACHE" ]; then
+    IFS='|' read -r _cached_local _cached_remote < "$CACHE" 2>/dev/null || true
+    if [ -n "${_cached_remote:-}" ] && [ "${_cached_remote:-}" != "0.0.0" ] && [ "${_cached_remote:-}" != "${LOCAL_VER:-}" ]; then
+      UPDATE_MSG=" UPDATE AVAILABLE: v${LOCAL_VER:-0.0.0} -> v${_cached_remote:-0.0.0}. Run /yolo:update to upgrade."
+    fi
   fi
 else
   # Read cached result
-  LOCAL_VER="" REMOTE_VER=""
-  IFS='|' read -r LOCAL_VER REMOTE_VER < "$CACHE" 2>/dev/null || true
+  IFS='|' read -r _cached_local REMOTE_VER < "$CACHE" 2>/dev/null || true
   if [ -n "${REMOTE_VER:-}" ] && [ "${REMOTE_VER:-}" != "0.0.0" ] && [ "${REMOTE_VER:-}" != "${LOCAL_VER:-}" ]; then
     UPDATE_MSG=" UPDATE AVAILABLE: v${LOCAL_VER:-0.0.0} -> v${REMOTE_VER:-0.0.0}. Run /yolo:update to upgrade."
   fi
 fi
 
-# --- Migrate statusLine if using old for-loop pattern or bare ls (alias-vulnerable) ---
+# OPTIMIZATION 2: Defer statusLine migration (only check on version change)
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
-if [ -f "$SETTINGS_FILE" ]; then
+SL_MARKER="/tmp/yolo-sl-migrated-$(id -u)-${LOCAL_VER}"
+if [ -f "$SETTINGS_FILE" ] && [ ! -f "$SL_MARKER" ]; then
   SL_CMD=$(jq -r '.statusLine.command // .statusLine // ""' "$SETTINGS_FILE" 2>/dev/null)
   SL_NEEDS_UPDATE=false
   if echo "$SL_CMD" | grep -q 'for f in' && echo "$SL_CMD" | grep -q 'yolo-statusline'; then
@@ -90,6 +95,7 @@ if [ -f "$SETTINGS_FILE" ]; then
     fi
     rm -f "${SETTINGS_FILE}.bak"
   fi
+  touch "$SL_MARKER" 2>/dev/null
 fi
 
 # --- Clean old cache versions (keep only latest) ---
@@ -139,10 +145,12 @@ if [ -d "$CACHE_DIR" ]; then
 fi
 
 # --- Auto-sync stale marketplace checkout ---
+# OPTIMIZATION 6: Use VERSION files instead of jq for version comparison
 MKT_DIR="$CLAUDE_DIR/plugins/marketplaces/yolo-marketplace"
 if [ -d "$MKT_DIR/.git" ] && [ -d "$CACHE_DIR" ]; then
-  MKT_VER=$(jq -r '.version // "0"' "$MKT_DIR/.claude-plugin/plugin.json" 2>/dev/null)
-  CACHE_VER=$(jq -r '.version // "0"' "$(command ls -d "$CACHE_DIR"/*/.claude-plugin/plugin.json 2>/dev/null | sort -V | tail -1)" 2>/dev/null)
+  MKT_VER=$(tr -d '[:space:]' < "$MKT_DIR/VERSION" 2>/dev/null || echo "0")
+  CACHE_VER_FILE=$(command ls -d "$CACHE_DIR"/*/VERSION 2>/dev/null | sort -V | tail -1)
+  CACHE_VER=$(tr -d '[:space:]' < "$CACHE_VER_FILE" 2>/dev/null || echo "0")
   if [ "$MKT_VER" != "$CACHE_VER" ] && [ -n "$CACHE_VER" ] && [ "$CACHE_VER" != "0" ]; then
     (git -C "$MKT_DIR" fetch origin --quiet 2>/dev/null && \
       if git -C "$MKT_DIR" diff --quiet 2>/dev/null; then
@@ -181,19 +189,20 @@ if [ -n "$PROJECT_GIT_DIR" ] && [ ! -f "$PROJECT_GIT_DIR/.git/hooks/pre-push" ] 
 fi
 
 # --- Reconcile orphaned execution state ---
+# OPTIMIZATION 5: Batch exec state jq (merge multiple jq reads into single call)
 EXEC_STATE="$PLANNING_DIR/.execution-state.json"
 if [ -f "$EXEC_STATE" ]; then
-  EXEC_STATUS=$(jq -r '.status // ""' "$EXEC_STATE" 2>/dev/null)
+  IFS='|' read -r EXEC_STATUS PHASE_NAME PHASE_NUM EXEC_STEP EXEC_TASK PLAN_COUNT <<< \
+    "$(jq -r '[(.status // ""), (.phase_name // ""), (.phase // ""), (.step // ""), (.current_task // ""), (.plans | length | tostring)] | join("|")' "$EXEC_STATE" 2>/dev/null)"
   if [ "$EXEC_STATUS" = "running" ]; then
-    IFS='|' read -r PHASE_NAME PHASE_NUM EXEC_STEP EXEC_TASK <<< \
-      "$(jq -r '[(.phase_name // ""), (.phase // ""), (.step // ""), (.current_task // "")] | join("|")' "$EXEC_STATE" 2>/dev/null)"
     PHASE_DIR=""
     if [ -n "$PHASE_NUM" ]; then
       PHASE_DIR=$(command ls -d "$PLANNING_DIR/phases/${PHASE_NUM}-"* 2>/dev/null | head -1)
     fi
     if [ -n "$PHASE_DIR" ] && [ -d "$PHASE_DIR" ]; then
-      PLAN_COUNT=$(jq -r '.plans | length' "$EXEC_STATE" 2>/dev/null)
-      SUMMARY_COUNT=$(find "$PHASE_DIR" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
+      # OPTIMIZATION 8: Bash glob replacing find for summary counting
+      SUMMARY_COUNT=0
+      for f in "$PHASE_DIR"/*.summary.jsonl "$PHASE_DIR"/*-SUMMARY.md; do [ -f "$f" ] && SUMMARY_COUNT=$((SUMMARY_COUNT+1)); done
       if [ "${SUMMARY_COUNT:-0}" -ge "${PLAN_COUNT:-1}" ] && [ "${PLAN_COUNT:-0}" -gt 0 ]; then
         # All plans have summaries — build finished after crash
         jq '.status = "complete"' "$EXEC_STATE" > "$PLANNING_DIR/.execution-state.json.tmp" && mv "$PLANNING_DIR/.execution-state.json.tmp" "$EXEC_STATE"
@@ -329,22 +338,24 @@ else
   if [ "$exec_running" = true ]; then
     NEXT_ACTION="/yolo:go (build interrupted, will resume)"
   else
-    # Find next phase needing work
+    # OPTIMIZATION 8: Bash glob replacing find for plan/summary counting
     all_done=true
     next_phase=""
     for pdir in $(command ls -d "$PHASES_DIR"/*/ 2>/dev/null | sort); do
       pname=$(basename "$pdir")
-      plan_count=$(find "$pdir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
-      summary_count=$(find "$pdir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
+      plan_count=0
+      for f in "$pdir"/*.plan.jsonl "$pdir"/*-PLAN.md; do [ -f "$f" ] && plan_count=$((plan_count+1)); done
+      summary_count=0
+      for f in "$pdir"/*.summary.jsonl "$pdir"/*-SUMMARY.md; do [ -f "$f" ] && summary_count=$((summary_count+1)); done
       if [ "${plan_count:-0}" -eq 0 ]; then
         # Phase has no plans yet — needs planning
-        pnum=$(echo "$pname" | sed 's/-.*//')
+        pnum=${pname%%-*}
         NEXT_ACTION="/yolo:go (Phase $pnum needs planning)"
         all_done=false
         break
       elif [ "${summary_count:-0}" -lt "${plan_count:-0}" ]; then
         # Phase has plans but not all executed
-        pnum=$(echo "$pname" | sed 's/-.*//')
+        pnum=${pname%%-*}
         NEXT_ACTION="/yolo:go (Phase $pnum planned, needs execution)"
         all_done=false
         break

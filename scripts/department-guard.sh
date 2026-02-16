@@ -16,51 +16,34 @@ set -euo pipefail
 # - Bash tool: best-effort pattern matching for write operations
 
 # Helper: output deny JSON and exit 0 (Claude Code reads JSON on exit 0)
+# Uses printf instead of jq -n to save ~7.3ms per deny call.
 deny() {
-  jq -n --arg reason "$1" '{
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: $reason
-    }
-  }'
+  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"%s"}}\n' "$1"
   exit 0
 }
 
-# Read tool input
-INPUT=$(cat 2>/dev/null) || INPUT=""
-if [ -z "$INPUT" ]; then
+# Check agent context FIRST — if no active agent, skip everything (saves cat+jq)
+PLANNING_DIR=".yolo-planning"
+if [ ! -f "$PLANNING_DIR/.active-agent" ]; then
   exit 0
 fi
+AGENT=$(<"$PLANNING_DIR/.active-agent")
+[ -z "$AGENT" ] && exit 0
 
-# Determine agent from .active-agent file (written by agent-start.sh)
-PLANNING_DIR=".yolo-planning"
-AGENT=""
-if [ -f "$PLANNING_DIR/.active-agent" ]; then
-  AGENT=$(<"$PLANNING_DIR/.active-agent")
-fi
-if [ -z "$AGENT" ]; then
-  exit 0  # No agent context — allow (graceful degradation)
-fi
+# Read tool input (only when we have an active agent)
+INPUT=$(cat 2>/dev/null) || INPUT=""
+[ -z "$INPUT" ] && exit 0
 
-# Detect tool type and extract target path
-TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null) || TOOL_NAME=""
+# Single jq call to extract tool_name, file_path, and command (saves 2 jq invocations)
+_parsed=$(jq -r '[(.tool_name // ""), (.tool_input.file_path // .tool_input.filePath // .file_path // .filePath // ""), (.tool_input.command // "")] | join("\t")' <<< "$INPUT" 2>/dev/null) || exit 0
+IFS=$'\t' read -r TOOL_NAME FILE_PATH BASH_CMD <<< "$_parsed"
 
-FILE_PATH=""
-if [ "$TOOL_NAME" = "Bash" ]; then
-  # For Bash: extract command and check for write operations to protected dirs
-  BASH_CMD=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || BASH_CMD=""
-  if [ -z "$BASH_CMD" ]; then
-    exit 0
-  fi
-  # Set FILE_PATH to trigger directory checks below if write patterns found
-  # We'll check BASH_CMD directly in the department boundary section
+# Route based on tool type
+if [ "${TOOL_NAME:-}" = "Bash" ]; then
+  [ -z "${BASH_CMD:-}" ] && exit 0
+  FILE_PATH=""  # Bash tool uses BASH_CMD, not FILE_PATH
 else
-  # For Write/Edit: extract file_path directly
-  FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // .tool_input.filePath // .file_path // .filePath // empty' 2>/dev/null) || FILE_PATH=""
-  if [ -z "$FILE_PATH" ]; then
-    exit 0
-  fi
+  [ -z "${FILE_PATH:-}" ] && exit 0
 fi
 
 # Extract department from agent name
@@ -132,7 +115,7 @@ elif [ -n "${BASH_CMD:-}" ]; then
   esac
   if [ -n "$PROTECTED" ]; then
     # Check common write patterns: >, >>, tee, cp, mv, mkdir, sed -i, install targeting protected dirs
-    if echo "$BASH_CMD" | grep -qE "(>|>>|tee |cp |mv |mkdir |sed -i|install ).*(${PROTECTED})"; then
+    if grep -qE "(>|>>|tee |cp |mv |mkdir |sed -i|install ).*(${PROTECTED})" <<< "$BASH_CMD"; then
       FILE_PATH="<detected in bash command>"
       block_message "another"
     fi

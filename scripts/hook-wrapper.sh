@@ -22,14 +22,12 @@ CACHE="$CLAUDE_DIR/plugins/cache/yolo-marketplace/yolo"
 _YOLO_DIR="/tmp/yolo-vdir-$(id -u)"
 
 if [ -f "$_YOLO_DIR" ]; then
-  VDIR=$(<"$_YOLO_DIR")
-  [ -d "$VDIR/scripts" ] || { rm -f "$_YOLO_DIR" 2>/dev/null; VDIR=""; }
-else
-  VDIR=""
+  VDIR=$(<"$_YOLO_DIR")  # bash-native read, no subshell fork
+  # Invalidate if plugin cache dir was modified (new version installed)
+  [ "$CACHE" -nt "$_YOLO_DIR" ] 2>/dev/null && VDIR=""
 fi
-if [ -z "$VDIR" ]; then
-  VDIR=$(command ls -1d "$CACHE"/*/ 2>/dev/null \
-    | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)
+if [ -z "${VDIR:-}" ]; then
+  VDIR=$(command ls -1d "$CACHE"/*/ 2>/dev/null | sort -V | tail -1)
   VDIR="${VDIR%/}"
   [ -n "$VDIR" ] && printf '%s' "$VDIR" > "$_YOLO_DIR" 2>/dev/null
 fi

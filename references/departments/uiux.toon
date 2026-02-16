@@ -28,28 +28,21 @@ conventions:
 
 workflow:
   steps: 10-step standard with UX domain specializations
-  1_critique: Shared Critic, includes UX heuristic evaluation, a11y review
-  2_architecture: UX Architect, information architecture, design system strategy, user flow structure
-  3_planning: UX Lead, design task decomposition, component spec breakdown
-  4_design_review: UX Senior, enriches with exact design token values, interaction specs, responsive rules
-  5_test_red: UX Tester, usability test specs, a11y checklists, design compliance criteria
-  6_implementation: UX Dev, design tokens, component specs, wireframes, user flow docs
-  7_code_review: UX Senior, design system consistency, a11y compliance, spec completeness
-  8_qa: UX QA Lead + UX QA Code, design system compliance, consistency audit, A11y lint
-  9_security: Shared Security, PII in design artifacts, data exposure in mockups
-  10_signoff: UX Lead/Owner, dept result to Owner + handoff artifacts to FE
+  1: Critic (shared), UX heuristic eval + a11y review
+  2: UX Architect, IA + design system strategy + user flows
+  3: UX Lead, design task decomposition
+  4: UX Senior, token values + interaction specs + responsive rules
+  5: UX Tester, usability specs + a11y checklists
+  6: UX Dev, tokens + component specs + wireframes + flows
+  7: UX Senior, design consistency + a11y + completeness
+  8: UX QA Lead + Code, design compliance + consistency + a11y
+  9: Security (shared), PII + data exposure in mockups
+  10: UX Lead/Owner, dept result + handoff to FE
 
 cross_dept:
-  produces_for_fe:
-    design-tokens.jsonl: colors, typography, spacing, breakpoints
-    component-specs.jsonl: component layout, behavior, interactions, states
-    user-flows.jsonl: user journey maps, navigation structure
-    design-handoff.jsonl: summary with acceptance criteria and status
-  indirect_backend:
-    Data model implications (what data UI needs) relayed via FE Lead
-    API contract suggestions (endpoints, response shapes) relayed via FE Lead
-  reports_to_owner:
-    UX Lead sends department_result at phase completion
+  to_fe: design-tokens.jsonl, component-specs.jsonl, user-flows.jsonl, design-handoff.jsonl
+  indirect_backend: Data model + API contract suggestions relayed via FE Lead
+  to_owner: UX Lead sends department_result at phase completion
   STRICT: UI/UX agents NEVER communicate with Backend agents directly. All backend context via FE relay.
   ref: references/cross-team-protocol.md
 

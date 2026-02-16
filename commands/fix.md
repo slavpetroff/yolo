@@ -15,23 +15,15 @@ Config: Pre-injected by SessionStart hook.
 
 ## Guard
 
-- Not initialized (no .yolo-planning/ dir): STOP "Run /yolo:init first."
-- No $ARGUMENTS: STOP "Usage: /yolo:fix \"description of what to fix\""
+- Guard: no .yolo-planning/ -> STOP "YOLO is not set up yet. Run /yolo:init to get started."
+- No $ARGUMENTS: STOP "Missing required input. Usage: /yolo:fix \"description of what to fix\""
 
 ## Steps
 
 1. **Parse:** Entire $ARGUMENTS (minus flags) = fix description.
 2. **Milestone:** If .yolo-planning/ACTIVE exists, use milestone-scoped STATE_PATH. Else .yolo-planning/STATE.md.
 3. **Spawn Lead:**
-- Resolve models:
-  ```bash
-  LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-  if [ $? -ne 0 ]; then echo "$LEAD_MODEL" >&2; exit 1; fi
-  DEV_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-  if [ $? -ne 0 ]; then echo "$DEV_MODEL" >&2; exit 1; fi
-  SENIOR_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh senior .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-  if [ $? -ne 0 ]; then echo "$SENIOR_MODEL" >&2; exit 1; fi
-  ```
+- Resolve models (lead, dev, senior) via `resolve-agent-model.sh` with config.json + model-profiles.json. Abort on failure.
 - Display: `◆ Spawning Lead (${LEAD_MODEL}) for fix triage...`
 - Spawn yolo-lead as subagent via Task tool. **Add `model: "${LEAD_MODEL}"` parameter.**
 ```
@@ -67,3 +59,7 @@ Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh debug` and display.
 - Senior -> Lead: Senior cannot resolve (scope unclear, multi-system impact). Lead decides: adjust scope or escalate.
 - Lead -> go.md: If fix scope exceeds quick-fix boundary (>3 files, needs architecture review, or risk is high), Lead reports back "scope too large" and recommends /yolo:go --execute.
 - No agent contacts user directly. go.md (Owner proxy) handles all user communication.
+
+## Output Format
+
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- single-line box, ✓/⚠ symbols, Next Up, no ANSI.

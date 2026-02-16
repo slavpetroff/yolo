@@ -15,7 +15,7 @@ Active milestone: `!`cat .yolo-planning/ACTIVE 2>/dev/null || echo "No active mi
 
 ## Guard
 
-1. **Not initialized** (no .yolo-planning/ dir): STOP "Run /yolo:init first."
+1. Guard: no .yolo-planning/ -> STOP "YOLO is not set up yet. Run /yolo:init to get started."
 2. **No roadmap:** ROADMAP.md missing → STOP: "No roadmap found. Run /yolo:go."
 
 ## Steps
@@ -28,4 +28,4 @@ Active milestone: `!`cat .yolo-planning/ACTIVE 2>/dev/null || echo "No active mi
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — double-line box, Metrics Block, ⚠ warnings, ✓ completions, ➜ Next Up, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- double-line box, ⚠/✓/➜ symbols, no ANSI.

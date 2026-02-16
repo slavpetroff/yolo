@@ -10,7 +10,7 @@ allowed-tools: Read, Glob
 
 ## Guard
 
-1. **Missing changelog:** `${CLAUDE_PLUGIN_ROOT}/CHANGELOG.md` missing → STOP: "No CHANGELOG.md found."
+1. **Missing changelog:** `${CLAUDE_PLUGIN_ROOT}/CHANGELOG.md` missing → STOP: "No CHANGELOG.md found in plugin root. This file is created during /yolo:release."
 
 ## Steps
 
@@ -22,4 +22,4 @@ allowed-tools: Read, Glob
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — double-line box, ✓ up-to-date, Next Up, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- double-line box, ✓ symbols, Next Up, no ANSI.

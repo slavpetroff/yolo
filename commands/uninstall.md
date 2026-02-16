@@ -29,19 +29,19 @@ If `CLAUDE_DIR/commands/yolo/` exists (where CLAUDE_DIR = `$CLAUDE_CONFIG_DIR` o
 
 ### Step 3: Clean statusLine
 
-Read `CLAUDE_DIR/settings.json`. If statusLine contains `yolo-statusline`: remove entire statusLine key, display ✓. If not YOLO's: "○ Statusline is not YOLO's — skipped".
+If statusLine contains `yolo-statusline`: remove key, ✓. Not YOLO's: "○ Skipped".
 
 ### Step 4: Clean Agent Teams env var
 
-If `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` exists: ask user (it's a Claude Code feature other tools may use). Approved: remove (if env then empty, remove env key). Declined: "○ Agent Teams setting kept".
+If Agent Teams exists: ask user (other tools may use). Approved: remove. Declined: "○ Kept".
 
 ### Step 5: Project data
 
-If `.yolo-planning/` exists: ask keep (recommended) or delete. Delete: `rm -rf .yolo-planning/`.
+If `.yolo-planning/` exists: ask keep (recommended) or `rm -rf`.
 
 ### Step 6: CLAUDE.md cleanup
 
-If CLAUDE.md exists: ask keep or delete.
+If exists: ask keep or delete.
 
 ### Step 7: Summary
 
@@ -55,4 +55,4 @@ Display Phase Banner "YOLO Cleanup Complete" with ✓/○ per step. Then:
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — Phase Banner (double-line box), ✓ completed, ○ skipped, Next Up, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- double-line box, ✓/○ symbols, Next Up, no ANSI.

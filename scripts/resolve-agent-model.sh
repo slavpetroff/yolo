@@ -41,33 +41,32 @@ if [ ! -f "$PROFILES_PATH" ]; then
   exit 1
 fi
 
-# Read model_profile from config.json (default to "balanced")
-PROFILE=$(jq -r '.model_profile // "balanced"' "$CONFIG_PATH")
+# Single jq call: read config + profiles, validate, resolve model with overrides
+MODEL=$(jq -r --arg agent "$AGENT" --slurpfile profiles "$PROFILES_PATH" '
+  (.model_profile // "balanced") as $profile |
+  if ($profiles[0] | has($profile) | not) then
+    "ERROR:invalid_profile:" + $profile
+  elif ($profiles[0][$profile] | has($agent) | not) then
+    "ERROR:unknown_agent:" + $agent + ":" + $profile
+  else
+    ($profiles[0][$profile][$agent]) as $base |
+    (.model_overrides[$agent] // "") as $override |
+    if ($override | length) > 0 then $override else $base end
+  end
+' "$CONFIG_PATH" 2>/dev/null)
 
-# Validate profile exists in model-profiles.json
-if ! jq -e --arg p "$PROFILE" '.[$p]' "$PROFILES_PATH" >/dev/null 2>&1; then
-  echo "Invalid model_profile '$PROFILE'. Valid: quality, balanced, budget" >&2
-  exit 1
-fi
-
-# Dynamic agent validation: check if agent exists in the profile
-# model-profiles.json is the single source of truth for valid agent names
-if ! jq -e --arg p "$PROFILE" --arg a "$AGENT" '.[$p] | has($a)' "$PROFILES_PATH" >/dev/null 2>&1; then
-  echo "Unknown agent '$AGENT' for profile '$PROFILE'. Check model-profiles.json for valid agents." >&2
-  exit 1
-fi
-
-# Get model from preset for the agent (--arg avoids jq interpreting hyphens as operators)
-MODEL=$(jq -r --arg p "$PROFILE" --arg a "$AGENT" '.[$p][$a]' "$PROFILES_PATH")
-
-# Check for per-agent override in config.json model_overrides
-OVERRIDE=$(jq -r --arg a "$AGENT" '.model_overrides[$a] // ""' "$CONFIG_PATH")
-if [ -n "$OVERRIDE" ]; then
-  MODEL="$OVERRIDE"
-fi
-
-# Validate final model value
+# Handle errors and validate final model value
 case "$MODEL" in
+  ERROR:invalid_profile:*)
+    PROFILE="${MODEL#ERROR:invalid_profile:}"
+    echo "Invalid model_profile '$PROFILE'. Valid: quality, balanced, budget" >&2
+    exit 1
+    ;;
+  ERROR:unknown_agent:*)
+    IFS=: read -r _ _ AGENT_ERR PROFILE_ERR <<< "$MODEL"
+    echo "Unknown agent '$AGENT_ERR' for profile '$PROFILE_ERR'. Check model-profiles.json for valid agents." >&2
+    exit 1
+    ;;
   opus|sonnet|haiku)
     echo "$MODEL"
     ;;

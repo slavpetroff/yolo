@@ -116,9 +116,11 @@ Every mode triggers confirmation via AskUserQuestion before executing, with cont
 
 ## Modes
 
+**Model resolution pattern** (used in Scope, Plan, Execute): `ROLE_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh {role} .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)`. Check $?; non-zero = abort with stderr.
+
 ### Mode: Init Redirect
 
-If `planning_dir_exists=false`: display "Run /yolo:init first to set up your project." STOP.
+If `planning_dir_exists=false`: STOP "YOLO is not set up yet. Run /yolo:init to get started."
 
 ### Mode: Bootstrap
 
@@ -143,26 +145,9 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
   bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-project.sh .yolo-planning/PROJECT.md "$NAME" "$DESCRIPTION"
   ```
 
-- **B1.5: Discovery Depth** -- Read `discovery_questions` and `active_profile` from config. Map profile to depth:
+- **B1.5: Discovery Depth** -- Read `discovery_questions` and `active_profile` from config. Map profile to depth: yolo=skip(0), prototype=quick(1-2), default=standard(3-5), production=thorough(5-8). If `discovery_questions=false`: force depth=skip. Store DISCOVERY_DEPTH for B2.
 
-  | Profile | Depth | Questions |
-  |---------|-------|-----------|
-  | yolo | skip | 0 |
-  | prototype | quick | 1-2 |
-  | default | standard | 3-5 |
-  | production | thorough | 5-8 |
-
-  If `discovery_questions=false`: force depth=skip. Store DISCOVERY_DEPTH for B2.
-
-- **B2: REQUIREMENTS.md (Discovery)** -- Behavior depends on DISCOVERY_DEPTH:
-  - **If skip:** Ask 2 minimal static questions via AskUserQuestion: (1) "What are the must-have features?" (2) "Who will use this?" Create `.yolo-planning/discovery.json` with `{"answered":[],"inferred":[]}`.
-  - **If quick/standard/thorough:** Read `${CLAUDE_PLUGIN_ROOT}/references/discovery-protocol.md`. Follow Bootstrap Discovery flow:
-    1. Analyze user's description for domain, scale, users, complexity signals
-    2. Round 1 -- Scenarios: Generate scenario questions per protocol. Present as AskUserQuestion with descriptive options. Count: quick=1, standard=2, thorough=3-4
-    3. Round 2 -- Checklists: Based on Round 1 answers, generate targeted pick-many questions with `multiSelect: true`. Count: quick=1, standard=1-2, thorough=2-3
-    4. Synthesize answers into `.yolo-planning/discovery.json` with `answered[]` and `inferred[]` (questions=friendly, requirements=precise)
-  - **Wording rules (all depths):** No jargon. Plain language. Concrete situations. Cause and effect. Assume user is not a developer.
-  - **After discovery (all depths):** Call:
+- **B2: REQUIREMENTS.md (Discovery)** -- If skip: 2 minimal AskUserQuestion (must-have features, target users). Create `discovery.json` with `{"answered":[],"inferred":[]}`. If quick/standard/thorough: follow `${CLAUDE_PLUGIN_ROOT}/references/discovery-protocol.md` Bootstrap Discovery (analyze description, scenario questions per depth count, then multiSelect checklists, synthesize to `discovery.json` with `answered[]` and `inferred[]`). Wording: no jargon, plain language, concrete situations, assume non-developer. After discovery:
 
     ```
     bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-requirements.sh .yolo-planning/REQUIREMENTS.md .yolo-planning/discovery.json
@@ -183,13 +168,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 
   Script handles today's date, Phase 1 status, empty decisions, and 0% progress.
 - **B5: Brownfield summary** -- If BROWNFIELD=true AND no codebase/: count files by ext, check tests/CI/Docker/monorepo, add Codebase Profile to STATE.md.
-- **B6: CLAUDE.md** -- Extract project name and core value from PROJECT.md. If root CLAUDE.md exists, pass it as EXISTING_PATH for section preservation. Call:
-
-  ```
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-claude.sh CLAUDE.md "$PROJECT_NAME" "$CORE_VALUE" [CLAUDE.md]
-  ```
-
-  Script handles: new file generation (heading + core value + YOLO sections), existing file preservation (replaces only YOLO-managed sections: Active Context, YOLO Rules, Key Decisions, Installed Skills, Project Conventions, Commands, Plugin Isolation; preserves all other content). Omit the fourth argument if no existing CLAUDE.md. Max 200 lines.
+- **B6: CLAUDE.md** -- Extract name + core value from PROJECT.md. Call `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-claude.sh CLAUDE.md "$PROJECT_NAME" "$CORE_VALUE" [CLAUDE.md]`. Pass existing CLAUDE.md as 4th arg for section preservation (script replaces only YOLO-managed sections). Omit 4th arg if no existing file. Max 200 lines.
 - **B7: Transition** -- Display "Bootstrap complete. Transitioning to scoping..." Re-evaluate state, route to next match.
 
 ### Mode: Scope
@@ -202,12 +181,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 
 1. Load context: PROJECT.md, REQUIREMENTS.md (or reqs.jsonl). If `.yolo-planning/codebase/` exists, note available mapping docs.
 2. If $ARGUMENTS (excl. flags) provided, use as scope description. Else ask: "What do you want to build?" Show uncovered requirements as suggestions.
-3. Resolve Architect model:
-
-   ```bash
-   ARCHITECT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   ```
-
+3. Resolve Architect model (see pattern above).
 4. Spawn yolo-architect as subagent via Task tool with:
    - model: "${ARCHITECT_MODEL}"
    - Mode: "scoping"
@@ -256,16 +230,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 4. **Turbo shortcut:** If effort=turbo, skip Lead. Read phase reqs from ROADMAP.md, create single lightweight plan.jsonl inline (header + tasks, no spec field).
 5. **Single-department planning (when `multi_dept=false` from resolve-departments.sh above):**
    - Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} lead {phases_dir}`
-   - Resolve Lead model:
-
-     ```bash
-     LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-     if [ $? -ne 0 ]; then
-       echo "$LEAD_MODEL" >&2
-       exit 1
-     fi
-     ```
-
+   - Resolve Lead model (see pattern above).
    - Spawn yolo-lead as subagent via Task tool with compiled context (or full file list as fallback).
    - **CRITICAL:** Add `model: "${LEAD_MODEL}"` parameter to the Task tool invocation.
    - Display `◆ Spawning Lead agent...` -> `✓ Lead agent complete`.
@@ -273,101 +238,34 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
    Read `${CLAUDE_PLUGIN_ROOT}/references/cross-team-protocol.md` for workflow order.
 
    a. **Owner Context Gathering + Context Splitting (FIRST — before any department leads spawn):**
-      **Replan gate:** Before running the questionnaire, check if department CONTEXT files already exist in the phase directory (glob: `{phase-dir}/{phase}-CONTEXT-*.md`). If ANY exist: AskUserQuestion "Existing department context files found from a previous planning run. What would you like to do?" Options: (1) "Reuse existing context (Recommended)" — skip questionnaire entirely, proceed to step 6b with existing files. Display: `✓ Reusing existing department context ({N} files)`. (2) "Gather fresh context" — delete all `{phase}-CONTEXT-*.md` files in the phase directory, then run the full questionnaire below. Display: `◆ Refreshing department context...`. If NO existing CONTEXT files found, proceed directly to the questionnaire.
+      **Replan gate:** Glob `{phase-dir}/{phase}-CONTEXT-*.md`. If ANY exist: AskUserQuestion "Existing department context found." Options: (1) "Reuse existing context (Recommended)" — skip to 6b. Display: `✓ Reusing existing department context ({N} files)`. (2) "Gather fresh context" — delete all, run questionnaire. Display: `◆ Refreshing department context...`
 
-      The Owner is the SOLE point of contact with the user. In multi-department mode, go.md acts as the Owner's proxy to gather ALL requirements before ANY department lead is spawned. NO other agent talks to the user — ONLY the Owner does.
-
-      **Questionnaire** — ask via AskUserQuestion in 2-3 adaptive rounds. Keep asking until ALL context is gathered and NO ambiguity remains:
-
-      **Round 1: Vision and scope** (always):
-      - "What are you building? Describe the end goal in 1-2 sentences."
-      - "Who will use this? (end users, admins, developers, etc.)"
-      - "What are the must-have features vs nice-to-haves?"
-
-      **Round 2: Department-specific** (adapt to active departments):
-      - If `ux_active=true`: "Any design preferences? (minimal, bold, playful, corporate) Target devices? Accessibility requirements?"
-      - If `fe_active=true`: "Frontend framework preference? (React, Vue, Svelte, vanilla) Any component library? SSR needed?"
-      - Backend (always): "Data storage needs? Auth method? External APIs or services to integrate?"
-
-      **Round 3: Gaps, features, and constraints** (if 2+ departments active):
-      - "How should frontend and backend communicate? (REST, GraphQL, WebSocket)"
-      - "Any hard constraints? (tech stack, hosting, budget, timeline)"
-      - Suggest features the user may not have considered based on their vision. Ask: "Would you also want X, Y, or Z?"
-      - Surface gaps: "You mentioned X but haven't specified Y — how should that work?"
-      - "Anything else the team should know?"
-
-      **Keep asking until satisfied.** If answers are vague, ask follow-ups. If there are contradictions, resolve them. The goal is ZERO ambiguity before any department starts.
-
-      **Context Splitting (MANDATORY — NO CONTEXT BLEED):**
-      After gathering ALL context, split into department-specific context files. Each file contains ONLY what that department needs:
-
-      - `{phase-dir}/{phase}-CONTEXT-backend.md` — Backend concerns ONLY: data models, API design, auth, infrastructure, external services, performance requirements. NO UI/UX details. NO frontend framework choices.
-      - `{phase-dir}/{phase}-CONTEXT-uiux.md` — UX concerns ONLY: design preferences, target users, accessibility needs, user flows, device targets, interaction patterns. NO backend implementation details. NO frontend framework choices.
-      - `{phase-dir}/{phase}-CONTEXT-frontend.md` — Frontend concerns ONLY: framework choice, component architecture, state management, routing, SSR needs, responsive requirements. NO backend implementation details. NO raw design decisions (those come via UX handoff artifacts later).
-
-      Each file structure: **Vision** (shared 1-2 line overview), **Department Requirements** (filtered to this dept only), **Constraints** (dept-relevant only), **Integration Points** (what this dept needs from others, stated abstractly without leaking other dept's implementation).
+      Run Owner questionnaire per `references/multi-dept-protocol.md` Step 0a (2-3 adaptive rounds: vision, dept-specific, gaps). Keep asking until ZERO ambiguity. Split into `{phase-dir}/{phase}-CONTEXT-{backend,uiux,frontend}.md` — each contains ONLY that department's concerns (see multi-dept-protocol.md Context Delegation). Each file: **Vision** (shared overview), **Department Requirements** (filtered), **Constraints** (dept-relevant), **Integration Points** (abstract, no leaking).
 
       Display: `◆ Owner gathering project context...` → (questions) → `✓ Context gathered — split into {N} department briefs`
 
-   b. **Resolve models for ALL active department Leads + Owner:**
-
-      ```bash
-      # Backend Lead (always)
-      LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-      # Frontend Lead (if fe_active=true)
-      FE_LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh fe-lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-      # UX Lead (if ux_active=true)
-      UX_LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh ux-lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-      # Owner (always for multi-dept)
-      OWNER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh owner .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-      ```
+   b. **Resolve models for ALL active department Leads + Owner** (resolve-agent-model.sh pattern for each: lead, fe-lead if fe_active, ux-lead if ux_active, owner).
 
    c. **Compile context per department Lead:**
-
-      ```bash
-      bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} lead {phases_dir}
-      # If fe_active=true:
-      bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} fe-lead {phases_dir}
-      # If ux_active=true:
-      bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} ux-lead {phases_dir}
-      ```
+      `compile-context.sh {phase} {role} {phases_dir}` for each active lead (lead, fe-lead, ux-lead).
 
    d. **Follow `leads_to_spawn` dispatch order from resolve-departments.sh:**
-      Parse `leads_to_spawn` — `|` separates waves, `,` separates parallel agents within a wave.
+      Parse `leads_to_spawn` — `|` separates waves, `,` separates parallel within a wave.
 
-      For each wave (separated by `|`):
-      - If wave contains `,` (parallel agents): spawn ALL agents in that wave in PARALLEL using multiple Task tool calls in a single message. Wait for all to complete.
-      - If wave is a single agent: spawn it and wait for completion.
+      Per wave: parallel agents spawn via multiple Task tool calls in one message; single agents spawn and wait.
 
-      **Context isolation per lead (STRICT — NO CONTEXT BLEED):**
-      Each lead receives ONLY their department's context file from step 6a. Do NOT pass other departments' context files or the master gathered notes:
+      **Context isolation (STRICT — NO CONTEXT BLEED):** Each lead receives ONLY its dept context file from 6a:
+      - `yolo-lead`: `{phase}-CONTEXT-backend.md` only
+      - `yolo-ux-lead`: `{phase}-CONTEXT-uiux.md` only
+      - `yolo-fe-lead`: `{phase}-CONTEXT-frontend.md` + UX handoff artifacts only
 
-      - `yolo-lead` (Backend): Pass `{phase}-CONTEXT-backend.md` — NEVER pass UX or FE context
-      - `yolo-ux-lead` (UX): Pass `{phase}-CONTEXT-uiux.md` — NEVER pass BE or FE context
-      - `yolo-fe-lead` (Frontend): Pass `{phase}-CONTEXT-frontend.md` + UX design handoff artifacts (after UX completes) — NEVER pass BE context
-
-      For each lead, spawn `yolo-{lead-name}` with:
-      - model: resolved model from step 6b
-      - Compiled context from step 6c
-      - Phase dir, ROADMAP.md, REQUIREMENTS.md
-      - Department-specific context file ONLY (from step 6a)
-      - **DO NOT pass the other departments' context files**
-
-      Each Lead then delegates down their chain: Lead→Architect→Senior→Dev. At each level, context narrows further (see `references/cross-team-protocol.md` Context Isolation Rules). Dev receives ONLY the enriched `spec` field — no architecture, no CONTEXT, no ROADMAP.
+      Each lead spawned with: resolved model (6b), compiled context (6c), phase dir, ROADMAP.md, REQUIREMENTS.md, dept context ONLY. Each Lead delegates Lead→Architect→Senior→Dev with narrowing context (see `references/cross-team-protocol.md` Context Isolation Rules).
 
       Display per lead: `◆ Spawning {Dept} Lead ({model})...` -> `✓ {Dept} Lead complete`
 
-      **Example dispatch for `leads_to_spawn=ux-lead|fe-lead,lead`:**
-      1. Spawn yolo-ux-lead with `{phase}-CONTEXT-uiux.md`. Wait.
-         `◆ Spawning UX Lead...` -> `✓ UX Lead complete`
-      2. Spawn yolo-fe-lead (with `{phase}-CONTEXT-frontend.md` + UX handoff) + yolo-lead (with `{phase}-CONTEXT-backend.md`) in PARALLEL. Wait for both.
-         `◆ Spawning Frontend Lead + Backend Lead...` -> `✓ All Leads complete`
-
    e. **Owner plan review (balanced/thorough effort only, when `owner_active=true`):**
-      - Spawn yolo-owner (model: "${OWNER_MODEL}") with `owner_review` mode.
-      - Provide: all department plan.jsonl files, reqs.jsonl, department config, CONTEXT.md.
-      - Owner reviews cross-department plan coherence and sets priorities.
-      - Display `◆ Spawning Owner for plan review...` -> `✓ Owner review complete`
+      Spawn yolo-owner (model from 6b) with `owner_review` mode + all dept plan.jsonl files + reqs.jsonl + dept config.
+      Display `◆ Spawning Owner for plan review...` -> `✓ Owner review complete`
 6. **Validate output:** Verify plan.jsonl files exist with valid JSONL (each line parses with jq). Check header has p, n, t, w, mh fields. Check wave deps acyclic.
 7. **Present:** Update STATE.md (phase position, plan count, status=Planned). Resolve model profile:
 
@@ -393,7 +291,7 @@ This mode delegates to protocol files. Before reading:
 
 1. **Parse arguments:** Phase number (auto-detect if omitted), --effort, --skip-qa, --skip-security, --plan=NN.
 2. **Run execute guards:**
-   - Not initialized: STOP "Run /yolo:init first."
+   - Not initialized: STOP "YOLO is not set up yet. Run /yolo:init to get started."
    - No `*.plan.jsonl` files in phase dir: STOP "Phase {N} has no plans. Run `/yolo:go --plan {N}` first."
    - All plans have `*.summary.jsonl`: cautious/standard -> WARN + confirm; confident/pure-yolo -> warn + auto-continue.
 3. **Compile context:** If `config_context_compiler=true`, compile context for each agent role as needed per the protocol steps. Include `.ctx-{role}.toon` paths in agent task descriptions.
@@ -404,30 +302,18 @@ This mode delegates to protocol files. Before reading:
   Read `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` and follow its 10-step company workflow (Critique → Architecture → Planning → Design Review → Test Authoring RED → Implementation → Code Review → QA → Security → Sign-off). See `references/company-hierarchy.md` for agent hierarchy.
 
 - **Multi-department (`multi_dept=true`):**
-  Read ALL THREE protocol files:
-  1. `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` — the per-department 10-step workflow structure
-  2. `${CLAUDE_PLUGIN_ROOT}/references/multi-dept-protocol.md` — department dispatch order, handoff gates, Owner review
-  3. `${CLAUDE_PLUGIN_ROOT}/references/cross-team-protocol.md` — communication rules, workflow modes, conflict resolution
+  Read `execute-protocol.md` + `multi-dept-protocol.md` + `cross-team-protocol.md`. Follow `multi-dept-protocol.md` dispatch flow. Each department runs its 10-step with dept-prefixed agents (fe-*, ux-*).
 
-  Follow `multi-dept-protocol.md` dispatch flow — each department runs its own 10-step using department-prefixed agents (fe-*, ux-*). Workflow order from `workflow` variable:
+  Workflow: Owner Context Gathering + Splitting (same reuse/refresh gate as Plan Mode 6a) → Owner Critique → UX 10-step (if ux_active) → Handoff Gate → FE+BE parallel 10-step → Integration QA → Security → Owner Sign-off.
 
-  **Owner Context Gathering + Splitting** (reuse/refresh gate: if `{phase}-CONTEXT-*.md` files exist, AskUserQuestion with options "Reuse existing context" or "Gather fresh context"; if no files exist, run full questionnaire) → **Owner Critique Review** → UX 10-step (if ux_active) → Handoff Gate → FE+BE parallel 10-step → Integration QA → Security → **Owner Sign-off**.
+  Context isolation: Lead gets dept CONTEXT + ROADMAP + REQUIREMENTS; Architect gets plan structure + dept CONTEXT; Senior gets architecture.toon + tasks; Dev gets enriched `spec` only. Escalation flows UP chain (Dev→Senior→Lead→Architect→Owner→User), never skipping levels.
 
-  The Owner is the SOLE point of contact with the user. If department context files are missing, run the Owner questionnaire + context splitting from Plan Mode step 6a. If files exist, apply the same reuse/refresh gate as Plan Mode step 6a (AskUserQuestion: reuse existing or gather fresh). No department lead or agent talks to the user — only the Owner does.
-
-  **Context isolation (STRICT):** Each department's 10-step execution receives ONLY its department context file. Within each department, context cascades DOWN the hierarchy with progressive scoping:
-  - Lead receives: department CONTEXT + ROADMAP + REQUIREMENTS
-  - Architect receives: Lead's plan structure + department CONTEXT (NOT other department contexts)
-  - Senior receives: architecture.toon + plan.jsonl tasks (NOT full CONTEXT, NOT critique.jsonl directly)
-  - Dev receives: Senior's enriched `spec` field ONLY (NOT architecture.toon, NOT CONTEXT files)
-  - On escalation: flows UP the chain (Dev→Senior→Lead→Architect→Owner→User). Owner clarifies with user, then pushes corrected context back down through the SAME chain — never skipping levels.
-
-  Resolve models for ALL active department agents via `resolve-agent-model.sh` with department-prefixed names (e.g., `fe-lead`, `ux-architect`, `owner`). Compile context per department via `compile-context.sh` with department-aware roles.
+  Resolve all dept agent models via `resolve-agent-model.sh` with dept-prefixed names. Compile context per dept via `compile-context.sh`.
 
 ### Mode: Add Phase
 
 **Guard:** Initialized. Requires phase name in $ARGUMENTS.
-Missing name: STOP "Usage: `/yolo:go --add <phase-name>`"
+Missing name: STOP "Missing required input. Usage: `/yolo:go --add <phase-name>`"
 
 **Steps:**
 
@@ -441,7 +327,7 @@ Missing name: STOP "Usage: `/yolo:go --add <phase-name>`"
 ### Mode: Insert Phase
 
 **Guard:** Initialized. Requires position + name.
-Missing args: STOP "Usage: `/yolo:go --insert <position> <phase-name>`"
+Missing args: STOP "Missing required input. Usage: `/yolo:go --insert <position> <phase-name>`"
 Invalid position (out of range 1 to max+1): STOP with valid range.
 Inserting before completed phase: WARN + confirm.
 
@@ -458,10 +344,10 @@ Inserting before completed phase: WARN + confirm.
 ### Mode: Remove Phase
 
 **Guard:** Initialized. Requires phase number.
-Missing number: STOP "Usage: `/yolo:go --remove <phase-number>`"
-Not found: STOP "Phase {N} not found."
-Has work (plan.jsonl or summary.jsonl): STOP "Phase {N} has artifacts. Remove plans first."
-Completed ([x] in roadmap): STOP "Cannot remove completed Phase {N}."
+Missing number: STOP "Missing required input. Usage: `/yolo:go --remove <phase-number>`"
+Not found: STOP "Phase {N} does not exist. Run /yolo:status to see available phases."
+Has work (plan.jsonl or summary.jsonl): STOP "Phase {N} has plan files. Delete plans from phase dir first."
+Completed ([x] in roadmap): STOP "Phase {N} is complete and cannot be removed."
 
 **Steps:**
 
@@ -477,7 +363,7 @@ Completed ([x] in roadmap): STOP "Cannot remove completed Phase {N}."
 
 **Guard:** Initialized, roadmap exists.
 No roadmap: STOP "No milestones configured. Run `/yolo:go` to bootstrap."
-No work (no `*.summary.jsonl` files): STOP "Nothing to ship."
+No work (no `*.summary.jsonl` files): STOP "No completed plans found to archive. Run /yolo:go to execute a plan first."
 
 **Pre-gate audit (unless --skip-audit or --force):**
 Run 6-point audit matrix:
@@ -508,19 +394,10 @@ After Execute mode completes (autonomy=pure-yolo only): if more unbuilt phases e
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon for all output.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- double-line box, semantic symbols, no ANSI.
 
-Per-mode output:
+Per-mode: Bootstrap/Scope show banner + STOP. Discuss/Assumptions show list + Next Up. Plan/Execute show Phase Banner + metrics + Next Up. Phase mutations show Phase Banner + checklist + Next Up. Archive shows Phase Banner + full metrics + archive details + Next Up.
 
-- **Bootstrap:** project-defined banner + transition to scoping
-- **Scope:** phases-created summary + STOP
-- **Discuss:** ✓ for captured answers, Next Up Block
-- **Assumptions:** numbered list, ✓ confirmed, ✗ corrected, ○ expanded, Next Up
-- **Plan:** Phase Banner (double-line box), plan list with waves/tasks, Effort, Next Up
-- **Execute:** Phase Banner, plan results (✓/✗), Metrics (plans, effort, deviations), QA result, "What happened" (NRW-02), Next Up
-- **Add/Insert/Remove Phase:** Phase Banner, ✓ checklist, Next Up
-- **Archive:** Phase Banner, Metrics (phases, tasks, commits, reqs, deviations), archive path, tag, branch, memory status, Next Up
-
-Rules: Phase Banner (double-line box), ◆ running, ✓ complete, ✗ failed, ○ skipped, Metrics Block, Next Up Block, no ANSI color codes.
+Symbols: Phase Banner (double-line box), ◆ running, ✓ complete, ✗ failed, ○ skipped. No ANSI color codes.
 
 Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh go {result}` for Next Up suggestions.

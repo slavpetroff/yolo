@@ -9,21 +9,18 @@ if ! command -v jq &>/dev/null; then
 fi
 
 INPUT=$(cat)
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""')
+COMMAND=$(jq -r '.tool_input.command // ""' <<< "$INPUT")
 
 # Only check git commit commands
-if ! echo "$COMMAND" | grep -q "git commit"; then
-  exit 0
-fi
+case "$COMMAND" in *git\ commit*) ;; *) exit 0 ;; esac
+
+# Heredoc-style commits can't be parsed from a single line — skip validation
+case "$COMMAND" in *cat\ \<\<*) exit 0 ;; esac
 
 # Extract commit message from -m flag (POSIX-compatible, no GNU-only flags)
-# Heredoc-style commits can't be parsed from a single line — skip validation
-if echo "$COMMAND" | grep -q 'cat <<'; then
-  exit 0
-fi
-MSG=$(echo "$COMMAND" | sed -n 's/.*-m[[:space:]]*"\([^"]*\)".*/\1/p')
-[ -z "$MSG" ] && MSG=$(echo "$COMMAND" | sed -n "s/.*-m[[:space:]]*'\\([^']*\\)'.*/\\1/p")
-[ -z "$MSG" ] && MSG=$(echo "$COMMAND" | sed -n 's/.*-m[[:space:]]*\([^[:space:]]*\).*/\1/p')
+MSG=$(sed -n 's/.*-m[[:space:]]*"\([^"]*\)".*/\1/p' <<< "$COMMAND")
+[ -z "$MSG" ] && MSG=$(sed -n "s/.*-m[[:space:]]*'\\([^']*\\)'.*/\\1/p" <<< "$COMMAND")
+[ -z "$MSG" ] && MSG=$(sed -n 's/.*-m[[:space:]]*\([^[:space:]]*\).*/\1/p' <<< "$COMMAND")
 
 if [ -z "$MSG" ]; then
   exit 0
@@ -31,7 +28,7 @@ fi
 
 # Validate format: {type}({scope}): {desc}
 VALID_TYPES="feat|fix|test|refactor|perf|docs|style|chore"
-if ! echo "$MSG" | grep -qE "^($VALID_TYPES)\(.+\): .+"; then
+if ! grep -qE "^($VALID_TYPES)\(.+\): .+" <<< "$MSG"; then
   jq -n --arg msg "$MSG" '{
     "hookSpecificOutput": {
       "additionalContext": ("Commit message does not match format {type}({scope}): {desc}. Got: " + $msg)
@@ -44,7 +41,7 @@ if [ -f ".claude-plugin/plugin.json" ] && [ -f "./scripts/bump-version.sh" ]; th
   PLUGIN_NAME=$(jq -r '.name // ""' .claude-plugin/plugin.json 2>/dev/null)
   if [ "$PLUGIN_NAME" = "yolo" ]; then
     VERIFY_OUTPUT=$(bash ./scripts/bump-version.sh --verify 2>&1) || {
-      DETAILS=$(echo "$VERIFY_OUTPUT" | grep -A 10 "MISMATCH")
+      DETAILS=$(grep -A 10 "MISMATCH" <<< "$VERIFY_OUTPUT")
       jq -n --arg details "$DETAILS" '{
         "hookSpecificOutput": {
           "additionalContext": ("Version files are out of sync. Run: bash scripts/bump-version.sh\n" + $details)

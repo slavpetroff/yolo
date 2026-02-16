@@ -17,7 +17,7 @@ Config:
 
 ## Guard
 
-If no .yolo-planning/ dir: STOP "Run /yolo:init first." (check `.yolo-planning/config.json`)
+Guard: no .yolo-planning/ -> STOP "YOLO is not set up yet. Run /yolo:init to get started."
 
 ## Built-in Profiles
 
@@ -38,23 +38,20 @@ If no .yolo-planning/ dir: STOP "Run /yolo:init first." (check `.yolo-planning/c
 
 ### `save`: Create custom profile
 
-**S1.** AskUserQuestion: "From current settings" (use current values) | "From scratch" (pick each)
-**S2.** If "From scratch", 3 AskUserQuestions:
-- Effort: thorough | balanced | fast | turbo
-- Autonomy: cautious | standard | confident | pure-yolo
-- Verification: quick | standard | deep | skip
-
-**S3.** AskUserQuestion for name: suggest 2-3 contextual names + user can type own.
-**S4.** Validate: no built-in clash, no spaces (suggest hyphens), 1-30 chars. Add to `custom_profiles` in config.json. Ask "Switch to {name} now?" Apply if yes.
+**S1.** AskUserQuestion: "From current settings" | "From scratch" (pick effort, autonomy, verification).
+**S2.** AskUserQuestion for name (suggest 2-3 contextual). Validate: no built-in clash, no spaces, 1-30 chars.
+**S3.** Add to `custom_profiles` in config.json. Ask "Switch to {name} now?" Apply if yes.
 
 ### Direct name: `profile <name>`
 
-If $ARGUMENTS matches a profile: apply immediately (no listing). If unknown: "⚠ Unknown profile: {name}" + list available.
+If $ARGUMENTS matches a profile: apply immediately (no listing). If unknown: "⚠ Profile \"{name}\" not found. Available: quality, balanced, budget. Run /yolo:profile to see all."
 
 ### `delete <name>`
 
-Built-in: "⚠ Cannot delete built-in profile." Not found: "⚠ Profile not found." Otherwise: remove from custom_profiles. If active, reset to "default".
+Built-in: "⚠ Cannot delete built-in profile." Not found: "⚠ Profile \"{name}\" not found. Available: quality, balanced, budget." Otherwise: remove from custom_profiles. If active, reset to "default".
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon — single-line box, ✓ success, ⚠ errors, ➜ transitions, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.toon -- single-line box, ✓/⚠/➜ symbols, Next Up, no ANSI.
+
+Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh profile` and display.

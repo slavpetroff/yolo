@@ -1,39 +1,35 @@
 #!/bin/bash
 set -u
-# PostToolUse/SubagentStop: Validate SUMMARY.md structure (non-blocking, exit 0)
+# PostToolUse/SubagentStop: Validate SUMMARY structure (non-blocking, exit 0)
 
 INPUT=$(cat)
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // .tool_input.command // ""')
+# Fast exit for non-summary files (check raw stdin for summary patterns)
+case "$INPUT" in
+  *.summary.jsonl*|*SUMMARY.md*) ;;
+  *) exit 0 ;;
+esac
 
-# Check both JSONL and legacy MD summary files in .yolo-planning/
-IS_JSONL=false
-IS_MD=false
-if echo "$FILE_PATH" | grep -qE '\.yolo-planning/.*\.summary\.jsonl$'; then
-  IS_JSONL=true
-elif echo "$FILE_PATH" | grep -qE '\.yolo-planning/.*SUMMARY\.md$'; then
-  IS_MD=true
-fi
+FILE_PATH=$(jq -r '.tool_input.file_path // .tool_input.command // ""' <<< "$INPUT")
 
-if [ "$IS_JSONL" != true ] && [ "$IS_MD" != true ]; then
-  exit 0
-fi
+IS_JSONL=false; IS_MD=false
+case "$FILE_PATH" in
+  *.yolo-planning/*.summary.jsonl) IS_JSONL=true ;;
+  *.yolo-planning/*SUMMARY.md) IS_MD=true ;;
+esac
 
+[ "$IS_JSONL" != true ] && [ "$IS_MD" != true ] && exit 0
 [ -f "$FILE_PATH" ] || exit 0
 
 MISSING=""
 
 if [ "$IS_JSONL" = true ]; then
-  # JSONL validation: check required fields
+  # JSONL validation: batch 3 field checks into single jq call
   if command -v jq >/dev/null 2>&1; then
-    if ! jq -e '.p' "$FILE_PATH" >/dev/null 2>&1; then
-      MISSING="Missing 'p' (phase) field. "
-    fi
-    if ! jq -e '.s' "$FILE_PATH" >/dev/null 2>&1; then
-      MISSING="${MISSING}Missing 's' (status) field. "
-    fi
-    if ! jq -e '.fm' "$FILE_PATH" >/dev/null 2>&1; then
-      MISSING="${MISSING}Missing 'fm' (files_modified) field. "
-    fi
+    MISSING=$(jq -r '[
+      (if has("p") then empty else "Missing '\''p'\'' (phase) field. " end),
+      (if has("s") then empty else "Missing '\''s'\'' (status) field. " end),
+      (if has("fm") then empty else "Missing '\''fm'\'' (files_modified) field. " end)
+    ] | join("")' "$FILE_PATH" 2>/dev/null)
   fi
 else
   # Legacy MD validation

@@ -12,11 +12,8 @@ if command -v jq &>/dev/null; then
 fi
 echo "jq_available=$JQ_AVAILABLE"
 
-# --- Planning directory ---
-if [ -d "$PLANNING_DIR" ]; then
-  echo "planning_dir_exists=true"
-else
-  echo "planning_dir_exists=false"
+# --- Helper: print all default values ---
+print_defaults() {
   echo "project_exists=false"
   echo "active_milestone=none"
   echo "phases_dir=none"
@@ -39,8 +36,16 @@ else
   echo "has_codebase_map=false"
   echo "brownfield=false"
   echo "execution_state=none"
+}
+
+# --- Planning directory ---
+# OPTIMIZATION 1: Early exit if planning dir missing
+if [ ! -d "$PLANNING_DIR" ]; then
+  echo "planning_dir_exists=false"
+  print_defaults
   exit 0
 fi
+echo "planning_dir_exists=true"
 
 # --- Project existence ---
 PROJECT_EXISTS=false
@@ -81,24 +86,29 @@ NEXT_PHASE_STATE="no_phases"
 NEXT_PHASE_PLANS=0
 NEXT_PHASE_SUMMARIES=0
 
+# OPTIMIZATION 1 (continued): Early exit if phases dir missing or empty
 if [ -d "$PHASES_DIR" ]; then
-  # Collect phase directories in sorted order (use while-read to handle spaces)
-  PHASE_DIRS_FILE=$(mktemp)
-  command ls -d "$PHASES_DIR"/*/ 2>/dev/null | sort > "$PHASE_DIRS_FILE"
-  PHASE_COUNT=$(wc -l < "$PHASE_DIRS_FILE" | tr -d ' ')
+  # OPTIMIZATION 6: Bash array instead of mktemp for phase listing
+  PHASE_DIRS=()
+  while IFS= read -r d; do
+    [ -n "$d" ] && PHASE_DIRS+=("$d")
+  done <<< "$(command ls -d "$PHASES_DIR"/*/ 2>/dev/null | sort)"
+  PHASE_COUNT=${#PHASE_DIRS[@]}
 
   if [ "$PHASE_COUNT" -eq 0 ]; then
     NEXT_PHASE_STATE="no_phases"
   else
     ALL_DONE=true
-    while IFS= read -r DIR; do
+    for DIR in "${PHASE_DIRS[@]}"; do
       DIRNAME=$(basename "$DIR")
-      # Extract numeric prefix (e.g., "01" from "01-context-diet")
-      NUM=$(echo "$DIRNAME" | sed 's/^\([0-9]*\).*/\1/')
+      # OPTIMIZATION 3: Parameter expansion instead of sed for phase number
+      NUM=${DIRNAME%%-*}
 
-      # Count plan and summary files (JSONL format or legacy PLAN.md)
-      P_COUNT=$(find "$DIR" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
-      S_COUNT=$(find "$DIR" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
+      # OPTIMIZATION 2: Bash glob counting instead of find+wc+tr
+      P_COUNT=0
+      for f in "$DIR"/*.plan.jsonl "$DIR"/*-PLAN.md; do [ -f "$f" ] && P_COUNT=$((P_COUNT+1)); done
+      S_COUNT=0
+      for f in "$DIR"/*.summary.jsonl "$DIR"/*-SUMMARY.md; do [ -f "$f" ] && S_COUNT=$((S_COUNT+1)); done
 
       if [ "$P_COUNT" -eq 0 ]; then
         # Needs plan and execute
@@ -124,13 +134,12 @@ if [ -d "$PHASES_DIR" ]; then
         break
       fi
       # This phase is complete, continue scanning
-    done < "$PHASE_DIRS_FILE"
+    done
 
     if [ "$ALL_DONE" = true ] && [ "$NEXT_PHASE" = "none" ]; then
       NEXT_PHASE_STATE="all_done"
     fi
   fi
-  rm -f "$PHASE_DIRS_FILE"
 fi
 
 echo "phase_count=$PHASE_COUNT"
@@ -199,38 +208,45 @@ if git ls-files --error-unmatch . 2>/dev/null | head -1 | grep -q .; then
 fi
 echo "brownfield=$BROWNFIELD"
 
-# --- State from state.json ---
+# --- State from state.json + execution state ---
+# OPTIMIZATION 5: Batch state+exec jq reads into single call when possible
 STATE_JSON="$PLANNING_DIR/state.json"
-if [ -f "$STATE_JSON" ] && [ "$JQ_AVAILABLE" = true ]; then
-  IFS='|' read -r _ph _tt _st _step _pr <<< \
-    "$(jq -r '[(.ph // ""), (.tt // ""), (.st // ""), (.step // ""), (.pr // 0 | tostring)] | join("|")' "$STATE_JSON" 2>/dev/null)"
-  echo "current_phase=$_ph"
-  echo "total_phases=$_tt"
-  echo "workflow_status=$_st"
-  echo "workflow_step=$_step"
-  echo "progress=$_pr"
+EXEC_STATE_FILE="$PLANNING_DIR/.execution-state.json"
+
+if [ "$JQ_AVAILABLE" = true ] && [ -f "$STATE_JSON" ]; then
+  if [ -f "$EXEC_STATE_FILE" ]; then
+    # Both files exist: read in single jq call using --slurpfile
+    IFS='|' read -r _ph _tt _st _step _pr _exec_st <<< \
+      "$(jq -r --slurpfile exec "$EXEC_STATE_FILE" \
+        '[(.ph // ""), (.tt // ""), (.st // ""), (.step // ""), (.pr // 0 | tostring), ($exec[0].status // "none")] | join("|")' "$STATE_JSON" 2>/dev/null)"
+  else
+    IFS='|' read -r _ph _tt _st _step _pr <<< \
+      "$(jq -r '[(.ph // ""), (.tt // ""), (.st // ""), (.step // ""), (.pr // 0 | tostring)] | join("|")' "$STATE_JSON" 2>/dev/null)"
+    _exec_st="none"
+  fi
+  echo "current_phase=${_ph:-}"
+  echo "total_phases=${_tt:-}"
+  echo "workflow_status=${_st:-}"
+  echo "workflow_step=${_step:-}"
+  echo "progress=${_pr:-0}"
+  echo "execution_state=${_exec_st:-none}"
 else
   echo "current_phase="
   echo "total_phases="
   echo "workflow_status="
   echo "workflow_step="
   echo "progress=0"
-fi
-
-# --- Execution state ---
-EXEC_STATE_FILE="$PLANNING_DIR/.execution-state.json"
-EXEC_STATE="none"
-if [ -f "$EXEC_STATE_FILE" ]; then
-  if [ "$JQ_AVAILABLE" = true ]; then
-    EXEC_STATE=$(jq -r '.status // "none"' "$EXEC_STATE_FILE" 2>/dev/null)
-  else
-    # Fallback: grep for status field
-    EXEC_STATE=$(grep -o '"status"[[:space:]]*:[[:space:]]*"[^"]*"' "$EXEC_STATE_FILE" 2>/dev/null | head -1 | sed 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-    if [ -z "$EXEC_STATE" ]; then
-      EXEC_STATE="none"
+  # Execution state fallback (no jq or no state.json)
+  EXEC_STATE="none"
+  if [ -f "$EXEC_STATE_FILE" ]; then
+    if [ "$JQ_AVAILABLE" = true ]; then
+      EXEC_STATE=$(jq -r '.status // "none"' "$EXEC_STATE_FILE" 2>/dev/null)
+    else
+      EXEC_STATE=$(grep -o '"status"[[:space:]]*:[[:space:]]*"[^"]*"' "$EXEC_STATE_FILE" 2>/dev/null | head -1 | sed 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+      [ -z "$EXEC_STATE" ] && EXEC_STATE="none"
     fi
   fi
+  echo "execution_state=$EXEC_STATE"
 fi
-echo "execution_state=$EXEC_STATE"
 
 exit 0

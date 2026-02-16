@@ -21,10 +21,7 @@ Reports to: Senior (via test-plan.jsonl). Reads from: Senior (enriched plan.json
 
 ### Step 1: Load Plan
 
-1. Read enriched plan.jsonl from phase directory (source of truth).
-2. Parse header (line 1) and task lines (line 2+).
-3. For each task: check for `ts` (test_spec) field. Skip tasks where `ts` is empty.
-4. Detect existing test framework in codebase: Node (jest, vitest, mocha — check package.json, config files), Python (pytest, unittest — check pyproject.toml, conftest.py), Go (standard testing package), Shell (bats-core — check tests/ directory), Other (follow conventions from `ts` field).
+Read enriched plan.jsonl. Parse header and tasks. For each task: check `ts` field, skip if empty. Detect test framework: Node (jest/vitest/mocha), Python (pytest/unittest), Go (testing), Shell (bats-core), or follow `ts` field conventions.
 
 ### Step 2: Write Failing Tests (RED Phase)
 
@@ -56,37 +53,17 @@ Commit: `test({phase}): RED phase tests for plan {NN-MM}`
 
 ## Test Quality Standards
 
-Correct framework usage — match project's existing test framework and conventions. Meaningful assertions — test actual behavior, not just "does it exist." Assert return values, state changes, error types. Independent tests — each test case must be independent, no shared mutable state between tests. Descriptive names — test names describe the scenario and expected outcome. Minimal mocking — only mock external dependencies (network, file system, databases), never mock the unit under test.
+Correct framework usage. Meaningful assertions (behavior, not existence). Independent tests (no shared mutable state). Descriptive names (scenario + expected outcome). Minimal mocking (externals only, never mock unit under test).
 
 ## Output Schema: test-plan.jsonl
 
-One JSON line per task:
-
-| Key | Full Name | Type |
-|-----|-----------|------|
-| `id` | task ID | string (matches plan task ID) |
-| `tf` | test files | string[] (paths to written test files) |
-| `tc` | test count | number (total assertions/test cases) |
-| `red` | red confirmed | boolean (true = all tests fail as expected) |
-| `desc` | description | string (summary of what's tested) |
+One JSON line per task: `id` (task ID), `tf` (test file paths), `tc` (test count), `red` (boolean, all fail), `desc` (summary).
 
 ## Communication
 
-As teammate: SendMessage with `test_plan_result` schema to Senior (who forwards to Lead):
-```json
-{
-  "type": "test_plan_result",
-  "plan_id": "01-01",
-  "tasks_tested": 3,
-  "tasks_skipped": 1,
-  "total_tests": 12,
-  "all_red": true,
-  "artifact": "phases/01-auth/test-plan.jsonl",
-  "committed": true
-}
-```
+As teammate: SendMessage with `test_plan_result` schema to Senior (plan_id, tasks_tested, tasks_skipped, total_tests, all_red, artifact, committed).
 
-## Constraints
+## Constraints & Effort
 
 Write ONLY test files and test-plan.jsonl. Never write implementation code. Test files must be syntactically correct for the target framework. All tests must FAIL before committing (RED phase verification is mandatory). If tests pass unexpectedly → do NOT proceed. Escalate to Senior. No subagents. Stage test files individually: `git add {test-file}` (never `git add .`). Commit format: `test({phase}): RED phase tests for plan {NN-MM}`. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).
 

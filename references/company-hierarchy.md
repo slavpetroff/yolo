@@ -37,74 +37,20 @@ Handoff: code-review.jsonl → Lead, verification.jsonl → Lead
 
 ## 10-Step Workflow
 
-Each phase follows this cadence:
+Each phase follows this cadence. Full protocol with entry/exit gates: see @references/execute-protocol.md.
 
-### Step 1: Critique / Brainstorm (Critic)
-- Input: reqs.jsonl + PROJECT.md + codebase/ + research.jsonl
-- Does: Challenges assumptions, identifies gaps, brainstorms improvements
-- Output: critique.jsonl (questions, gaps, risks, alternatives)
-- Commit: `docs({phase}): critique and gap analysis`
-- SKIP: turbo effort. FAST: critical findings only.
-
-### Step 2: Architecture (Architect)
-- Input: reqs.jsonl + codebase/ + research.jsonl + critique.jsonl
-- Does: R&D, evaluates approaches, tech decisions, addresses critique findings
-- Output: architecture.toon (per phase), updates ROADMAP.md, updates critique.jsonl `st` field
-- Commit: `docs({phase}): architecture design`
-
-### Step 3: Planning (Lead)
-- Input: architecture.toon + reqs.jsonl
-- Does: Feasibility check, risk assessment, plan decomposition
-- Output: {NN-MM}.plan.jsonl (high-level tasks, no specs yet)
-- Commit: `docs({phase}): plan {NN-MM}`
-
-### Step 4: Design Review (Senior)
-- Input: plan.jsonl + architecture.toon + critique.jsonl + codebase patterns
-- Does: Enriches each task with EXACT implementation specs AND test specs
-- Output: plan.jsonl tasks gain `spec` field (implementation) + `ts` field (test specification)
-- Commit: `docs({phase}): enrich plan {NN-MM} specs`
-- KEY: After this step, Dev needs ZERO creative decisions, Tester knows exactly what to test
-
-### Step 5: Test Authoring — RED Phase (Tester)
-- Input: enriched plan.jsonl (tasks with `ts` field)
-- Does: Writes failing test files per `ts` spec. Confirms ALL tests FAIL.
-- Output: test files + test-plan.jsonl
-- Commit: `test({phase}): RED phase tests for plan {NN-MM}`
-- SKIP: turbo effort, or no `ts` fields in plan.
-
-### Step 6: Implementation (Dev)
-- Input: enriched plan.jsonl + test files (RED targets)
-- Does: Verifies RED → implements per spec → verifies GREEN. No design calls.
-- Rules: Blocked → Senior (not Lead). Tests pass before implementing → STOP + escalate. 3 GREEN failures → escalate.
-- Output: code commits (one per task) + summary.jsonl (with `tst` field)
-- Commit: `{type}({phase}-{plan}): {task}` per task, `docs({phase}): summary {NN-MM}`
-
-### Step 7: Code Review (Senior)
-- Input: git diff of plan commits + plan.jsonl + test-plan.jsonl
-- Does: Reviews adherence to spec, quality, patterns, TDD compliance
-- Output: code-review.jsonl (approve | request_changes, with `tdd` field)
-- If changes needed → Dev re-implements per feedback. Max 2 cycles → escalate to Lead.
-- Commit: `docs({phase}): code review {NN-MM}`
-
-### Step 8: QA (QA Lead + QA Code)
-- QA Lead: Plan verification — must_haves, criteria, requirement traceability
-- QA Code: TDD compliance (Phase 0) + tests, lint, coverage, regression, patterns
-- Output: verification.jsonl (plan-level) + qa-code.jsonl (code-level, with `tdd` coverage)
-- PASS → Step 9. PARTIAL → gaps.jsonl → Dev fixes → re-verify (max 2). FAIL → remediation plan → Senior re-specs. 2x FAIL → Architect re-evaluates design.
-- Commit: `docs({phase}): verification results`
-
-### Step 9: Security Audit (Security, optional via config)
-- Input: all phase commits + dependency manifest
-- Does: OWASP top 10, secrets scan, dependency vulnerabilities
-- Output: security-audit.jsonl
-- FAIL → hard STOP (user --force to override)
-- Commit: `docs({phase}): security audit`
-
-### Step 10: Sign-off (Lead)
-- Reviews: All artifacts — critique, code-review, verification, qa-code, security, summary
-- Decision: SHIP (next phase) or HOLD (remediation instructions)
-- Updates: ROADMAP.md (user-facing) + state.json (machine-readable)
-- Commit: `chore(state): phase {N} complete`
+| Step | Agent | Input | Output | Commit | Skip |
+|------|-------|-------|--------|--------|------|
+| 1 | Critic | reqs + PROJECT + codebase | critique.jsonl | `docs({phase}): critique and gap analysis` | turbo, exists |
+| 2 | Architect | reqs + codebase + critique | architecture.toon | `docs({phase}): architecture design` | exists |
+| 3 | Lead | architecture.toon + reqs | plan.jsonl | `docs({phase}): plan {NN-MM}` | -- |
+| 4 | Senior | plan + architecture + codebase | enriched plan (spec+ts) | `docs({phase}): enrich plan {NN-MM} specs` | -- |
+| 5 | Tester | enriched plan (ts fields) | test files + test-plan.jsonl | `test({phase}): RED phase tests` | turbo, no ts |
+| 6 | Dev | enriched plan + test files | code + summary.jsonl | `{type}({phase}-{plan}): {task}` | -- |
+| 7 | Senior | git diff + plan + tests | code-review.jsonl | `docs({phase}): code review {NN-MM}` | -- |
+| 8 | QA Lead + Code | plan + summary + artifacts | verification + qa-code.jsonl | `docs({phase}): verification results` | --skip-qa, turbo |
+| 9 | Security | commits + deps | security-audit.jsonl | `docs({phase}): security audit` | --skip-security |
+| 10 | Lead | all artifacts | state.json + ROADMAP.md | `chore(state): phase {N} complete` | -- |
 
 ## Escalation Chain (STRICT — NO LEVEL SKIPPING)
 
