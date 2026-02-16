@@ -24,18 +24,14 @@ Active milestone: `!`cat .vbw-planning/ACTIVE 2>/dev/null || echo "No active mil
 2. **Read todos:** Read the resolved STATE.md. Find the `### Pending Todos` subsection and extract all lines under it (stop at the next `##` or `###` heading or end of file). If `### Pending Todos` does not exist, fall back to `## Todos` and extract lines directly under it (same stop rules). If the section contains only "None." or is empty (or neither heading exists), display:
    ```
    No pending todos.
-
-   ➜ Next Up: /vbw:todo <description> to add one
    ```
-   Exit.
+   Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh list-todos empty` and display. Exit.
 
 3. **Parse and filter:** Each todo line starts with `- `. Extract: text, priority tag (`[HIGH]`, `[low]`, or plain for normal), and date from `(added YYYY-MM-DD)`. If arguments contain a priority filter (e.g., `/vbw:list-todos high`), match case-insensitively and show only matching priority items. If filtering yields zero results, display:
    ```
    No {priority}-priority todos found.
-
-   ➜ Next Up: /vbw:list-todos to see all
    ```
-   Exit.
+   Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh list-todos empty` and display. Exit.
 
 4. **Display list:** Show numbered list with priority and age:
    ```
@@ -63,7 +59,7 @@ Active milestone: `!`cat .vbw-planning/ACTIVE 2>/dev/null || echo "No active mil
 
 8. **Execute action:** Remove/edit within whichever section the todo was found in (i.e., `### Pending Todos` or the `## Todos` fallback from Step 2).
    - **Work on it now:** Remove the todo line from the todos section in STATE.md. If no todos remain, replace with "None." Confirm: "✓ Removed todo — ready to work." Then present the todo context and ask how to proceed.
-   - **Remove it:** Remove the todo line from the todos section in STATE.md. If no todos remain, replace with "None." Confirm: "✓ Todo removed."
+   - **Remove it:** Remove the todo line from the todos section in STATE.md. If no todos remain, replace with "None." Confirm: "✓ Todo removed." Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh list-todos` and display.
    - **Go back:** Return to step 4.
 
 ## Output Format
