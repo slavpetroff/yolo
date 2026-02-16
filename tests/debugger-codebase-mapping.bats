@@ -133,3 +133,116 @@ STATE
   run grep "Codebase Map" ".vbw-planning/phases/01-test/.context-debugger.md"
   [ "$status" -eq 1 ]
 }
+
+# =============================================================================
+# QA finding: guidance text adapts to available files
+# =============================================================================
+
+@test "compile-context.sh debugger guidance mentions only files that exist" {
+  setup_debugger_context
+  cd "$TEST_TEMP_DIR"
+
+  # Only META.md + ARCHITECTURE.md (no CONCERNS.md)
+  mkdir -p .vbw-planning/codebase
+  echo "# Meta" > .vbw-planning/codebase/META.md
+  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
+
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".vbw-planning/phases"
+  [ "$status" -eq 0 ]
+  # Should mention ARCHITECTURE.md in guidance
+  grep -q "Read ARCHITECTURE.md first" ".vbw-planning/phases/01-test/.context-debugger.md"
+  # Should NOT mention CONCERNS.md in guidance
+  run grep "CONCERNS.md first" ".vbw-planning/phases/01-test/.context-debugger.md"
+  [ "$status" -eq 1 ]
+}
+
+@test "compile-context.sh debugger guidance mentions both when both exist" {
+  setup_debugger_context
+  cd "$TEST_TEMP_DIR"
+
+  mkdir -p .vbw-planning/codebase
+  echo "# Meta" > .vbw-planning/codebase/META.md
+  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
+  echo "# Concerns" > .vbw-planning/codebase/CONCERNS.md
+
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".vbw-planning/phases"
+  [ "$status" -eq 0 ]
+  grep -q "ARCHITECTURE.md and CONCERNS.md" ".vbw-planning/phases/01-test/.context-debugger.md"
+}
+
+@test "compile-context.sh debugger omits map section when META.md exists but no key files" {
+  setup_debugger_context
+  cd "$TEST_TEMP_DIR"
+
+  # Only META.md, none of the 5 key files
+  mkdir -p .vbw-planning/codebase
+  echo "# Meta" > .vbw-planning/codebase/META.md
+
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".vbw-planning/phases"
+  [ "$status" -eq 0 ]
+  # Should NOT show Codebase Map section when no key files exist
+  run grep "Codebase Map" ".vbw-planning/phases/01-test/.context-debugger.md"
+  [ "$status" -eq 1 ]
+}
+
+# =============================================================================
+# QA finding: cache invalidation when codebase mapping changes
+# =============================================================================
+
+@test "cache-context.sh debugger hash changes when codebase mapping files change" {
+  cd "$TEST_TEMP_DIR"
+
+  # Set up mapping files
+  mkdir -p .vbw-planning/codebase
+  echo "# Meta" > .vbw-planning/codebase/META.md
+  echo "# Architecture v1" > .vbw-planning/codebase/ARCHITECTURE.md
+  echo "# Concerns v1" > .vbw-planning/codebase/CONCERNS.md
+
+  run bash "$SCRIPTS_DIR/cache-context.sh" 01 debugger "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  HASH1=$(echo "$output" | cut -d' ' -f2)
+
+  # Remove a mapping file
+  rm .vbw-planning/codebase/CONCERNS.md
+
+  run bash "$SCRIPTS_DIR/cache-context.sh" 01 debugger "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  HASH2=$(echo "$output" | cut -d' ' -f2)
+
+  [ "$HASH1" != "$HASH2" ]
+}
+
+@test "cache-context.sh non-debugger hash unaffected by codebase mapping" {
+  cd "$TEST_TEMP_DIR"
+
+  mkdir -p .vbw-planning/codebase
+  echo "# Meta" > .vbw-planning/codebase/META.md
+  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
+
+  run bash "$SCRIPTS_DIR/cache-context.sh" 01 dev "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  HASH1=$(echo "$output" | cut -d' ' -f2)
+
+  # Remove mapping file
+  rm .vbw-planning/codebase/ARCHITECTURE.md
+
+  run bash "$SCRIPTS_DIR/cache-context.sh" 01 dev "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  HASH2=$(echo "$output" | cut -d' ' -f2)
+
+  # Dev hash should be unchanged — codebase mapping only affects debugger
+  [ "$HASH1" = "$HASH2" ]
+}
+
+@test "compile-context.sh other roles omit codebase mapping even when present" {
+  setup_debugger_context
+  cd "$TEST_TEMP_DIR"
+
+  mkdir -p .vbw-planning/codebase
+  echo "# Meta" > .vbw-planning/codebase/META.md
+  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
+  echo "# Concerns" > .vbw-planning/codebase/CONCERNS.md
+
+  for role in lead dev qa scout architect; do
+    run bash "$SCRIPTS_DIR/compile-context.sh" "01" "$role" ".vbw-planning/phases"
+    [ "$status" -eq 0 ]
+    run grep "Codebase Map" ".vbw-planning/phases/01-test/.context-${role}.md"
+    [ "$status" -eq 1 ]
+  done
+}

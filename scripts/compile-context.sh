@@ -368,16 +368,30 @@ case "$ROLE" in
       fi
       # --- Codebase mapping hint (issue #75) ---
       if [ -f "$PLANNING_DIR/codebase/META.md" ]; then
-        echo ""
-        echo "### Codebase Map Available"
-        echo "Codebase mapping exists in \`.vbw-planning/codebase/\`. Key files:"
+        MAP_FILES=""
         for doc in ARCHITECTURE CONCERNS STRUCTURE CONVENTIONS PATTERNS; do
           if [ -f "$PLANNING_DIR/codebase/${doc}.md" ]; then
-            echo "- \`${doc}.md\`"
+            MAP_FILES="${MAP_FILES} ${doc}"
           fi
         done
-        echo ""
-        echo "Read ARCHITECTURE.md and CONCERNS.md first to bootstrap codebase understanding before investigating."
+        if [ -n "$MAP_FILES" ]; then
+          echo ""
+          echo "### Codebase Map Available"
+          echo "Codebase mapping exists in \`.vbw-planning/codebase/\`. Key files:"
+          for doc in $MAP_FILES; do
+            echo "- \`${doc}.md\`"
+          done
+          echo ""
+          # Build guidance based on which priority files exist
+          GUIDANCE_FILES=""
+          [ -f "$PLANNING_DIR/codebase/ARCHITECTURE.md" ] && GUIDANCE_FILES="ARCHITECTURE.md"
+          if [ -f "$PLANNING_DIR/codebase/CONCERNS.md" ]; then
+            [ -n "$GUIDANCE_FILES" ] && GUIDANCE_FILES="${GUIDANCE_FILES} and CONCERNS.md" || GUIDANCE_FILES="CONCERNS.md"
+          fi
+          if [ -n "$GUIDANCE_FILES" ]; then
+            echo "Read ${GUIDANCE_FILES} first to bootstrap codebase understanding before investigating."
+          fi
+        fi
       fi
       # --- V3: Include RESEARCH.md if present ---
       RESEARCH_FILE=$(find "$PHASE_DIR" -maxdepth 1 -name "*-RESEARCH.md" -print -quit 2>/dev/null || true)
