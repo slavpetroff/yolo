@@ -2,6 +2,8 @@
 
 Cross-department workflow, communication rules, handoff gates, and conflict resolution. Read by all Leads and Owner.
 
+**Spawn mode awareness:** This protocol has two transport modes controlled by `team_mode` from resolve-team-mode.sh. When `team_mode=task` (default): all cross-department coordination uses file-based artifacts and sentinel polling as documented below. When `team_mode=teammate`: intra-department communication shifts to SendMessage (within a team), but cross-department communication REMAINS file-based because Leads are in separate Teammate API teams. SendMessage does not cross team boundaries.
+
 ## Department Execution Order
 
 ```
@@ -69,6 +71,17 @@ Phase Start
 3. **Backend-UI/UX isolation is absolute.** Backend agents cannot read UI/UX artifacts directly. Frontend relays relevant information.
 4. **Owner communicates only with Leads.** Strategic decisions, not technical details.
 
+### Team Mode Transport Differences
+
+| Communication Path | team_mode=task | team_mode=teammate |
+|---|---|---|
+| Within department (Dev->Senior, Senior->Lead) | Task tool result return | SendMessage within team |
+| Cross department (Lead->Lead) | File-based artifacts (api-contracts.jsonl, design-handoff.jsonl) | File-based artifacts (UNCHANGED -- different teams) |
+| Lead->Owner | File-based (.dept-status-{dept}.json) | File-based (UNCHANGED -- Owner is not in any department team) |
+| Owner->User | go.md proxy (AskUserQuestion) | go.md proxy (UNCHANGED) |
+
+**Key insight:** Cross-team communication is ALWAYS file-based regardless of team_mode. The Teammate API SendMessage only works within a single team. Since each department is its own team, inter-department coordination cannot use SendMessage. This is by design -- it enforces the same strict context isolation that file-based gates provide.
+
 ## Context Isolation Rules (STRICT — NO CONTEXT BLEED)
 
 See @references/company-hierarchy.md ## Context Isolation for full rules and per-agent scoping.
@@ -104,6 +117,8 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/dept-gate.sh \
 
 **Timeout:** 30 minutes (configurable). On timeout: `dept-cleanup.sh --phase-dir {phase-dir} --reason timeout`. UX Lead must resolve.
 
+**Teammate mode:** When `team_mode=teammate`, the UX Lead signals completion via file-based handoff artifacts (same as task mode). The handoff sentinel (.handoff-ux-complete) and artifact validation (design-handoff.jsonl, design-tokens.jsonl, component-specs.jsonl) are identical. The only difference is that WITHIN the UX department, agents communicated via SendMessage instead of Task tool. The handoff gate itself is transport-agnostic.
+
 ### Gate 2: Frontend ↔ Backend API Contract
 
 **Trigger:** Either Frontend or Backend needs API integration.
@@ -138,6 +153,8 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/dept-gate.sh \
   - Backend validates data shapes Frontend sends
 
 **Timeout:** 60 minutes (configurable). On timeout: display per-department status report from .dept-status-{dept}.json files.
+
+**Teammate mode:** When `team_mode=teammate`, each department Lead signals completion by writing .dept-status-{dept}.json (same as task mode). The integration gate check via dept-gate.sh is identical. Within each department, agents used SendMessage for coordination, but the cross-department gate is file-based. dept-gate.sh does not need modification for teammate mode.
 
 ### Gate 4: Owner Sign-off
 
