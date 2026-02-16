@@ -3,7 +3,7 @@
   "phase_name": "agent-teams-integration",
   "status": "running",
   "started_at": "2026-02-16T10:30:00Z",
-  "step": "planning",
+  "step": "design_review",
   "wave": 1,
   "total_waves": 2,
   "plans": [
