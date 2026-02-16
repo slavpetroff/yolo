@@ -1,0 +1,11 @@
+phase: 02
+goal: Replace Task-only spawning with Teammate API for multi-dept mode — one team per department with parallel execution
+
+
+codebase:
+  @.yolo-planning/codebase/INDEX.md
+  @.yolo-planning/codebase/ARCHITECTURE.md
+  @.yolo-planning/codebase/PATTERNS.md
+  @.yolo-planning/codebase/CONCERNS.md
+
+success_criteria: Not available

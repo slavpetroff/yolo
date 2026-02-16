@@ -1,0 +1,35 @@
+{"tier":"standard","r":"PARTIAL","ps":31,"fl":2,"tt":33,"dt":"2026-02-16"}
+{"c":"All 4 plans have summary.jsonl files","r":"pass","ev":"01-01.summary.jsonl, 01-02.summary.jsonl, 01-03.summary.jsonl, 01-04.summary.jsonl all present","cat":"artifact_completeness"}
+{"c":"REQ-01 coverage: Dynamic department conventions implemented","r":"pass","ev":"01-02 and 01-03 both declare mh:[REQ-01]. Templates + compile-context integration complete.","cat":"requirement_traceability"}
+{"c":"REQ-02 coverage: Project type classification with extensible config","r":"pass","ev":"01-01 declares mh:[REQ-02]. config/project-types.json has 7 types, detect-stack.sh outputs project_type field.","cat":"requirement_traceability"}
+{"c":"REQ-07 coverage: UX department adapts to project interface type","r":"pass","ev":"01-02 and 01-04 declare mh:[REQ-07]. uiux.toon templates render different focus_areas per type (web UI, CLI, API, library, mobile).","cat":"requirement_traceability"}
+{"c":"All 63 new tests pass","r":"pass","ev":"bats tests/unit/detect-stack-classify.bats tests/unit/generate-department-toons.bats tests/unit/compile-context-dept.bats tests/integration/persona-pipeline.bats: 63/63 ok","cat":"test_coverage"}
+{"c":"Test count breakdown correct","r":"pass","ev":"detect-stack-classify: 15, generate-department-toons: 14, compile-context-dept: 11, persona-pipeline: 23. Total 63.","cat":"test_coverage"}
+{"c":"Backward compatibility: existing tests mostly pass","r":"partial","ev":"tests/unit/detect-stack.bats: 10/10 ok. tests/unit/compile-context.bats: 58/59 ok (1 pre-existing test failure unrelated to phase 1 changes).","cat":"backward_compatibility"}
+{"c":"compile-context.bats test 50 failure investigation","r":"fail","ev":"Test 'exits 1 when phase directory not found' expects error message on stdout but script outputs to stderr (>&2). Script behavior correct (exits 1), test issue is pre-existing (not caused by phase 1 changes).","cat":"backward_compatibility"}
+{"c":"Pipeline E2E: web-app detect -> classify","r":"pass","ev":"mkdir web-app fixture, detect-stack.sh outputs project_type: web-app","cat":"e2e_validation"}
+{"c":"Pipeline E2E: web-app generate -> backend.toon","r":"pass","ev":"backend.toon contains 'language: TypeScript/JavaScript'","cat":"e2e_validation"}
+{"c":"Pipeline E2E: web-app generate -> uiux.toon","r":"pass","ev":"uiux.toon contains 'design tokens' in focus_areas","cat":"e2e_validation"}
+{"c":"Pipeline E2E: cli-tool detect -> classify","r":"pass","ev":"mkdir cli-tool fixture with bin/ and scripts/, detect-stack.sh outputs project_type: cli-tool","cat":"e2e_validation"}
+{"c":"Pipeline E2E: cli-tool generate -> backend.toon","r":"pass","ev":"backend.toon contains 'language: Bash/Rust/Go/Node (per detection)'","cat":"e2e_validation"}
+{"c":"Pipeline E2E: cli-tool generate -> uiux.toon","r":"pass","ev":"uiux.toon contains 'help text quality', 'error output formatting', 'man page conventions' in focus_areas","cat":"e2e_validation"}
+{"c":"Refresh mechanism: first run creates .stack-hash","r":"pass","ev":"generate-department-toons.sh creates .stack-hash file in .yolo-planning/departments/","cat":"refresh_mechanism"}
+{"c":"Refresh mechanism: second run skips regeneration","r":"pass","ev":"Running generate-department-toons.sh twice outputs 'TOONs up to date' on second run","cat":"refresh_mechanism"}
+{"c":"Refresh mechanism: --force flag regenerates","r":"pass","ev":"generate-department-toons.sh --force outputs 'Force regeneration requested' and regenerates","cat":"refresh_mechanism"}
+{"c":"Refresh mechanism: change detection","r":"pass","ev":"Tests validate hash change triggers regeneration. Manual test shows hash stability when project structure unchanged (expected behavior).","cat":"refresh_mechanism"}
+{"c":"YOLO self-detection: classifies as cli-tool","r":"pass","ev":"Test 57 'self-test: YOLO-like project detects as cli-tool' passes. YOLO-like fixture (scripts/, agents/, config/, no package.json) correctly classified.","cat":"self_test"}
+{"c":"YOLO self-detection: backend.toon has Bash","r":"pass","ev":"Test 58 passes. backend.toon contains 'Bash' in language field.","cat":"self_test"}
+{"c":"YOLO self-detection: backend.toon has BATS testing","r":"pass","ev":"Test 59 passes. backend.toon contains 'BATS' in testing field.","cat":"self_test"}
+{"c":"YOLO self-detection: uiux.toon has CLI UX focus","r":"pass","ev":"Test 60 passes. uiux.toon contains 'help text' in focus_areas.","cat":"self_test"}
+{"c":"YOLO self-detection: uiux.toon has error output formatting","r":"pass","ev":"Test 61 passes. uiux.toon contains 'error output formatting' in focus_areas.","cat":"self_test"}
+{"c":"YOLO self-detection: no TypeScript references","r":"pass","ev":"Test 62 passes. backend.toon does not contain 'TypeScript'.","cat":"self_test"}
+{"c":"YOLO self-detection: no React references","r":"pass","ev":"Test 63 passes. backend.toon does not contain 'React'.","cat":"self_test"}
+{"c":"No raw placeholder markers in generated output","r":"pass","ev":"Tests 25-27 validate no {{ markers remain. Manual verification of /tmp/webapp999 and /tmp/clitest999 generated TOONs shows clean output.","cat":"code_quality"}
+{"c":"config/project-types.json exists and valid","r":"pass","ev":"Test 1 passes. File exists, parseable by jq.","cat":"artifact_completeness"}
+{"c":"config/project-types.json has 7 types","r":"pass","ev":"Test 2 passes. jq '.types | length' returns 7.","cat":"artifact_completeness"}
+{"c":"Each type has required fields","r":"pass","ev":"Test 3 passes. All types have id, name, priority, detect, department_conventions, ux_focus.","cat":"artifact_completeness"}
+{"c":"Templates exist in config/department-templates/","r":"pass","ev":"Tests verify backend.toon.tmpl, frontend.toon.tmpl, uiux.toon.tmpl exist and render correctly.","cat":"artifact_completeness"}
+{"c":"scripts/generate-department-toons.sh exists and executable","r":"pass","ev":"Script runs successfully in all E2E tests and test suite.","cat":"artifact_completeness"}
+{"c":"Commits follow convention","r":"pass","ev":"All commits follow {type}({scope}): {desc} format: feat(phase-1), docs(phase-1), feat(01-01), etc.","cat":"convention_adherence"}
+{"c":"One commit per task","r":"pass","ev":"01-01: 3 commits for 3 tasks. 01-02: 4 commits for 4 tasks. 01-03: 3 commits for 3 tasks. 01-04: 3 commits for 3 tasks.","cat":"convention_adherence"}
+{"c":"Department context injection for dev/senior/tester/qa-code only","r":"pass","ev":"Tests 30-34 pass (injection for dev, senior, tester, qa-code). Tests 35, 40, 52 pass (no injection for architect, lead).","cat":"context_delegation"}
