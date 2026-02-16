@@ -124,56 +124,54 @@ case "$STEP" in
 
   test_authoring)
     # Entry: enriched plan.jsonl with spec fields
-    local_plans=$(ls "$PHASE_DIR"/*.plan.jsonl 2>/dev/null) || true
-    if [ -z "$local_plans" ]; then
+    _gate_plans=$(ls "$PHASE_DIR"/*.plan.jsonl 2>/dev/null) || true
+    if [ -z "$_gate_plans" ]; then
       MISSING+=("*.plan.jsonl")
       GATE_RESULT="fail"
     else
       while IFS= read -r plan_file; do
         [ -z "$plan_file" ] && continue
         # Check that tasks have spec fields
-        local has_missing_spec=false
+        _has_missing_spec=false
         while IFS= read -r task_line; do
           [ -z "$task_line" ] && continue
-          local spec_check
-          spec_check=$(echo "$task_line" | jq -e '.spec // empty' 2>/dev/null) || true
-          if [ -z "$spec_check" ]; then
-            has_missing_spec=true
+          _spec_check=$(echo "$task_line" | jq -e '.spec // empty' 2>/dev/null) || true
+          if [ -z "$_spec_check" ]; then
+            _has_missing_spec=true
             break
           fi
         done < <(tail -n +2 "$plan_file")
-        if [ "$has_missing_spec" = "true" ]; then
+        if [ "$_has_missing_spec" = "true" ]; then
           MISSING+=("$(basename "$plan_file"): tasks missing spec field")
           GATE_RESULT="fail"
         fi
-      done <<< "$local_plans"
+      done <<< "$_gate_plans"
     fi
     ;;
 
   implementation)
     # Entry: enriched plan.jsonl + test-plan.jsonl (if step 5 ran)
-    local_plans=$(ls "$PHASE_DIR"/*.plan.jsonl 2>/dev/null) || true
-    if [ -z "$local_plans" ]; then
+    _gate_plans=$(ls "$PHASE_DIR"/*.plan.jsonl 2>/dev/null) || true
+    if [ -z "$_gate_plans" ]; then
       MISSING+=("*.plan.jsonl")
       GATE_RESULT="fail"
     else
       while IFS= read -r plan_file; do
         [ -z "$plan_file" ] && continue
-        local has_missing_spec=false
+        _has_missing_spec=false
         while IFS= read -r task_line; do
           [ -z "$task_line" ] && continue
-          local spec_check
-          spec_check=$(echo "$task_line" | jq -e '.spec // empty' 2>/dev/null) || true
-          if [ -z "$spec_check" ]; then
-            has_missing_spec=true
+          _spec_check=$(echo "$task_line" | jq -e '.spec // empty' 2>/dev/null) || true
+          if [ -z "$_spec_check" ]; then
+            _has_missing_spec=true
             break
           fi
         done < <(tail -n +2 "$plan_file")
-        if [ "$has_missing_spec" = "true" ]; then
+        if [ "$_has_missing_spec" = "true" ]; then
           MISSING+=("$(basename "$plan_file"): tasks missing spec field")
           GATE_RESULT="fail"
         fi
-      done <<< "$local_plans"
+      done <<< "$_gate_plans"
     fi
     # Check test-plan.jsonl if test_authoring step completed
     if check_step_complete "test_authoring"; then
@@ -186,24 +184,22 @@ case "$STEP" in
 
   code_review)
     # Entry: summary.jsonl for each plan
-    local_plans=$(ls "$PHASE_DIR"/*.plan.jsonl 2>/dev/null) || true
-    if [ -z "$local_plans" ]; then
+    _gate_plans=$(ls "$PHASE_DIR"/*.plan.jsonl 2>/dev/null) || true
+    if [ -z "$_gate_plans" ]; then
       MISSING+=("*.plan.jsonl")
       GATE_RESULT="fail"
     else
       while IFS= read -r plan_file; do
         [ -z "$plan_file" ] && continue
-        local plan_header
-        plan_header=$(head -1 "$plan_file") || true
-        local plan_p plan_n
-        plan_p=$(echo "$plan_header" | jq -r '.p // ""' 2>/dev/null) || true
-        plan_n=$(echo "$plan_header" | jq -r '.n // ""' 2>/dev/null) || true
-        local plan_id="${plan_p}-${plan_n}"
-        if ! check_artifact_exists "$PHASE_DIR/${plan_id}.summary.jsonl"; then
-          MISSING+=("${plan_id}.summary.jsonl")
+        _plan_header=$(head -1 "$plan_file") || true
+        _plan_p=$(echo "$_plan_header" | jq -r '.p // ""' 2>/dev/null) || true
+        _plan_n=$(echo "$_plan_header" | jq -r '.n // ""' 2>/dev/null) || true
+        _plan_id="${_plan_p}-${_plan_n}"
+        if ! check_artifact_exists "$PHASE_DIR/${_plan_id}.summary.jsonl"; then
+          MISSING+=("${_plan_id}.summary.jsonl")
           GATE_RESULT="fail"
         fi
-      done <<< "$local_plans"
+      done <<< "$_gate_plans"
     fi
     ;;
 
@@ -213,10 +209,9 @@ case "$STEP" in
       MISSING+=("code-review.jsonl")
       GATE_RESULT="fail"
     else
-      local review_result
-      review_result=$(head -1 "$PHASE_DIR/code-review.jsonl" | jq -r '.r // ""' 2>/dev/null) || true
-      if [ "$review_result" != "approve" ]; then
-        MISSING+=("code-review.jsonl: r must be 'approve' (got '$review_result')")
+      _review_result=$(head -1 "$PHASE_DIR/code-review.jsonl" | jq -r '.r // ""' 2>/dev/null) || true
+      if [ "$_review_result" != "approve" ]; then
+        MISSING+=("code-review.jsonl: r must be 'approve' (got '$_review_result')")
         GATE_RESULT="fail"
       fi
     fi
@@ -241,10 +236,9 @@ case "$STEP" in
       MISSING+=("code-review.jsonl")
       GATE_RESULT="fail"
     else
-      local review_result
-      review_result=$(head -1 "$PHASE_DIR/code-review.jsonl" | jq -r '.r // ""' 2>/dev/null) || true
-      if [ "$review_result" != "approve" ]; then
-        MISSING+=("code-review.jsonl: r must be 'approve' (got '$review_result')")
+      _review_result=$(head -1 "$PHASE_DIR/code-review.jsonl" | jq -r '.r // ""' 2>/dev/null) || true
+      if [ "$_review_result" != "approve" ]; then
+        MISSING+=("code-review.jsonl: r must be 'approve' (got '$_review_result')")
         GATE_RESULT="fail"
       fi
     fi
