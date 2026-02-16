@@ -1,0 +1,107 @@
+{
+  "phase": 2,
+  "phase_name": "agent-teams-integration",
+  "status": "running",
+  "started_at": "2026-02-16T10:30:00Z",
+  "step": "critique",
+  "wave": 1,
+  "total_waves": 3,
+  "plans": [
+    {
+      "id": "02-01",
+      "title": "Team Lifecycle Scripts",
+      "wave": 1,
+      "status": "pending"
+    },
+    {
+      "id": "02-02",
+      "title": "Hook Adaptations for Team-Aware Tracking",
+      "wave": 1,
+      "status": "pending"
+    },
+    {
+      "id": "02-03",
+      "title": "Protocol Updates for Teammate API",
+      "wave": 2,
+      "status": "pending"
+    },
+    {
+      "id": "02-04",
+      "title": "Go.md Integration and End-to-End Wiring",
+      "wave": 3,
+      "status": "pending"
+    }
+  ],
+  "steps": {
+    "critique": {
+      "status": "complete",
+      "started_at": "2026-02-16T10:31:00Z",
+      "completed_at": "2026-02-16T10:45:00Z",
+      "artifact": "critique.jsonl (15 findings: 3 critical, 7 major, 5 minor)",
+      "reason": ""
+    },
+    "architecture": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "planning": {
+      "status": "complete",
+      "started_at": "2026-02-16T10:25:00Z",
+      "completed_at": "2026-02-16T10:30:00Z",
+      "artifact": "4 plan.jsonl files (18 tasks)",
+      "reason": ""
+    },
+    "design_review": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "test_authoring": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "implementation": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "code_review": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "qa": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "security": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "signoff": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    }
+  }
+}
