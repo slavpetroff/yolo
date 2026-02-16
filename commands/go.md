@@ -233,6 +233,7 @@ If `planning_dir_exists=false`: STOP "YOLO is not set up yet. Run /yolo:init to 
 **Steps:**
 
 1. **Parse args:** Phase number (optional, auto-detected), --effort (optional, falls back to config).
+1.5. **Fallback notice:** If `fallback_notice=true` from resolve-team-mode.sh, display: `[notice] Teammate API requested but unavailable (CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS not set). Using Task tool spawn instead.` This is informational only -- execution proceeds with team_mode=task.
 2. **Phase Discovery (if applicable):** Skip if already planned or DISCOVERY_DEPTH=skip. If phase dir has `{phase}-CONTEXT.md`: AskUserQuestion "Existing context found for this phase. What would you like to do?" Options: (1) "Reuse existing context (Recommended)" — skip Phase Discovery, use existing file. (2) "Gather fresh context" — delete `{phase}-CONTEXT.md` and run Phase Discovery below. If no CONTEXT.md exists, run Phase Discovery: read `${CLAUDE_PLUGIN_ROOT}/references/discovery-protocol.md` Phase Discovery mode. Generate phase-scoped questions (quick=1, standard=1-2, thorough=2-3). Skip categories already in `discovery.json.answered[]`. Present via AskUserQuestion. Append to `discovery.json`. Write `{phase}-CONTEXT.md`.
 3. **Context compilation:** If `config_context_compiler=true`, compile context for the appropriate leads (see step 5/6).
 4. **Turbo shortcut:** If effort=turbo, skip Lead. Read phase reqs from ROADMAP.md, create single lightweight plan.jsonl inline (header + tasks, no spec field).
@@ -242,6 +243,7 @@ If `planning_dir_exists=false`: STOP "YOLO is not set up yet. Run /yolo:init to 
    - Spawn yolo-lead as subagent via Task tool with compiled context (or full file list as fallback).
    - **CRITICAL:** Add `model: "${LEAD_MODEL}"` parameter to the Task tool invocation.
    - Display `◆ Spawning Lead agent...` -> `✓ Lead agent complete`.
+   - **Team mode context:** If `team_mode=teammate`, include in the Lead spawn prompt: 'team_mode=teammate. Use Teammate API (spawnTeam) to create your department team instead of spawning agents via Task tool. See @references/teammate-api-patterns.md for lifecycle patterns.' If `team_mode=task`, do not add any team mode context (current behavior preserved).
 6. **Multi-department planning (when `multi_dept=true` from resolve-departments.sh above):**
    Read `${CLAUDE_PLUGIN_ROOT}/references/cross-team-protocol.md` for workflow order.
 
@@ -270,6 +272,8 @@ If `planning_dir_exists=false`: STOP "YOLO is not set up yet. Run /yolo:init to 
       Each lead spawned with: resolved model (6b), compiled context (6c), phase dir, ROADMAP.md, REQUIREMENTS.md, dept context ONLY. Each Lead delegates Lead→Architect→Senior→Dev with narrowing context (see `references/cross-team-protocol.md` Context Isolation Rules).
 
       Display per lead: `◆ Spawning {Dept} Lead ({model})...` -> `✓ {Dept} Lead complete`
+
+      **Team mode routing:** When `team_mode=teammate`, replace Task tool calls with Teammate API team creation. Each department Lead is spawned as a Teammate API team lead via spawnTeam (team name: `yolo-{dept}`, description: `{Dept} engineering team for phase {N}: {phase-name}`). The Lead then registers its specialists (architect, senior, dev) as teammates within the team. When `team_mode=task`, spawn Leads via Task tool as currently documented (no change). Include `team_mode={value}` in every Lead's spawn context so the Lead knows which mode to operate in.
 
    e. **Owner plan review (balanced/thorough effort only, when `owner_active=true`):**
       Spawn yolo-owner (model from 6b) with `owner_review` mode + all dept plan.jsonl files + reqs.jsonl + dept config.
@@ -304,7 +308,11 @@ This mode delegates to protocol files. Before reading:
    - All plans have `*.summary.jsonl`: cautious/standard -> WARN + confirm; confident/pure-yolo -> warn + auto-continue.
 3. **Compile context:** If `config_context_compiler=true`, compile context for each agent role as needed per the protocol steps. Include `.ctx-{role}.toon` paths in agent task descriptions.
 
+4. **Fallback notice:** If `fallback_notice=true` from resolve-team-mode.sh, display: `[notice] Teammate API requested but unavailable. Using Task tool spawn instead.` Informational only.
+
 **Routing (based on `multi_dept` from resolve-departments.sh above):**
+
+**Team mode:** `team_mode` from resolve-team-mode.sh determines agent spawn mechanism. Pass `team_mode` value to execute-protocol.md. When `team_mode=teammate`, top-level agent spawning (go.md -> department Leads) uses Teammate API instead of Task tool. Within-team spawning (Lead -> Senior, Lead -> Dev) is handled by agent prompt conditionals per references/teammate-api-patterns.md. When `team_mode=task`, all spawn behavior is unchanged (Task tool throughout).
 
 - **Single department (`multi_dept=false`):**
   Read `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` and follow its 10-step company workflow (Critique → Architecture → Planning → Design Review → Test Authoring RED → Implementation → Code Review → QA → Security → Sign-off). See `references/company-hierarchy.md` for agent hierarchy.
@@ -317,6 +325,8 @@ This mode delegates to protocol files. Before reading:
   Context isolation: Lead gets dept CONTEXT + ROADMAP + REQUIREMENTS; Architect gets plan structure + dept CONTEXT; Senior gets architecture.toon + tasks; Dev gets enriched `spec` only. Escalation flows UP chain (Dev→Senior→Lead→Architect→Owner→User), never skipping levels.
 
   Resolve all dept agent models via `resolve-agent-model.sh` with dept-prefixed names. Compile context per dept via `compile-context.sh`.
+
+  When `team_mode=teammate`: department Leads are created as Teammate API team leads (replacing background Task subagents). Each Lead creates a team via spawnTeam, registers teammates, and coordinates via SendMessage instead of file-based sentinel polling. Gate satisfaction shifts from file polling (dept-gate.sh) to SendMessage-based status reporting. When `team_mode=task`: all multi-department coordination uses file-based gates and Task tool as currently documented.
 
 ### Mode: Add Phase
 
