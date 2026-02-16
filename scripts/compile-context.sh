@@ -366,6 +366,42 @@ case "$ROLE" in
           echo "$CONVENTIONS"
         fi
       fi
+      # --- Codebase mapping hint (issue #75) ---
+      if [ -f "$PLANNING_DIR/codebase/META.md" ]; then
+        MAP_FILES=""
+        for doc in ARCHITECTURE CONCERNS PATTERNS DEPENDENCIES STRUCTURE CONVENTIONS; do
+          if [ -f "$PLANNING_DIR/codebase/${doc}.md" ]; then
+            MAP_FILES="${MAP_FILES} ${doc}"
+          fi
+        done
+        if [ -n "$MAP_FILES" ]; then
+          echo ""
+          echo "### Codebase Map Available"
+          echo "Codebase mapping exists in \`.vbw-planning/codebase/\`. Key files:"
+          for doc in $MAP_FILES; do
+            echo "- \`${doc}.md\`"
+          done
+          echo ""
+          # Build guidance based on which priority files exist
+          GUIDANCE_FILES=""
+          for pfile in ARCHITECTURE CONCERNS PATTERNS DEPENDENCIES; do
+            if [ -f "$PLANNING_DIR/codebase/${pfile}.md" ]; then
+              if [ -z "$GUIDANCE_FILES" ]; then
+                GUIDANCE_FILES="${pfile}.md"
+              else
+                GUIDANCE_FILES="${GUIDANCE_FILES}, ${pfile}.md"
+              fi
+            fi
+          done
+          # Convert last comma to " and" for natural language
+          if echo "$GUIDANCE_FILES" | grep -q ','; then
+            GUIDANCE_FILES=$(echo "$GUIDANCE_FILES" | sed 's/\(.*\), /\1, and /')
+          fi
+          if [ -n "$GUIDANCE_FILES" ]; then
+            echo "Read ${GUIDANCE_FILES} first to bootstrap codebase understanding before investigating."
+          fi
+        fi
+      fi
       # --- V3: Include RESEARCH.md if present ---
       RESEARCH_FILE=$(find "$PHASE_DIR" -maxdepth 1 -name "*-RESEARCH.md" -print -quit 2>/dev/null || true)
       if [ -n "$RESEARCH_FILE" ] && [ -f "$RESEARCH_FILE" ]; then
