@@ -33,6 +33,7 @@ print_defaults() {
   echo "config_security_audit=false"
   echo "config_approval_qa_fail=false"
   echo "config_approval_security_warn=false"
+  echo "config_team_mode=task"
   echo "has_codebase_map=false"
   echo "brownfield=false"
   echo "execution_state=none"
@@ -164,11 +165,12 @@ CFG_CONTEXT_COMPILER="true"
 CFG_SECURITY_AUDIT="false"
 CFG_APPROVAL_QA_FAIL="false"
 CFG_APPROVAL_SECURITY_WARN="false"
+CFG_TEAM_MODE="task"
 
 if [ "$JQ_AVAILABLE" = true ] && [ -f "$CONFIG_FILE" ]; then
   IFS='|' read -r CFG_EFFORT CFG_AUTONOMY CFG_AUTO_COMMIT CFG_VERIFICATION_TIER \
     CFG_AGENT_TEAMS CFG_MAX_TASKS CFG_CONTEXT_COMPILER CFG_SECURITY_AUDIT \
-    CFG_APPROVAL_QA_FAIL CFG_APPROVAL_SECURITY_WARN <<< \
+    CFG_APPROVAL_QA_FAIL CFG_APPROVAL_SECURITY_WARN CFG_TEAM_MODE <<< \
     "$(jq -r '[
       (.effort // "balanced"),
       (.autonomy // "standard"),
@@ -179,7 +181,8 @@ if [ "$JQ_AVAILABLE" = true ] && [ -f "$CONFIG_FILE" ]; then
       (.context_compiler // true | tostring),
       (.security_audit // false | tostring),
       (.approval_gates.qa_fail // false | tostring),
-      (.approval_gates.security_warn // false | tostring)
+      (.approval_gates.security_warn // false | tostring),
+      (.team_mode // "task")
     ] | join("|")' "$CONFIG_FILE" 2>/dev/null)"
 fi
 
@@ -193,6 +196,7 @@ echo "config_context_compiler=$CFG_CONTEXT_COMPILER"
 echo "config_security_audit=$CFG_SECURITY_AUDIT"
 echo "config_approval_qa_fail=$CFG_APPROVAL_QA_FAIL"
 echo "config_approval_security_warn=$CFG_APPROVAL_SECURITY_WARN"
+echo "config_team_mode=$CFG_TEAM_MODE"
 
 # --- Codebase map status ---
 if [ -f "$PLANNING_DIR/codebase/META.md" ]; then
