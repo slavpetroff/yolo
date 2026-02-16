@@ -44,7 +44,7 @@ PHASE_NUM=$(( 10#$PHASE ))
 
 # --- Find phase directory ---
 # OPTIMIZATION 1: Use ls glob instead of find for phase dir lookup
-PHASE_DIR=$(command ls -d "$PHASES_DIR/${PHASE}-"*/ 2>/dev/null | head -1)
+PHASE_DIR=$(command ls -d "$PHASES_DIR/${PHASE}-"*/ 2>/dev/null | head -1 || true)
 PHASE_DIR=${PHASE_DIR%/}
 if [ -z "$PHASE_DIR" ]; then
   echo "Phase ${PHASE} directory not found" >&2

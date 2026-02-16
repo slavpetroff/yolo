@@ -253,6 +253,9 @@ EOF
   local dir
   dir=$(mk_phase_plans_only 1 setup 1)
 
+  # file-guard requires execution state with status=running
+  echo '{"status":"running","phase":1}' > "$TEST_WORKDIR/.yolo-planning/.execution-state.json"
+
   # valid-plan.jsonl does NOT declare src/unknown.ts
   run bash -c "cd '$TEST_WORKDIR' && echo '{\"tool_input\":{\"file_path\":\"src/unknown.ts\"}}' | bash '$SCRIPTS_DIR/file-guard.sh'"
   assert_success

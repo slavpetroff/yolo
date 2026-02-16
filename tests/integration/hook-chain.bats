@@ -30,7 +30,7 @@ mk_phase_exact() {
 @test "PreToolUse: security-filter blocks .env file with JSON deny" {
   run bash -c "cd '$TEST_WORKDIR' && echo '{\"tool_input\":{\"file_path\":\".env\"}}' | bash '$SCRIPTS_DIR/security-filter.sh'"
   assert_success
-  assert_output --partial "Blocked: sensitive file"
+  assert_output --partial "This file is protected"
   assert_output --partial "permissionDecision"
 }
 
@@ -40,6 +40,9 @@ mk_phase_exact() {
   # Create an active plan (plan without summary)
   local dir
   dir=$(mk_phase_exact 1 setup 1 0)
+
+  # file-guard requires execution state with status=running
+  echo '{"status":"running","phase":1}' > "$TEST_WORKDIR/.yolo-planning/.execution-state.json"
 
   run bash -c "cd '$TEST_WORKDIR' && echo '{\"tool_input\":{\"file_path\":\"src/undeclared.ts\"}}' | bash '$SCRIPTS_DIR/file-guard.sh'"
   assert_success
