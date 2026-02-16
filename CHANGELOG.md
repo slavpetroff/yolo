@@ -2,14 +2,25 @@
 
 All notable changes to VBW will be documented in this file.
 
-## [1.21.22] - 2026-02-16
+## [1.21.23] - 2026-02-16
 
 ### Added
 
+- **`discussion-engine`** -- Unified discussion engine replacing three competing subsystems (bootstrap discovery, phase discovery, phase discussion). One engine, three entry points (`/vbw:vibe`, `/vbw:vibe --discuss N`, `/vbw:discuss N`). Auto-calibrates between Builder and Architect modes from conversation signals. Generates phase-specific gray areas instead of keyword-matched templates. ~1095 lines removed, ~180 lines added.
+- **`discuss`** -- New `/vbw:discuss [N]` standalone command for explicit phase discussions.
 - **`agent-health`** -- New agent health monitoring system with start/stop/idle/cleanup/orphan-recovery subcommands, lifecycle hooks (SubagentStart, SubagentStop, TeammateIdle, Stop), and integration tests.
 - **`circuit-breaker`** -- Circuit breaker protocol added to all agent definitions for resilient failure handling.
 - **`compaction`** -- Enhanced compaction recovery with TaskGet reminder for better context restoration.
 - **`debugger`** -- Bootstrap investigation from codebase mapping when available.
+
+### Changed
+
+- **`vibe`** -- Bootstrap B2 now delegates to the discussion engine instead of 6-round rigid questioning. Plan mode no longer auto-asks 1-3 questions; users run `/vbw:discuss` explicitly if they want context. Discuss mode replaced with a 5-line engine delegation.
+- **`bootstrap-requirements`** -- Removed tier-based annotation (table_stakes/differentiators/anti_features) and research cross-referencing. Reads simplified `discovery.json` schema directly.
+
+### Removed
+
+- **`discovery-protocol`** -- Deleted 800-line `references/discovery-protocol.md`. Replaced by `references/discussion-engine.md` (~150 lines).
 
 ### Fixed
 
