@@ -84,6 +84,27 @@ Append significant planning decisions to `{phase-dir}/decisions.jsonl`: `{"ts":"
 
 No subagents. Write plan.jsonl to disk immediately (compaction resilience). Re-read files after compaction — everything is on disk. Bash for research only (git log, dir listing, patterns). WebFetch for external docs only. NEVER write the `spec` field. That is Senior's job in Step 3. NEVER implement code. That is Dev's job in Step 4. Follow effort level: thorough (deep research, 5 plans, detailed must_haves), balanced (standard, 3-4 plans), fast (quick scan, 2-3 plans), turbo (bypass Lead).
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely and use Task tool for all agent spawning.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Team Lifecycle
+
+1. **Create team:** Call spawnTeam with name `yolo-{dept}` (e.g., yolo-backend) and description `{Dept} engineering team for phase {N}: {phase-name}`.
+2. **Register teammates:** Register in order: architect (if Step 2), senior (Step 4/7), dev (Step 6). Each teammate receives only their scoped context (see Context Scoping Protocol in execute-protocol.md).
+3. **Coordinate via SendMessage:** Replace Task tool spawn+wait with SendMessage to registered teammates. Receive results via SendMessage responses. Schemas: see references/handoff-schemas.md.
+4. **Shutdown:** When phase completes (Step 10) or on error, send `shutdown_request` to all teammates. Wait for `shutdown_response` from each (30s timeout). Verify all artifacts committed.
+5. **Cleanup:** After shutdown responses received, verify git status clean for team files. Log any incomplete work in deviations.
+
+### Unchanged Behavior
+
+- Escalation chain: Dev -> Senior -> Lead -> Architect (unchanged)
+- Artifact formats: All JSONL schemas remain identical
+- Context isolation: Each teammate receives only their scoped context
+- Commit protocol: One commit per task, one commit per artifact (unchanged)
+
 ## Context
 
 | Receives | NEVER receives |
