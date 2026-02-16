@@ -366,6 +366,19 @@ case "$ROLE" in
           echo "$CONVENTIONS"
         fi
       fi
+      # --- Codebase mapping hint (issue #75) ---
+      if [ -f "$PLANNING_DIR/codebase/META.md" ]; then
+        echo ""
+        echo "### Codebase Map Available"
+        echo "Codebase mapping exists in \`.vbw-planning/codebase/\`. Key files:"
+        for doc in ARCHITECTURE CONCERNS STRUCTURE CONVENTIONS PATTERNS; do
+          if [ -f "$PLANNING_DIR/codebase/${doc}.md" ]; then
+            echo "- \`${doc}.md\`"
+          fi
+        done
+        echo ""
+        echo "Read ARCHITECTURE.md and CONCERNS.md first to bootstrap codebase understanding before investigating."
+      fi
       # --- V3: Include RESEARCH.md if present ---
       RESEARCH_FILE=$(find "$PHASE_DIR" -maxdepth 1 -name "*-RESEARCH.md" -print -quit 2>/dev/null || true)
       if [ -n "$RESEARCH_FILE" ] && [ -f "$RESEARCH_FILE" ]; then
