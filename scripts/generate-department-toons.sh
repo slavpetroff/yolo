@@ -64,12 +64,31 @@ if [ -z "$PROJECT_TYPE" ] || [ "$PROJECT_TYPE" = "null" ]; then
   PROJECT_TYPE="generic"
 fi
 
-# --- Hash check: skip regeneration if detect output unchanged ---
-CURRENT_HASH=$(echo "$DETECT_OUTPUT" | shasum -a 256 | cut -d' ' -f1)
+# --- Cross-platform hash computation ---
+compute_hash() {
+  if command -v shasum &>/dev/null; then
+    shasum -a 256 | cut -d' ' -f1
+  elif command -v sha256sum &>/dev/null; then
+    sha256sum | cut -d' ' -f1
+  else
+    # fallback: use cksum if neither available
+    cksum | cut -d' ' -f1
+  fi
+}
 
-if [ -f "$OUTPUT_DIR/.stack-hash" ] && [ "$(cat "$OUTPUT_DIR/.stack-hash")" = "$CURRENT_HASH" ] && [ "$FORCE" != true ]; then
-  echo "TOONs up to date"
-  exit 0
+# --- Hash check: skip regeneration if detect output unchanged ---
+CURRENT_HASH=$(echo "$DETECT_OUTPUT" | compute_hash)
+
+if [ "$FORCE" = true ]; then
+  echo "Force regeneration requested"
+elif [ -f "$OUTPUT_DIR/.stack-hash" ]; then
+  STORED_HASH=$(cat "$OUTPUT_DIR/.stack-hash")
+  if [ "$STORED_HASH" = "$CURRENT_HASH" ]; then
+    echo "TOONs up to date"
+    exit 0
+  else
+    echo "Stack changed, regenerating TOONs"
+  fi
 fi
 
 # --- Create output directory ---
