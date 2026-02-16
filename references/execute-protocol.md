@@ -349,7 +349,7 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 3. Decision:
    - All good → SHIP (mark phase complete)
    - Issues remain → HOLD (generate remediation instructions)
-4. **Shutdown teammates:** Send shutdown to each, wait for approval, clean up.
+4. **Cleanup:** If multi_dept=true, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dept-cleanup.sh --phase-dir {phase-dir} --reason complete` to remove coordination files. If single-dept: no additional cleanup.
 5. **Update state:**
    - .execution-state.json: `"status": "complete"`, `"step": "signoff"`
    - ROADMAP.md: mark phase complete
@@ -393,22 +393,96 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 
 Each transition commits `.execution-state.json` so resume works on exit. Schema: see Step 3 item 7 above. Per-step status values: `"pending"`, `"running"`, `"complete"`, `"skipped"`. The `reason` field is populated only for skipped steps.
 
+**Multi-department note:** When `multi_dept=true`, `.phase-orchestration.json` is created alongside `.execution-state.json` and tracks per-department status and gate state. See ## Multi-Department Execution above for schema.
+
 ## Multi-Department Execution
 
-**Detection:** `multi_dept` from resolve-departments.sh. If false: skip this section.
+**Detection:** `multi_dept` from resolve-departments.sh. If false: skip this section entirely. All Steps 1-10 above apply to single-dept unchanged.
 
-**When multi_dept=true:** Read @references/multi-dept-protocol.md and @references/cross-team-protocol.md for full protocol.
+**When multi_dept=true:**
 
-**Summary:**
-- Step 0a: Owner gathers context, splits into dept-specific CONTEXT files (no bleed)
-- Step 0b: Owner critique review (balanced/thorough only)
-- Steps 1-10: Each active dept runs same 10-step workflow with dept-prefixed agents
-- Dispatch: UX first (if active) > Handoff Gate > FE + BE parallel
-- Handoff gates: see @references/cross-team-protocol.md
-- Integration QA + Security after all depts complete
-- Owner sign-off: SHIP or HOLD
+1. **Generate spawn plan:**
+   ```bash
+   SPAWN_PLAN=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/dept-orchestrate.sh \
+     .yolo-planning/config.json {phase-dir})
+   ```
+   Returns JSON: `{"waves":[{"id":1,"depts":["uiux"],"gate":"handoff-ux-complete"},{"id":2,"depts":["frontend","backend"],"gate":"all-depts-complete"}],"timeout_minutes":30}`
 
-**Execution state extension:** `.execution-state.json` gains `departments` object when multi_dept=true. See @references/multi-dept-protocol.md ## Execution State Extensions.
+2. **Create orchestration state:**
+   Write `.phase-orchestration.json` to phase directory with schema:
+   ```json
+   {
+     "phase": "{N}",
+     "multi_dept": true,
+     "workflow": "parallel",
+     "departments": {
+       "uiux": {"status":"pending","step":"","started":"","completed":""},
+       "frontend": {"status":"pending","step":"","started":"","completed":""},
+       "backend": {"status":"pending","step":"","started":"","completed":""}
+     },
+     "gates": {
+       "ux-complete": {"status":"pending","passed_at":""},
+       "api-contract": {"status":"pending","passed_at":""},
+       "all-depts": {"status":"pending","passed_at":""}
+     },
+     "integration_qa": {"status":"pending"},
+     "security": {"status":"pending"},
+     "owner_signoff": {"status":"pending"},
+     "started_at": "ISO8601",
+     "timeout_minutes": 30
+   }
+   ```
+   Commit: `chore(state): orchestration state phase {N}`
+
+3. **Spawn department Leads per wave:**
+   For each wave in spawn plan, spawn department Leads as **background Task subagents** (`run_in_background=true`):
+   ```
+   For each dept in wave.depts:
+     Spawn {dept} Lead as Task subagent:
+       - run_in_background: true
+       - model: resolved via resolve-agent-model.sh for {dept}-lead role
+       - Provide: dept CONTEXT file, phase-dir, ROADMAP.md, REQUIREMENTS.md
+       - Lead runs full 10-step workflow using foreground Task subagents internally
+       - On completion: Lead writes .dept-status-{dept}.json via dept-status.sh
+       - On completion: Lead writes handoff sentinel (e.g., .handoff-ux-complete)
+   ```
+
+4. **Poll for gate satisfaction:**
+   After spawning a wave, enter polling loop:
+   ```bash
+   # Polling loop pattern (per-gate)
+   ELAPSED=0
+   TIMEOUT=$((TIMEOUT_MINUTES * 60))
+   while ! bash ${CLAUDE_PLUGIN_ROOT}/scripts/dept-gate.sh \
+     --gate {gate-name} --phase-dir {phase-dir} --no-poll; do
+     sleep 0.5
+     ELAPSED=$((ELAPSED + 1))
+     if [ "$ELAPSED" -ge "$((TIMEOUT * 2))" ]; then
+       echo "TIMEOUT: Gate {gate-name} not satisfied after ${TIMEOUT_MINUTES}m"
+       bash ${CLAUDE_PLUGIN_ROOT}/scripts/dept-cleanup.sh \
+         --phase-dir {phase-dir} --reason timeout
+       STOP with per-department status report
+     fi
+   done
+   ```
+   Interval: 500ms (sleep 0.5). Timeout: configurable (default 30 minutes).
+
+5. **On all departments complete:**
+   - Verify via `dept-gate.sh --gate all-depts --phase-dir {phase-dir}`
+   - Proceed to Integration QA (foreground, Step 8 equivalent)
+   - Proceed to Security audit (foreground, Step 9 equivalent)
+   - Proceed to Owner sign-off (Step 10)
+
+6. **Cleanup on completion or failure:**
+   ```bash
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/dept-cleanup.sh \
+     --phase-dir {phase-dir} --reason {complete|failure|timeout}
+   ```
+   Removes: .dept-status-*.json, .handoff-*, .dept-lock-*, .phase-orchestration.json
+
+**Full protocol details:** See references/multi-dept-protocol.md for dispatch flow and coordination files. See references/cross-team-protocol.md for handoff gate definitions. REQ-03: Multi-department orchestration via file-based coordination.
+
+**Execution state extension:** `.execution-state.json` gains `departments` object when multi_dept=true, mirroring `.phase-orchestration.json` department statuses for resume support.
 
 ## Output Format
 
