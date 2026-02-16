@@ -1,0 +1,298 @@
+{
+  "_description": "Project type definitions for dynamic persona detection. Each type has detection signals, department conventions, and UX focus blocks. Extensible: add custom types by appending to the types array.",
+  "_priority_order": ["monorepo", "mobile-app", "web-app", "api-service", "cli-tool", "library", "generic"],
+  "types": [
+    {
+      "id": "web-app",
+      "name": "Web Application",
+      "priority": 5,
+      "detect": [
+        { "pattern": "package.json:react", "weight": 8 },
+        { "pattern": "package.json:vue", "weight": 8 },
+        { "pattern": "package.json:svelte", "weight": 8 },
+        { "pattern": "package.json:next", "weight": 9 },
+        { "pattern": "package.json:nuxt", "weight": 8 },
+        { "pattern": "package.json:angular", "weight": 8 },
+        { "pattern": "src/pages", "weight": 4 },
+        { "pattern": "src/app", "weight": 3 },
+        { "pattern": "app/", "weight": 3 }
+      ],
+      "department_conventions": {
+        "backend": {
+          "language": "TypeScript/JavaScript",
+          "testing": "jest or vitest",
+          "tooling": "Node.js, npm/yarn/pnpm"
+        },
+        "frontend": {
+          "framework": "React/Vue/Svelte (per detection)",
+          "component_lib": "per detection",
+          "css": "Tailwind or CSS-in-JS"
+        },
+        "uiux": {}
+      },
+      "ux_focus": {
+        "focus_areas": [
+          "UI design",
+          "component specs",
+          "design tokens",
+          "responsive breakpoints",
+          "interaction patterns"
+        ],
+        "testing_approach": "visual regression + usability checklists",
+        "artifact_types": [
+          "wireframes",
+          "design-tokens.jsonl",
+          "component-specs.jsonl"
+        ],
+        "vocabulary": {
+          "interface": "web UI",
+          "user": "end user",
+          "layout": "responsive grid"
+        }
+      }
+    },
+    {
+      "id": "api-service",
+      "name": "API Service",
+      "priority": 4,
+      "detect": [
+        { "pattern": "package.json:express", "weight": 7 },
+        { "pattern": "package.json:fastify", "weight": 7 },
+        { "pattern": "requirements.txt:fastapi", "weight": 7 },
+        { "pattern": "requirements.txt:flask", "weight": 7 },
+        { "pattern": "requirements.txt:django", "weight": 7 },
+        { "pattern": "manage.py", "weight": 6 },
+        { "pattern": "routes/", "weight": 4 },
+        { "pattern": "controllers/", "weight": 4 },
+        { "pattern": "Gemfile:rails", "weight": 7 },
+        { "pattern": "go.mod:gin", "weight": 7 },
+        { "pattern": "go.mod:echo", "weight": 7 }
+      ],
+      "department_conventions": {
+        "backend": {
+          "language": "per detection (Node/Python/Ruby/Go)",
+          "testing": "per language framework",
+          "tooling": "REST/GraphQL, OpenAPI"
+        },
+        "frontend": {},
+        "uiux": {}
+      },
+      "ux_focus": {
+        "focus_areas": [
+          "API documentation",
+          "OpenAPI specs",
+          "developer experience",
+          "error response design",
+          "rate limiting UX"
+        ],
+        "testing_approach": "API contract testing + DX review",
+        "artifact_types": [
+          "openapi-spec.yaml",
+          "error-catalog.jsonl"
+        ],
+        "vocabulary": {
+          "interface": "API surface",
+          "user": "API consumer",
+          "layout": "endpoint structure"
+        }
+      }
+    },
+    {
+      "id": "cli-tool",
+      "name": "CLI Tool",
+      "priority": 3,
+      "detect": [
+        { "pattern": "bin/", "weight": 5 },
+        { "pattern": "scripts/", "weight": 3 },
+        { "pattern": "Cargo.toml:clap", "weight": 8 },
+        { "pattern": "package.json:commander", "weight": 7 },
+        { "pattern": "package.json:yargs", "weight": 7 },
+        { "pattern": "go.mod:cobra", "weight": 8 },
+        { "pattern": "setup.py", "weight": 2 },
+        { "pattern": "pyproject.toml:click", "weight": 7 }
+      ],
+      "department_conventions": {
+        "backend": {
+          "language": "Bash/Rust/Go/Node (per detection)",
+          "testing": "BATS (shell), cargo test (Rust), go test",
+          "tooling": "jq, shell scripting"
+        },
+        "frontend": {},
+        "uiux": {}
+      },
+      "ux_focus": {
+        "focus_areas": [
+          "help text quality",
+          "error output formatting",
+          "progress indicators",
+          "user prompts",
+          "man page conventions"
+        ],
+        "testing_approach": "CLI output validation + error message review",
+        "artifact_types": [
+          "help-text-spec.md",
+          "error-messages.jsonl"
+        ],
+        "vocabulary": {
+          "interface": "CLI",
+          "user": "CLI user",
+          "layout": "command structure"
+        }
+      }
+    },
+    {
+      "id": "library",
+      "name": "Library",
+      "priority": 2,
+      "detect": [
+        { "pattern": "src/lib.rs", "weight": 8 },
+        { "pattern": "src/index.ts", "weight": 4 },
+        { "pattern": "src/index.js", "weight": 4 },
+        { "pattern": "tsconfig.json", "weight": 2 },
+        { "pattern": "Cargo.toml", "weight": 3 },
+        { "pattern": "setup.py", "weight": 4 },
+        { "pattern": "pyproject.toml", "weight": 3 }
+      ],
+      "department_conventions": {
+        "backend": {
+          "language": "per detection",
+          "testing": "unit tests (per language)",
+          "tooling": "documentation generation"
+        },
+        "frontend": {},
+        "uiux": {}
+      },
+      "ux_focus": {
+        "focus_areas": [
+          "API surface design",
+          "code examples",
+          "README quality",
+          "type documentation",
+          "changelog maintenance"
+        ],
+        "testing_approach": "API ergonomics review + documentation completeness",
+        "artifact_types": [
+          "api-reference.md",
+          "usage-examples.md"
+        ],
+        "vocabulary": {
+          "interface": "public API",
+          "user": "library consumer",
+          "layout": "module structure"
+        }
+      }
+    },
+    {
+      "id": "mobile-app",
+      "name": "Mobile Application",
+      "priority": 6,
+      "detect": [
+        { "pattern": "ios/", "weight": 8 },
+        { "pattern": "android/", "weight": 8 },
+        { "pattern": "package.json:react-native", "weight": 9 },
+        { "pattern": "package.json:expo", "weight": 9 },
+        { "pattern": "flutter.yaml", "weight": 9 },
+        { "pattern": "pubspec.yaml", "weight": 8 },
+        { "pattern": "*.xcodeproj", "weight": 7 }
+      ],
+      "department_conventions": {
+        "backend": {
+          "language": "Swift/Kotlin/Dart/TypeScript",
+          "testing": "XCTest/Espresso/widget tests",
+          "tooling": "platform SDKs"
+        },
+        "frontend": {},
+        "uiux": {}
+      },
+      "ux_focus": {
+        "focus_areas": [
+          "UI design",
+          "gesture interactions",
+          "platform conventions",
+          "adaptive layouts",
+          "accessibility"
+        ],
+        "testing_approach": "device testing + gesture usability + a11y audit",
+        "artifact_types": [
+          "screen-specs.jsonl",
+          "gesture-map.jsonl",
+          "platform-guidelines.md"
+        ],
+        "vocabulary": {
+          "interface": "mobile UI",
+          "user": "app user",
+          "layout": "screen layout"
+        }
+      }
+    },
+    {
+      "id": "monorepo",
+      "name": "Monorepo",
+      "priority": 7,
+      "detect": [
+        { "pattern": "package.json:workspaces", "weight": 9 },
+        { "pattern": "lerna.json", "weight": 9 },
+        { "pattern": "pnpm-workspace.yaml", "weight": 9 },
+        { "pattern": "Cargo.toml:workspace", "weight": 8 },
+        { "pattern": "go.work", "weight": 9 },
+        { "pattern": "nx.json", "weight": 9 },
+        { "pattern": "turbo.json", "weight": 8 }
+      ],
+      "department_conventions": {
+        "backend": {
+          "language": "per dominant sub-type",
+          "testing": "per dominant sub-type",
+          "tooling": "workspace tooling (turborepo/nx/lerna)"
+        },
+        "frontend": {},
+        "uiux": {}
+      },
+      "ux_focus": {
+        "focus_areas": [
+          "per-package type detection",
+          "shared design system",
+          "cross-package consistency",
+          "workspace navigation"
+        ],
+        "testing_approach": "per-package + integration",
+        "artifact_types": [
+          "workspace-map.jsonl"
+        ],
+        "vocabulary": {
+          "interface": "per dominant sub-type",
+          "user": "per dominant sub-type",
+          "layout": "workspace structure"
+        }
+      }
+    },
+    {
+      "id": "generic",
+      "name": "Generic Project",
+      "priority": 1,
+      "detect": [],
+      "department_conventions": {
+        "backend": {
+          "language": "per project",
+          "testing": "per project",
+          "tooling": "per project"
+        },
+        "frontend": {},
+        "uiux": {}
+      },
+      "ux_focus": {
+        "focus_areas": [
+          "documentation quality",
+          "error handling",
+          "user feedback"
+        ],
+        "testing_approach": "general usability review",
+        "artifact_types": [],
+        "vocabulary": {
+          "interface": "interface",
+          "user": "user",
+          "layout": "structure"
+        }
+      }
+    }
+  ]
+}
