@@ -21,6 +21,18 @@ Implements the 10-step company-grade engineering workflow. See `references/compa
      eval "${role^^}_MODEL=\$(bash \${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh $role .yolo-planning/config.json \${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)"
    done
    ```
+4. **Validate all plans:** Before execution, validate every plan.jsonl in the phase directory:
+   ```bash
+   for plan in "${PHASE_DIR}"/*.plan.jsonl; do
+     result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-plan.sh --plan "$plan")
+     if [ $? -ne 0 ]; then
+       echo "Plan validation failed: $plan" >&2
+       echo "$result" | jq -r '.errors[]' >&2
+       exit 1
+     fi
+   done
+   ```
+   This replaces LLM-based plan validation. Invalid plans STOP execution before any agent spawns.
 
 ### Context Scoping Protocol (MANDATORY)
 
@@ -50,6 +62,16 @@ Each agent receives ONLY what it needs (progressive scoping — lower agents see
 - TOON validity (if .toon): `[ -s "{phase-dir}/{artifact}" ]`
 - If artifact was produced by a skippable step, also accept: step status is "skipped" in .execution-state.json (check via `jq -r '.steps["{step_name}"].status' .yolo-planning/.execution-state.json`)
 - If NEITHER artifact exists NOR step is skipped: **STOP** "{Step N} artifact missing — {artifact} not found in {phase-dir}. Run step {N} first."
+
+> **Script delegation:** Entry gate checks can be delegated to `validate-gates.sh` for deterministic verification:
+> ```bash
+> result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-gates.sh --step "{step_name}" --phase-dir "{phase-dir}")
+> if [ $? -ne 0 ]; then
+>   echo "$result" | jq -r '.missing[]' >&2
+>   STOP "{Step N} artifact missing"
+> fi
+> ```
+> This replaces inline file existence checks with a centralized lookup table (see scripts/validate-gates.sh).
 
 ### State Commit
 
@@ -93,6 +115,13 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
    - Provide: reqs.jsonl (or REQUIREMENTS.md), PROJECT.md, codebase/ mapping, research.jsonl (if exists)
    - Include compiled context: `{phase-dir}/.ctx-critic.toon`
    - Effort: if `--effort=fast`, instruct Critic to limit to `critical` findings only
+
+   > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
+   > ```bash
+   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "critic" --project-dir ".")
+   > ```
+   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-critic.toon). See D4 in architecture for soft enforcement details.
+
 3. Display: `◆ Spawning Critic (${CRITIC_MODEL})...` → `✓ Critique complete`
 4. Critic returns findings via SendMessage (Critic has no Write tool).
 5. Write critique.jsonl from Critic's findings to phase directory.
@@ -111,6 +140,13 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
    - model: "${ARCHITECT_MODEL}"
    - Provide: reqs.jsonl (or REQUIREMENTS.md), codebase/ mapping, research.jsonl (if exists), critique.jsonl (if exists)
    - Include compiled context: `{phase-dir}/.ctx-architect.toon`
+
+   > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
+   > ```bash
+   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "architect" --project-dir ".")
+   > ```
+   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-architect.toon). See D4 in architecture for soft enforcement details.
+
 3. Display: `◆ Spawning Architect (${ARCHITECT_MODEL})...` → `✓ Architecture complete`
 4. Verify: architecture.toon exists in phase directory.
 5. Architect addresses critique.jsonl findings (updates `st` field) and commits: `docs({phase}): architecture design`
@@ -146,6 +182,13 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
      }
    }
    ```
+
+   > **Script alternative:** Use `generate-execution-state.sh` to build this JSON deterministically:
+   > ```bash
+   > bash ${CLAUDE_PLUGIN_ROOT}/scripts/generate-execution-state.sh --phase-dir "{phase-dir}" --phase {N}
+   > ```
+   > This replaces inline JSON construction. The script scans *.plan.jsonl files, extracts metadata, and writes the full schema above.
+
    Commit: `chore(state): execution state phase {N}`
 8. **Cross-phase deps:** For each plan with `xd` (cross_phase_deps):
    - Verify referenced plan's summary.jsonl exists with `s: complete`
@@ -168,6 +211,13 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
      - Mode: "design_review"
      - Provide: plan.jsonl path, architecture.toon path, critique.jsonl path (if exists), compiled context
    - Display: `◆ Spawning Senior for design review ({plan})...`
+
+   > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
+   > ```bash
+   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "senior" --project-dir ".")
+   > ```
+   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-senior.toon). See D4 in architecture for soft enforcement details.
+
 4. Senior reads plan, researches codebase, enriches each task with `spec` field AND `ts` (test_spec) field.
 5. Senior commits enriched plan: `docs({phase}): enrich plan {NN-MM} specs`
 6. Verify: all tasks in plan.jsonl have non-empty `spec` field. Tasks with testable logic should have `ts` field.
@@ -186,6 +236,13 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
      - model: "${TESTER_MODEL}"
      - Provide: enriched plan.jsonl path, compiled context
    - Display: `◆ Spawning Tester (${TESTER_MODEL}) for RED phase ({plan})...`
+
+   > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
+   > ```bash
+   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "tester" --project-dir ".")
+   > ```
+   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-tester.toon). See D4 in architecture for soft enforcement details.
+
 4. Tester writes failing test files per `ts` specifications.
 5. Tester verifies ALL tests FAIL (RED confirmation).
 6. Tester produces test-plan.jsonl and commits: `test({phase}): RED phase tests for plan {NN-MM}`
@@ -211,6 +268,13 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
    activeForm: "Executing {NN-MM}"
    ```
    **CRITICAL:** Pass `model: "${DEV_MODEL}"` to Task tool.
+
+   > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
+   > ```bash
+   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "dev" --project-dir ".")
+   > ```
+   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-dev.toon). See D4 in architecture for soft enforcement details.
+
 4. Wire dependencies via TaskUpdate: `addBlockedBy` from plan `d` (depends_on) field.
 5. Spawn Dev teammates and assign tasks.
 6. Display: `◆ Spawning Dev (${DEV_MODEL})...`
@@ -240,6 +304,13 @@ When Dev reports completion:
      - Mode: "code_review"
      - Provide: plan.jsonl path, git diff of plan commits, test-plan.jsonl (if exists)
    - Display: `◆ Spawning Senior for code review ({plan})...`
+
+   > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
+   > ```bash
+   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "senior" --project-dir ".")
+   > ```
+   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-senior.toon). See D4 in architecture for soft enforcement details.
+
 3. Senior reviews code, produces code-review.jsonl.
 4. Senior checks TDD compliance: test files exist, tests pass, `tdd` field in verdict.
 5. If `r: "changes_requested"`:
@@ -272,6 +343,13 @@ When Dev reports completion:
    - model: "${QA_MODEL}"
    - Provide: plan.jsonl files, summary.jsonl files, compiled context
    - Tier: {tier}
+
+   > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
+   > ```bash
+   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "qa" --project-dir ".")
+   > ```
+   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-qa.toon). See D4 in architecture for soft enforcement details.
+
 5. QA Lead produces verification.jsonl. Commits: `docs({phase}): verification results`
 
 **QA Code (code-level):**
@@ -279,6 +357,13 @@ When Dev reports completion:
    - model: "${QA_CODE_MODEL}"
    - Provide: summary.jsonl (for file list), test-plan.jsonl (for TDD compliance), compiled context
    - Tier: {tier}
+
+   > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
+   > ```bash
+   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "qa-code" --project-dir ".")
+   > ```
+   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-qa-code.toon). See D4 in architecture for soft enforcement details.
+
 7. QA Code runs TDD compliance (Phase 0), tests, lint, patterns. Produces qa-code.jsonl. Commits: `docs({phase}): code quality review`
 
 **Result handling:**
@@ -326,6 +411,13 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 3. Spawn yolo-security:
    - model: "${SECURITY_MODEL}"
    - Provide: summary.jsonl (file list), compiled context
+
+   > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
+   > ```bash
+   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "security" --project-dir ".")
+   > ```
+   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-security.toon). See D4 in architecture for soft enforcement details.
+
 4. Security produces security-audit.jsonl. Commits: `docs({phase}): security audit`
 5. If `r: "FAIL"`: **HARD STOP**. Display findings. Only user `--force` overrides.
 6. If `r: "WARN"`:
