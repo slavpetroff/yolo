@@ -2,6 +2,13 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.21.18] - 2026-02-16
+
+### Fixed
+
+- **`hooks`** -- Skip commit gate for `[analysis-only]` tasks. Debugger agents in team mode no longer get blocked by the TaskCompleted hook when investigating hypotheses without applying fixes. Contributed by [@dpearson2699](https://github.com/dpearson2699) (#71, fixes #70).
+- **`hooks`** -- Add missing `hookEventName` to session-start.sh (3 outputs) and blocker-notify.sh (1 output). Without this field, Claude Code's schema validator silently dropped all VBW context injection on session start. Also hardens compaction marker handling for clock skew and corrupted markers. Contributed by [@dpearson2699](https://github.com/dpearson2699) (#73, fixes #72).
+
 ## [1.21.17] - 2026-02-15
 
 ### Fixed
