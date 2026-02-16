@@ -4,6 +4,8 @@ Loaded on demand by /yolo:go Execute mode. Not a user-facing command.
 
 Implements the 10-step company-grade engineering workflow. See `references/company-hierarchy.md` for full hierarchy and `references/artifact-formats.md` for JSONL schemas.
 
+**Spawn strategy:** Agent spawning is controlled by `team_mode` from resolve-team-mode.sh (passed by go.md). When `team_mode=task` (default): all agents are spawned via Task tool as documented below. When `team_mode=teammate`: top-level agent spawning from go.md uses Teammate API (spawnTeam for department Leads); within-team spawning (Steps 1-9) is handled by agent prompt conditionals using SendMessage. See `references/teammate-api-patterns.md` for Teammate API patterns.
+
 ## Owner-First Communication Rule
 
 **No agent communicates directly with the user.** All user interaction flows through go.md (Owner proxy). Escalation chain: Dev → Senior → Lead → Owner/go.md → User.
@@ -36,7 +38,7 @@ Implements the 10-step company-grade engineering workflow. See `references/compa
 
 ### Context Scoping Protocol (MANDATORY)
 
-Each agent receives ONLY what it needs (progressive scoping — lower agents see less). When spawning via Task tool, include ONLY listed inputs. No extra context "for reference."
+Each agent receives ONLY what it needs (progressive scoping — lower agents see less). When spawning via Task tool, include ONLY listed inputs. No extra context "for reference." When `team_mode=teammate`, the same scoping rules apply -- agents receive identical context regardless of spawn mechanism. The transport changes (SendMessage vs Task tool), but the content isolation does not.
 
 | Step | Agent | Receives (include in Task prompt) | NEVER pass |
 |------|-------|----------------------------------|-----------|
@@ -539,6 +541,21 @@ Each transition commits `.execution-state.json` so resume works on exit. Schema:
        - On completion: Lead writes handoff sentinel (e.g., .handoff-ux-complete)
    ```
 
+   **Team mode conditional (spawn strategy):**
+   - **When `team_mode=task` (default):** Spawn department Leads as background Task subagents exactly as documented above. File-based coordination via dept-gate.sh, dept-status.sh, and handoff sentinels.
+   - **When `team_mode=teammate`:** Replace Task subagent spawning with Teammate API team creation:
+     ```
+     For each dept in wave.depts:
+       Create team via spawnTeam:
+         - name: "yolo-{dept}" (e.g., yolo-backend, yolo-frontend, yolo-uiux)
+         - description: "{Dept} engineering team for phase {N}: {phase-name}"
+       Register Lead as team lead (automatic with spawnTeam)
+       Lead registers specialists (architect, senior, dev) as teammates
+       Lead coordinates via SendMessage instead of file-based artifacts
+       On completion: Lead sends department_result via SendMessage to go.md
+     ```
+     Cross-team coordination between departments still uses file-based handoff artifacts (api-contracts.jsonl, design-handoff.jsonl) because Leads are in DIFFERENT teams. SendMessage only works within a team. See `references/teammate-api-patterns.md` ## Cross-Team Communication.
+
 4. **Poll for gate satisfaction:**
    After spawning a wave, enter polling loop:
    ```bash
@@ -558,6 +575,8 @@ Each transition commits `.execution-state.json` so resume works on exit. Schema:
    done
    ```
    Interval: 500ms (sleep 0.5). Timeout: configurable (default 30 minutes).
+
+   **Teammate mode note:** When `team_mode=teammate`, gate satisfaction shifts from file polling to SendMessage-based status reporting. Department Leads send completion signals via SendMessage to go.md instead of writing sentinel files. The polling loop above applies only to `team_mode=task`. In teammate mode, go.md receives department completion asynchronously via teammate message delivery.
 
 5. **On all departments complete:**
    - Verify via `dept-gate.sh --gate all-depts --phase-dir {phase-dir}`
