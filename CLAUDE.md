@@ -6,10 +6,25 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** No active milestone
-**Last shipped:** Workflow Enforcement -- 3 phases, 7 commits
-**Previous:** Concerns Fix -- 3 phases, 7 commits
-**Next action:** Run /yolo:go to start a new milestone
+**Work:** Dynamic Departments & Agent Teams (3 phases)
+**Last shipped:** Phase 1: Dynamic Personas -- 4 plans, 13 tasks, 16 commits, 63 tests
+**Previous:** Workflow Enforcement -- 3 phases, 7 commits
+**Next action:** Phase 2 pending (Agent Teams Integration)
+
+## Department Architecture
+
+26 agents across 4 departments. Enable/disable via `config/defaults.json` `departments` key.
+
+| Department | Agents | Prefix | Protocol File |
+|-----------|--------|--------|---------------|
+| Backend | architect, lead, senior, dev, tester, qa, qa-code | (none) | `references/departments/backend.toon` |
+| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code | `fe-` | `references/departments/frontend.toon` |
+| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code | `ux-` | `references/departments/uiux.toon` |
+| Shared | owner, critic, scout, debugger, security | (none) | `references/departments/shared.toon` |
+
+**Workflow order:** UI/UX first (design) → Frontend + Backend in parallel → Integration QA → Owner Sign-off.
+**Communication:** Backend NEVER communicates with UI/UX directly. All cross-department data passes through handoff artifacts and Leads.
+**Enforcement:** `scripts/department-guard.sh` (PreToolUse hook) blocks cross-department file writes.
 
 ## YOLO Rules
 
@@ -56,6 +71,9 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Verification gates in execute-protocol.md | 2026-02-16 | Prevents silent step skipping; entry/exit gates on every step |
 | Commands route through Lead hierarchy | 2026-02-16 | debug/fix/research/qa all delegate through Lead, not directly to specialists |
 | 10-step workflow expanded to enforcement contract | 2026-02-16 | Entry/exit gates with mandatory artifact verification on every step |
+| Dynamic dept personas based on project type | 2026-02-16 | Static TOON conventions don't fit non-web projects (e.g., shell scripts) |
+| One team per department via Teammate API | 2026-02-16 | 3 teams × N agents = 21+ parallel capacity vs 7 with Task tool only |
+| UX maps to project interface type | 2026-02-16 | CLI → help/error output, web → UI components, API → docs/specs |
 
 ## Installed Skills
 
@@ -80,21 +98,6 @@ These conventions are enforced during planning and verified during QA.
 - Zero-dependency design: no package.json, npm, or build step [patterns]
 - All scripts target bash, not POSIX sh [tooling]
 - Plugin cache resolution via ls | sort -V | tail -1, never glob expansion [patterns]
-
-## Department Architecture
-
-26 agents across 4 departments. Enable/disable via `config/defaults.json` `departments` key.
-
-| Department | Agents | Prefix | Protocol File |
-|-----------|--------|--------|---------------|
-| Backend | architect, lead, senior, dev, tester, qa, qa-code | (none) | `references/departments/backend.toon` |
-| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code | `fe-` | `references/departments/frontend.toon` |
-| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code | `ux-` | `references/departments/uiux.toon` |
-| Shared | owner, critic, scout, debugger, security | (none) | `references/departments/shared.toon` |
-
-**Workflow order:** UI/UX first (design) → Frontend + Backend in parallel → Integration QA → Owner Sign-off.
-**Communication:** Backend NEVER communicates with UI/UX directly. All cross-department data passes through handoff artifacts and Leads.
-**Enforcement:** `scripts/department-guard.sh` (PreToolUse hook) blocks cross-department file writes.
 
 ## Commands
 
