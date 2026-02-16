@@ -2,6 +2,20 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.21.22] - 2026-02-16
+
+### Added
+
+- **`agent-health`** -- New agent health monitoring system with start/stop/idle/cleanup/orphan-recovery subcommands, lifecycle hooks (SubagentStart, SubagentStop, TeammateIdle, Stop), and integration tests.
+- **`circuit-breaker`** -- Circuit breaker protocol added to all agent definitions for resilient failure handling.
+- **`compaction`** -- Enhanced compaction recovery with TaskGet reminder for better context restoration.
+- **`debugger`** -- Bootstrap investigation from codebase mapping when available.
+
+### Fixed
+
+- **`teams`** -- Remove stale tmux forced in-process workaround, restore split-pane mode.
+- **`token-budget`** -- Switch from line-based to character-based budgets, default to head truncation, remove cross-task escalation.
+
 ## [1.21.18] - 2026-02-16
 
 ### Fixed
