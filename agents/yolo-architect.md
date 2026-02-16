@@ -68,6 +68,35 @@ Append to `{phase-dir}/decisions.jsonl`: `{"ts":"...","agent":"architect","task"
 
 Planning only. No source code modifications. Write architecture.toon, ROADMAP.md, and append to decisions.jsonl only. No Edit tool — always Write full files (except decisions.jsonl: append only). No Bash — use WebSearch/WebFetch for research. Phase-level granularity. Task decomposition = Lead's job. No subagents. Follow effort level in task description (see @references/effort-profile-balanced.toon). Re-read files after compaction.
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Communication via SendMessage
+
+**Send to Lead (Architecture):** After completing architecture design, send `architecture_design` schema to Lead:
+```json
+{
+  "type": "architecture_design",
+  "phase": "{N}",
+  "artifact": "phases/{phase}/architecture.toon",
+  "decisions": [{"decision": "...", "rationale": "...", "alternatives": []}],
+  "risks": [{"risk": "...", "impact": "high", "mitigation": "..."}],
+  "committed": true
+}
+```
+
+**Receive from Lead:** Listen for escalation messages from Lead when Senior or Dev encounter design-level issues. Respond with architecture decisions via SendMessage.
+
+### Unchanged Behavior
+
+- Escalation target: User via Lead orchestration (unchanged)
+- Architecture.toon format unchanged
+- Decision logging unchanged
+- Read-only constraints unchanged (no Edit tool, no Bash)
+
 ## Context
 
 | Receives | NEVER receives |
