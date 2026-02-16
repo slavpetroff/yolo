@@ -361,6 +361,13 @@ case "$BASE_ROLE" in
         echo "conventions[${CONV_COUNT}]{category,rule}:"
         echo "$CONVENTIONS"
       fi
+      # Department-specific conventions (generated or static fallback)
+      DEPT_CONV=$(get_dept_conventions)
+      if [ -n "$DEPT_CONV" ]; then
+        echo ''
+        echo 'dept_conventions:'
+        echo "$DEPT_CONV" | sed 's/^/  /'
+      fi
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
@@ -387,6 +394,13 @@ case "$BASE_ROLE" in
         CONV_COUNT=$(echo "$CONVENTIONS" | wc -l | tr -d ' ')
         echo "conventions[${CONV_COUNT}]{category,rule}:"
         echo "$CONVENTIONS"
+      fi
+      # Department-specific conventions (generated or static fallback)
+      DEPT_CONV=$(get_dept_conventions)
+      if [ -n "$DEPT_CONV" ]; then
+        echo ''
+        echo 'dept_conventions:'
+        echo "$DEPT_CONV" | sed 's/^/  /'
       fi
       echo ""
       # Skill bundling (from plan frontmatter)
@@ -451,6 +465,13 @@ case "$BASE_ROLE" in
         echo "conventions[${CONV_COUNT}]{category,rule}:"
         echo "$CONVENTIONS"
       fi
+      # Department-specific conventions (generated or static fallback)
+      DEPT_CONV=$(get_dept_conventions)
+      if [ -n "$DEPT_CONV" ]; then
+        echo ''
+        echo 'dept_conventions:'
+        echo "$DEPT_CONV" | sed 's/^/  /'
+      fi
       get_research
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
@@ -477,6 +498,13 @@ case "$BASE_ROLE" in
         CONV_COUNT=$(echo "$CONVENTIONS" | wc -l | tr -d ' ')
         echo "conventions[${CONV_COUNT}]{category,rule}:"
         echo "$CONVENTIONS"
+      fi
+      # Department-specific conventions (generated or static fallback)
+      DEPT_CONV=$(get_dept_conventions)
+      if [ -n "$DEPT_CONV" ]; then
+        echo ''
+        echo 'dept_conventions:'
+        echo "$DEPT_CONV" | sed 's/^/  /'
       fi
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
