@@ -220,6 +220,9 @@ EOF
 
 # ============================================================
 # YOLO Self-Detection (cli-tool classification)
+# Validates C-09: YOLO project self-detects as cli-tool
+# with Bash/BATS/jq conventions and CLI UX focus.
+# Uses mk_yolo_fixture() for isolation (no writes to real project).
 # ============================================================
 
 @test "self-test: YOLO-like project detects as cli-tool" {
