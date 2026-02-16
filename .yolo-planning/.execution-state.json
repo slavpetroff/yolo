@@ -7,21 +7,101 @@
   "wave": 1,
   "total_waves": 2,
   "plans": [
-    {"id": "03-01", "title": "Validation & Generation Script Offloading", "wave": 1, "status": "pending"},
-    {"id": "03-02", "title": "Reference Package Reorganization", "wave": 1, "status": "pending"},
-    {"id": "03-03", "title": "Agent Tool Permission Adaptation", "wave": 2, "status": "pending"},
-    {"id": "03-04", "title": "Context Compiler & Protocol Integration", "wave": 2, "status": "pending"}
+    {
+      "id": "03-01",
+      "title": "Validation & Generation Script Offloading",
+      "wave": 1,
+      "status": "pending"
+    },
+    {
+      "id": "03-02",
+      "title": "Reference Package Reorganization",
+      "wave": 1,
+      "status": "pending"
+    },
+    {
+      "id": "03-03",
+      "title": "Agent Tool Permission Adaptation",
+      "wave": 2,
+      "status": "pending"
+    },
+    {
+      "id": "03-04",
+      "title": "Context Compiler & Protocol Integration",
+      "wave": 2,
+      "status": "pending"
+    }
   ],
   "steps": {
-    "critique": {"status": "complete", "started_at": "2026-02-16T20:10:00Z", "completed_at": "2026-02-16T20:12:00Z", "artifact": "critique.jsonl", "reason": ""},
-    "architecture": {"status": "complete", "started_at": "2026-02-16T20:13:00Z", "completed_at": "2026-02-16T20:17:00Z", "artifact": "architecture.toon", "reason": ""},
-    "planning": {"status": "complete", "started_at": "2026-02-16T20:00:00Z", "completed_at": "2026-02-16T20:05:00Z", "artifact": "03-*.plan.jsonl", "reason": ""},
-    "design_review": {"status": "complete", "started_at": "2026-02-16T20:18:00Z", "completed_at": "2026-02-16T20:25:00Z", "artifact": "enriched plan.jsonl files", "reason": ""},
-    "test_authoring": {"status": "skipped", "started_at": "", "completed_at": "", "artifact": "", "reason": "tests embedded in spec fields"},
-    "implementation": {"status": "running", "started_at": "2026-02-16T20:26:00Z", "completed_at": "", "artifact": "", "reason": ""},
-    "code_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
-    "qa": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
-    "security": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
-    "signoff": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""}
+    "critique": {
+      "status": "complete",
+      "started_at": "2026-02-16T20:10:00Z",
+      "completed_at": "2026-02-16T20:12:00Z",
+      "artifact": "critique.jsonl",
+      "reason": ""
+    },
+    "architecture": {
+      "status": "complete",
+      "started_at": "2026-02-16T20:13:00Z",
+      "completed_at": "2026-02-16T20:17:00Z",
+      "artifact": "architecture.toon",
+      "reason": ""
+    },
+    "planning": {
+      "status": "complete",
+      "started_at": "2026-02-16T20:00:00Z",
+      "completed_at": "2026-02-16T20:05:00Z",
+      "artifact": "03-*.plan.jsonl",
+      "reason": ""
+    },
+    "design_review": {
+      "status": "complete",
+      "started_at": "2026-02-16T20:18:00Z",
+      "completed_at": "2026-02-16T20:25:00Z",
+      "artifact": "enriched plan.jsonl files",
+      "reason": ""
+    },
+    "test_authoring": {
+      "status": "skipped",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": "tests embedded in spec fields"
+    },
+    "implementation": {
+      "status": "running",
+      "started_at": "2026-02-16T20:26:00Z",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "code_review": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "qa": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "security": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "signoff": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    }
   }
 }
