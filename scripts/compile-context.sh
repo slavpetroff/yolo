@@ -113,6 +113,40 @@ get_decisions() {
   fi
 }
 
+# --- Helper: get department conventions from generated or static TOON ---
+get_dept_conventions() {
+  # Map DEPT to generated TOON filename
+  local DEPT_TOON_FILE
+  case "$DEPT" in
+    backend) DEPT_TOON_FILE="backend.toon" ;;
+    fe)      DEPT_TOON_FILE="frontend.toon" ;;
+    ux)      DEPT_TOON_FILE="uiux.toon" ;;
+    shared)  return 0 ;;  # shared department has no generated conventions
+  esac
+
+  # Try generated path first (project-specific)
+  local GENERATED_DEPT_TOON="$PLANNING_DIR/departments/$DEPT_TOON_FILE"
+  if [ -f "$GENERATED_DEPT_TOON" ]; then
+    cat "$GENERATED_DEPT_TOON"
+    return 0
+  fi
+
+  # Fall back to static department TOON (extract conventions section only)
+  local STATIC_DEPT_TOON
+  case "$DEPT" in
+    backend) STATIC_DEPT_TOON="references/departments/backend.toon" ;;
+    fe)      STATIC_DEPT_TOON="references/departments/frontend.toon" ;;
+    ux)      STATIC_DEPT_TOON="references/departments/uiux.toon" ;;
+  esac
+  if [ -f "${STATIC_DEPT_TOON:-}" ]; then
+    awk '/^conventions:/,/^[a-z_]+:/{if(/^[a-z_]+:/ && !/^conventions:/) exit; print}' "$STATIC_DEPT_TOON"
+    return 0
+  fi
+
+  # Neither exists — silent backward-compatible return
+  return 0
+}
+
 # --- Helper: get architecture summary ---
 get_architecture() {
   local arch_file="$PHASE_DIR/architecture.toon"
@@ -214,6 +248,10 @@ ARCH_FILE=$(get_arch_file)
 ARCH_EXISTS=false; [ -f "$ARCH_FILE" ] && ARCH_EXISTS=true
 DECISIONS_EXISTS=false; [ -f "$PHASE_DIR/decisions.jsonl" ] && DECISIONS_EXISTS=true
 HAS_CODEBASE=false; [ -d "$PLANNING_DIR/codebase" ] && HAS_CODEBASE=true
+DEPT_CONVENTIONS_AVAILABLE=false
+if [ -f "$PLANNING_DIR/departments/${DEPT_TOON_FILE:-}" ] || [ "$DEPT" != "shared" ]; then
+  DEPT_CONVENTIONS_AVAILABLE=true
+fi
 
 # --- Department-aware header (adds department tag to context) ---
 emit_header() {
