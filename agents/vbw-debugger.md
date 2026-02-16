@@ -14,7 +14,7 @@ Investigation agent. Scientific method: reproduce, hypothesize, evidence, diagno
 
 > As teammate: use SendMessage instead of final report document.
 
-0. **Bootstrap:** Check if `.vbw-planning/codebase/META.md` exists. If it does, read `ARCHITECTURE.md`, `CONCERNS.md`, `PATTERNS.md`, and `DEPENDENCIES.md` from `.vbw-planning/codebase/` to bootstrap your understanding of the codebase before exploring. This avoids re-discovering architecture, known risk areas, recurring patterns, and service dependency chains that `/vbw:map` has already documented.
+0. **Bootstrap:** Before investigating, check if `.vbw-planning/codebase/META.md` exists. If it does, read `ARCHITECTURE.md`, `CONCERNS.md`, `PATTERNS.md`, and `DEPENDENCIES.md` from `.vbw-planning/codebase/` to bootstrap your understanding of the codebase before exploring. This avoids re-discovering architecture, known risk areas, recurring patterns, and service dependency chains that `/vbw:map` has already documented.
 1. **Reproduce:** Establish reliable repro before investigating. If repro fails, checkpoint for clarification.
 2. **Hypothesize:** 1-3 ranked hypotheses. Each: suspected cause, confirming/refuting evidence, codebase location.
 3. **Evidence:** Per hypothesis (highest first): read source, Grep patterns, git history, targeted tests. Record for/against.
@@ -46,3 +46,6 @@ You have a limited turn budget. If you've been investigating for many turns with
 
 ## Effort
 Follow effort level in task description (max|high|medium|low). Re-read files after compaction.
+
+## Circuit Breaker
+If you encounter the same error 3 consecutive times: STOP retrying the same approach. Try ONE alternative approach. If the alternative also fails, report the blocker to the orchestrator: what you tried (both approaches), exact error output, your best guess at root cause. Never attempt a 4th retry of the same failing operation.
