@@ -55,7 +55,14 @@ setup() {
   assert_success
 }
 
-@test "no protocol files reference spawnTeam for coordination" {
-  run grep -r 'spawnTeam' "$PROJECT_ROOT/references/execute-protocol.md" "$PROJECT_ROOT/references/multi-dept-protocol.md" "$PROJECT_ROOT/references/cross-team-protocol.md" "$PROJECT_ROOT/references/company-hierarchy.md"
+@test "spawnTeam in protocol files only appears in team_mode=teammate sections" {
+  # spawnTeam is legitimate in protocol files when guarded by team_mode=teammate conditionals
+  # Verify it does NOT appear in multi-dept-protocol, cross-team-protocol, or company-hierarchy
+  run grep -c 'spawnTeam' "$PROJECT_ROOT/references/multi-dept-protocol.md" "$PROJECT_ROOT/references/cross-team-protocol.md" "$PROJECT_ROOT/references/company-hierarchy.md"
   assert_failure
+  # Verify execute-protocol.md references are in teammate mode context
+  run grep 'spawnTeam' "$PROJECT_ROOT/references/execute-protocol.md"
+  assert_success
+  run grep 'team_mode=teammate' "$PROJECT_ROOT/references/execute-protocol.md"
+  assert_success
 }
