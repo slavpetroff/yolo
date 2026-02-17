@@ -38,7 +38,7 @@ If `test-plan.jsonl` exists in phase directory:
    - Node: `npm test` or `npx jest` or `npx vitest`
    - Python: `pytest` or `python -m unittest`
    - Go: `go test ./...`
-   - Shell: check for test scripts in scripts/ or tests/
+   - Shell/bats: `bash scripts/test-summary.sh` (outputs `PASS (N tests)` or `FAIL (F/N failed)` with failure details in one run — never invoke bats directly)
    - Record: pass count, fail count, skip count.
 2. **Linter**: Detect and run existing linters.
    - Check for: .eslintrc*, .prettierrc*, ruff.toml, .flake8, .golangci.yml, shellcheck

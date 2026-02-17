@@ -7,7 +7,7 @@
   "visual_format": "unicode",
   "max_tasks_per_plan": 5,
   "agent_teams": true,
-  "team_mode": "task",
+  "team_mode": "auto",
   "branch_per_milestone": false,
   "plain_summary": true,
   "model_profile": "balanced",

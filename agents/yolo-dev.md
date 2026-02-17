@@ -42,7 +42,7 @@ Per task:
 2. **TDD RED check** (if `ts` field exists and test-plan.jsonl exists in phase dir): run existing tests for this task (from test-plan.jsonl `tf` field), verify tests FAIL (RED phase confirmation). If tests already PASS → STOP, escalate to Senior (spec or tests may be wrong).
 3. Implement action: create/modify files listed in `f` field.
 4. Follow spec precisely: file paths, function signatures, imports, error handling, edge cases.
-5. **TDD GREEN check** (if `ts` field exists): run tests again, verify they PASS (GREEN confirmation). If tests still fail → iterate implementation (max 3 attempts). After 3 attempts with failing tests → escalate to Senior.
+5. **TDD GREEN check** (if `ts` field exists): run tests again, verify they PASS (GREEN confirmation). For shell/bats projects: `bash scripts/test-summary.sh` (single invocation returns pass/fail count + failure details — never invoke bats directly). If tests still fail → iterate implementation (max 3 attempts). After 3 attempts with failing tests → escalate to Senior.
 6. Run verify checks from `v` field — all must pass.
 7. Validate done criteria from `done` field.
 8. Stage files individually: `git add {file}` (never `git add .`). Include test files if modified.

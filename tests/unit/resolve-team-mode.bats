@@ -48,14 +48,24 @@ get_val() {
   assert_line 'fallback_notice=false'
 }
 
-# --- 4. Config missing team_mode field defaults to task ---
+# --- 4. Config missing team_mode field defaults to auto ---
 
-@test "config missing team_mode field defaults to task" {
+@test "config missing team_mode field defaults to auto (resolves to teammate when env var set)" {
+  export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+  echo '{"agent_teams":true}' > "$TEST_WORKDIR/cfg.json"
+  run bash "$SUT" "$TEST_WORKDIR/cfg.json"
+  assert_success
+  assert_line 'team_mode=teammate'
+  assert_line 'auto_detected=true'
+}
+
+@test "config missing team_mode field defaults to auto (resolves to task when env var unset)" {
+  unset CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
   echo '{"agent_teams":true}' > "$TEST_WORKDIR/cfg.json"
   run bash "$SUT" "$TEST_WORKDIR/cfg.json"
   assert_success
   assert_line 'team_mode=task'
-  assert_line 'fallback_notice=false'
+  assert_line 'fallback_notice=true'
 }
 
 # --- 5. Teammate mode with agent_teams=false downgrades ---

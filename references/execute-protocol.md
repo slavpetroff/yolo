@@ -478,7 +478,7 @@ When team_mode=task: Dev-written summary.jsonl is verified (unchanged behavior):
    > ```
    > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-qa-code.toon). See D4 in architecture for soft enforcement details.
 
-7. QA Code runs TDD compliance (Phase 0), tests, lint, patterns. Produces qa-code.jsonl. Commits: `docs({phase}): code quality review`
+7. QA Code runs TDD compliance (Phase 0), tests, lint, patterns. For shell/bats projects: `bash scripts/test-summary.sh` (single invocation, outputs `PASS (N tests)` or `FAIL (F/N failed)` with details — never invoke bats directly). Produces qa-code.jsonl. Commits: `docs({phase}): code quality review`
 
 **Result handling:**
 - Both PASS → Manual QA (if enabled) → Step 10 (or Step 11 if security disabled)

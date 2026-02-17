@@ -24,7 +24,7 @@ if [ ! -f "$CONFIG" ]; then
   exit 0
 fi
 
-IFS='|' read -r TEAM_MODE AGENT_TEAMS <<< "$(jq -r '[(.team_mode // "task"), (if .agent_teams == null then true else .agent_teams end | tostring)] | join("|")' "$CONFIG")"
+IFS='|' read -r TEAM_MODE AGENT_TEAMS <<< "$(jq -r '[(.team_mode // "auto"), (if .agent_teams == null then true else .agent_teams end | tostring)] | join("|")' "$CONFIG")"
 
 FALLBACK_NOTICE="false"
 

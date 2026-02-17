@@ -33,7 +33,7 @@ print_defaults() {
   echo "config_security_audit=false"
   echo "config_approval_qa_fail=false"
   echo "config_approval_security_warn=false"
-  echo "config_team_mode=task"
+  echo "config_team_mode=auto"
   echo "has_codebase_map=false"
   echo "brownfield=false"
   echo "execution_state=none"
@@ -182,7 +182,7 @@ if [ "$JQ_AVAILABLE" = true ] && [ -f "$CONFIG_FILE" ]; then
       (.security_audit // false | tostring),
       (.approval_gates.qa_fail // false | tostring),
       (.approval_gates.security_warn // false | tostring),
-      (.team_mode // "task")
+      (.team_mode // "auto")
     ] | join("|")' "$CONFIG_FILE" 2>/dev/null)"
 fi
 

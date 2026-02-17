@@ -146,7 +146,7 @@ setup_stub_bin() {
   run_session_start
   assert_success
   run jq -r '.team_mode' "$TEST_WORKDIR/.yolo-planning/config.json"
-  assert_output "task"
+  assert_output "auto"
 }
 
 # --- 9. Next action suggests /yolo:init when PROJECT.md missing ---

@@ -22,7 +22,7 @@ if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ] && [ ! -f "$MIGR
   fi
   if ! jq -e '.team_mode' "$PLANNING_DIR/config.json" >/dev/null 2>&1; then
     TMP=$(mktemp)
-    jq '. + {team_mode: "task"}' "$PLANNING_DIR/config.json" > "$TMP" && mv "$TMP" "$PLANNING_DIR/config.json"
+    jq '. + {team_mode: "auto"}' "$PLANNING_DIR/config.json" > "$TMP" && mv "$TMP" "$PLANNING_DIR/config.json"
   fi
   touch "$MIGRATE_MARKER" 2>/dev/null
 fi
