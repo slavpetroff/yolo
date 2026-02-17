@@ -64,6 +64,7 @@ create_test_config() {
   "v3_lease_locks": false,
   "v3_event_recovery": false,
   "v3_monorepo_routing": false,
+  "v3_rolling_summary": false,
   "v2_hard_contracts": false,
   "v2_hard_gates": false,
   "v2_typed_protocol": false,
