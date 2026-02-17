@@ -122,6 +122,22 @@ Full patterns: @references/teammate-api-patterns.md
 - Artifact formats (enriched plan.jsonl, code-review.jsonl) unchanged
 - Decision logging unchanged
 
+## Parallel Review (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task, UX Senior reviews plans sequentially as assigned by UX Lead.
+
+When team_mode=teammate, multiple UX Senior instances may be dispatched concurrently by UX Lead to review different plans in the same wave. This applies to BOTH Design Review (Step 4) and Code Review (Step 7).
+
+### Concurrent Operation Rules
+
+1. Each UX Senior instance receives exactly ONE plan.jsonl file. No UX Senior reviews multiple plans.
+2. No shared state between concurrent UX Seniors. Each writes to its own plan.jsonl file (design review) or its own code-review.jsonl file (code review). No cross-plan coordination needed.
+3. UX Senior sends senior_spec (design review) or code_review_result (code review) to UX Lead when complete. UX Lead collects all results before proceeding.
+4. Parallel dispatch activates only when the current wave has 2+ plans. Single-plan waves dispatch one UX Senior directly (no parallel coordination overhead).
+5. The Design Review protocol (Mode 1) and Code Review protocol (Mode 2) documented above are unchanged -- parallel dispatch affects how UX Lead spawns UX Seniors, not how UX Senior operates internally.
+
+See references/execute-protocol.md Step 4 and Step 7 for Lead-side parallel dispatch logic.
+
 ## Context
 
 | Receives | NEVER receives |
