@@ -123,6 +123,46 @@ Lead decides              → Accept with known issues OR escalate to Architect
 
 See @references/execute-protocol.md ## Change Management for full protocol.
 
+### Escalation Round-Trip (Full Bidirectional Flow)
+
+Complete path for a Dev blocker that requires user input and the resolution flowing back down.
+
+**UPWARD PATH (Blocker to User):**
+
+```
+Dev          -> Senior       -> Lead         -> Architect/Owner -> go.md -> User
+(dev_blocker)  (escalation)   (escalation)    (structured opts)   (AskUserQuestion)
+```
+
+| Level | Agent | Transformation | Output |
+|-------|-------|---------------|--------|
+| 1 | Dev | Reports blocker with evidence of what was tried | `dev_blocker` schema |
+| 2 | Senior | Adds spec context, attempts resolution. If cannot: adds assessment | `escalation` schema to Lead |
+| 3 | Lead | Checks decision authority. If beyond scope: adds Lead assessment | `escalation` schema to Architect/Owner |
+| 4 | Architect | Evaluates design impact, constructs 2-3 concrete options | Structured escalation with options array |
+| 4a | Owner (multi-dept) | Checks cross-department implications, routes to go.md | Escalation context to go.md |
+| 5 | go.md | Formats for user, presents via AskUserQuestion | User sees blocker + options |
+
+**DOWNWARD PATH (Resolution to Dev):**
+
+```
+User -> go.md -> Owner/Architect -> Lead         -> Senior       -> Dev
+(choice) (escalation_resolution)   (forward)       (translate)     (resume)
+```
+
+| Level | Agent | Transformation | Output |
+|-------|-------|---------------|--------|
+| 1 | go.md | Packages user choice as escalation_resolution | `escalation_resolution` schema |
+| 2 | Owner (multi-dept) | Adds strategic context, identifies target dept Lead | Enriched resolution |
+| 2a | Architect (single-dept) | Updates architecture.toon if decision affects design | Resolution + architecture update |
+| 3 | Lead | Routes to originating Senior, updates .execution-state.json | Forward resolution to Senior |
+| 4 | Senior | Translates resolution to Dev instructions: spec update or code_review_changes | `code_review_changes` schema |
+| 5 | Dev | Applies resolution, resumes blocked task | Commit with escalation reference |
+
+**Verification at each level:** Each agent confirms the resolution was received and acted on by the next level down before marking its part complete. Senior waits for Dev's dev_progress. Lead waits for Senior's confirmation. The escalation entry in .execution-state.json is only marked "resolved" after Dev resumes.
+
+**Timeout protection:** If any level does not respond within `escalation.timeout_seconds`, auto-escalation fires to the next level up. Max `escalation.max_round_trips` cycles per escalation id.
+
 ## Decision Authority Matrix (STRICT — STAY IN YOUR LANE)
 
 Each agent has a defined area of capability. Questions or decisions outside that area MUST escalate up the chain. The receiving agent either handles it (if in their area) or escalates further. Escalation carries context from the lower agent upward.
