@@ -2,6 +2,29 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [1.21.29] - 2026-02-17
+
+### Added
+
+- **`shutdown-protocol`** -- Agent shutdown request/response schema and handlers for all agents. Message types `shutdown_request`/`shutdown_response` added to `message-schemas.json`. Agents gracefully terminate on orchestrator request. 4 rounds of QA hardening. (PR #90 by @dpearson2699)
+- **`codebase-mapping`** -- Bootstrap codebase mapping for dev, qa, lead, and architect agents. Agents now reference PATTERNS.md, DEPENDENCIES.md, ARCHITECTURE.md, and CONCERNS.md from `.vbw-planning/codebase/` when available. (#78, #79, #80, #81 by @dpearson2699)
+- **`list-todos`** -- New `/vbw:list-todos` command to browse and act on pending todos with milestone context resolution.
+- **`config`** -- Effort-aware agent `maxTurns` resolution. Unlimited turns via `0`/`false`. Documented in README.
+
+### Changed
+
+- **`todos`** -- Migrated from `### Pending Todos` to flat `## Todos` structure. Todo extraction delegated to `list-todos.sh` for token efficiency.
+- **`vibe`** -- Scout returns findings to orchestrator instead of writing files directly. Add/Insert Phase modes now load codebase mapping. Strengthened Lead shutdown HARD GATE with compaction-resilient verification and pre-chain checks.
+- **`execute`** -- Post-summary improvisation blocked with STOP + Discovered Issues pattern. Post-shutdown verification gate added for Pure-Vibe loop safety.
+- **`readme`** -- Updated hook diagram for SubagentStart/Stop hardening, added Agent Turn Limits section.
+
+### Fixed
+
+- **`hooks`** -- Isolation marker lifecycle causing false blocks. Compaction and session-stop marker races. CLAUDE_PLUGIN_ROOT fallback for `--plugin-dir` installs. Role alias normalization and concurrency hardening for agent-start/stop. YAML frontmatter context required for expanded VBW command detection. Security-filter path-based root resolution with stale TTL. Commit keyword matching skipped for role-only task subjects. Docs role added to lifecycle hook matchers and token budgets. 14 regression tests added.
+- **`hooks`** -- Missing `hookEventName` in session-start.sh and blocker-notify.sh. Skip commit gate for `[analysis-only]` tasks.
+- **`agents`** -- Lead shutdown gates strengthened to prevent tmux pane accumulation. PR review diff-vs-repo rule added to CLAUDE.md.
+- **`commands`** -- CLAUDE_PLUGIN_ROOT resolution in model-executed contexts. Slug validation and milestone resolution alignment in pause.md.
+
 ## [1.21.28] - 2026-02-16
 
 ### Added
