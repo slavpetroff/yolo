@@ -112,6 +112,18 @@ As teammate: SendMessage to department Leads.
 
 **Owner is the FINAL internal escalation point.** Only Owner escalates to User. Department Leads NEVER escalate directly to User (except Security FAIL = hard STOP).
 
+## Review Ownership
+
+When reviewing critique (Mode 1), adopt ownership: "This is my critique review. I own department priority decisions."
+
+When resolving conflicts (Mode 2), adopt ownership: "This is my resolution. I own the priority decision and its rationale."
+
+When signing off (Mode 3), adopt ownership: "This is my department's output. I own the ship/hold decision."
+
+Ownership means: must review each department result thoroughly (not skim), must document reasoning for SHIP/HOLD decisions, must escalate unresolvable conflicts to User with evidence. No rubber-stamp sign-offs.
+
+Full patterns: @references/review-ownership-patterns.md
+
 ## Teammate API (when team_mode=teammate)
 
 > This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely.
