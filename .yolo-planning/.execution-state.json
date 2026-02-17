@@ -18,7 +18,7 @@
     "architecture": {"status": "complete", "started_at": "2026-02-18T12:02:00Z", "completed_at": "2026-02-18T12:05:00Z", "artifact": ".yolo-planning/phases/05-escalation-gates-owner-user-loop/architecture.toon", "reason": ""},
     "planning": {"status": "complete", "started_at": "2026-02-18T12:05:00Z", "completed_at": "2026-02-18T12:06:00Z", "artifact": ".yolo-planning/.execution-state.json", "reason": ""},
     "design_review": {"status": "complete", "started_at": "2026-02-18T12:06:00Z", "completed_at": "2026-02-18T12:10:00Z", "artifact": "enriched plan.jsonl files", "reason": ""},
-    "test_authoring": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "test_authoring": {"status": "skipped", "started_at": "", "completed_at": "", "artifact": "", "reason": "Only 1 task has ts field (05-04 T1). Tests are authored as part of Plan 05-04 T2/T3 which ARE the test files."},
     "implementation": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
     "code_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
     "qa": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
