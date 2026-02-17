@@ -43,10 +43,31 @@ Registration order within a step: architect before senior before dev (earlier te
 
 ### Shutdown Protocol
 
-Two-phase shutdown:
-1. Lead sends `shutdown_request` message to all teammates via SendMessage.
-2. Each teammate completes current work, commits artifacts, sends `shutdown_response` with status.
-3. Lead verifies all teammates responded, then terminates team.
+Two-phase shutdown with timeout handling and verification:
+
+**Phase 1: Request**
+1. Lead sends `shutdown_request` message to ALL registered teammates via SendMessage.
+2. Include `deadline_seconds` (default: 30) and `reason` (phase_complete, timeout, or error).
+3. Start a deadline timer for each teammate.
+
+**Phase 2: Collection**
+4. Collect `shutdown_response` from each teammate.
+5. For each response, check `status` field:
+   - `clean`: Teammate completed work and committed artifacts. Ideal outcome.
+   - `in_progress`: Teammate could not finish within deadline. Log pending_work to summary.jsonl `dv` (deviations) field.
+   - `error`: Teammate encountered an error during shutdown. Log error details.
+6. **Timeout handling:** If a teammate does not respond within `deadline_seconds`:
+   - Log: "[SHUTDOWN] Timeout: {agent_id} did not respond within {deadline_seconds}s."
+   - Mark teammate as timed_out in shutdown tracking.
+   - Do NOT block on the non-responsive teammate -- proceed with other responses.
+7. **Verification checklist:** After deadline expires, Lead verifies:
+   - All teammates either responded or timed out (no unaccounted agents).
+   - All `artifacts_committed: true` responses are verified via `git status` (clean for team files).
+   - Any `in_progress` work is logged to summary.jsonl deviations.
+8. **Error recovery:** If the shutdown protocol itself fails (e.g., SendMessage unavailable):
+   - Lead force-proceeds with artifact verification (git status, summary.jsonl).
+   - Lead logs: "[SHUTDOWN] Protocol failed, force-proceeding with cleanup."
+   - Any uncommitted work is logged as deviation.
 
 shutdown_request schema:
 ```json
