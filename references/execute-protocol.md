@@ -193,11 +193,22 @@ Every step in the 11-step workflow below MUST follow these templates. Entry gate
 3. Display: `◆ Spawning Architect (${ARCHITECT_MODEL})...` → `✓ Architecture complete`
 4. Verify: architecture.toon exists in phase directory.
 5. Architect addresses critique.jsonl findings (updates `st` field) and commits: `docs({phase}): architecture design`
-6. **EXIT GATE:** Artifact: `architecture.toon` (non-empty). State: `steps.architecture = complete`. Commit: `chore(state): architecture complete phase {N}`.
+6. **EXIT GATE:** Artifact: `architecture.toon` (non-empty, meets completeness criteria per references/rnd-handoff-protocol.md ## Architect->Lead Stage-Gate). Completeness: tech_decisions present, components defined, integration_points specified, risks documented, critique_disposition complete. State: `steps.architecture = complete`. Commit: `chore(state): architecture complete phase {N}`.
 
 ### Step 4: Load Plans and Detect Resume State
 
 **ENTRY GATE:** Verify `{phase-dir}/architecture.toon` exists OR `steps.architecture.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 3 artifact missing — architecture.toon not found. Run step 3 first."
+
+**Stage-gate validation (per references/rnd-handoff-protocol.md):** Lead validates architecture.toon completeness:
+1. tech_decisions section exists with at least one decision
+2. components section exists with at least one component
+3. risks section exists
+4. If critique.jsonl exists: all findings have `st` != `"open"` (all addressed/deferred/rejected)
+
+Gate decision:
+- **Go**: All criteria met. Proceed to planning.
+- **Recycle**: Criteria incomplete. Escalate to Architect with specific gaps via `escalation` schema. STOP until Architect resubmits.
+- **Kill**: Phase should be deferred. Escalate to Architect -> User.
 
 1. Glob `*.plan.jsonl` in phase dir. Read each plan header (line 1, parse with jq).
 2. Check existing summary.jsonl files (complete plans).
@@ -594,7 +605,7 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 |------|-----------|----------------|---------------|---------------|----------------|
 | 1. Critique | `critique` | Phase dir exists | `critique.jsonl` | `docs({phase}): critique and gap analysis` | `--effort=turbo`, critique.jsonl exists |
 | 2. Research | `research` | `critique.jsonl` OR step 1 skipped | `research.jsonl` | `docs({phase}): research findings` | `--effort=turbo` |
-| 3. Architecture | `architecture` | `research.jsonl` OR step 2 skipped | `architecture.toon` | `docs({phase}): architecture design` | architecture.toon exists |
+| 3. Architecture | `architecture` | `research.jsonl` OR step 2 skipped | `architecture.toon` (completeness validated per rnd-handoff-protocol.md) | `docs({phase}): architecture design` | architecture.toon exists |
 | 4. Load Plans | `planning` | `architecture.toon` OR step 3 skipped | `.execution-state.json` + `*.plan.jsonl` | `chore(state): execution state phase {N}` | NONE (mandatory) |
 | 5. Design Review | `design_review` | `*.plan.jsonl` exists | enriched `plan.jsonl` (all tasks have `spec`) | `docs({phase}): enrich plan {NN-MM} specs` | NONE (mandatory) |
 | 6. Test Authoring | `test_authoring` | enriched `plan.jsonl` with `spec` fields | `test-plan.jsonl` + test files | `test({phase}): RED phase tests for plan {NN-MM}` | `--effort=turbo`, no `ts` fields |
@@ -607,6 +618,48 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 Each transition commits `.execution-state.json` so resume works on exit. Schema: see Step 4 item 7 above. Per-step status values: `"pending"`, `"running"`, `"complete"`, `"skipped"`. The `reason` field is populated only for skipped steps.
 
 **Multi-department note:** When `multi_dept=true`, `.phase-orchestration.json` is created alongside `.execution-state.json` and tracks per-department status and gate state. See ## Multi-Department Execution above for schema.
+
+## Change Management
+
+Formalizes the Senior-Dev revision cycle and classification system. Referenced by agents/yolo-senior.md and agents/yolo-dev.md.
+
+### Senior-Dev Revision Cycle
+
+When Senior's code review requests changes (Step 8):
+1. Senior classifies findings as **Minor** or **Major**:
+   - **Minor**: Nits, style, naming, formatting. Does not affect logic or architecture.
+   - **Major**: Logic errors, missing error handling, architecture violations, security issues.
+2. Senior sends `code_review_changes` to Dev with exact fix instructions.
+3. Dev fixes per instructions precisely -- no creative interpretation.
+4. Dev recommits and Senior re-reviews (cycle 2).
+
+### Cycle Limits and Escalation
+
+- **Cycle 1 (Minor only)**: If ALL findings are Minor (nits), Senior auto-approves after Dev fixes. No cycle 2 needed.
+- **Cycle 1 (Major findings)**: Dev fixes, Senior re-reviews in cycle 2.
+- **Cycle 2 (still failing)**: Senior escalates to Lead via `escalation` schema.
+- **Lead decision**: Accept with known issues (mark as accepted_risk in code-review.jsonl) OR escalate to Architect for design change.
+
+### Collaborative Relationship (per R7)
+
+Senior-Dev relationship is collaborative, not gatekeeping:
+- Senior sends suggestions and exact fix instructions
+- Dev retains decision power within spec boundaries
+- If Dev disagrees with a finding: Dev documents rationale and Senior considers it
+- Senior can override only on Major findings with documented reasoning
+
+### Phase 4 Metric Collection Hooks
+
+The following metrics are collected at each review cycle for Phase 4 continuous QA instrumentation:
+- `cycle_count`: Number of review cycles for this plan (1 or 2)
+- `finding_severity_distribution`: Count of critical/major/minor/nit findings per cycle
+- `time_per_cycle`: Timestamp delta between code_review_changes sent and Dev recommit
+- `escalation_triggered`: Boolean -- did cycle 2 trigger Lead escalation?
+
+Phase 4 can instrument at these hook points without modifying Phase 3 artifacts. Hooks are observation points (metric recording), not control points (decision gates).
+
+See @references/company-hierarchy.md ## Code Review Chain for the escalation path.
+See @references/rnd-handoff-protocol.md for the R&D pipeline handoff.
 
 ## Multi-Department Execution
 
