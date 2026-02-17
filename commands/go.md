@@ -273,7 +273,12 @@ If `planning_dir_exists=false`: STOP "YOLO is not set up yet. Run /yolo:init to 
 
       Display per lead: `◆ Spawning {Dept} Lead ({model})...` -> `✓ {Dept} Lead complete`
 
-      **Team mode routing:** When `team_mode=teammate`, replace Task tool calls with Teammate API team creation. Each department Lead is spawned as a Teammate API team lead via spawnTeam (team name: `yolo-{dept}`, description: `{Dept} engineering team for phase {N}: {phase-name}`). The Lead then registers its specialists (architect, senior, dev) as teammates within the team. When `team_mode=task`, spawn Leads via Task tool as currently documented (no change). Include `team_mode={value}` in every Lead's spawn context so the Lead knows which mode to operate in.
+      **Team mode routing:** When `team_mode=teammate`, replace Task tool calls with Teammate API team creation. Each department Lead is spawned as a Teammate API team lead via spawnTeam (team name: `yolo-{dept}`, description: `{Dept} engineering team for phase {N}: {phase-name}`). The Lead then registers its core specialists (architect, senior, dev) as teammates at team creation. Additional specialists are registered on-demand at workflow step boundaries: tester at step 5, qa + qa-code at step 8, security at step 9 (backend team only -- FE/UX teams have no security agent). Full team rosters:
+      - **Backend (yolo-backend):** architect, senior, dev, tester, qa, qa-code, security (7 specialists)
+      - **Frontend (yolo-frontend):** architect, senior, dev, tester, qa, qa-code (6 specialists)
+      - **UI/UX (yolo-uiux):** architect, senior, dev, tester, qa, qa-code (6 specialists)
+      Shutdown protocol: on phase completion, each Lead sends `shutdown_request` to all registered teammates, waits for `shutdown_response`, then finalizes artifacts. See `references/teammate-api-patterns.md` ## Shutdown Protocol.
+      When `team_mode=task`, spawn Leads via Task tool as currently documented (no change). Include `team_mode={value}` in every Lead's spawn context so the Lead knows which mode to operate in.
 
    e. **Owner plan review (balanced/thorough effort only, when `owner_active=true`):**
       Spawn yolo-owner (model from 6b) with `owner_review` mode + all dept plan.jsonl files + reqs.jsonl + dept config.
@@ -312,7 +317,7 @@ This mode delegates to protocol files. Before reading:
 
 **Routing (based on `multi_dept` from resolve-departments.sh above):**
 
-**Team mode:** `team_mode` from resolve-team-mode.sh determines agent spawn mechanism. Pass `team_mode` value to execute-protocol.md. When `team_mode=teammate`, top-level agent spawning (go.md -> department Leads) uses Teammate API instead of Task tool. Within-team spawning (Lead -> Senior, Lead -> Dev) is handled by agent prompt conditionals per references/teammate-api-patterns.md. When `team_mode=task`, all spawn behavior is unchanged (Task tool throughout).
+**Team mode:** `team_mode` from resolve-team-mode.sh determines agent spawn mechanism. Pass `team_mode` value to execute-protocol.md. When `team_mode=teammate`, top-level agent spawning (go.md -> department Leads) uses Teammate API instead of Task tool. Each department gets one team: yolo-backend, yolo-frontend, yolo-uiux. Department Leads register core specialists (architect, senior, dev) at team creation and additional specialists on-demand: tester at step 5, qa + qa-code at step 8, security at step 9 (backend only). Within-team spawning (Lead -> specialists) uses SendMessage per references/teammate-api-patterns.md. When `team_mode=task`, all spawn behavior is unchanged (Task tool throughout).
 
 - **Single department (`multi_dept=false`):**
   Read `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` and follow its 10-step company workflow (Critique → Architecture → Planning → Design Review → Test Authoring RED → Implementation → Code Review → QA → Security → Sign-off). See `references/company-hierarchy.md` for agent hierarchy.
@@ -326,7 +331,7 @@ This mode delegates to protocol files. Before reading:
 
   Resolve all dept agent models via `resolve-agent-model.sh` with dept-prefixed names. Compile context per dept via `compile-context.sh`.
 
-  When `team_mode=teammate`: department Leads are created as Teammate API team leads (replacing background Task subagents). Each Lead creates a team via spawnTeam, registers teammates, and coordinates via SendMessage instead of file-based sentinel polling. Gate satisfaction shifts from file polling (dept-gate.sh) to SendMessage-based status reporting. When `team_mode=task`: all multi-department coordination uses file-based gates and Task tool as currently documented.
+  When `team_mode=teammate`: department Leads are created as Teammate API team leads (replacing background Task subagents). Each Lead creates a team via spawnTeam, registers core specialists (architect, senior, dev) as teammates at creation, then registers additional specialists on-demand at workflow step boundaries: tester at step 5, qa + qa-code at step 8, security at step 9 (backend only). Leads coordinate with their specialists via SendMessage instead of file-based artifacts. Gate satisfaction shifts from file polling (dept-gate.sh) to SendMessage-based status reporting. Shutdown protocol: on phase completion, Lead sends shutdown_request to all teammates, waits for shutdown_response from each. When `team_mode=task`: all multi-department coordination uses file-based gates and Task tool as currently documented.
 
 ### Mode: Add Phase
 

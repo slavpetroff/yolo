@@ -550,11 +550,20 @@ Each transition commits `.execution-state.json` so resume works on exit. Schema:
          - name: "yolo-{dept}" (e.g., yolo-backend, yolo-frontend, yolo-uiux)
          - description: "{Dept} engineering team for phase {N}: {phase-name}"
        Register Lead as team lead (automatic with spawnTeam)
-       Lead registers specialists (architect, senior, dev) as teammates
+       Lead registers core specialists (architect, senior, dev) as teammates at creation
+       Lead registers additional specialists on-demand at workflow step boundaries:
+         - Step 5 (test authoring): register tester as teammate
+         - Step 8 (QA): register qa + qa-code as teammates
+         - Step 9 (security): register security as teammate (backend team ONLY)
+       Full team rosters:
+         - Backend (yolo-backend): architect, senior, dev, tester, qa, qa-code, security (7)
+         - Frontend (yolo-frontend): architect, senior, dev, tester, qa, qa-code (6)
+         - UI/UX (yolo-uiux): architect, senior, dev, tester, qa, qa-code (6)
        Lead coordinates via SendMessage instead of file-based artifacts
        On completion: Lead sends department_result via SendMessage to go.md
+       Shutdown: Lead sends shutdown_request to all teammates, waits for shutdown_response
      ```
-     Cross-team coordination between departments still uses file-based handoff artifacts (api-contracts.jsonl, design-handoff.jsonl) because Leads are in DIFFERENT teams. SendMessage only works within a team. See `references/teammate-api-patterns.md` ## Cross-Team Communication.
+     Cross-team coordination between departments still uses file-based handoff artifacts (api-contracts.jsonl, design-handoff.jsonl) because Leads are in DIFFERENT teams. SendMessage only works within a single team. Since each department is its own team, inter-department coordination cannot use SendMessage. This is by design -- it enforces the same strict context isolation that file-based gates provide. See `references/teammate-api-patterns.md` ## Cross-Team Communication.
 
 4. **Poll for gate satisfaction:**
    After spawning a wave, enter polling loop:
@@ -576,7 +585,7 @@ Each transition commits `.execution-state.json` so resume works on exit. Schema:
    ```
    Interval: 500ms (sleep 0.5). Timeout: configurable (default 30 minutes).
 
-   **Teammate mode note:** When `team_mode=teammate`, gate satisfaction shifts from file polling to SendMessage-based status reporting. Department Leads send completion signals via SendMessage to go.md instead of writing sentinel files. The polling loop above applies only to `team_mode=task`. In teammate mode, go.md receives department completion asynchronously via teammate message delivery.
+   **Teammate mode note:** When `team_mode=teammate`, gate satisfaction shifts from file polling to SendMessage-based status reporting. Department Leads send completion signals via SendMessage to go.md instead of writing sentinel files. The polling loop above applies only to `team_mode=task`. In teammate mode, go.md receives department_result messages asynchronously via teammate message delivery. Cross-department gates (ux-complete, api-contract, all-depts) still use file-based validation via dept-gate.sh because cross-team SendMessage is not possible.
 
 5. **On all departments complete:**
    - Verify via `dept-gate.sh --gate all-depts --phase-dir {phase-dir}`
