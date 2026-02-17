@@ -422,6 +422,16 @@ Failure to shut down leaves agents running in the background, consuming API cred
 
 **Control Plane cleanup:** Lock and token state cleanup already handled by existing V3 Lock-Lite and Token Budget cleanup blocks.
 
+**V3 Rolling Summary (REQ-03):** If `v3_rolling_summary=true` in config:
+- After TeamDelete (team fully shut down), before phase_end event log:
+  ```bash
+  bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-rolling-summary.sh \
+    .vbw-planning/phases .vbw-planning/ROLLING-CONTEXT.md 2>/dev/null || true
+  ```
+  This compiles all completed SUMMARY.md files into a condensed digest for the next phase's agents.
+  Fail-open: if script errors, log warning and continue — never block phase completion.
+- When `v3_rolling_summary=false` (default): skip this step silently.
+
 **V3 Event Log — phase end (REQ-16):** If `v3_event_log=true` in config:
 - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh phase_end {phase} plans_completed={N} total_tasks={N} 2>/dev/null || true`
 
