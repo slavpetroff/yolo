@@ -83,10 +83,10 @@
       "reason": ""
     },
     "code_review": {
-      "status": "pending",
-      "started_at": "",
-      "completed_at": "",
-      "artifact": "",
+      "status": "complete",
+      "started_at": "2026-02-18T12:30:00Z",
+      "completed_at": "2026-02-18T12:35:00Z",
+      "artifact": ".yolo-planning/phases/05-escalation-gates-owner-user-loop/code-review.jsonl",
       "reason": ""
     },
     "qa": {
