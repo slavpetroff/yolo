@@ -426,6 +426,25 @@ When team_mode=task: Dev-written summary.jsonl is verified (unchanged behavior):
 2. If missing: message Dev to write it. If unavailable: write from git log.
 3. Only after verification: mark plan `"complete"` in .execution-state.json.
 
+**Post-plan QA Gate (after plan completion):**
+
+After all tasks in a plan complete and summary.jsonl is written and verified, run the post-plan QA gate before proceeding to the next plan:
+
+```bash
+result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate-post-plan.sh \
+  --phase-dir "{phase-dir}" --plan "{plan-id}")
+gate_status=$(echo "$result" | jq -r '.gate')
+```
+
+Note: NO `--scope` flag -- post-plan runs full test suite per architecture D4.
+
+- On `gate_status=pass`: Proceed to next plan (or Step 8 if last plan).
+- On `gate_status=fail`: Block progression to next plan. Read gate JSON: check `tst` (test failures), `mh` (must_have failures). For test failures: Senior reviews, re-specs fix tasks, Dev implements. For must_have failures: Senior reviews plan coverage gaps. Max 1 remediation cycle at post-plan level -- persistent failure escalates to Lead.
+
+**[teammate]** When `team_mode=teammate`: Lead runs post-plan gate after writing summary.jsonl (Lead is sole summary writer in teammate mode). Lead sends gate result to Senior for review if fail.
+
+**[task]** When `team_mode=task`: Orchestrator runs post-plan gate after Dev writes summary.jsonl. On failure, orchestrator routes to Senior.
+
 **EXIT GATE:** Artifact: `{plan_id}.summary.jsonl` per plan (valid JSONL). When team_mode=teammate: Lead verifies all summary.jsonl files were written by Lead aggregation (all `task_complete` messages collected, all plans accounted for). Lead checks summary.jsonl validity: `jq empty {phase-dir}/{plan_id}.summary.jsonl` for each plan. When team_mode=task: Dev-written summary.jsonl verified per existing protocol. State: `steps.implementation = complete`. Commit: `chore(state): implementation complete phase {N}`.
 
 ### Step 8: Code Review (Senior Agent)
