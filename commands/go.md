@@ -334,6 +334,46 @@ This mode delegates to protocol files. Before reading:
 
    This gate applies to BOTH single-department and multi-department execution below. When team_mode=teammate in single-department mode: Lead creates one team (yolo-backend) and spawns all non-shared agents as teammates within it. When team_mode=teammate in multi-department mode: each Lead creates one team per active department (yolo-backend, yolo-frontend, yolo-uiux). The orchestrator (go.md) never calls TeamCreate directly.
 
+6. **Escalation from Agents:**
+
+   When an escalation reaches the top of the chain (Architect in single-dept, Owner in multi-dept), go.md intercepts and presents to the user:
+
+   a. **Receive escalation context:** Architect/Owner returns structured escalation via Task result (task mode) or file-based artifact (teammate mode). The escalation contains: issue description, evidence array, recommendation, options array (2-3 concrete choices), severity.
+
+   b. **Format for user:** Present via AskUserQuestion:
+      ```
+      Agent escalation requires your input:
+
+      Blocker: {issue description}
+      Evidence:
+        - {evidence[0]}
+        - {evidence[1]}
+      Recommendation: {recommendation}
+
+      Options:
+      1. {options[0]} (recommended)
+      2. {options[1]}
+      3. {options[2]}
+      ```
+
+   c. **Wait for response:** AskUserQuestion blocks until user responds. No timeout on user response.
+
+   d. **Package resolution:** Construct `escalation_resolution` schema:
+      ```json
+      {
+        "type": "escalation_resolution",
+        "original_escalation": "{escalation_id}",
+        "decision": "{user's choice text}",
+        "rationale": "{user's explanation if provided, otherwise 'User selected option N'}",
+        "action_items": ["{derived from the selected option's implications}"],
+        "resolved_by": "user"
+      }
+      ```
+
+   e. **Return resolution:** Send escalation_resolution back to the escalating agent (Architect/Owner). In task mode: return as Task result. In teammate mode (cross-team): write as file artifact `.escalation-resolution-{dept}.json` in phase dir (go.md acts as Owner proxy per D1).
+
+   f. **Update escalation state:** Update .execution-state.json escalation entry: set status to "resolved", resolved_at to current timestamp, resolution to decision text. Commit immediately: `chore(state): escalation resolved phase {N}`.
+
 **Routing (based on `multi_dept` from resolve-departments.sh above):**
 
 - **Single department (`multi_dept=false`):**
