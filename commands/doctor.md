@@ -35,7 +35,7 @@ Check `${CLAUDE_CONFIG_DIR:-~/.claude}/plugins/cache/vbw-marketplace/vbw/` exist
 Parse `hooks/hooks.json` with `jq empty`. FAIL if parse error.
 
 ### 6. Agent files present
-Glob `agents/vbw-*.md`. Expect 6 files (lead, dev, qa, scout, debugger, architect). FAIL if any missing.
+Glob `agents/vbw-*.md`. Expect 7 files (lead, dev, qa, scout, debugger, architect, docs). FAIL if any missing.
 
 ### 7. Config valid (project only)
 If `.vbw-planning/config.json` exists, parse with `jq empty`. FAIL if parse error. SKIP if no project initialized.
@@ -83,7 +83,7 @@ VBW Doctor v{version}
   3. Version sync          {PASS|FAIL} {detail}
   4. Plugin cache          {PASS|FAIL} {detail}
   5. hooks.json valid      {PASS|FAIL}
-  6. Agent files           {PASS|FAIL} {count}/6
+  6. Agent files           {PASS|FAIL} {count}/7
   7. Config valid          {PASS|FAIL|SKIP}
   8. Scripts executable    {PASS|WARN} {detail}
   9. gh CLI                {PASS|WARN}

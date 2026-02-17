@@ -5,7 +5,8 @@
     "dev": { "max_chars": 32000, "description": "Per-task budget tied to contract complexity" },
     "qa": { "max_chars": 24000, "description": "Tiered budget by risk class" },
     "debugger": { "max_chars": 32000, "description": "Same as dev for investigation" },
-    "architect": { "max_chars": 20000, "description": "Same as lead for planning" }
+    "architect": { "max_chars": 20000, "description": "Same as lead for planning" },
+    "docs": { "max_chars": 16000, "description": "Medium budget for documentation artifacts" }
   },
   "task_complexity": {
     "must_haves_weight": 1,

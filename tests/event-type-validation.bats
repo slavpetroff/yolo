@@ -58,11 +58,11 @@ teardown() {
   [ "$output" = "1" ]
 }
 
-@test "event-types: all 11 V2 types accepted" {
+@test "event-types: all 13 V2 types accepted" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_event_log = true | .v2_typed_protocol = true' .vbw-planning/config.json > .vbw-planning/config.json.tmp \
     && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
-  local v2_types="phase_planned task_created task_claimed task_started artifact_written gate_passed gate_failed task_completed_candidate task_completed_confirmed task_blocked task_reassigned"
+  local v2_types="phase_planned task_created task_claimed task_started artifact_written gate_passed gate_failed task_completed_candidate task_completed_confirmed task_blocked task_reassigned shutdown_sent shutdown_received"
   for etype in $v2_types; do
     run bash "$SCRIPTS_DIR/log-event.sh" "$etype" 1
     [ "$status" -eq 0 ]
@@ -72,5 +72,5 @@ teardown() {
   # Trim whitespace from wc output
   local count
   count=$(echo "$output" | tr -d ' ')
-  [ "$count" = "11" ]
+  [ "$count" = "13" ]
 }
