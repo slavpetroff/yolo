@@ -300,6 +300,10 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 
    Full aggregation protocol: `agents/yolo-lead.md` ## Summary Aggregation.
 
+   **summary.jsonl Ownership (IMPORTANT):** Clean ownership split to prevent write conflicts: When team_mode=teammate: Lead is the SOLE writer of summary.jsonl. Lead aggregates all `task_complete` messages per plan and writes the summary. Dev SKIPS Stage 3 summary.jsonl write entirely (see `agents/yolo-dev.md` ## Task Self-Claiming ### Stage 3 Override). When team_mode=task: Dev is the SOLE writer of summary.jsonl (unchanged from current behavior, see `agents/yolo-dev.md` ### Stage 3: Produce Summary). In BOTH modes, exactly one agent writes summary.jsonl per plan. Zero conflict by design.
+
+   See `agents/yolo-dev.md` ## Task Self-Claiming ### Stage 3 Override for Dev-side conditional. See `agents/yolo-lead.md` ## Summary Aggregation ### Aggregation Protocol for Lead-side write logic.
+
    > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
    > ```bash
    > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "dev" --project-dir ".")
