@@ -419,6 +419,44 @@ Note: `--scope` flag is DEFAULT per architecture D4 (scoped to task-modified fil
 
 **Dev escalation chain:** Dev → Senior (not Lead). If Dev sends `dev_blocker`, route to Senior.
 
+**Escalation State Tracking (mid-step, per D8):**
+
+When a Dev sends `dev_blocker` (received by Senior, potentially escalated to Lead), the orchestrator tracks the escalation immediately in `.execution-state.json`:
+
+```json
+{
+  "escalations": [
+    {
+      "id": "ESC-05-01-T3",
+      "task": "05-01/T3",
+      "plan": "05-01",
+      "severity": "blocking",
+      "status": "pending",
+      "level": "senior",
+      "escalated_at": "2026-02-18T10:00:00Z",
+      "last_escalated_at": "2026-02-18T10:00:00Z",
+      "resolved_at": "",
+      "round_trips": 0,
+      "resolution": ""
+    }
+  ]
+}
+```
+
+Commit immediately on receipt: `chore(state): escalation received phase {N}` (extends Commit-Every-Artifact pattern #4 to escalation state).
+
+**Periodic timeout check:** During Step 7, the orchestrator periodically calls:
+```bash
+result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-escalation-timeout.sh \
+  --phase-dir "{phase-dir}" --config config/defaults.json)
+timed_out=$(echo "$result" | jq -r '.timed_out | length')
+```
+If `timed_out > 0`: auto-escalate each timed-out entry to the next level per ## Escalation Handling. Update the entry's `level` and `last_escalated_at` fields. Send `escalation_timeout_warning` schema.
+
+**Resolution handling:** When `escalation_resolution` is received (forwarded down the chain):
+1. Update escalation entry: `status: "resolved"`, `resolved_at: "{ISO8601}"`, `resolution: "{decision text}"`
+2. Commit: `chore(state): escalation resolved phase {N}`
+
 **Summary verification gate (mandatory):**
 When team_mode=teammate: Lead-written summary.jsonl is verified (Lead is sole writer). Lead checks `jq empty {phase-dir}/{plan_id}.summary.jsonl` after writing.
 When team_mode=task: Dev-written summary.jsonl is verified (unchanged behavior):
@@ -445,7 +483,7 @@ Note: NO `--scope` flag -- post-plan runs full test suite per architecture D4.
 
 **[task]** When `team_mode=task`: Orchestrator runs post-plan gate after Dev writes summary.jsonl. On failure, orchestrator routes to Senior.
 
-**EXIT GATE:** Artifact: `{plan_id}.summary.jsonl` per plan (valid JSONL). When team_mode=teammate: Lead verifies all summary.jsonl files were written by Lead aggregation (all `task_complete` messages collected, all plans accounted for). Lead checks summary.jsonl validity: `jq empty {phase-dir}/{plan_id}.summary.jsonl` for each plan. When team_mode=task: Dev-written summary.jsonl verified per existing protocol. State: `steps.implementation = complete`. Commit: `chore(state): implementation complete phase {N}`.
+**EXIT GATE:** Artifact: `{plan_id}.summary.jsonl` per plan (valid JSONL). When team_mode=teammate: Lead verifies all summary.jsonl files were written by Lead aggregation (all `task_complete` messages collected, all plans accounted for). Lead checks summary.jsonl validity: `jq empty {phase-dir}/{plan_id}.summary.jsonl` for each plan. When team_mode=task: Dev-written summary.jsonl verified per existing protocol. Also verify: no escalations in .execution-state.json have `status: "pending"`. All must be `"resolved"` or escalated beyond the current step. Check via: `jq '[.escalations[] | select(.status == "pending")] | length' .yolo-planning/.execution-state.json` must equal 0. If pending escalations remain: STOP "Step 7 cannot complete -- {N} pending escalation(s). Resolve or escalate before proceeding." State: `steps.implementation = complete`. Commit: `chore(state): implementation complete phase {N}`.
 
 ### Step 8: Code Review (Senior Agent)
 
