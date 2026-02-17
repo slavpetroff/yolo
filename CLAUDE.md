@@ -7,7 +7,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 ## Active Context
 
 **Work:** No active milestone
-**Last shipped:** Teammate API Integration -- 4 phases, 19 plans, 84 tasks, 21 phase-4 commits, 876 tests
+**Last shipped:** Teammate API Integration -- 4 phases, 19 plans, 84 tasks, 76 commits, 876 tests
 **Previous:** Dynamic Departments & Agent Teams -- 3 phases, 11 plans, 38 tasks, 49 commits, 209 tests
 **Next action:** Run /yolo:go to start a new milestone
 
