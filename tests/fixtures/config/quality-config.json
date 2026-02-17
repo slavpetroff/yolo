@@ -20,5 +20,12 @@
     "uiux": true
   },
   "department_workflow": "parallel",
-  "cross_team_handoff": true
+  "cross_team_handoff": true,
+  "qa_gates": {
+    "post_task": true,
+    "post_plan": true,
+    "post_phase": true,
+    "timeout_seconds": 600,
+    "failure_threshold": "major"
+  }
 }
