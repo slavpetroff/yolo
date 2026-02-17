@@ -57,14 +57,15 @@ Each agent receives ONLY what it needs (progressive scoping — lower agents see
 | Step | Agent | Receives (include in Task prompt) | NEVER pass |
 |------|-------|----------------------------------|-----------|
 | 1 | Critic | reqs.jsonl, PROJECT.md, codebase/, research.jsonl, dept CONTEXT (if multi-dept) | plans, code-review, QA artifacts |
-| 2 | Architect | reqs.jsonl, codebase/, research.jsonl, critique.jsonl, dept CONTEXT | implementation code, QA artifacts |
-| 3 | Lead | architecture.toon, reqs.jsonl, ROADMAP, prior summaries | critique.jsonl directly (addressed in architecture), QA artifacts |
-| 4 | Senior (Review) | plan.jsonl, architecture.toon, codebase patterns | full CONTEXT, ROADMAP, other dept artifacts |
-| 5 | Tester | enriched plan.jsonl (tasks with `ts`), codebase patterns | architecture.toon, CONTEXT, critique.jsonl |
-| 6 | Dev | enriched plan.jsonl (`spec` + `ts` fields), test files | architecture.toon, CONTEXT, critique.jsonl, ROADMAP |
-| 7 | Senior (Review) | plan.jsonl, git diff, test-plan.jsonl | CONTEXT, ROADMAP |
-| 8 | QA | plan.jsonl, summary.jsonl, .ctx-qa.toon | CONTEXT, architecture.toon |
-| 9 | Security | summary.jsonl (file list), .ctx-security.toon | CONTEXT, plans |
+| 2 | Scout | critique.jsonl (critical/major only), reqs.jsonl, codebase/ mapping, .ctx-scout.toon | plans, architecture, implementation code, QA artifacts, department CONTEXT |
+| 3 | Architect | reqs.jsonl, codebase/, research.jsonl, critique.jsonl, dept CONTEXT | implementation code, QA artifacts |
+| 4 | Lead | architecture.toon, reqs.jsonl, ROADMAP, prior summaries | critique.jsonl directly (addressed in architecture), QA artifacts |
+| 5 | Senior (Review) | plan.jsonl, architecture.toon, codebase patterns | full CONTEXT, ROADMAP, other dept artifacts |
+| 6 | Tester | enriched plan.jsonl (tasks with `ts`), codebase patterns | architecture.toon, CONTEXT, critique.jsonl |
+| 7 | Dev | enriched plan.jsonl (`spec` + `ts` fields), test files | architecture.toon, CONTEXT, critique.jsonl, ROADMAP |
+| 8 | Senior (Review) | plan.jsonl, git diff, test-plan.jsonl | CONTEXT, ROADMAP |
+| 9 | QA | plan.jsonl, summary.jsonl, .ctx-qa.toon | CONTEXT, architecture.toon |
+| 10 | Security | summary.jsonl (file list), .ctx-security.toon | CONTEXT, plans |
 
 **Teammate mode context delivery:** When `team_mode=teammate`, the Receives column content is delivered via SendMessage instead of Task tool parameters. The NEVER pass column restrictions are identical -- SendMessage does not change what context an agent should receive, only how it is delivered. Lead constructs the SendMessage payload with exactly the artifacts listed in Receives for each step.
 
