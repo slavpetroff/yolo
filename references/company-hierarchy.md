@@ -35,6 +35,12 @@ Agents: QA Lead, QA Code, Senior (escalation)
 Active during: Code Review, QA, Security
 Handoff: code-review.jsonl → Lead, verification.jsonl → Lead
 
+### R&D Pipeline
+Agents: Critic, Scout, Architect
+Active during: Critique (Step 1), Research (Step 2), Architecture (Step 3)
+Handoff: critique.jsonl (critical/major) -> Scout research directives -> research.jsonl -> Architect
+Stage-gate: Architect->Lead handoff uses Go/Recycle/Kill model. See @references/rnd-handoff-protocol.md.
+
 ## 11-Step Workflow
 
 Each phase follows this cadence. Full protocol with entry/exit gates: see @references/execute-protocol.md.
@@ -100,10 +106,22 @@ QA Code FAIL      → Lead assigns → Senior re-specs → Dev fixes → QA re-v
 ### Code Review Chain
 
 ```
-Senior: changes_requested → Dev fixes per exact instructions
+Senior: changes_requested → classify as Minor or Major
+Minor only (nits/style)   → Dev fixes → auto-approve (no cycle 2)
+Major findings            → Dev fixes → Senior re-reviews (cycle 2)
 Cycle 2 fail              → Senior escalates to Lead
 Lead decides              → Accept with known issues OR escalate to Architect
 ```
+
+**Change classification (per D4):**
+- **Minor**: Nits, style, naming, formatting. Auto-approve after cycle 1 fix if only minor findings.
+- **Major**: Logic errors, missing error handling, architecture violations. Require cycle 2 re-review.
+
+**Collaborative relationship**: Senior sends suggestions; Dev retains decision power within spec. Dev can document rationale for disagreement on findings.
+
+**Phase 4 hooks**: Metric collection points (cycle_count, finding_severity_distribution, time_per_cycle, escalation_triggered) defined for Phase 4 continuous QA instrumentation.
+
+See @references/execute-protocol.md ## Change Management for full protocol.
 
 ## Decision Authority Matrix (STRICT — STAY IN YOUR LANE)
 
