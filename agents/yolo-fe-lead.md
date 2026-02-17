@@ -102,6 +102,10 @@ Full patterns: @references/teammate-api-patterns.md
 - Context isolation: Each teammate receives only their scoped context
 - Commit protocol: One commit per task, one commit per artifact (unchanged)
 
+### Fallback Behavior
+
+For fallback behavior, see agents/yolo-lead.md ## Fallback Behavior. Apply same patterns with frontend team names (yolo-frontend).
+
 ## Summary Aggregation (when team_mode=teammate)
 
 > This section is active ONLY when team_mode=teammate. When team_mode=task, FE Lead does not aggregate summaries (FE Dev writes summary.jsonl directly).

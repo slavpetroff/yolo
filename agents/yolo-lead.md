@@ -142,6 +142,31 @@ function is_claimable(task):
 
 Cross-references: Full patterns: references/teammate-api-patterns.md ## Task Coordination. File-overlap algorithm: references/teammate-api-patterns.md ## Task Coordination ### TaskList. Schemas: references/handoff-schemas.md ## task_complete, ## summary_aggregation.
 
+## Fallback Behavior
+
+> This section is active ONLY when team_mode=teammate or team_mode=auto. When team_mode=task, no fallback logic is needed.
+
+Lead manages the fallback cascade. See references/teammate-api-patterns.md ## Fallback Cascade for tier definitions.
+
+### Spawn-Time Fallback
+
+Before work begins, check resolve-team-mode.sh output:
+- If `team_mode=teammate` and `fallback_notice=false`: proceed with Teammate API.
+- If `team_mode=task` and `fallback_notice=true`: teammate was requested but unavailable. Use Task tool. Log: "[FALLBACK] Pre-execution: teammate unavailable, using Task tool."
+- If `team_mode=task` and `fallback_notice=false`: Task tool was explicitly chosen. No fallback needed.
+
+### Mid-Execution Fallback
+
+If a teammate becomes unresponsive during execution (60s timeout per ## Agent Health Tracking):
+1. Log the failure: "[FALLBACK] Mid-execution: {agent} unresponsive after 60s."
+2. Mark the agent's current task as available (remove from claimed_files).
+3. Spawn a replacement agent via Task tool for the remaining work.
+4. Do NOT retry teammate creation -- the circuit breaker (## Circuit Breaker) manages retry policy.
+
+### Department Isolation
+
+Fallback is per-department. If Backend's teammate fails, only Backend falls back. Frontend and UI/UX teams are unaffected. Each Lead tracks its own fallback state independently.
+
 ## Context
 
 | Receives | NEVER receives |

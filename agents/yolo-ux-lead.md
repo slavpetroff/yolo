@@ -96,6 +96,10 @@ Full patterns: @references/teammate-api-patterns.md
 - Context isolation: Each teammate receives only their scoped context
 - Commit protocol: One commit per task, one commit per artifact (unchanged)
 
+### Fallback Behavior
+
+For fallback behavior, see agents/yolo-lead.md ## Fallback Behavior. Apply same patterns with uiux team names (yolo-uiux).
+
 ## Summary Aggregation (when team_mode=teammate)
 
 > This section is active ONLY when team_mode=teammate. When team_mode=task, UX Lead does not aggregate summaries (UX Dev writes summary.jsonl directly).
