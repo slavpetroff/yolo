@@ -723,6 +723,53 @@ Phase 4 can instrument at these hook points without modifying Phase 3 artifacts.
 See @references/company-hierarchy.md ## Code Review Chain for the escalation path.
 See @references/rnd-handoff-protocol.md for the R&D pipeline handoff.
 
+## Escalation Handling
+
+When a Dev agent encounters a blocker it cannot resolve, the escalation flows upward through the company hierarchy until resolved. This section documents the exact upward path and timeout behavior.
+
+### Upward Escalation Flow
+
+**Level 1: Dev -> Senior**
+Dev sends `dev_blocker` schema to Senior (via SendMessage in teammate mode, via Task result in task mode). Dev includes: blocker description, what was attempted, what is needed. Dev pauses current task (see ## Dev Pause Behavior below).
+
+**Level 2: Senior attempts resolution**
+Senior receives dev_blocker. Senior may: (a) clarify the spec and send updated instructions via `code_review_changes`, or (b) determine the issue is beyond spec-level and escalate to Lead via `escalation` schema.
+
+**Level 3: Lead assesses authority**
+Lead receives escalation from Senior. Lead checks Decision Authority Matrix (see company-hierarchy.md). If within Lead's authority (task ordering, resource allocation, plan decomposition): Lead resolves and sends `escalation_resolution` back to Senior. If beyond Lead's authority (architecture, technology, scope): Lead escalates to Architect (single-dept) or Owner (multi-dept) via `escalation` schema.
+
+**Level 4: Architect/Owner -> go.md -> User**
+Architect receives escalation. Architect packages a structured escalation with an options array containing 2-3 concrete choices for the user. Architect sends this to Lead via SendMessage (teammate mode) or returns via Task result (task mode). Lead forwards to go.md. go.md calls AskUserQuestion presenting:
+- Blocker summary (1-2 sentences)
+- Evidence bullets (from escalation chain)
+- 2-3 concrete resolution options (from Architect's options array)
+- Recommendation (Architect's preferred option, if any)
+
+In multi-dept mode: Lead sends to Owner instead of Architect. Owner routes through go.md identically.
+
+**[teammate]** Intra-team escalation (Dev->Senior->Lead->Architect) uses SendMessage. Cross-team escalation (Lead->Owner, Architect->go.md) uses file-based artifacts per D3.
+
+**[task]** All escalation uses Task tool result returns or direct communication within the orchestrator session.
+
+### Timeout-Based Auto-Escalation
+
+If an escalation remains at one level longer than `escalation.timeout_seconds` (default 300s from config/defaults.json):
+1. The orchestrator detects the timeout via `check-escalation-timeout.sh` (periodic call during Step 7)
+2. Auto-escalation fires ONLY if the current level has NOT already escalated upward (prevents duplicates per D4)
+3. The escalation's `level` field is updated to the next level, `last_escalated_at` is refreshed
+4. An `escalation_timeout_warning` schema is generated and sent to the next level
+5. If `escalation.auto_owner_on_timeout` is true and timeout fires at Architect level: auto-involve Owner/go.md to present to user
+
+### Max Round-Trips
+
+`escalation.max_round_trips` (default 2) caps how many times the same blocker (by escalation id) can bounce between levels. After max reached: force resolution at current level or STOP execution with blocker report to user.
+
+### Dev Pause Behavior
+
+**task mode:** Dev is a single-threaded Task session. When blocked, the orchestrator (Lead) simply does not assign the next task until the escalation resolves. The Dev Task session either completes (reporting the blocker in its return value) or remains active.
+
+**teammate mode:** Dev sends dev_blocker to Senior and continues the claim loop. The blocked task is NOT available for re-claiming (its status is claimed, not available). Dev may work on other unblocked tasks while waiting. On receiving resolution instructions from Senior (via code_review_changes), Dev resumes the blocked task.
+
 ## Multi-Department Execution
 
 **Detection:** `multi_dept` from resolve-departments.sh. If false: skip this section entirely. All Steps 1-11 above apply to single-dept unchanged.
