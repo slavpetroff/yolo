@@ -140,7 +140,8 @@ validate_plan_naming() {
   local bn
   bn="$(basename "$file")"
   local name_part="${bn%.plan.jsonl}"
-  if [[ "$name_part" == *-* ]]; then
+  # Only check if filename matches NN-MM pattern (zero-padded digits)
+  if [[ "$name_part" =~ ^[0-9]{2}-[0-9]{2}$ ]]; then
     local file_nn="${name_part%%-*}"
     local file_mm="${name_part#*-}"
     if [ -n "$p_val" ] && [ "$file_nn" != "$p_val" ]; then
@@ -293,7 +294,8 @@ validate_summary_naming() {
   local bn
   bn="$(basename "$file")"
   local name_part="${bn%.summary.jsonl}"
-  if [[ "$name_part" == *-* ]]; then
+  # Only check if filename matches NN-MM pattern (zero-padded digits)
+  if [[ "$name_part" =~ ^[0-9]{2}-[0-9]{2}$ ]]; then
     local file_nn="${name_part%%-*}"
     local file_mm="${name_part#*-}"
     if [ -n "$p_val" ] && [ "$file_nn" != "$p_val" ]; then

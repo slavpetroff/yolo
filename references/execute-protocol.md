@@ -34,7 +34,21 @@ Implements the 10-step company-grade engineering workflow. See `references/compa
      fi
    done
    ```
-   This replaces LLM-based plan validation. Invalid plans STOP execution before any agent spawns.
+
+   ```bash
+   # Naming convention validation (post-structural)
+   if [ -x "${CLAUDE_PLUGIN_ROOT}/scripts/validate-naming.sh" ]; then
+     for plan in "${PHASE_DIR}"/*.plan.jsonl; do
+       result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-naming.sh "$plan" --type=plan)
+       if [ $? -ne 0 ]; then
+         echo "Naming validation failed: $plan" >&2
+         echo "$result" | jq -r '.errors[]' >&2
+         exit 1
+       fi
+     done
+   fi
+   ```
+   This replaces LLM-based plan validation. Invalid plans (structural or naming) STOP execution before any agent spawns.
 
 ### Context Scoping Protocol (MANDATORY)
 

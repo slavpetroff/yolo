@@ -256,11 +256,44 @@ validate_no_circular_deps() {
   fi
 }
 
+validate_naming_conventions() {
+  # Locate validate-naming.sh relative to this script
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local naming_script="$script_dir/validate-naming.sh"
+
+  # Skip if validate-naming.sh does not exist (backward compatible)
+  if [ ! -x "$naming_script" ]; then
+    return
+  fi
+
+  # Run naming validation on the plan file
+  local naming_result
+  naming_result=$(bash "$naming_script" "$PLAN_FILE" --type=plan 2>/dev/null) || true
+
+  # Parse naming errors and merge into ERRORS array
+  local naming_valid
+  naming_valid=$(echo "$naming_result" | jq -r 'if has("valid") then .valid else true end' 2>/dev/null) || true
+
+  if [ "$naming_valid" = "false" ]; then
+    local naming_errors
+    naming_errors=$(echo "$naming_result" | jq -r '.errors[]?' 2>/dev/null) || true
+    if [ -n "$naming_errors" ]; then
+      while IFS= read -r err; do
+        [ -z "$err" ] && continue
+        ERRORS+=("Naming: $err")
+        VALID=false
+      done <<< "$naming_errors"
+    fi
+  fi
+}
+
 # --- Main flow ---
 validate_header
 validate_tasks
 validate_waves
 validate_no_circular_deps
+validate_naming_conventions
 
 # --- Output ---
 if [ ${#ERRORS[@]} -eq 0 ]; then
