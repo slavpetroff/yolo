@@ -36,6 +36,8 @@ run_with_timeout() {
     local elapsed=0
     while kill -0 "$cmd_pid" 2>/dev/null; do
       if [ "$elapsed" -ge "$secs" ]; then
+        # Kill children first to prevent orphans holding stdout open
+        pkill -P "$cmd_pid" 2>/dev/null || true
         kill "$cmd_pid" 2>/dev/null || true
         wait "$cmd_pid" 2>/dev/null || true
         return 124
@@ -102,16 +104,18 @@ fi
 # --- Config toggle check (04-10 integration) ---
 QA_CONFIG_SCRIPT=$(command -v resolve-qa-config.sh 2>/dev/null) || QA_CONFIG_SCRIPT="$SCRIPT_DIR/resolve-qa-config.sh"
 if [ -x "$QA_CONFIG_SCRIPT" ]; then
-  QA_CONFIG_JSON=$("$QA_CONFIG_SCRIPT" 2>/dev/null) || QA_CONFIG_JSON="{}"
+  _cfg_path="$(dirname "$(dirname "$PHASE_DIR")")/config.json"
+  _def_path="$SCRIPT_DIR/../config/defaults.json"
+  QA_CONFIG_JSON=$("$QA_CONFIG_SCRIPT" "$_cfg_path" "$_def_path" 2>/dev/null) || QA_CONFIG_JSON="{}"
   # Note: jq '//' treats false as falsy, so 'false // true' = true. Use explicit null check.
   POST_PHASE_ENABLED=$(echo "$QA_CONFIG_JSON" | jq -r 'if .post_phase == null then true else .post_phase end' 2>/dev/null) || POST_PHASE_ENABLED="true"
   if [ "$POST_PHASE_ENABLED" = "false" ]; then
     RESULT_JSON=$(jq -n \
       --arg gate "skipped" \
-      --arg level "post-phase" \
+      --arg gl "post-phase" \
       --arg r "SKIPPED" \
       --arg dt "$(date +%Y-%m-%d)" \
-      '{gate:$gate,level:$level,r:$r,steps:{ps:0,fl:0},tst:{ps:0,fl:0},plans:{complete:0,total:0},dur:0,dt:$dt}')
+      '{gate:$gate,gl:$gl,r:$r,steps:{ps:0,fl:0},tst:{ps:0,fl:0},plans:{complete:0,total:0},dur:0,dt:$dt}')
     echo "$RESULT_JSON"
     exit 0
   fi
@@ -220,8 +224,11 @@ elif [ -z "$TEST_SUMMARY_PATH" ] || ! [ -x "$TEST_SUMMARY_PATH" ]; then
   PASS_COUNT=0
   FAIL_COUNT=0
 else
-  TEST_OUTPUT=$(run_with_timeout "$TIMEOUT" bash "$TEST_SUMMARY_PATH" 2>&1) || true
+  _tmpout=$(mktemp)
+  run_with_timeout "$TIMEOUT" bash "$TEST_SUMMARY_PATH" > "$_tmpout" 2>&1
   TEST_EXIT=$?
+  TEST_OUTPUT=$(cat "$_tmpout")
+  rm -f "$_tmpout"
 
   if [ "$TEST_EXIT" -eq 124 ]; then
     # Timeout -- warn, fail-open
@@ -256,7 +263,7 @@ fi
 # --- (7) JSON output ---
 RESULT_JSON=$(jq -n \
   --arg gate "$GATE" \
-  --arg level "post-phase" \
+  --arg gl "post-phase" \
   --arg r "$RESULT" \
   --arg ph "$PHASE_NUM" \
   --argjson sps "$STEPS_PASSED" \
@@ -268,7 +275,7 @@ RESULT_JSON=$(jq -n \
   --argjson dur "$DURATION" \
   --arg dt "$(date +%Y-%m-%d)" \
   --arg tm "$TEAM_MODE" \
-  '{gate:$gate,level:$level,r:$r,ph:$ph,steps:{ps:$sps,fl:$sfl},tst:{ps:$ps,fl:$fl},plans:{complete:$complete,total:$total},dur:$dur,dt:$dt,tm:$tm}')
+  '{gate:$gate,gl:$gl,r:$r,ph:$ph,steps:{ps:$sps,fl:$sfl},tst:{ps:$ps,fl:$fl},plans:{complete:$complete,total:$total},dur:$dur,dt:$dt,tm:$tm}')
 echo "$RESULT_JSON"
 
 # --- (8) Result persistence via flock ---

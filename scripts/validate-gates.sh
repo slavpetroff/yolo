@@ -7,7 +7,7 @@ set -euo pipefail
 # Also checks skip status in .execution-state.json.
 #
 # Usage: validate-gates.sh --step <step_name> --phase-dir <path>
-# Steps: critique, architecture, planning, design_review, test_authoring,
+# Steps: critique, research, architecture, planning, design_review, test_authoring,
 #        implementation, code_review, qa, security, signoff
 # Output: JSON {gate:pass|fail,step:str,missing:[]}
 # Exit codes: 0 = gate passes, 1 = gate fails or usage error
@@ -269,6 +269,14 @@ case "$STEP" in
       fi
     elif ! check_step_skipped "post_plan_qa"; then
       MISSING+=(".qa-gate-results.jsonl")
+      GATE_RESULT="fail"
+    fi
+    ;;
+
+  research)
+    # Entry: research.jsonl OR step skipped
+    if ! check_artifact_exists "$PHASE_DIR/research.jsonl" && ! check_step_skipped "research"; then
+      MISSING+=("research.jsonl")
       GATE_RESULT="fail"
     fi
     ;;

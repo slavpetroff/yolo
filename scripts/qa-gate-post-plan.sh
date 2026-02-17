@@ -5,7 +5,7 @@ set -u
 # checks must_have coverage (truths, artifacts, key_links).
 # Produces structured JSON result. Fail-open: missing infrastructure = warn, not block.
 # Usage: qa-gate-post-plan.sh --phase-dir <path> --plan <ID> [--timeout N]
-# Exit: 0 on pass/partial/warn, 1 on fail.
+# Exit: 0 on pass/warn, 1 on fail/partial.
 
 # --- jq dependency check ---
 if ! command -v jq &>/dev/null; then
@@ -35,6 +35,8 @@ run_with_timeout() {
     local elapsed=0
     while kill -0 "$cmd_pid" 2>/dev/null; do
       if [ "$elapsed" -ge "$secs" ]; then
+        # Kill children first to prevent orphans holding stdout open
+        pkill -P "$cmd_pid" 2>/dev/null || true
         kill "$cmd_pid" 2>/dev/null || true
         wait "$cmd_pid" 2>/dev/null || true
         return 124
@@ -108,17 +110,19 @@ fi
 # --- Config toggle check (04-10 integration) ---
 QA_CONFIG_SCRIPT=$(command -v resolve-qa-config.sh 2>/dev/null) || QA_CONFIG_SCRIPT="$SCRIPT_DIR/resolve-qa-config.sh"
 if [ -x "$QA_CONFIG_SCRIPT" ]; then
-  QA_CONFIG_JSON=$("$QA_CONFIG_SCRIPT" 2>/dev/null) || QA_CONFIG_JSON="{}"
+  _cfg_path="$(dirname "$(dirname "$PHASE_DIR")")/config.json"
+  _def_path="$SCRIPT_DIR/../config/defaults.json"
+  QA_CONFIG_JSON=$("$QA_CONFIG_SCRIPT" "$_cfg_path" "$_def_path" 2>/dev/null) || QA_CONFIG_JSON="{}"
   # Note: jq '//' treats false as falsy, so 'false // true' = true. Use explicit null check.
   POST_PLAN_ENABLED=$(echo "$QA_CONFIG_JSON" | jq -r 'if .post_plan == null then true else .post_plan end' 2>/dev/null) || POST_PLAN_ENABLED="true"
   if [ "$POST_PLAN_ENABLED" = "false" ]; then
     RESULT_JSON=$(jq -n \
       --arg gate "skipped" \
-      --arg level "post-plan" \
+      --arg gl "post-plan" \
       --arg r "SKIPPED" \
       --arg plan "$PLAN_ID" \
       --arg dt "$(date +%Y-%m-%d)" \
-      '{gate:$gate,level:$level,r:$r,plan:$plan,tst:{ps:0,fl:0},mh:{tr:0,ar:0,kl:0},dur:0,dt:$dt}')
+      '{gate:$gate,gl:$gl,r:$r,plan:$plan,tst:{ps:0,fl:0},mh:{tr:0,ar:0,kl:0},dur:0,dt:$dt}')
     echo "$RESULT_JSON"
     exit 0
   fi
@@ -174,8 +178,11 @@ elif [ -z "$TEST_SUMMARY_PATH" ] || ! [ -x "$TEST_SUMMARY_PATH" ]; then
   PASS_COUNT=0
   FAIL_COUNT=0
 else
-  TEST_OUTPUT=$(run_with_timeout "$TIMEOUT" bash "$TEST_SUMMARY_PATH" 2>&1) || true
+  _tmpout=$(mktemp)
+  run_with_timeout "$TIMEOUT" bash "$TEST_SUMMARY_PATH" > "$_tmpout" 2>&1
   TEST_EXIT=$?
+  TEST_OUTPUT=$(cat "$_tmpout")
+  rm -f "$_tmpout"
 
   if [ "$TEST_EXIT" -eq 124 ]; then
     # Timeout -- warn, fail-open
@@ -282,7 +289,7 @@ fi
 # --- (7) JSON output ---
 RESULT_JSON=$(jq -n \
   --arg gate "$GATE" \
-  --arg level "post-plan" \
+  --arg gl "post-plan" \
   --arg r "$RESULT" \
   --arg plan "$PLAN_ID" \
   --argjson ps "$PASS_COUNT" \
@@ -293,7 +300,7 @@ RESULT_JSON=$(jq -n \
   --argjson dur "$DURATION" \
   --arg dt "$(date +%Y-%m-%d)" \
   --arg tm "$TEAM_MODE" \
-  '{gate:$gate,level:$level,r:$r,plan:$plan,tst:{ps:$ps,fl:$fl},mh:{tr:$tr,ar:$ar,kl:$kl},dur:$dur,dt:$dt,tm:$tm}')
+  '{gate:$gate,gl:$gl,r:$r,plan:$plan,tst:{ps:$ps,fl:$fl},mh:{tr:$tr,ar:$ar,kl:$kl},dur:$dur,dt:$dt,tm:$tm}')
 echo "$RESULT_JSON"
 
 # --- (8) Result persistence via flock ---

@@ -14,7 +14,7 @@ Shown when user views current QA gate settings via /yolo:config or /yolo:status.
      Post-plan: {enabled|disabled}
     Post-phase: {enabled|disabled}
        Timeout: {N}s
-     Threshold: {strict|lenient|off}
+     Threshold: {critical|major|minor}
 ```
 
 Example with defaults:
@@ -24,7 +24,7 @@ Example with defaults:
      Post-plan: enabled
     Post-phase: enabled
        Timeout: 30s (post-task) / 300s (post-plan, post-phase)
-     Threshold: strict
+     Threshold: critical
 ```
 
 ## Config Option Help Text
@@ -61,10 +61,10 @@ Each option below maps to a key in the `qa_gates` object in config/defaults.json
 
 ### qa_gates.failure_threshold
 
-**Type:** enum ("strict" | "lenient" | "off")
-**Default:** `"strict"`
-**Description:** Controls gate behavior on test failure. strict = any failure blocks. lenient = only critical failures block. off = log but never block.
-**Help text:** "How strictly gates enforce test results. 'strict' blocks on any failure. 'lenient' blocks on critical failures only. 'off' logs results without blocking."
+**Type:** enum ("critical" | "major" | "minor")
+**Default:** `"critical"`
+**Description:** Controls gate behavior on test failure. critical = any failure blocks. major = only major+ failures block. minor = all failures block including minor.
+**Help text:** "Minimum severity that blocks execution. 'critical' blocks on any failure (default). 'major' blocks on major+ failures only. 'minor' blocks on all failures including minor."
 
 ## Interactive Config Prompt (ask_user_question pattern)
 
@@ -322,16 +322,16 @@ When user passes --yolo flag to /yolo:go, ALL gates are skipped.
 
 ### failure_threshold Override
 
-When qa_gates.failure_threshold is set to "off" (log-only, never block).
+When qa_gates.failure_threshold is set to "minor" (block on all severity levels).
 
 ```
-  ⚠ QA gate threshold set to 'off'. Gate failures will be logged but will not block execution.
+  ⚠ QA gate threshold set to 'minor'. All failures including minor will block execution.
 ```
 
-When set to "lenient" (only critical failures block).
+When set to "major" (only major+ failures block).
 
 ```
-  ⚠ QA gate threshold set to 'lenient'. Only critical test failures will block execution.
+  ⚠ QA gate threshold set to 'major'. Only major and critical test failures will block execution.
 ```
 
 ### Individual Gate Skip During Execution

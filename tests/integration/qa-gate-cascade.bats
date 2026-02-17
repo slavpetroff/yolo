@@ -72,7 +72,7 @@ JSONL
   local line_count gl
   line_count=$(wc -l < "$PHASE_DIR/.qa-gate-results.jsonl" | tr -d ' ')
   [ "$line_count" -ge 1 ]
-  gl=$(head -1 "$PHASE_DIR/.qa-gate-results.jsonl" | jq -r '.level // .gl')
+  gl=$(head -1 "$PHASE_DIR/.qa-gate-results.jsonl" | jq -r '.gl')
   [ "$gl" = "post-task" ]
 }
 
@@ -94,8 +94,8 @@ JSONL
 
   # Verify both levels present
   local has_post_task has_post_plan
-  has_post_task=$(jq -r 'select(.level == "post-task" or .gl == "post-task")' "$PHASE_DIR/.qa-gate-results.jsonl" 2>/dev/null | head -1)
-  has_post_plan=$(jq -r 'select(.level == "post-plan" or .gl == "post-plan")' "$PHASE_DIR/.qa-gate-results.jsonl" 2>/dev/null | head -1)
+  has_post_task=$(jq -r 'select(.gl == "post-task")' "$PHASE_DIR/.qa-gate-results.jsonl" 2>/dev/null | head -1)
+  has_post_plan=$(jq -r 'select(.gl == "post-plan")' "$PHASE_DIR/.qa-gate-results.jsonl" 2>/dev/null | head -1)
   [ -n "$has_post_task" ]
   [ -n "$has_post_plan" ]
 }
@@ -168,7 +168,7 @@ SCRIPT
 
   # Verify post-plan failure also recorded
   local post_plan_fail
-  post_plan_fail=$(jq -r 'select(.level == "post-plan" or .gl == "post-plan") | select(.r == "FAIL")' "$PHASE_DIR/.qa-gate-results.jsonl" 2>/dev/null | head -1)
+  post_plan_fail=$(jq -r 'select(.gl == "post-plan") | select(.r == "FAIL")' "$PHASE_DIR/.qa-gate-results.jsonl" 2>/dev/null | head -1)
   [ -n "$post_plan_fail" ]
 }
 
