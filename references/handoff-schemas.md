@@ -267,6 +267,29 @@ Resolution for a previously-escalated blocker. Flows DOWNWARD only (never upward
 - `resolved_by`: Who made the decision: "user" | "owner" | "architect" | "lead"
 - Direction: Always downward (resolver to originator). Never sent upward.
 
+## `escalation_timeout_warning` (Lead -> Architect/Owner)
+
+Sent by Lead when an escalation has been pending longer than the configured `escalation.timeout_seconds` (default 300s). Triggers auto-escalation to the next level in the chain.
+
+```json
+{
+  "type": "escalation_timeout_warning",
+  "original_escalation": "ESC-01-02-T3",
+  "elapsed_seconds": 312,
+  "current_level": "lead",
+  "agent_blocked": "dev-1 (task 01-02/T3)",
+  "recommended_action": "Escalate to Architect for design-level decision on library choice"
+}
+```
+
+- `original_escalation`: References the escalation id in .execution-state.json
+- `elapsed_seconds`: Time since `last_escalated_at` in the escalation entry
+- `current_level`: The level where escalation is currently stalled ("senior" | "lead" | "architect")
+- `agent_blocked`: Human-readable description of who is waiting (agent name + task ref)
+- `recommended_action`: What the timeout handler recommends as next step
+
+Note: This schema is produced by check-escalation-timeout.sh (Plan 05-04) and consumed by the orchestrator for auto-escalation routing. The escalation entry's `level` field is updated when auto-escalation fires.
+
 ## `agent_health_event` (Lead internal, when team_mode=teammate)
 
 Lead-internal health tracking record. NOT sent via SendMessage -- logged locally for debugging and circuit breaker state transitions.
