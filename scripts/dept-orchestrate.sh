@@ -51,11 +51,34 @@ assign_gate() {
   fi
 }
 
+# --- Spawn strategy per dept ---
+build_dept_entry() {
+  local dept="$1"
+  if [ "$TEAM_MODE" = "teammate" ]; then
+    jq -n --arg d "$dept" --arg ss "spawnTeam" --arg tn "yolo-$dept" '{dept:$d,spawn_strategy:$ss,team_name:$tn}'
+  else
+    jq -n --arg d "$dept" --arg ss "task" '{dept:$d,spawn_strategy:$ss}'
+  fi
+}
+
 # --- Step 1: Call resolve-departments.sh ---
 RESOLVE_OUTPUT="$(bash "$SCRIPT_DIR/resolve-departments.sh" "$CONFIG_PATH")" || {
   echo "ERROR: resolve-departments.sh failed" >&2
   exit 1
 }
+
+# --- Step 1b: Call resolve-team-mode.sh ---
+TEAM_MODE_OUTPUT="$(bash "$SCRIPT_DIR/resolve-team-mode.sh" "$CONFIG_PATH")" || {
+  # resolve-team-mode.sh always exits 0, but guard anyway
+  TEAM_MODE_OUTPUT="team_mode=task"
+}
+
+TEAM_MODE="task"
+while IFS= read -r tm_line; do
+  case "${tm_line%%=*}" in
+    team_mode) TEAM_MODE="${tm_line#*=}" ;;
+  esac
+done <<< "$TEAM_MODE_OUTPUT"
 
 # Parse key=value pairs into shell vars (case whitelist for safety)
 multi_dept="" workflow="" active_depts="" leads_to_spawn="" spawn_order="" ux_active="" fe_active=""
@@ -79,7 +102,8 @@ WAVE_ID=1
 
 if [ "$multi_dept" = "false" ] || [ "$workflow" = "backend_only" ]; then
   # Single backend wave
-  WAVE_ITEMS+=("$(jq -n --argjson id "$WAVE_ID" --argjson depts '["backend"]' --arg gate "all-depts-complete" '{id:$id,depts:$depts,gate:$gate}')")
+  dept_entry="$(build_dept_entry "backend")"
+  WAVE_ITEMS+=("$(printf '%s' "$dept_entry" | jq -s --argjson id "$WAVE_ID" --arg gate "all-depts-complete" '{id:$id,depts:.,gate:$gate}')")
 
 elif [ "$workflow" = "parallel" ]; then
   # Parse leads_to_spawn: | separates waves, , separates parallel depts within wave
@@ -95,21 +119,16 @@ elif [ "$workflow" = "parallel" ]; then
 
     # Map leads to depts within this wave
     IFS=',' read -ra LEADS_IN_WAVE <<< "$local_wave"
-    DEPTS_JSON="["
+    DEPT_ENTRIES=()
     DEPTS_CSV=""
     for j in "${!LEADS_IN_WAVE[@]}"; do
       dept=$(lead_to_dept "${LEADS_IN_WAVE[$j]}")
-      if [ "$j" -gt 0 ]; then
-        DEPTS_JSON+=","
-        DEPTS_CSV+=","
-      fi
-      DEPTS_JSON+="\"$dept\""
-      DEPTS_CSV+="$dept"
+      DEPT_ENTRIES+=("$(build_dept_entry "$dept")")
+      if [ "$j" -eq 0 ]; then DEPTS_CSV="$dept"; else DEPTS_CSV+=",$dept"; fi
     done
-    DEPTS_JSON+="]"
 
     GATE=$(assign_gate "$DEPTS_CSV" "$is_last")
-    WAVE_ITEMS+=("$(jq -n --argjson id "$WAVE_ID" --argjson depts "$DEPTS_JSON" --arg gate "$GATE" '{id:$id,depts:$depts,gate:$gate}')")
+    WAVE_ITEMS+=("$(printf '%s\n' "${DEPT_ENTRIES[@]}" | jq -s --argjson id "$WAVE_ID" --arg gate "$GATE" '{id:$id,depts:.,gate:$gate}')")
     WAVE_ID=$((WAVE_ID + 1))
   done
 
@@ -127,15 +146,17 @@ elif [ "$workflow" = "sequential" ]; then
 
     dept=$(lead_to_dept "$local_lead")
     GATE=$(assign_gate "$dept" "$is_last")
-    WAVE_ITEMS+=("$(jq -n --argjson id "$WAVE_ID" --argjson depts "[\"$dept\"]" --arg gate "$GATE" '{id:$id,depts:$depts,gate:$gate}')")
+    dept_entry="$(build_dept_entry "$dept")"
+    WAVE_ITEMS+=("$(printf '%s' "$dept_entry" | jq -s --argjson id "$WAVE_ID" --arg gate "$GATE" '{id:$id,depts:.,gate:$gate}')")
     WAVE_ID=$((WAVE_ID + 1))
   done
 fi
 
 # Guard: if no waves built, default to single backend wave
 if [ ${#WAVE_ITEMS[@]} -eq 0 ]; then
-  WAVE_ITEMS+=("$(jq -n --argjson id 1 --argjson depts '["backend"]' --arg gate "all-depts-complete" '{id:$id,depts:$depts,gate:$gate}')")
+  fallback_entry="$(build_dept_entry "backend")"
+  WAVE_ITEMS+=("$(printf '%s' "$fallback_entry" | jq -s --argjson id 1 --arg gate "all-depts-complete" '{id:$id,depts:.,gate:$gate}')")
 fi
 
 # --- Step 3: Output JSON ---
-printf '%s\n' "${WAVE_ITEMS[@]}" | jq -s --argjson timeout "$DEFAULT_TIMEOUT" '{waves:.,timeout_minutes:$timeout}'
+printf '%s\n' "${WAVE_ITEMS[@]}" | jq -s --argjson timeout "$DEFAULT_TIMEOUT" --arg tm "$TEAM_MODE" '{team_mode:$tm,waves:.,timeout_minutes:$timeout}'
