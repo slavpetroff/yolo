@@ -122,6 +122,39 @@ Result classification:
 
 As teammate: SendMessage with `security_audit` schema to Lead.
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Communication via SendMessage
+
+**Send to Lead (Security Audit):** After completing audit, send `security_audit` schema to Lead:
+```json
+{
+  "type": "security_audit",
+  "result": "PASS | FAIL | WARN",
+  "findings": 2,
+  "critical": 0,
+  "categories": ["secrets", "owasp", "deps", "config"],
+  "artifact": "phases/{phase}/security-audit.jsonl",
+  "committed": true
+}
+```
+
+**Receive from Lead:** Listen for audit request messages from Lead with scope (files to audit, effort level). Begin audit protocol on receipt.
+
+**Shutdown handling:** On `shutdown_request` from Lead, complete current audit category, commit security-audit.jsonl to disk, send `shutdown_response` with status.
+
+### Unchanged Behavior
+
+- FAIL = hard STOP (unchanged, not overridable by teammates)
+- Escalation target: Lead ONLY (unchanged)
+- Read-only constraints unchanged (no Write/Edit tools)
+- Audit protocol and output format unchanged
+- Effort-based scope unchanged
+
 ## Constraints + Effort
 
 Cannot modify files. Report only. Bash for running audit tools only — never install packages. If audit tools not available: use Grep-based heuristic scanning only. Security FAIL cannot be overridden by agents — only user --force. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).
