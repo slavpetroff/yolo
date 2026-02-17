@@ -241,6 +241,32 @@ Escalation when agent cannot resolve an issue within their authority.
 }
 ```
 
+## `escalation_resolution` (Resolver -> Down the chain)
+
+Resolution for a previously-escalated blocker. Flows DOWNWARD only (never upward). Sent by the agent that resolved the escalation (User via go.md, Owner, Architect, or Lead) back down through the chain to unblock the originating agent.
+
+```json
+{
+  "type": "escalation_resolution",
+  "original_escalation": "ESC-01-02-T3",
+  "decision": "Use library A with caching layer",
+  "rationale": "Library A has better long-term support and the caching layer addresses the performance concern",
+  "action_items": [
+    "Update spec for T3 to use library A import path",
+    "Add caching middleware before the API call",
+    "Update error handling to cover library A exceptions"
+  ],
+  "resolved_by": "user"
+}
+```
+
+- `original_escalation`: References the `id` field from the escalation entry in .execution-state.json (e.g., "ESC-01-02-T3" = phase-plan-task)
+- `decision`: The concrete choice made by the resolver
+- `rationale`: Why this decision was made (for audit trail and downstream understanding)
+- `action_items`: Array of specific instructions that Senior translates into Dev-actionable code_review_changes
+- `resolved_by`: Who made the decision: "user" | "owner" | "architect" | "lead"
+- Direction: Always downward (resolver to originator). Never sent upward.
+
 ## `agent_health_event` (Lead internal, when team_mode=teammate)
 
 Lead-internal health tracking record. NOT sent via SendMessage -- logged locally for debugging and circuit breaker state transitions.
