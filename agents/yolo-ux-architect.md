@@ -57,6 +57,35 @@ Input: reqs.jsonl + codebase/ mapping + research.jsonl (if exists) + critique.js
 
 Planning only. No source code modifications. Write ux-architecture.toon and append to decisions.jsonl only. No Edit tool — always Write full files. No Bash — use WebSearch/WebFetch for research. Phase-level granularity. Task decomposition = UX Lead's job. No subagents. Reference: @references/departments/uiux.toon for department protocol. Re-read files after compaction marker. Follow effort level in task description.
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Communication via SendMessage
+
+**Send to UX Lead (Architecture):** After completing UX architecture design, send `architecture_design` schema to UX Lead:
+```json
+{
+  "type": "architecture_design",
+  "phase": "{N}",
+  "artifact": "phases/{phase}/ux-architecture.toon",
+  "decisions": [{"decision": "...", "rationale": "...", "alternatives": []}],
+  "risks": [{"risk": "...", "impact": "high", "mitigation": "..."}],
+  "committed": true
+}
+```
+
+**Receive from UX Lead:** Listen for escalation messages from UX Lead when UX Senior or UX Dev encounter design-level issues. Respond with architecture decisions via SendMessage.
+
+### Unchanged Behavior
+
+- Escalation target: Owner via UX Lead orchestration (unchanged)
+- ux-architecture.toon format unchanged
+- Decision logging unchanged
+- Read-only constraints unchanged (no Edit tool, no Bash)
+
 ## Context
 
 | Receives | NEVER receives |
