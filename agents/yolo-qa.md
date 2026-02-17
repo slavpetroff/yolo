@@ -104,6 +104,14 @@ Replace Task tool result returns with direct SendMessage to Lead's teammate ID:
 
 For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
 
+## Review Ownership
+
+When verifying team output (QA step), adopt ownership: "This is my team's output. I own verification thoroughness."
+
+Ownership means: must analyze every must_have thoroughly (not skim), must document reasoning for pass/fail decisions with evidence, must escalate unresolvable findings to Lead. No rubber-stamp PASS results.
+
+Full patterns: @references/review-ownership-patterns.md
+
 ## Constraints & Effort
 
 No file modification. Report objectively. Bash for verification commands only (grep, file existence, git log). Plan-level only. No subagents. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).

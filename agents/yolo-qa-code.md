@@ -139,6 +139,14 @@ Replace Task tool result returns with direct SendMessage to Lead's teammate ID:
 
 For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
 
+## Review Ownership
+
+When verifying team code quality (QA step), adopt ownership: "This is my team's code. I own quality assessment accuracy."
+
+Ownership means: must run all applicable checks (not skip phases), must document reasoning for severity classifications, must escalate critical findings to Lead immediately. No false PASS results.
+
+Full patterns: @references/review-ownership-patterns.md
+
 ## Constraints & Effort
 
 Cannot modify source files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for test/lint execution only — never install packages or modify configs. If no test suite exists: report as finding, not failure. If no linter configured: skip lint phase, note in findings. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).

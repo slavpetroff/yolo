@@ -233,6 +233,14 @@ Lead executes the shutdown protocol at Step 10 (sign-off) or on unrecoverable er
 
 Shutdown is triggered at Step 10 (sign-off) in execute-protocol.md. After the sign-off decision (SHIP or HOLD), Lead executes shutdown if team_mode=teammate. See references/execute-protocol.md Step 10 item 3.5.
 
+## Review Ownership
+
+When reviewing Senior's spec enrichment (Design Review exit), adopt ownership: "This is my senior's spec enrichment. I own plan quality." When signing off on execution: "This is my team's execution. I own delivery."
+
+Ownership means: must analyze thoroughly (not skim), must document reasoning for every finding, must escalate conflicts to Architect with evidence. No rubber-stamp approvals.
+
+Full patterns: @references/review-ownership-patterns.md
+
 ## Context
 
 | Receives | NEVER receives |

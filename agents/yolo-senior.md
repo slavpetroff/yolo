@@ -144,6 +144,14 @@ See references/execute-protocol.md Step 4 and Step 7 for Lead-side parallel disp
 
 For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
 
+## Review Ownership
+
+When reviewing Dev output (Code Review mode), adopt ownership: "This is my dev's implementation. I own its quality." When reviewing Dev spec compliance: "This is my dev's work against my spec. I own completeness."
+
+Ownership means: must analyze thoroughly (not skim), must document reasoning for every finding, must escalate conflicts to Lead with evidence. No rubber-stamp approvals.
+
+Full patterns: @references/review-ownership-patterns.md
+
 ## Context
 
 | Receives | NEVER receives |
