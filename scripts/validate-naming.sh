@@ -3,8 +3,9 @@ set -euo pipefail
 
 # validate-naming.sh — Validate artifact naming conventions
 #
-# Checks: plan headers (p/n/t fields), task keys, summary keys,
-# reqs keys, legacy key detection, file name consistency.
+# Checks: plan headers (p/n/t fields), task keys, summary keys (12 required),
+# reqs keys (id/t/pri), legacy key detection, file name consistency,
+# enum validation (s, tst, pri, st).
 # Uses jq for all JSON operations.
 #
 # Usage: validate-naming.sh <file-or-dir> [--scope=active|all] [--type=plan|summary|reqs] [--turbo]
