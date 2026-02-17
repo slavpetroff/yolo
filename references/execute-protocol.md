@@ -13,15 +13,26 @@ Loaded on demand by /vbw:vibe Execute mode. Not a user-facing command.
    - **V3 Event Recovery (REQ-17):** If `v3_event_recovery=true` in config, attempt event-sourced recovery first:
      `RECOVERED=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/recover-state.sh {phase} 2>/dev/null || echo "{}")`
      If non-empty and has `plans` array, use recovered state as the baseline instead of the stale execution-state.json. This provides more accurate status when execution-state.json was not written (crash before flush).
+6b. **Generate correlation_id:** Generate a UUID for this phase execution:
+   - If `.vbw-planning/.execution-state.json` already exists and has `correlation_id` (crash-resume):
+     preserve it: `CORRELATION_ID=$(jq -r '.correlation_id // ""' .vbw-planning/.execution-state.json 2>/dev/null || echo "")`
+   - Otherwise generate fresh:
+     `CORRELATION_ID=$(uuidgen 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "$(date -u +%s)-${RANDOM}${RANDOM}")`
+
 7. **Write execution state** to `.vbw-planning/.execution-state.json`:
 ```json
 {
   "phase": N, "phase_name": "{slug}", "status": "running",
   "started_at": "{ISO 8601}", "wave": 1, "total_waves": N,
+  "correlation_id": "{UUID}",
   "plans": [{"id": "NN-MM", "title": "...", "wave": W, "status": "pending|complete"}]
 }
 ```
 Set completed plans (with SUMMARY.md) to `"complete"`, others to `"pending"`.
+
+7b. **Export correlation_id:** Set `VBW_CORRELATION_ID={CORRELATION_ID}` in the execution environment
+    so log-event.sh can fall back to it if .execution-state.json is temporarily unavailable.
+    Log a confirmation: `◆ Correlation ID: {CORRELATION_ID}`
 
 8. **V3 Event Log (REQ-16):** If `v3_event_log=true` in config:
    - Log phase start: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh phase_start {phase} 2>/dev/null || true`
