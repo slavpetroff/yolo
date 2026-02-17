@@ -363,7 +363,7 @@ When Dev reports completion:
    - Otherwise → proceed to Step 8.
 7. Senior commits: `docs({phase}): code review {NN-MM}`
 8. Verify: code-review.jsonl exists with `r: "approve"`.
-9. **EXIT GATE:** Artifact: `code-review.jsonl` (r: "approve"). State: `steps.code_review = complete`. Commit: `chore(state): code_review complete phase {N}`.
+9. **EXIT GATE:** Artifact: `code-review.jsonl` per plan (r: "approve"). When team_mode=teammate: Lead waits for code_review_result messages from all dispatched Seniors in the current wave. After all received, Lead verifies each plan has code-review.jsonl with `r: "approve"` in line 1 (via `jq -r .r` equals "approve"). If any plan has changes_requested after cycle 2, Senior escalates to Lead per existing protocol. When team_mode=task: sequential verification unchanged (each plan checked after its Senior completes). State: `steps.code_review = complete`. Commit: `chore(state): code_review complete phase {N}`.
 
 ### Step 8: QA (QA Lead + QA Code)
 
