@@ -2,7 +2,7 @@
 
 Loaded on demand by /yolo:go Execute mode. Not a user-facing command.
 
-Implements the 10-step company-grade engineering workflow. See `references/company-hierarchy.md` for full hierarchy and `references/artifact-formats.md` for JSONL schemas.
+Implements the 11-step company-grade engineering workflow. See `references/company-hierarchy.md` for full hierarchy and `references/artifact-formats.md` for JSONL schemas.
 
 **Spawn strategy:** Agent spawning is controlled by `team_mode` from resolve-team-mode.sh (passed by go.md). When `team_mode=task` (default): all agents are spawned via Task tool as documented below. When `team_mode=teammate`: top-level agent spawning from go.md uses Teammate API (spawnTeam for department Leads); within-team spawning (Steps 1-9) is handled by agent prompt conditionals using SendMessage. Teammate registration is on-demand at workflow step boundaries: core specialists (architect, senior, dev) at team creation, tester at step 5, qa + qa-code at step 8, security at step 9 (backend only). See `references/teammate-api-patterns.md` for Teammate API patterns and `references/teammate-api-patterns.md` ## Registering Teammates for step-to-role mapping.
 
@@ -19,7 +19,7 @@ Implements the 10-step company-grade engineering workflow. See `references/compa
    - All plans have summary.jsonl: cautious/standard → WARN + confirm; confident/pure-yolo → warn + continue.
 3. **Resolve models for all agents:**
    ```bash
-   for role in critic architect lead senior tester dev qa qa-code security; do
+   for role in critic scout architect lead senior tester dev qa qa-code security; do
      eval "${role^^}_MODEL=\$(bash \${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh $role .yolo-planning/config.json \${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)"
    done
    ```
@@ -113,13 +113,13 @@ When a step's Guard condition triggers a skip:
 3. Commit: `chore(state): {step_name} skipped phase {N}`
 4. Proceed to next step.
 
-Every step in the 10-step workflow below MUST follow these templates. Entry gates run before any step logic. Exit gates run after step logic completes. Skip output runs instead of step logic when guard conditions are met.
+Every step in the 11-step workflow below MUST follow these templates. Entry gates run before any step logic. Exit gates run after step logic completes. Skip output runs instead of step logic when guard conditions are met.
 
 ### Mandatory vs Skippable Steps
 
-**Skippable:** Step 1 (turbo or exists), Step 2 (exists), Step 5 (turbo or no `ts`), Step 8 (--skip-qa or turbo), Step 9 (--skip-security or config off).
+**Skippable:** critique (turbo or exists), research (turbo), architecture (exists), test_authoring (turbo or no `ts`), qa (--skip-qa or turbo), security (--skip-security or config off).
 
-**Mandatory (failure = STOP, no --force):** Steps 3, 4, 6, 7, 10.
+**Mandatory (failure = STOP, no --force):** planning, design_review, implementation, code_review, signoff.
 
 ### Step 1: Critique / Brainstorm (Critic Agent)
 
@@ -147,11 +147,35 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 7. **User gate (balanced/thorough effort):** Display critique summary. If critical findings exist, AskUserQuestion "Address these before architecture?" Options: "Proceed (Architect will address)" / "Pause to discuss".
 8. **EXIT GATE:** Artifact: `critique.jsonl` (valid JSONL). State: `steps.critique = complete`. Commit: `chore(state): critique complete phase {N}`.
 
-### Step 2: Architecture (Architect Agent)
+### Step 2: Research (Scout Agent)
+
+**Guard:** Skip if `--effort=turbo`. Note: research.jsonl existence does NOT trigger skip (append mode). Skip Output per template. Commit: `chore(state): research skipped phase {N}`.
+
+**ENTRY GATE:** Verify `{phase-dir}/critique.jsonl` exists OR `steps.critique.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 1 artifact missing — critique.jsonl not found. Run step 1 first."
+
+1. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} scout {phases_dir}`
+2. Spawn yolo-scout with Task tool:
+   - model: "${SCOUT_MODEL}"
+   - Provide: critique.jsonl findings (critical/major only), reqs.jsonl, codebase/ mapping, compiled context `{phase-dir}/.ctx-scout.toon`, research directives for each critical/major critique finding
+   - Include resolved `disallowed_tools` from resolve-tool-permissions.sh --role scout pattern
+
+   > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
+   > ```bash
+   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "scout" --project-dir ".")
+   > ```
+   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-scout.toon). See D4 in architecture for soft enforcement details.
+
+3. Display: `◆ Spawning Scout (${SCOUT_MODEL})...` → `✓ Research complete`
+4. Scout returns findings via Task result (or scout_findings schema in teammate mode).
+5. Write research.jsonl from Scout findings to phase dir. If research.jsonl already exists (pre-Critic entries), APPEND new entries. Each entry includes `mode: post-critic`. Per D2: orchestrator writes, Scout is read-only.
+6. Commit: `docs({phase}): research findings`
+7. **EXIT GATE:** Artifact: `research.jsonl` (valid JSONL). State: `steps.research = complete`. Commit: `chore(state): research complete phase {N}`.
+
+### Step 3: Architecture (Architect Agent)
 
 **Guard:** Skip if `architecture.toon` exists. Skip Output per template. Commit: `chore(state): architecture skipped phase {N}`.
 
-**ENTRY GATE:** Verify `{phase-dir}/critique.jsonl` exists OR `steps.critique.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 1 artifact missing — critique.jsonl not found. Run step 1 first."
+**ENTRY GATE:** Verify `{phase-dir}/research.jsonl` exists OR `steps.research.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 2 artifact missing — research.jsonl not found. Run step 2 first."
 
 1. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} architect {phases_dir}`
 2. Spawn yolo-architect with Task tool:
@@ -170,9 +194,9 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 5. Architect addresses critique.jsonl findings (updates `st` field) and commits: `docs({phase}): architecture design`
 6. **EXIT GATE:** Artifact: `architecture.toon` (non-empty). State: `steps.architecture = complete`. Commit: `chore(state): architecture complete phase {N}`.
 
-### Step 3: Load Plans and Detect Resume State
+### Step 4: Load Plans and Detect Resume State
 
-**ENTRY GATE:** Verify `{phase-dir}/architecture.toon` exists OR `steps.architecture.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 2 artifact missing — architecture.toon not found. Run step 2 first."
+**ENTRY GATE:** Verify `{phase-dir}/architecture.toon` exists OR `steps.architecture.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 3 artifact missing — architecture.toon not found. Run step 3 first."
 
 1. Glob `*.plan.jsonl` in phase dir. Read each plan header (line 1, parse with jq).
 2. Check existing summary.jsonl files (complete plans).
@@ -215,11 +239,11 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
    - All satisfied: `✓ Cross-phase dependencies verified`
 9. **EXIT GATE:** Artifact: `.execution-state.json` (status running, plans listed) + `*.plan.jsonl`. State: `steps.planning = complete`. Commit: `chore(state): planning complete phase {N}`.
 
-### Step 4: Design Review (Senior Agent)
+### Step 5: Design Review (Senior Agent)
 
 **Delegation directive:** You are the Lead. NEVER implement tasks yourself.
 
-**ENTRY GATE:** Verify at least one `*.plan.jsonl` file exists in phase dir (`ls {phase-dir}/*.plan.jsonl`). If none: STOP "Step 3 artifact missing — no plan.jsonl files found. Run step 3 first."
+**ENTRY GATE:** Verify at least one `*.plan.jsonl` file exists in phase dir (`ls {phase-dir}/*.plan.jsonl`). If none: STOP "Step 4 artifact missing — no plan.jsonl files found. Run step 4 first."
 
 1. Update execution state: `"step": "design_review"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} senior {phases_dir}`
@@ -258,11 +282,11 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 6. Verify: all tasks in plan.jsonl have non-empty `spec` field. Tasks with testable logic should have `ts` field.
 7. **EXIT GATE:** Artifact: enriched plan.jsonl (all tasks in ALL plans have non-empty `spec`). When team_mode=teammate: Lead waits for senior_spec messages from all dispatched Seniors in the current wave. After all received, Lead verifies each plan.jsonl: `jq -r .spec` on every task line must return non-empty value. If any plan has tasks without specs, Senior failed -- Lead escalates. When team_mode=task: sequential verification unchanged (each plan checked after its Senior completes). State: `steps.design_review = complete`. Commit: `chore(state): design_review complete phase {N}`.
 
-### Step 5: Test Authoring — RED Phase (Tester Agent)
+### Step 6: Test Authoring — RED Phase (Tester Agent)
 
 **Guard:** Skip if `--effort=turbo` OR no tasks have `ts` fields. Skip Output per template. Commit: `chore(state): test_authoring skipped phase {N}`.
 
-**ENTRY GATE:** Verify enriched plan.jsonl exists with `spec` fields populated (check at least one task has non-empty `spec` via `jq -r .spec`). If not: STOP "Step 4 artifact missing — plan.jsonl tasks have no spec fields. Run step 4 first."
+**ENTRY GATE:** Verify enriched plan.jsonl exists with `spec` fields populated (check at least one task has non-empty `spec` via `jq -r .spec`). If not: STOP "Step 5 artifact missing — plan.jsonl tasks have no spec fields. Run step 5 first."
 
 1. Update execution state: `"step": "test_authoring"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} tester {phases_dir} {plan_path}`
@@ -286,9 +310,9 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 8. Display: `✓ RED phase complete — {N} test files, {M} test cases (all failing)`
 9. **EXIT GATE:** Artifact: `test-plan.jsonl` (valid JSONL, all `red: true`). State: `steps.test_authoring = complete`. Commit: `chore(state): test_authoring complete phase {N}`.
 
-### Step 6: Implementation (Dev Agents)
+### Step 7: Implementation (Dev Agents)
 
-**ENTRY GATE:** Verify enriched plan.jsonl exists with `spec` fields populated. If test-plan.jsonl should exist (step 5 was not skipped): verify `{phase-dir}/test-plan.jsonl` exists with `red: true` entries. Check via: `jq -r '.steps.test_authoring.status' .yolo-planning/.execution-state.json` — if `"complete"`, verify test-plan.jsonl exists; if `"skipped"`, proceed without it. If step 5 is `"complete"` but test-plan.jsonl missing: STOP "Step 5 artifact missing — test-plan.jsonl not found. Run step 5 first."
+**ENTRY GATE:** Verify enriched plan.jsonl exists with `spec` fields populated. If test-plan.jsonl should exist (step 6 was not skipped): verify `{phase-dir}/test-plan.jsonl` exists with `red: true` entries. Check via: `jq -r '.steps.test_authoring.status' .yolo-planning/.execution-state.json` — if `"complete"`, verify test-plan.jsonl exists; if `"skipped"`, proceed without it. If step 6 is `"complete"` but test-plan.jsonl missing: STOP "Step 6 artifact missing — test-plan.jsonl not found. Run step 6 first."
 
 1. Update execution state: `"step": "implementation"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} dev {phases_dir} {plan_path}`
@@ -363,9 +387,9 @@ When team_mode=task: Dev-written summary.jsonl is verified (unchanged behavior):
 
 **EXIT GATE:** Artifact: `{plan_id}.summary.jsonl` per plan (valid JSONL). When team_mode=teammate: Lead verifies all summary.jsonl files were written by Lead aggregation (all `task_complete` messages collected, all plans accounted for). Lead checks summary.jsonl validity: `jq empty {phase-dir}/{plan_id}.summary.jsonl` for each plan. When team_mode=task: Dev-written summary.jsonl verified per existing protocol. State: `steps.implementation = complete`. Commit: `chore(state): implementation complete phase {N}`.
 
-### Step 7: Code Review (Senior Agent)
+### Step 8: Code Review (Senior Agent)
 
-**ENTRY GATE:** For each plan, verify `{phase-dir}/{plan_id}.summary.jsonl` exists with valid JSONL (`jq empty`). If not: STOP "Step 6 artifact missing — summary.jsonl not found for plan {plan_id}. Run step 6 first."
+**ENTRY GATE:** For each plan, verify `{phase-dir}/{plan_id}.summary.jsonl` exists with valid JSONL (`jq empty`). If not: STOP "Step 7 artifact missing — summary.jsonl not found for plan {plan_id}. Run step 7 first."
 
 1. Update execution state: `"step": "code_review"`
 2. **Dispatch Senior(s):**
@@ -413,11 +437,11 @@ When team_mode=task: Dev-written summary.jsonl is verified (unchanged behavior):
 8. Verify: code-review.jsonl exists with `r: "approve"`.
 9. **EXIT GATE:** Artifact: `code-review.jsonl` per plan (r: "approve"). When team_mode=teammate: Lead waits for code_review_result messages from all dispatched Seniors in the current wave. After all received, Lead verifies each plan has code-review.jsonl with `r: "approve"` in line 1 (via `jq -r .r` equals "approve"). If any plan has changes_requested after cycle 2, Senior escalates to Lead per existing protocol. When team_mode=task: sequential verification unchanged (each plan checked after its Senior completes). State: `steps.code_review = complete`. Commit: `chore(state): code_review complete phase {N}`.
 
-### Step 8: QA (QA Lead + QA Code)
+### Step 9: QA (QA Lead + QA Code)
 
 **Guard:** Skip if `--skip-qa` OR `--effort=turbo`. Skip Output per template. Commit: `chore(state): qa skipped phase {N}`.
 
-**ENTRY GATE:** Verify `{phase-dir}/code-review.jsonl` exists with `r: "approve"` in line 1 (`jq -r .r` equals `"approve"`). If not: STOP "Step 7 artifact missing — code-review.jsonl not found or not approved. Run step 7 first."
+**ENTRY GATE:** Verify `{phase-dir}/code-review.jsonl` exists with `r: "approve"` in line 1 (`jq -r .r` equals `"approve"`). If not: STOP "Step 8 artifact missing — code-review.jsonl not found or not approved. Run step 8 first."
 
 1. Update execution state: `"step": "qa"`
 2. **Tier resolution:** turbo=skip, fast=quick, balanced=standard, thorough=deep.
@@ -488,11 +512,11 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 12. If all PASS (automated + manual) → proceed to Step 9.
 13. **EXIT GATE:** Verify `{phase-dir}/verification.jsonl` exists with valid JSONL (`jq empty`). Verify `{phase-dir}/qa-code.jsonl` exists with valid JSONL. Update `.execution-state.json`: set `steps.qa.status` to `"complete"`, `steps.qa.completed_at` to ISO timestamp, `steps.qa.artifact` to `"{phase-dir}/verification.jsonl"`. Commit: `chore(state): qa complete phase {N}`.
 
-### Step 9: Security Audit (optional)
+### Step 10: Security Audit (optional)
 
 **Guard:** Skip if `--skip-security` OR config `security_audit` != true. Skip Output per template. Commit: `chore(state): security skipped phase {N}`.
 
-**ENTRY GATE:** Verify `{phase-dir}/verification.jsonl` exists OR `steps.qa.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 8 artifact missing — verification.jsonl not found. Run step 8 first."
+**ENTRY GATE:** Verify `{phase-dir}/verification.jsonl` exists OR `steps.qa.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 9 artifact missing — verification.jsonl not found. Run step 9 first."
 
 1. Update execution state: `"step": "security"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} security {phases_dir}`
@@ -516,9 +540,9 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 7. If `r: "PASS"`: continue.
 8. **EXIT GATE:** Artifact: `security-audit.jsonl` (valid JSONL). State: `steps.security = complete`. Commit: `chore(state): security complete phase {N}`.
 
-### Step 10: Sign-off (Lead)
+### Step 11: Sign-off (Lead)
 
-**ENTRY GATE:** Verify `{phase-dir}/security-audit.jsonl` exists OR `steps.security.status` is `"skipped"` in `.execution-state.json`. Also verify `{phase-dir}/code-review.jsonl` exists with `r: "approve"`. If security artifact missing AND security not skipped: STOP "Step 9 artifact missing — security-audit.jsonl not found. Run step 9 first."
+**ENTRY GATE:** Verify `{phase-dir}/security-audit.jsonl` exists OR `steps.security.status` is `"skipped"` in `.execution-state.json`. Also verify `{phase-dir}/code-review.jsonl` exists with `r: "approve"`. If security artifact missing AND security not skipped: STOP "Step 10 artifact missing — security-audit.jsonl not found. Run step 10 first."
 
 1. Update execution state: `"step": "signoff"`
 2. Review all artifacts:
@@ -583,7 +607,7 @@ Each transition commits `.execution-state.json` so resume works on exit. Schema:
 
 ## Multi-Department Execution
 
-**Detection:** `multi_dept` from resolve-departments.sh. If false: skip this section entirely. All Steps 1-10 above apply to single-dept unchanged.
+**Detection:** `multi_dept` from resolve-departments.sh. If false: skip this section entirely. All Steps 1-11 above apply to single-dept unchanged.
 
 **When multi_dept=true:**
 
@@ -628,7 +652,7 @@ Each transition commits `.execution-state.json` so resume works on exit. Schema:
        - run_in_background: true
        - model: resolved via resolve-agent-model.sh for {dept}-lead role
        - Provide: dept CONTEXT file, phase-dir, ROADMAP.md, REQUIREMENTS.md
-       - Lead runs full 10-step workflow using foreground Task subagents internally
+       - Lead runs full 11-step workflow using foreground Task subagents internally
        - On completion: Lead writes .dept-status-{dept}.json via dept-status.sh
        - On completion: Lead writes handoff sentinel (e.g., .handoff-ux-complete)
    ```
@@ -695,7 +719,7 @@ Each transition commits `.execution-state.json` so resume works on exit. Schema:
 
 **Full protocol details:** See references/multi-dept-protocol.md for dispatch flow and coordination files. See references/cross-team-protocol.md for handoff gate definitions. REQ-03: Multi-department orchestration via file-based coordination.
 
-**Teammate mode per-department 10-step:** When `team_mode=teammate`, the per-department 10-step workflow is identical in logic but uses SendMessage for intra-team coordination instead of Task tool spawning. The Lead creates the team via spawnTeam and registers specialists on-demand:
+**Teammate mode per-department 11-step:** When `team_mode=teammate`, the per-department 11-step workflow is identical in logic but uses SendMessage for intra-team coordination instead of Task tool spawning. The Lead creates the team via spawnTeam and registers specialists on-demand:
 - **Team creation:** Lead registers architect, senior, dev as teammates
 - **Step 5:** Lead registers tester as teammate. Tester sends test_plan_result to Senior (not Lead) via SendMessage.
 - **Step 8:** Lead registers qa + qa-code as teammates. Both send results to Lead via SendMessage. QA Code writes gaps.jsonl as file artifact if PARTIAL/FAIL.
