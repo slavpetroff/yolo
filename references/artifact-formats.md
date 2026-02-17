@@ -43,9 +43,12 @@ JSONL schemas, key abbreviations, token budgets, and phase directory structure.
 | `done` | done criteria | string | "Middleware exports, tests pass" |
 | `spec` | specification | string | "Express middleware at src/middleware/auth.ts: import jsonwebtoken..." |
 | `ts` | test_spec | string | "tests/auth.test.ts: 4 cases — valid RS256 token (200+user), expired token (401), missing header (401), malformed Bearer (401). Use describe/it, mock jwt.verify." |
+| `td` | task_depends | string[] | ["T1", "T3"] |
 
 The `spec` field is written by Senior during Design Review (Step 4). Lead leaves it empty.
 The `ts` field is written by Senior during Design Review (Step 4). Lead leaves it empty. Tester reads it to write RED phase tests.
+
+The `td` field is optional. When present, it lists task IDs within the same plan that must complete before this task can begin (intra-plan ordering). Maps to TaskCreate blockedBy parameter in teammate mode. When absent, the task has no intra-plan dependencies. Cross-plan dependencies use the plan header `d` field. See `references/teammate-api-patterns.md` ## Task-Level Blocking.
 
 ### Summary ({NN-MM}.summary.jsonl, single line)
 
