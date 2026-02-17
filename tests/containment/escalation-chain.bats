@@ -194,3 +194,36 @@ assert_escalation_target() {
   run grep "Dev → Senior → Lead → Architect → User" "$hierarchy"
   assert_success
 }
+
+# --- Resolution routing path (Phase 5: Escalation Round-Trip) ---
+
+@test "yolo-lead.md has Escalation Receipt section" {
+  run grep -q 'Escalation Receipt' "$AGENTS_DIR/yolo-lead.md"
+  assert_success
+}
+
+@test "yolo-senior.md has Resolution Routing section" {
+  run grep -q 'Resolution Routing' "$AGENTS_DIR/yolo-senior.md"
+  assert_success
+}
+
+@test "yolo-dev.md has Escalation Resolution section" {
+  run grep -q 'Escalation Resolution' "$AGENTS_DIR/yolo-dev.md"
+  assert_success
+}
+
+@test "yolo-owner.md has Resolution Routing section" {
+  run grep -q 'Resolution Routing' "$AGENTS_DIR/yolo-owner.md"
+  assert_success
+}
+
+@test "company-hierarchy.md has Escalation Round-Trip section" {
+  local hierarchy="$PROJECT_ROOT/references/company-hierarchy.md"
+  run grep -q 'Escalation Round-Trip' "$hierarchy"
+  assert_success
+}
+
+@test "yolo-architect.md has structured escalation protocol" {
+  run grep -E 'options array|structured escalation|Structured Escalation' "$AGENTS_DIR/yolo-architect.md"
+  assert_success
+}
