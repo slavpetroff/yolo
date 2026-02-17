@@ -212,6 +212,27 @@ Per-department circuit breaker. In-memory state within Lead session (not persist
 
 Each department has its own independent circuit breaker. Backend open does not affect Frontend or UI/UX. State is tracked per-department in Lead's in-memory map.
 
+## Shutdown Protocol Enforcement
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task, shutdown is handled by Task tool session termination (no explicit protocol needed).
+
+Lead executes the shutdown protocol at Step 10 (sign-off) or on unrecoverable error. See references/teammate-api-patterns.md ### Shutdown Protocol for message schemas.
+
+### 8-Step Shutdown Algorithm
+
+1. **Collect teammates:** Build list of all registered teammates for this department from in-memory roster.
+2. **Send shutdown_request:** For each teammate, send shutdown_request via SendMessage with reason and deadline_seconds=30.
+3. **Start deadline timer:** Track 30s deadline per teammate.
+4. **Collect responses:** Receive shutdown_response from each teammate. Track: responded (clean/in_progress/error) or timed_out.
+5. **Handle timeouts:** After 30s, any teammate that has not responded is marked timed_out. Log: "[SHUTDOWN] Timeout: {agent_id} did not respond within 30s." Do not block.
+6. **Verify artifacts:** Run `git status` to confirm all team-modified files are committed. If uncommitted files exist, log as deviation.
+7. **Write final summaries:** Ensure all summary.jsonl files are written and committed. Any in_progress or timed_out work logged in deviations.
+8. **Cleanup:** Team auto-cleans when Lead session ends. No explicit team deletion needed.
+
+### Trigger
+
+Shutdown is triggered at Step 10 (sign-off) in execute-protocol.md. After the sign-off decision (SHIP or HOLD), Lead executes shutdown if team_mode=teammate. See references/execute-protocol.md Step 10 item 3.5.
+
 ## Context
 
 | Receives | NEVER receives |

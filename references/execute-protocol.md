@@ -516,6 +516,11 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 3. Decision:
    - All good → SHIP (mark phase complete)
    - Issues remain → HOLD (generate remediation instructions)
+3.5. **Teammate shutdown (team_mode=teammate only):** If team_mode=teammate, Lead executes the shutdown protocol before cleanup:
+   - Send `shutdown_request` to all registered teammates per agents/yolo-lead.md ## Shutdown Protocol Enforcement.
+   - Collect responses (30s deadline).
+   - Log timeouts and incomplete work as deviations.
+   - When team_mode=task: skip this step entirely (Task tool sessions end naturally).
 4. **Cleanup:** If multi_dept=true, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dept-cleanup.sh --phase-dir {phase-dir} --reason complete` to remove coordination files. If single-dept: no additional cleanup.
 5. **Update state:**
    - .execution-state.json: `"status": "complete"`, `"step": "signoff"`

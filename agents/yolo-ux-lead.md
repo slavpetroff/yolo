@@ -104,6 +104,10 @@ For fallback behavior, see agents/yolo-lead.md ## Fallback Behavior. Apply same 
 
 For health tracking and circuit breaker patterns, see agents/yolo-lead.md ## Agent Health Tracking and ## Circuit Breaker. Apply same patterns with uiux team (yolo-uiux).
 
+### Shutdown Protocol Enforcement
+
+For shutdown enforcement protocol, see agents/yolo-lead.md ## Shutdown Protocol Enforcement. Apply same patterns with uiux team (yolo-uiux).
+
 ## Summary Aggregation (when team_mode=teammate)
 
 > This section is active ONLY when team_mode=teammate. When team_mode=task, UX Lead does not aggregate summaries (UX Dev writes summary.jsonl directly).
