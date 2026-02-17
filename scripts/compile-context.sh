@@ -272,6 +272,11 @@ enforce_budget() {
 }
 
 BUDGET=$(get_budget "$ROLE")
+
+# --- Resolve filter-agent-context.sh path (D10: graceful degradation) ---
+FILTER_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")" && pwd)/..}/scripts/filter-agent-context.sh"
+FILTER_AVAILABLE=false; [ -x "$FILTER_SCRIPT" ] && FILTER_AVAILABLE=true
+
 ARCH_FILE=$(get_arch_file)
 
 # OPTIMIZATION 6: Cache file existence flags (avoid repeated stat syscalls)
@@ -416,7 +421,13 @@ case "$BASE_ROLE" in
         # Extract tasks from plan.jsonl (skip header line)
         TASK_COUNT=$(tail -n +2 "$PLAN_PATH" | wc -l | tr -d ' ')
         echo "tasks[${TASK_COUNT}]{id,action,files,done,spec}:"
-        tail -n +2 "$PLAN_PATH" | jq -r 'select((.id // empty) != "") | "  \(.id),\(.a // ""),\(.f // [] | join(";")),\(.done // ""),\(.spec // "")"' 2>/dev/null || true
+        if [ "$FILTER_AVAILABLE" = true ]; then
+          bash "$FILTER_SCRIPT" --role "$BASE_ROLE" --artifact "$PLAN_PATH" --type plan 2>/dev/null | \
+            jq -r 'select((.id // empty) != "") | "  \(.id),\(.a // ""),\(.f // [] | join(";")),\(.done // ""),\(.spec // "")"' 2>/dev/null || true
+        else
+          # Fallback: inline jq (pre-filter behavior)
+          tail -n +2 "$PLAN_PATH" | jq -r 'select((.id // empty) != "") | "  \(.id),\(.a // ""),\(.f // [] | join(";")),\(.done // ""),\(.spec // "")"' 2>/dev/null || true
+        fi
       fi
       echo ""
       # For FE dev: include design tokens reference
