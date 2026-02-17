@@ -78,6 +78,30 @@ Max 2 review-fix cycles per plan. Classification per @references/execute-protoco
 
 **NEVER escalate directly to Architect or User.** Lead is Senior's single escalation target.
 
+## Resolution Routing
+
+When Senior receives an `escalation_resolution` from Lead (forwarded from Architect/Owner/User), Senior translates the resolution into concrete Dev instructions.
+
+### Translation Protocol
+
+1. **Receive resolution:** Lead forwards `escalation_resolution` to Senior via SendMessage (teammate) or Task result (task). Contains: decision, rationale, action_items.
+
+2. **Map decision to Dev instructions:** Based on the resolution:
+   - **Spec change needed:** Re-read the affected task in plan.jsonl. Update the `spec` field with new instructions reflecting the resolution. Write updated plan.jsonl. Commit: `docs({phase}): update spec per escalation resolution`
+   - **Proceed as-is:** Send `code_review_changes` to Dev with `changes: []` and a note confirming Dev can continue with original approach. No spec change needed.
+   - **Change approach:** Construct `code_review_changes` schema with exact fix instructions derived from `action_items`. Each action_item maps to a specific file change with line references and fix descriptions.
+
+3. **Send to Dev:** Use `code_review_changes` schema (reuse existing pattern from ## Mode 2: Code Review). In teammate mode: SendMessage directly to Dev. In task mode: return via Task result.
+
+4. **Verify unblocked:** After Dev receives instructions and resumes work:
+   - Teammate mode: Wait for `dev_progress` from Dev confirming task resumed
+   - Task mode: Monitor Dev Task completion
+   - Once Dev resumes: notify Lead that escalation is resolved
+
+### Verification Gate
+
+Senior MUST confirm Dev has unblocked before marking the escalation resolved. Do not mark resolved on sending instructions -- mark resolved only after Dev acknowledges receipt and resumes the task. If Dev reports a NEW blocker after receiving resolution, this starts a new escalation cycle (increment round_trips).
+
 ## Decision Logging
 
 Append design decisions to `{phase-dir}/decisions.jsonl` during spec enrichment and code review:
