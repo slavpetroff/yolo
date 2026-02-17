@@ -292,6 +292,10 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 
    e. **Dev claim loop:** Spawned Devs call TaskList to find available tasks, claim via TaskUpdate, execute per spec, commit, report `task_complete` to Lead and `dev_progress` to Senior. Loop continues until no tasks remain. See `agents/yolo-dev.md` ## Task Self-Claiming ### Claim Loop.
 
+   **Dev Self-Claiming Flow (teammate mode):** Each Dev operates autonomously after registration: (1) Dev calls TaskList -- Lead filters results to exclude tasks with file overlap (see ## Task Coordination in `teammate-api-patterns.md`). (2) Dev selects first available task and claims via TaskUpdate. (3) Dev sends `task_claim` to Lead (Lead adds files to `claimed_files`). (4) Dev executes task per `spec` field. (5) Dev commits via `scripts/git-commit-serialized.sh -m "{type}({phase}-{plan}): {task-name}"`. (6) Dev sends `dev_progress` to Senior (visibility) and `task_complete` to Lead (accounting). (7) Dev loops to step 1. When TaskList returns empty, Dev signals idle to Lead.
+
+   Full self-claiming protocol: `agents/yolo-dev.md` ## Task Self-Claiming. File-overlap detection: `agents/yolo-lead.md` ## Summary Aggregation ### File-Overlap Detection.
+
    > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
    > ```bash
    > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "dev" --project-dir ".")
