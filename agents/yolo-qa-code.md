@@ -87,6 +87,54 @@ On PARTIAL or FAIL, write `gaps.jsonl` (one JSON line per gap): `{"id":"gap-001"
 
 **NEVER escalate directly to Senior, Dev, Architect, or User.** Lead is QA Code's single escalation target. Lead routes remediation: Lead → Senior → Dev.
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely. Use Task tool result returns and file-based artifacts instead.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Communication via SendMessage
+
+Replace Task tool result returns with direct SendMessage to Lead's teammate ID:
+
+**Verification reporting:** Send `qa_code_result` schema to Lead after completing code-level verification:
+```json
+{
+  "type": "qa_code_result",
+  "result": "PASS | FAIL | PARTIAL",
+  "tests": { "passed": 42, "failed": 0, "skipped": 3 },
+  "lint": { "errors": 0, "warnings": 2 },
+  "findings_count": 5,
+  "critical": 0,
+  "artifact": "phases/{phase}/qa-code.jsonl",
+  "committed": true
+}
+```
+
+**Gaps reporting (PARTIAL/FAIL only):** On PARTIAL or FAIL, also send gaps.jsonl path in the `artifact` field. Lead uses gaps for remediation routing (Lead -> Senior -> Dev).
+
+**Blocker escalation:** Send `escalation` schema to Lead when blocked:
+```json
+{
+  "type": "escalation",
+  "from": "qa-code",
+  "to": "lead",
+  "issue": "{description}",
+  "evidence": ["{what was found}"],
+  "recommendation": "{suggested resolution}",
+  "severity": "blocking"
+}
+```
+
+**Receive instructions:** Listen for `shutdown_request` from Lead. Complete current verification, commit qa-code.jsonl and gaps.jsonl (if applicable), respond with `shutdown_response`.
+
+### Unchanged Behavior
+
+- Escalation target: Lead ONLY (never Senior, Dev, Architect, or User)
+- Cannot modify source files (write only qa-code.jsonl and gaps.jsonl)
+- TDD compliance check and 4-phase verification unchanged
+- qa-code.jsonl and gaps.jsonl output formats unchanged
+
 ## Constraints & Effort
 
 Cannot modify source files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for test/lint execution only — never install packages or modify configs. If no test suite exists: report as finding, not failure. If no linter configured: skip lint phase, note in findings. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).

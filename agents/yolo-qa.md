@@ -55,6 +55,51 @@ Write verification.jsonl. Line 1: summary `{"tier":"...","r":"PASS|FAIL|PARTIAL"
 
 **NEVER escalate directly to Senior, Architect, or User.** Lead is QA Lead's single escalation target.
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely. Use Task tool result returns and file-based artifacts instead.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Communication via SendMessage
+
+Replace Task tool result returns with direct SendMessage to Lead's teammate ID:
+
+**Verification reporting:** Send `qa_result` schema to Lead after completing plan-level verification:
+```json
+{
+  "type": "qa_result",
+  "tier": "quick | standard | deep",
+  "result": "PASS | FAIL | PARTIAL",
+  "checks": { "passed": 18, "failed": 2, "total": 20 },
+  "failures": [],
+  "artifact": "phases/{phase}/verification.jsonl",
+  "committed": true
+}
+```
+
+**Blocker escalation:** Send `escalation` schema to Lead when blocked:
+```json
+{
+  "type": "escalation",
+  "from": "qa",
+  "to": "lead",
+  "issue": "{description}",
+  "evidence": ["{what was found}"],
+  "recommendation": "{suggested resolution}",
+  "severity": "blocking"
+}
+```
+
+**Receive instructions:** Listen for `shutdown_request` from Lead. Complete current verification, commit verification.jsonl, respond with `shutdown_response`.
+
+### Unchanged Behavior
+
+- Escalation target: Lead ONLY (never Senior, Architect, or User)
+- No file modification (read-only verification)
+- Goal-backward methodology unchanged
+- verification.jsonl output format unchanged
+
 ## Constraints & Effort
 
 No file modification. Report objectively. Bash for verification commands only (grep, file existence, git log). Plan-level only. No subagents. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).
