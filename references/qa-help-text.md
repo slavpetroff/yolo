@@ -1,0 +1,90 @@
+# QA Gate Help Text
+
+Help text and display templates for QA-related configuration options. Referenced by `commands/config.md` Step 2.7 (QA Gates) and Settings Reference table.
+
+Dependency: `references/qa-output-patterns.md` for output template cross-references.
+
+## Config Display (metrics_block format)
+
+Shown when user views current QA gate settings via /yolo:config or /yolo:status.
+
+```
+      QA Gates:
+     Post-task: {enabled|disabled}
+     Post-plan: {enabled|disabled}
+    Post-phase: {enabled|disabled}
+       Timeout: {N}s
+     Threshold: {strict|lenient|off}
+```
+
+Example with defaults:
+```
+      QA Gates:
+     Post-task: enabled
+     Post-plan: enabled
+    Post-phase: enabled
+       Timeout: 30s (post-task) / 300s (post-plan, post-phase)
+     Threshold: strict
+```
+
+## Config Option Help Text
+
+Each option below maps to a key in the `qa_gates` object in config/defaults.json.
+
+### qa_gates.post_task
+
+**Type:** boolean
+**Default:** `true`
+**Description:** Run scoped tests after each Dev task commit during Step 7. When disabled, post-task gate is skipped entirely (exit 0, no result logged).
+**Help text:** "Post-task gate runs unit tests matching modified files after each Dev commit. Disable to skip per-task testing (not recommended)."
+
+### qa_gates.post_plan
+
+**Type:** boolean
+**Default:** `true`
+**Description:** Run full test suite after all tasks in a plan complete. Blocks progression to next plan on failure.
+**Help text:** "Post-plan gate runs the full test suite when a plan finishes. Disable to skip plan-level verification."
+
+### qa_gates.post_phase
+
+**Type:** boolean
+**Default:** `true`
+**Description:** Run full system verification before QA agent spawn in Step 9. Failure blocks QA agents (cost savings).
+**Help text:** "Post-phase gate verifies all gates and tests before spawning QA agents. Disable to skip pre-QA verification."
+
+### qa_gates.timeout_seconds
+
+**Type:** positive integer
+**Default:** `30` (post-task) / `300` (post-plan, post-phase)
+**Description:** Maximum wall-clock time for gate execution. Gate result is WARN on timeout.
+**Help text:** "Maximum seconds for gate execution. Post-task defaults to 30s. Post-plan and post-phase default to 300s."
+
+### qa_gates.failure_threshold
+
+**Type:** enum ("strict" | "lenient" | "off")
+**Default:** `"strict"`
+**Description:** Controls gate behavior on test failure. strict = any failure blocks. lenient = only critical failures block. off = log but never block.
+**Help text:** "How strictly gates enforce test results. 'strict' blocks on any failure. 'lenient' blocks on critical failures only. 'off' logs results without blocking."
+
+## Interactive Config Prompt (ask_user_question pattern)
+
+Shown during /yolo:config Step 2.7 when user reaches QA Gates section.
+
+```
+Configure QA Gates. Pick one.
+  (A) Enable all gates (recommended)
+  (B) Post-plan and post-phase only (skip per-task)
+  (C) Post-phase only (minimal)
+  (D) Disable all gates
+  (E) Custom configuration
+```
+
+If user picks (E), show individual toggles:
+
+```
+Post-task QA gate (tests after each commit)?
+  (A) Enabled (default)
+  (B) Disabled
+```
+
+(Repeat for post_plan, post_phase, then prompt for timeout and threshold.)
