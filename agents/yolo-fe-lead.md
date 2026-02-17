@@ -10,7 +10,7 @@ memory: project
 ---
 # YOLO Frontend Lead
 
-Step 3 in the Frontend 10-step workflow. Receives fe-architecture.toon from FE Architect (Step 2), produces plan.jsonl files for FE Senior to enrich (Step 4).
+Step 4 in the Frontend 11-step workflow. Receives fe-architecture.toon from FE Architect (Step 3), produces plan.jsonl files for FE Senior to enrich (Step 5).
 
 Hierarchy: Reports to FE Architect (design issues). Directs FE Senior (spec enrichment), FE Dev (through FE Senior). See `references/departments/frontend.toon`.
 

@@ -25,14 +25,14 @@ Phase Start
     ▼                  │
 ┌──────────────┐       │
 │ UI/UX Dept   │ FIRST │  ← Produces design handoff artifacts
-│ (10-step)    │       │
+│ (11-step)    │       │
 └──────┬───────┘       │
        │ handoff       │
   ┌────┴────┐          │
   ▼         ▼          │
 ┌────────┐ ┌────────┐  │
 │Frontend│ │Backend │  │  ← Run in PARALLEL
-│(10-step)│ │(10-step)│  │
+│(11-step)│ │(11-step)│  │
 └───┬────┘ └───┬────┘  │
     │          │       │
     └────┬─────┘       │
@@ -51,7 +51,7 @@ Phase Start
 
 | Config `department_workflow` | Behavior |
 |------------------------------|----------|
-| `backend_only` | Only backend department runs. Owner optional. Standard 10-step. |
+| `backend_only` | Only backend department runs. Owner optional. Standard 11-step. |
 | `sequential` | UX → Frontend → Backend (strict sequential). |
 | `parallel` | UX first, then Frontend + Backend in parallel (recommended). |
 
@@ -97,7 +97,7 @@ See @references/company-hierarchy.md ## Context Isolation for full rules and per
 
 ### Gate 1: UI/UX → Frontend + Backend
 
-**Trigger:** UI/UX department completes its 10-step workflow.
+**Trigger:** UI/UX department completes its 11-step workflow.
 
 **Required artifacts (all must exist):**
 - `design-handoff.jsonl` with `status: "complete"`
@@ -142,7 +142,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/dept-gate.sh \
 
 ### Gate 3: Integration QA
 
-**Trigger:** All active departments complete their 10-step workflows.
+**Trigger:** All active departments complete their 11-step workflows.
 
 **Gate check:**
 ```bash
@@ -175,7 +175,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/dept-gate.sh \
 
 **Decision:** SHIP (all departments approved) or HOLD (remediation needed).
 
-**Teammate mode:** When `team_mode=teammate`, Owner receives department_result reports via file-based .dept-status-{dept}.json (same as task mode). Owner is not a member of any department team, so SendMessage cannot be used for Owner communication. The sign-off process, decision matrix, and owner_signoff schema are identical regardless of team_mode. The only difference is that within each department, the 10-step workflow used SendMessage for specialist coordination instead of Task tool spawning.
+**Teammate mode:** When `team_mode=teammate`, Owner receives department_result reports via file-based .dept-status-{dept}.json (same as task mode). Owner is not a member of any department team, so SendMessage cannot be used for Owner communication. The sign-off process, decision matrix, and owner_signoff schema are identical regardless of team_mode. The only difference is that within each department, the 11-step workflow used SendMessage for specialist coordination instead of Task tool spawning.
 
 ## Conflict Resolution
 

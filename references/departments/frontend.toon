@@ -27,17 +27,18 @@ conventions:
   artifacts: JSONL with abbreviated keys (see references/artifact-formats.md)
 
 workflow:
-  steps: 10-step standard with FE domain specializations
+  steps: 11-step standard with FE domain specializations
   1: Critic (shared), component architecture review
-  2: FE Architect, component hierarchy + state mgmt + routing
-  3: FE Lead, component breakdown
-  4: FE Senior, component specs + prop types + state shapes
-  5: FE Tester, component + interaction + E2E tests
-  6: FE Dev, components + styles + state + API
-  7: FE Senior, a11y + perf + design compliance review
-  8: FE QA Lead + Code, design + UX + a11y + bundle
-  9: Security (shared), XSS + CSP + auth tokens
-  10: FE Lead/Owner, dept result
+  2: Scout (shared), targeted research for FE critique findings
+  3: FE Architect, component hierarchy + state mgmt + routing
+  4: FE Lead, component breakdown
+  5: FE Senior, component specs + prop types + state shapes
+  6: FE Tester, component + interaction + E2E tests
+  7: FE Dev, components + styles + state + API
+  8: FE Senior, a11y + perf + design compliance review
+  9: FE QA Lead + Code, design + UX + a11y + bundle
+  10: Security (shared), XSS + CSP + auth tokens
+  11: FE Lead/Owner, dept result
 
 cross_dept:
   from_ux: design-tokens.jsonl, component-specs.jsonl, user-flows.jsonl, design-handoff.jsonl

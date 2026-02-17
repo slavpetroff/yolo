@@ -82,12 +82,12 @@ UI/UX → Frontend → Backend → Integration QA → Security → Owner Sign-of
 
 **If `department_workflow` = "backend_only":**
 ```
-Standard 10-step (no cross-department orchestration)
+Standard 11-step (no cross-department orchestration)
 ```
 
-### Per-Department 10-Step Execution
+### Per-Department 11-Step Execution
 
-Each department runs the same 10-step workflow from `execute-protocol.md`. Department Leads are spawned as **background Task subagents** (`run_in_background=true`) by go.md. Internally, each Lead spawns its specialists (Critic, Architect, Senior, Dev, etc.) as **foreground Task subagents** — the same proven single-agent workflow. The only change is the outer spawning mechanism; the inner 10-step is identical to single-dept mode.
+Each department runs the same 11-step workflow from `execute-protocol.md`. Department Leads are spawned as **background Task subagents** (`run_in_background=true`) by go.md. Internally, each Lead spawns its specialists (Critic, Scout, Architect, Senior, Dev, etc.) as **foreground Task subagents** — the same proven single-agent workflow. The only change is the outer spawning mechanism; the inner 11-step is identical to single-dept mode.
 
 - Department-specific agents (fe-*, ux-*, or backend originals)
 - Department-specific compiled context (from `references/departments/{dept}.md`)
@@ -142,7 +142,7 @@ Preserves: All user artifacts (plan.jsonl, summary.jsonl, architecture.toon, etc
 
 **Gate check:** Before running Integration QA, verify all departments are complete via `bash dept-gate.sh --gate all-depts --phase-dir {phase-dir}`. This validates every active department has `.dept-status-{dept}.json` with `status: "complete"` and at least one summary.jsonl.
 
-After all departments complete their individual 10-step workflows:
+After all departments complete their individual 11-step workflows:
 
 1. **Cross-department compatibility:**
    - Frontend consumes Backend API correctly (contract adherence)

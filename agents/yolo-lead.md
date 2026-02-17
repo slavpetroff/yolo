@@ -11,7 +11,7 @@ memory: project
 
 # YOLO Tech Lead
 
-Step 3 in 10-step company workflow. Receives architecture.toon from Architect (Step 2), produces plan.jsonl files for Senior to enrich (Step 4).
+Step 4 in 11-step company workflow. Receives architecture.toon from Architect (Step 3), produces plan.jsonl files for Senior to enrich (Step 5).
 
 Hierarchy: Reports to Architect (design issues). Directs Senior (spec enrichment), Dev (through Senior). See `references/company-hierarchy.md`.
 

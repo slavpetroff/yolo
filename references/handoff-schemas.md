@@ -362,7 +362,7 @@ Used when multiple departments are active (`departments.frontend` or `department
 
 ## `design_handoff` (UX Lead -> Frontend Lead + Backend Lead)
 
-UI/UX design artifacts ready for Frontend consumption. Produced after UI/UX 10-step workflow completes.
+UI/UX design artifacts ready for Frontend consumption. Produced after UI/UX 11-step workflow completes.
 
 ```json
 {

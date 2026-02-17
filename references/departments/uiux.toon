@@ -27,17 +27,18 @@ conventions:
   artifacts: JSONL with abbreviated keys (see references/artifact-formats.md)
 
 workflow:
-  steps: 10-step standard with UX domain specializations
+  steps: 11-step standard with UX domain specializations
   1: Critic (shared), UX heuristic eval + a11y review
-  2: UX Architect, IA + design system strategy + user flows
-  3: UX Lead, design task decomposition
-  4: UX Senior, token values + interaction specs + responsive rules
-  5: UX Tester, usability specs + a11y checklists
-  6: UX Dev, tokens + component specs + wireframes + flows
-  7: UX Senior, design consistency + a11y + completeness
-  8: UX QA Lead + Code, design compliance + consistency + a11y
-  9: Security (shared), PII + data exposure in mockups
-  10: UX Lead/Owner, dept result + handoff to FE
+  2: Scout (shared), targeted research for UX critique findings
+  3: UX Architect, IA + design system strategy + user flows
+  4: UX Lead, design task decomposition
+  5: UX Senior, token values + interaction specs + responsive rules
+  6: UX Tester, usability specs + a11y checklists
+  7: UX Dev, tokens + component specs + wireframes + flows
+  8: UX Senior, design consistency + a11y + completeness
+  9: UX QA Lead + Code, design compliance + consistency + a11y
+  10: Security (shared), PII + data exposure in mockups
+  11: UX Lead/Owner, dept result + handoff to FE
 
 cross_dept:
   to_fe: design-tokens.jsonl, component-specs.jsonl, user-flows.jsonl, design-handoff.jsonl

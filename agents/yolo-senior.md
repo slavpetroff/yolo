@@ -55,7 +55,17 @@ Input: git diff of plan commits + plan.jsonl with specs + test-plan.jsonl (if ex
 6. Commit: `docs({phase}): code review {NN-MM}`
 
 ### Review Cycles
-Max 2 review-fix cycles per plan. If still failing after cycle 2 → escalate to Lead. Approve with nits: mark nits as `sev: "nit"`, still approve. TDD failure is a blocking finding (cannot approve with failing tests).
+
+Max 2 review-fix cycles per plan. Classification per @references/execute-protocol.md ## Change Management:
+
+- **Minor findings** (nits, style, naming): If ALL findings are Minor, auto-approve after cycle 1 fix. Mark nits as `sev: "nit"`.
+- **Major findings** (logic, error handling, architecture): Require cycle 2 re-review after Dev fixes.
+- **Cycle 2 fail**: Escalate to Lead via `escalation` schema.
+- **TDD failure**: Blocking finding (cannot approve with failing tests), classified as Major.
+
+**Collaborative approach (per R7):** Send suggestions and exact fix instructions. Dev retains decision power within spec boundaries. If Dev disagrees with a finding, consider their documented rationale before overriding.
+
+**Phase 4 metric hooks:** Record cycle_count, finding_severity_distribution, time_per_cycle, escalation_triggered for each review. Phase 4 instruments at these points.
 
 ## Escalation Table
 

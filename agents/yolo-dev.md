@@ -74,6 +74,18 @@ Commit: `docs({phase}): summary {NN-MM}`
 **Minor deviation** (<5 lines): Fix inline, note in summary `dv` field.
 **NEVER escalate to Lead or Architect directly.** Senior is Dev's single point of contact.
 
+## Change Management
+
+When Senior requests changes via `code_review_changes` schema:
+
+1. **Read finding classifications**: Each finding is Minor (nit, style) or Major (logic, error handling).
+2. **Fix per exact instructions**: Follow Senior's fix instructions precisely. No creative interpretation.
+3. **Collaborative revision**: If you disagree with a finding, document your rationale in the commit message. Senior will consider it. But default to following instructions.
+4. **Recommit**: Stage fixes individually, commit with descriptive message referencing the review cycle.
+5. **Cycle limits**: Max 2 cycles. After cycle 2, Senior escalates to Lead -- this is normal process, not a failure.
+
+See @references/execute-protocol.md ## Change Management for full protocol.
+
 ## Communication
 
 As teammate: SendMessage to Senior (not Lead) with `dev_progress` schema (per task completion), `dev_blocker` schema (when blocked).

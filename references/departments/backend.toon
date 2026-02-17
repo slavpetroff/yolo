@@ -25,8 +25,8 @@ conventions:
   artifacts: JSONL with abbreviated keys (see references/artifact-formats.md)
 
 workflow:
-  steps: 10-step standard from references/execute-protocol.md (no modifications)
-  order: Critique(Critic) > Architecture(Architect) > Planning(Lead) > Design Review(Senior) > Test RED(Tester) > Implementation(Dev) > Code Review(Senior) > QA(QA Lead+QA Code) > Security(Security) > Sign-off(Lead/Owner)
+  steps: 11-step standard from references/execute-protocol.md (no modifications)
+  order: Critique(Critic) > Research(Scout) > Architecture(Architect) > Planning(Lead) > Design Review(Senior) > Test RED(Tester) > Implementation(Dev) > Code Review(Senior) > QA(QA Lead+QA Code) > Security(Security) > Sign-off(Lead/Owner)
 
 cross_dept:
   Lead sends department_result to Owner at phase completion

@@ -162,7 +162,7 @@ Note: In teammate mode, cross-team communication still uses file-based handoff a
 
 ### Lead -> Owner (Department Result)
 
-When: Department completes its 10-step workflow.
+When: Department completes its 11-step workflow.
 Schema: Use existing `department_result` from references/handoff-schemas.md.
 Note: Owner is in the shared department, not in any team. Communication uses file-based handoff (.dept-status-{dept}.json) regardless of team_mode.
 

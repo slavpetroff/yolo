@@ -57,7 +57,7 @@ Checklist:
 | 11 | Sign-off | Lead | all artifacts | execution-state.json + ROADMAP.md | Entry: security-audit.jsonl OR step 10 skipped | OK |
 
 Checklist:
-- [ ] Zero stale 10-step references across codebase (WF-006 through WF-026: 21 references in 12 files)
+- [x] Zero stale step-count references across codebase -- all updated to 11-step (WF-006 through WF-026: fixed in 03-04/T1)
 - [ ] R&D handoff protocol exists (references/rnd-handoff-protocol.md) (WF-001)
 - [ ] Architect->Lead stage-gate documented (WF-002)
 - [ ] Change management section in execute-protocol.md (WF-003)

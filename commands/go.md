@@ -320,12 +320,12 @@ This mode delegates to protocol files. Before reading:
 **Team mode:** `team_mode` from resolve-team-mode.sh determines agent spawn mechanism. Pass `team_mode` value to execute-protocol.md. When `team_mode=teammate`, top-level agent spawning (go.md -> department Leads) uses Teammate API instead of Task tool. Each department gets one team: yolo-backend, yolo-frontend, yolo-uiux. Department Leads register core specialists (architect, senior, dev) at team creation and additional specialists on-demand: tester at step 5, qa + qa-code at step 8, security at step 9 (backend only). Within-team spawning (Lead -> specialists) uses SendMessage per references/teammate-api-patterns.md. When `team_mode=task`, all spawn behavior is unchanged (Task tool throughout).
 
 - **Single department (`multi_dept=false`):**
-  Read `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` and follow its 10-step company workflow (Critique → Architecture → Planning → Design Review → Test Authoring RED → Implementation → Code Review → QA → Security → Sign-off). See `references/company-hierarchy.md` for agent hierarchy.
+  Read `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` and follow its 11-step company workflow (Critique → Research → Architecture → Planning → Design Review → Test Authoring RED → Implementation → Code Review → QA → Security → Sign-off). See `references/company-hierarchy.md` for agent hierarchy.
 
 - **Multi-department (`multi_dept=true`):**
-  Read `execute-protocol.md` + `multi-dept-protocol.md` + `cross-team-protocol.md`. Follow `multi-dept-protocol.md` dispatch flow. Each department runs its 10-step with dept-prefixed agents (fe-*, ux-*).
+  Read `execute-protocol.md` + `multi-dept-protocol.md` + `cross-team-protocol.md`. Follow `multi-dept-protocol.md` dispatch flow. Each department runs its 11-step with dept-prefixed agents (fe-*, ux-*).
 
-  Workflow: Owner Context Gathering + Splitting (same reuse/refresh gate as Plan Mode 6a) → Owner Critique → UX 10-step (if ux_active) → Handoff Gate → FE+BE parallel 10-step → Integration QA → Security → Owner Sign-off.
+  Workflow: Owner Context Gathering + Splitting (same reuse/refresh gate as Plan Mode 6a) → Owner Critique → UX 11-step (if ux_active) → Handoff Gate → FE+BE parallel 11-step → Integration QA → Security → Owner Sign-off.
 
   Context isolation: Lead gets dept CONTEXT + ROADMAP + REQUIREMENTS; Architect gets plan structure + dept CONTEXT; Senior gets architecture.toon + tasks; Dev gets enriched `spec` only. Escalation flows UP chain (Dev→Senior→Lead→Architect→Owner→User), never skipping levels.
 

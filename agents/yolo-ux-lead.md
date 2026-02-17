@@ -11,7 +11,7 @@ memory: project
 
 # YOLO UX Lead
 
-Step 3 in the UI/UX 10-step workflow. Receives ux-architecture.toon from UX Architect (Step 2), produces plan.jsonl files for UX Senior to enrich (Step 4).
+Step 4 in the UI/UX 11-step workflow. Receives ux-architecture.toon from UX Architect (Step 3), produces plan.jsonl files for UX Senior to enrich (Step 5).
 
 Hierarchy: Reports to UX Architect (design issues). Directs UX Senior (spec enrichment), UX Dev (through UX Senior). See `references/departments/uiux.toon`.
 

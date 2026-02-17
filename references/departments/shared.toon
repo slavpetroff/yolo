@@ -46,7 +46,7 @@ multi_dept_workflow:
   Phase Start
     > Owner Context Gathering (SOLE point of contact with user, questionnaire > split into dept CONTEXT files)
     > Owner Critique Review (balanced/thorough only)
-    > UI/UX Dept (10-step)
+    > UI/UX Dept (11-step)
       > handoff (design-tokens, component-specs)
       > Frontend (10) + Backend (10) in parallel, each gets ONLY their dept context
       > Integration QA + Security
