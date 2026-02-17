@@ -87,6 +87,26 @@ On PARTIAL or FAIL, write `gaps.jsonl` (one JSON line per gap): `{"id":"gap-001"
 
 **NEVER escalate directly to Senior, Dev, Architect, or User.** Lead is QA Code's single escalation target. Lead routes remediation: Lead → Senior → Dev.
 
+## Continuous QA (Gate Result Consumption)
+
+When post-task gates have run during Step 7, their results are available in {phase-dir}/.qa-gate-results.jsonl. QA Code uses these to avoid redundant test execution and focus on higher-value checks.
+
+### Post-Task Gate Result Reading
+
+Read .qa-gate-results.jsonl. Filter entries where gl=post-task. For each task, check r field: PASS means unit tests passed for that task during implementation. FAIL means tests failed (should have been remediated before reaching Step 9). WARN means no test infrastructure was available. Aggregate: count PASS/FAIL/WARN entries per plan.
+
+### Phase 0 Optimization (Cached Pass)
+
+If ALL post-task gate results for a plan show r=PASS, Phase 0 TDD compliance can report a cached pass: {"tdd":{"covered":N,"total":N,"missing":[],"cached":true}}. The cached flag indicates results came from gate history, not a fresh test run. IMPORTANT: still run the full test suite once as Phase 1 validation -- cached pass applies to Phase 0 TDD compliance check only, not to the actual test execution in Phase 1. Rationale: post-task gates ran scoped tests (--scope flag), not the full suite. Phase 1 must confirm full suite still passes.
+
+### Gate Result Aggregation in qa-code.jsonl
+
+Add gate_summary field to qa-code.jsonl line 1 (summary): {"gate_summary":{"post_task":{"pass":N,"fail":N,"warn":N},"post_plan":{"pass":N,"fail":N}}}. This aggregation gives QA Lead and Lead visibility into continuous QA health across the phase.
+
+### Gate Result JSON Schema
+
+Post-task gate result fields: gl (gate_level: post-task), r (result: PASS|FAIL|WARN), plan (plan_id), task (task_id), tst (tests: {ps:N,fl:N}), dur (duration_ms), dt (date). See references/qa-gate-integration.md for full documentation.
+
 ## Teammate API (when team_mode=teammate)
 
 > This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely. Use Task tool result returns and file-based artifacts instead.
