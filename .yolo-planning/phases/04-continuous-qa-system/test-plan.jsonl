@@ -1,0 +1,3 @@
+{"id":"T3","tf":["tests/resolve-qa-config.bats"],"tc":6,"red":true,"plan":"04-03","desc":"6 tests: defaults resolution, per-gate override, hardcoded fallback, fail-open on invalid path, partial override, arg count rejection -- all failing"}
+{"id":"T5","tf":["tests/validate-config.bats"],"tc":8,"red":true,"plan":"04-03","desc":"8 tests: valid qa_gates, backward compat, non-boolean post_task/post_plan, zero timeout, invalid threshold, multi-error accumulation, arg count -- all failing"}
+{"id":"T4","tf":["tests/format-gate-result.bats"],"tc":7,"red":true,"plan":"04-04","desc":"7 tests: post-task abbreviated keys, post-plan aggregation, post-phase escalations, invalid gate level, invalid JSON, dt timestamp, abbreviated input keys -- all failing"}
