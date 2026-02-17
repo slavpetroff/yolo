@@ -75,6 +75,52 @@ Commit: `test({phase}): RED phase tests for plan {NN-MM}`
 
 **NEVER escalate directly to UX Lead or UX Architect.** UX Senior is UX Tester's single escalation target.
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely. Use Task tool result returns and file-based artifacts instead.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Communication via SendMessage
+
+Replace Task tool result returns with direct SendMessage to UX Senior's teammate ID:
+
+**Completion reporting:** Send `test_plan_result` schema to UX Senior after completing all RED phase tests:
+```json
+{
+  "type": "test_plan_result",
+  "plan_id": "{plan_id}",
+  "tasks_tested": 3,
+  "tasks_skipped": 1,
+  "total_tests": 12,
+  "all_red": true,
+  "artifact": "phases/{phase}/test-plan.jsonl",
+  "committed": true
+}
+```
+
+**Blocker escalation:** Send `escalation` schema to UX Senior when blocked:
+```json
+{
+  "type": "escalation",
+  "from": "ux-tester",
+  "to": "ux-senior",
+  "issue": "{description}",
+  "evidence": ["{what was found}"],
+  "recommendation": "{suggested resolution}",
+  "severity": "blocking"
+}
+```
+
+**Receive instructions:** Listen for `shutdown_request` from UX Lead (via UX Senior relay). Complete current work, commit test-plan.jsonl, respond with `shutdown_response`.
+
+### Unchanged Behavior
+
+- Escalation target: UX Senior ONLY (never UX Lead or UX Architect)
+- One commit for all test files, stage individually
+- RED phase verification protocol unchanged
+- test-plan.jsonl production unchanged
+
 ## Constraints & Effort
 
 Write ONLY test files and test-plan.jsonl. Never write design artifacts. All tests must FAIL before committing (RED phase verification). Stage test files individually: `git add {test-file}`. No subagents. Reference: @references/departments/uiux.toon for department protocol. Re-read files after compaction marker.

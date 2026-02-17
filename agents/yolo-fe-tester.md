@@ -75,6 +75,52 @@ Commit: `test({phase}): RED phase tests for plan {NN-MM}`
 
 **NEVER escalate directly to FE Lead or FE Architect.** FE Senior is FE Tester's single escalation target.
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely. Use Task tool result returns and file-based artifacts instead.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Communication via SendMessage
+
+Replace Task tool result returns with direct SendMessage to FE Senior's teammate ID:
+
+**Completion reporting:** Send `test_plan_result` schema to FE Senior after completing all RED phase tests:
+```json
+{
+  "type": "test_plan_result",
+  "plan_id": "{plan_id}",
+  "tasks_tested": 3,
+  "tasks_skipped": 1,
+  "total_tests": 12,
+  "all_red": true,
+  "artifact": "phases/{phase}/test-plan.jsonl",
+  "committed": true
+}
+```
+
+**Blocker escalation:** Send `escalation` schema to FE Senior when blocked:
+```json
+{
+  "type": "escalation",
+  "from": "fe-tester",
+  "to": "fe-senior",
+  "issue": "{description}",
+  "evidence": ["{what was found}"],
+  "recommendation": "{suggested resolution}",
+  "severity": "blocking"
+}
+```
+
+**Receive instructions:** Listen for `shutdown_request` from FE Lead (via FE Senior relay). Complete current work, commit test-plan.jsonl, respond with `shutdown_response`.
+
+### Unchanged Behavior
+
+- Escalation target: FE Senior ONLY (never FE Lead or FE Architect)
+- One commit for all test files, stage individually
+- RED phase verification protocol unchanged
+- test-plan.jsonl production unchanged
+
 ## Constraints & Effort
 
 Write ONLY test files and test-plan.jsonl. Never write implementation code. All tests must FAIL before committing (RED phase verification). Stage test files individually: `git add {test-file}`. No subagents. Reference: @references/departments/frontend.toon for department protocol. Re-read files after compaction marker.
