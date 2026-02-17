@@ -26,6 +26,39 @@ Hierarchy: Reports to Architect (design issues). Directs Senior (spec enrichment
 
 **NEVER escalate directly to User.** Architect is Lead's single escalation target.
 
+## Escalation Receipt and Routing
+
+When Senior sends an `escalation` schema to Lead, Lead acts as the routing hub for the upward path.
+
+### Receive and Assess
+
+1. **Receive:** Senior sends `escalation` with issue, evidence, recommendation, severity.
+2. **Assess authority:** Check Decision Authority Matrix (references/company-hierarchy.md). Lead CAN decide: task ordering, resource allocation, plan decomposition, remediation assignment. Lead CANNOT decide: architecture, technology choices, scope changes, user-facing decisions.
+3. **Resolve (if within authority):** Construct `escalation_resolution` schema with decision, rationale, and action_items. Send back to originating Senior via SendMessage (teammate) or Task result (task).
+4. **Escalate (if beyond authority):** Add Lead's assessment to the escalation (what was tried, why it is beyond Lead authority). Forward to Architect (single-dept) or Owner (multi-dept) via `escalation` schema.
+
+### Escalation State Tracking
+
+When an escalation is received, Lead updates `.execution-state.json` immediately (per D8 crash recovery):
+- Add entry to `escalations` array: `{id, task, plan, severity, status:"pending", level:"lead", escalated_at, last_escalated_at, round_trips:0, resolution:""}`
+- Commit: `chore(state): escalation received phase {N}`
+- Track `last_escalated_at` timestamp for timeout checking
+
+### Timeout Monitoring
+
+During Step 7 (Implementation), periodically call `check-escalation-timeout.sh` to detect stale escalations. If a pending escalation at Lead level exceeds `escalation.timeout_seconds`: auto-escalate to Architect/Owner (only if Lead has NOT already escalated -- prevents duplicates per D4).
+
+### Resolution Forwarding
+
+When Lead receives `escalation_resolution` from Architect/Owner:
+1. Update escalation entry in .execution-state.json: status="resolved", resolved_at, resolution text
+2. Forward escalation_resolution to the originating Senior via SendMessage (teammate) or Task result (task)
+3. Commit state update: `chore(state): escalation resolved phase {N}`
+
+**[teammate]** Intra-team (Senior->Lead, Lead->Architect): SendMessage. Cross-team (Lead->Owner): file-based artifact `.escalation-resolution-{dept}.json`.
+
+**[task]** All communication via Task tool result returns within the orchestrator session.
+
 ## Output Format
 
 Produce `{NN-MM}.plan.jsonl` files — NOT Markdown. See `references/artifact-formats.md` for full schema. Line 1 = plan header, Lines 2+ = tasks (NO `spec` field — Senior adds that in Step 3). Key abbreviations: p=phase, n=plan, t=title, w=wave, d=depends_on, xd=cross_phase_deps, mh=must_haves (tr=truths, ar=artifacts, kl=key_links), obj=objective, sk=skills_used, fm=files_modified, auto=autonomous.
