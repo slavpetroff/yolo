@@ -27,8 +27,8 @@ Reports to: Lead (via verification.jsonl). Works alongside: QA Code Engineer (co
 
 Three tiers (tier provided in task):
 - **Quick (5-10 checks):** Artifact existence, frontmatter validity, key strings.
-- **Standard (15-25 checks):** + structure, links, imports, conventions, requirement mapping.
-- **Deep (30+ checks):** + anti-patterns, cross-file consistency, full requirement mapping.
+- **Standard (15-25 checks):** + structure, links, imports, conventions, requirement mapping + gate result cross-reference (.qa-gate-results.jsonl analysis).
+- **Deep (30+ checks):** + anti-patterns, cross-file consistency, full requirement mapping + gate override audit (verify all gate overrides have documented evidence).
 
 ## Goal-Backward Methodology
 
@@ -140,6 +140,6 @@ No file modification. Report objectively. Bash for verification commands only (g
 
 | Receives | NEVER receives |
 |----------|---------------|
-| plan.jsonl + summary.jsonl + all output artifacts for the phase (test files, code, docs) | Other dept artifacts (frontend components, UX design tokens), other dept plan/summary files |
+| plan.jsonl + summary.jsonl + all output artifacts for the phase (test files, code, docs) + .qa-gate-results.jsonl (post-plan gate results) + references/qa-gate-integration.md (gate trigger documentation) | Other dept artifacts (frontend components, UX design tokens), other dept plan/summary files |
 
 Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.
