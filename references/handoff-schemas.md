@@ -241,6 +241,37 @@ Escalation when agent cannot resolve an issue within their authority.
 }
 ```
 
+## `agent_health_event` (Lead internal, when team_mode=teammate)
+
+Lead-internal health tracking record. NOT sent via SendMessage -- logged locally for debugging and circuit breaker state transitions.
+
+```json
+{
+  "type": "agent_health_event",
+  "agent_id": "dev-1",
+  "dept": "backend",
+  "state": "start | idle | stop | disappeared",
+  "timestamp": "2026-02-17T10:30:00Z",
+  "prev_state": "idle",
+  "timeout_triggered": false
+}
+```
+
+## `circuit_breaker_state` (Lead internal, when team_mode=teammate)
+
+Per-department circuit breaker state. Lead-internal -- used to decide fallback behavior. NOT sent via SendMessage.
+
+```json
+{
+  "type": "circuit_breaker_state",
+  "dept": "backend",
+  "state": "closed | open | half-open",
+  "opened_at": "2026-02-17T10:30:00Z",
+  "failure_count": 2,
+  "last_probe_at": "2026-02-17T10:35:00Z"
+}
+```
+
 ## `task_claim` (Dev -> Lead, when team_mode=teammate)
 
 Dev claims a task from the shared task list. Sent after calling TaskUpdate to set status to claimed.
