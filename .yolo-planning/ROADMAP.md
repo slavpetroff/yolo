@@ -23,7 +23,7 @@ Replace YOLO's file-based multi-department coordination and Task-tool-only agent
 
 ### Phase 2: department-teams
 **Goal:** Convert multi-department orchestration from file-based coordination (dept-orchestrate.sh polling + sentinel files) to Teammate API native teams -- one team per department, Lead as team lead, specialists as teammates.
-**Status:** [ ] Not started
+**Status:** [x] Complete
 **Requirements:** REQ-03 (core implementation)
 **Success Criteria:**
 - When team_mode="teammate" and multi_dept=true, go.md spawns one Teammate API team per active department (up to 3 teams: backend, frontend, uiux)
@@ -69,8 +69,8 @@ Replace YOLO's file-based multi-department coordination and Task-tool-only agent
 | Phase | Name | Plans | Status |
 |-------|------|-------|--------|
 | 1 | team-abstraction-layer | 4 | Complete |
-| 2 | department-teams | 4 | Planned |
-| 3 | shared-task-coordination | 0 | Pending |
+| 2 | department-teams | 5 | Complete |
+| 3 | shared-task-coordination | 5 | Planned |
 | 4 | graceful-degradation | 0 | Pending |
 
 ## Architecture Notes
