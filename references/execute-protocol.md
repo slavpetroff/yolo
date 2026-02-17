@@ -209,7 +209,24 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 
 1. Update execution state: `"step": "design_review"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} senior {phases_dir}`
-3. For each plan.jsonl without enriched specs (tasks missing `spec` field):
+3. **Dispatch Senior(s):**
+
+   **When team_mode=teammate:**
+
+   Group remaining plans by wave. For the current wave:
+   - If wave has 2+ plans: register one Senior per plan in the wave as teammates (if not already registered). Dispatch all Seniors concurrently via SendMessage, each receiving one plan.jsonl path + architecture.toon + critique.jsonl (if exists) + compiled context. Collect senior_spec messages from all dispatched Seniors.
+   - If wave has exactly 1 plan: dispatch a single Senior directly (no parallel coordination overhead -- single-plan waves use sequential dispatch even in teammate mode).
+   - See agents/yolo-senior.md ## Parallel Review for Senior-side protocol.
+
+   > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
+   > ```bash
+   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "senior" --project-dir ".")
+   > ```
+   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-senior.toon). See D4 in architecture for soft enforcement details.
+
+   **When team_mode=task (default):**
+
+   For each plan.jsonl without enriched specs (tasks missing `spec` field):
    - Spawn yolo-senior with Task tool:
      - model: "${SENIOR_MODEL}"
      - Mode: "design_review"
