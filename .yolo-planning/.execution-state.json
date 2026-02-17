@@ -15,7 +15,7 @@
   "steps": {
     "critique": {"status": "complete", "started_at": "2026-02-18T12:00:00Z", "completed_at": "2026-02-18T12:01:00Z", "artifact": ".yolo-planning/phases/05-escalation-gates-owner-user-loop/critique.jsonl", "reason": ""},
     "research": {"status": "complete", "started_at": "2026-02-18T12:01:00Z", "completed_at": "2026-02-18T12:02:00Z", "artifact": ".yolo-planning/phases/05-escalation-gates-owner-user-loop/research.jsonl", "reason": ""},
-    "architecture": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "architecture": {"status": "complete", "started_at": "2026-02-18T12:02:00Z", "completed_at": "2026-02-18T12:05:00Z", "artifact": ".yolo-planning/phases/05-escalation-gates-owner-user-loop/architecture.toon", "reason": ""},
     "planning": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
     "design_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
     "test_authoring": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
