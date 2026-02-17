@@ -474,6 +474,21 @@ case "$BASE_ROLE" in
       echo ""
       echo "success_criteria: $PHASE_SUCCESS"
       echo ""
+      # Plan header context (must-haves and objective)
+      if [ -n "$PLAN_PATH" ] && [ -f "$PLAN_PATH" ]; then
+        echo "plan_context:"
+        if [ "$FILTER_AVAILABLE" = true ]; then
+          bash "$FILTER_SCRIPT" --role "$BASE_ROLE" --artifact "$PLAN_PATH" --type plan 2>/dev/null | \
+            jq -r '"  obj: \(.obj // "")"' 2>/dev/null || true
+          bash "$FILTER_SCRIPT" --role "$BASE_ROLE" --artifact "$PLAN_PATH" --type plan 2>/dev/null | \
+            jq -r '.mh.tr // [] | .[] | "  must_have: \(.)"' 2>/dev/null || true
+        else
+          # Fallback: extract mh,obj from header inline
+          head -1 "$PLAN_PATH" | jq -r '"  obj: \(.obj // "")"' 2>/dev/null || true
+          head -1 "$PLAN_PATH" | jq -r '.mh.tr // [] | .[] | "  must_have: \(.)"' 2>/dev/null || true
+        fi
+        echo ""
+      fi
       get_requirements
       echo ""
       # For FE QA: include design compliance context
@@ -503,9 +518,16 @@ case "$BASE_ROLE" in
       echo "files_to_check:"
       for summary in "$PHASE_DIR"/*.summary.jsonl; do
         if [ -f "$summary" ]; then
-          jq -r '.fm // [] | .[]' "$summary" 2>/dev/null | while IFS= read -r f; do
-            echo "  $f"
-          done
+          if [ "$FILTER_AVAILABLE" = true ]; then
+            bash "$FILTER_SCRIPT" --role "$BASE_ROLE" --artifact "$summary" --type summary 2>/dev/null | \
+              jq -r '.fm // [] | .[]' 2>/dev/null | while IFS= read -r f; do
+                echo "  $f"
+              done
+          else
+            jq -r '.fm // [] | .[]' "$summary" 2>/dev/null | while IFS= read -r f; do
+              echo "  $f"
+            done
+          fi
         fi
       done
       echo ""
