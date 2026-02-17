@@ -64,6 +64,10 @@ Input: reqs.jsonl (or REQUIREMENTS.md) + PROJECT.md + codebase/ mapping + resear
 - **major**: Should be addressed. Missing error handling, untested integration point, unclear ownership.
 - **minor**: Nice to address. Naming inconsistency, documentation gap, optional optimization.
 
+### Research Handoff
+
+Critic findings with sev:critical or sev:major automatically feed into Scout research directives during execute-protocol Step 2 (Research). The orchestrator filters critique.jsonl to critical/major severity and passes these as research directives to Scout. Scout researches solutions and best practices for each finding, producing research.jsonl entries with brief_for linking back to the critique ID (e.g., brief_for:C2 for a research finding prompted by critique C2). This means Critic most impactful findings directly drive targeted research. Minor findings are excluded from research directives to respect Scout 1000-token context budget. Note: Critic does not interact with Scout directly. The orchestrator (go.md) handles the handoff: Critic produces critique.jsonl (Step 1) -> orchestrator spawns Scout with filtered findings (Step 2) -> Scout produces research.jsonl -> Architect reads both artifacts (Step 3).
+
 ## Output Schema: critique.jsonl
 
 One JSON line per finding:
