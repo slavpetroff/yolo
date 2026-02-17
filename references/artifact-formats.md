@@ -243,6 +243,22 @@ New fields (D4): `brief_for` links a research finding to the critique ID (from c
 
 The `tst` object uses `ps` (passed) and `fl` (failed) sub-keys matching the Verification schema pattern. `WARN` result indicates infrastructure missing (no bats, no matching tests). Appended to `{phase-dir}/.qa-gate-results.jsonl` by `format-gate-result.sh`.
 
+### QA Gate Result: Post-Plan (.qa-gate-results.jsonl, appended per gate invocation)
+
+| Key | Full Name | Type | Example |
+|-----|-----------|------|---------|
+| `gl` | gate_level | string | "post-plan" |
+| `r` | result | string | "PASS"\|"FAIL"\|"WARN" |
+| `plan` | plan_id | string | "04-03" |
+| `tc` | tasks_completed | number | 5 |
+| `tt` | tasks_total | number | 5 |
+| `tst` | tests | object | {"ps":45,"fl":2} |
+| `dur` | duration_ms | number | 28500 |
+| `mh` | must_have_coverage | object | {"ps":3,"fl":0,"tt":3} |
+| `dt` | datetime | string | "2026-02-17T14:35:00Z" |
+
+Post-plan gate runs full test suite (not scoped). The `mh` field verifies must_have coverage from plan header: `ps`=passed, `fl`=failed, `tt`=total must_have checks. `tc`/`tt` fields match Summary schema pattern. Appended to same `.qa-gate-results.jsonl` file as post-task results.
+
 ### Manual QA (manual-qa.jsonl)
 
 Written by Lead after user completes manual testing (Step 8, if `approval_gates.manual_qa` is true).
