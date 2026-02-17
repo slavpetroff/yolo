@@ -7,6 +7,26 @@ set -u
 # Read stdin to get task context
 INPUT=$(cat 2>/dev/null) || exit 0
 
+# Config-aware skip: read qa_gates config via resolve-qa-config.sh
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RESOLVE_SCRIPT="$SCRIPT_DIR/resolve-qa-config.sh"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+CONFIG_PATH=".yolo-planning/config.json"
+DEFAULTS_PATH="$PLUGIN_ROOT/config/defaults.json"
+
+if [ -x "$RESOLVE_SCRIPT" ]; then
+  QA_CONFIG=$(bash "$RESOLVE_SCRIPT" "$CONFIG_PATH" "$DEFAULTS_PATH" 2>/dev/null) || QA_CONFIG='{}'
+else
+  QA_CONFIG='{}'
+fi
+
+# Check post_task enabled (null-safe: jq // treats false as falsy, use explicit null check)
+POST_TASK_ENABLED=$(echo "$QA_CONFIG" | jq -r 'if .post_task == null then true else .post_task end' 2>/dev/null) || POST_TASK_ENABLED='true'
+
+if [ "$POST_TASK_ENABLED" = "false" ]; then
+  exit 0
+fi
+
 # Structural Check 1: SUMMARY.md completeness
 # Count plans vs summaries — if a phase has more plans than summaries
 # and recent commits exist, a summary is likely missing
