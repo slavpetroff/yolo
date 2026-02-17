@@ -109,6 +109,10 @@ Replace Task tool result returns with direct SendMessage to Senior's teammate ID
 - RED phase verification protocol unchanged
 - test-plan.jsonl production unchanged
 
+### Shutdown Response
+
+For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+
 ## Constraints & Effort
 
 Write ONLY test files and test-plan.jsonl. Never write implementation code. Test files must be syntactically correct for the target framework. All tests must FAIL before committing (RED phase verification is mandatory). If tests pass unexpectedly → do NOT proceed. Escalate to Senior. No subagents. Stage test files individually: `git add {test-file}` (never `git add .`). Commit format: `test({phase}): RED phase tests for plan {NN-MM}`. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).

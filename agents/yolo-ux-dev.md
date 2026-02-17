@@ -156,6 +156,10 @@ When team_mode=teammate, SKIP Stage 3 (Produce Summary) entirely. UX Lead is the
 
 Cross-references: Full task coordination patterns: references/teammate-api-patterns.md ## Task Coordination. Schemas: references/handoff-schemas.md ## task_claim, ## task_complete.
 
+### Shutdown Response
+
+For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+
 ## Context
 
 | Receives | NEVER receives |

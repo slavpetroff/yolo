@@ -100,6 +100,10 @@ Replace Task tool result returns with direct SendMessage to Lead's teammate ID:
 - Goal-backward methodology unchanged
 - verification.jsonl output format unchanged
 
+### Shutdown Response
+
+For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+
 ## Constraints & Effort
 
 No file modification. Report objectively. Bash for verification commands only (grep, file existence, git log). Plan-level only. No subagents. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).

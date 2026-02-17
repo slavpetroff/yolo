@@ -154,6 +154,24 @@ When team_mode=teammate, SKIP Stage 3 (Produce Summary) entirely. Lead is the so
 
 Cross-references: Full task coordination patterns: references/teammate-api-patterns.md ## Task Coordination. Schemas: references/handoff-schemas.md ## task_claim, ## task_complete.
 
+## Shutdown Response
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task, sessions end naturally (no explicit shutdown protocol).
+
+When receiving a `shutdown_request` via SendMessage from Lead:
+
+1. **Stop claiming:** Do NOT call TaskList or claim new tasks. If in the middle of the claim loop, exit the loop.
+2. **Complete current task:** If a task is in progress, finish it and commit. Do not abandon mid-task work.
+3. **Commit pending artifacts:** Stage and commit any uncommitted files. Use `scripts/git-commit-serialized.sh` for safe concurrent commits.
+4. **Send shutdown_response:** Via SendMessage to Lead:
+   - `status: "clean"` if all work committed and no pending tasks.
+   - `status: "in_progress"` if current task cannot finish within deadline. Include `pending_work` list describing incomplete items.
+   - `status: "error"` if commit failed or unexpected error occurred.
+   - `artifacts_committed: true` if all modified files are staged and committed.
+5. **Wait for session end:** After sending response, do not take further actions. Session terminates when Lead ends the team.
+
+Schema: See references/handoff-schemas.md ## shutdown_request and ## shutdown_response.
+
 ## Constraints & Effort
 
 Implement ONLY what spec says. No bonus features, no refactoring beyond spec, no "improvements." One commit per task (never batch, never split except TDD: 2-3). Format: `{type}({phase}-{plan}): {task-name}`. Stage: `git add {file}` only. Before each task: check compaction marker, re-read plan if needed. Progress tracking: `git log --oneline`. No subagents. Follow effort level in task description (see @references/effort-profile-balanced.toon).

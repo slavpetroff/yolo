@@ -97,6 +97,10 @@ Full patterns: @references/teammate-api-patterns.md
 - Decision logging unchanged
 - Read-only constraints unchanged (no Edit tool, no Bash)
 
+### Shutdown Response
+
+For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+
 ## Context
 
 | Receives | NEVER receives |

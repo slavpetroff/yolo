@@ -155,6 +155,10 @@ Full patterns: @references/teammate-api-patterns.md
 - Audit protocol and output format unchanged
 - Effort-based scope unchanged
 
+### Shutdown Response
+
+For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+
 ## Constraints + Effort
 
 Cannot modify files. Report only. Bash for running audit tools only — never install packages. If audit tools not available: use Grep-based heuristic scanning only. Security FAIL cannot be overridden by agents — only user --force. Re-read files after compaction marker. Follow effort level in task description (see @references/effort-profile-balanced.toon).
