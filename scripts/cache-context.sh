@@ -45,6 +45,16 @@ if [[ "$ROLE" =~ ^(debugger|dev|qa|lead|architect)$ ]] && [ -d ".vbw-planning/co
   HASH_INPUT="${HASH_INPUT}:codebase=${MAP_SUM}"
 fi
 
+# Rolling summary fingerprint (v3_rolling_summary)
+ROLLING_PATH=".vbw-planning/ROLLING-CONTEXT.md"
+if command -v jq &>/dev/null && [ -f "$CONFIG_PATH" ]; then
+  ROLLING_ENABLED=$(jq -r '.v3_rolling_summary // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
+  if [ "$ROLLING_ENABLED" = "true" ] && [ -f "$ROLLING_PATH" ]; then
+    ROLLING_SUM=$(shasum -a 256 "$ROLLING_PATH" 2>/dev/null | cut -d' ' -f1 || echo "norolling")
+    HASH_INPUT="${HASH_INPUT}:rolling=${ROLLING_SUM}"
+  fi
+fi
+
 # --- Compute final hash ---
 HASH=$(printf '%s' "$HASH_INPUT" | shasum -a 256 2>/dev/null | cut -d' ' -f1 || echo "")
 
