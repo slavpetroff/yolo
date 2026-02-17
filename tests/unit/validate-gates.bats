@@ -19,6 +19,12 @@ mk_exec_state_with_skip() {
     > "$PHASE_DIR/.execution-state.json"
 }
 
+# Helper: create .qa-gate-results.jsonl with given level and result
+create_gate_results() {
+  local level="$1" result="$2"
+  echo "{\"gl\":\"$level\",\"r\":\"$result\",\"dt\":\"2026-02-17\"}" > "$PHASE_DIR/.qa-gate-results.jsonl"
+}
+
 @test "critique gate passes when phase dir exists" {
   run bash "$SUT" --step critique --phase-dir "$PHASE_DIR"
   assert_success
@@ -82,5 +88,50 @@ JSONL
 @test "security gate passes when qa step skipped" {
   mk_exec_state_with_skip "qa"
   run bash "$SUT" --step security --phase-dir "$PHASE_DIR"
+  assert_success
+}
+
+# --- 04-10 T2/T3: post_task_qa and post_plan_qa gate validation (7 tests) ---
+
+@test "post_task_qa gate passes when .qa-gate-results.jsonl has post-task entry" {
+  create_gate_results "post-task" "PASS"
+  run bash "$SUT" --step post_task_qa --phase-dir "$PHASE_DIR"
+  assert_success
+}
+
+@test "post_task_qa gate fails when .qa-gate-results.jsonl missing" {
+  # No .qa-gate-results.jsonl file
+  run bash "$SUT" --step post_task_qa --phase-dir "$PHASE_DIR"
+  assert_failure
+  [[ "$output" =~ ".qa-gate-results.jsonl" ]] || echo "$output" | jq -r '.missing[0]' | grep -q "qa-gate-results"
+}
+
+@test "post_task_qa gate fails when file exists but no post-task entries" {
+  # Create file with only post-plan entry, no post-task
+  create_gate_results "post-plan" "PASS"
+  run bash "$SUT" --step post_task_qa --phase-dir "$PHASE_DIR"
+  assert_failure
+}
+
+@test "post_task_qa gate passes when step is skipped" {
+  mk_exec_state_with_skip "post_task_qa"
+  run bash "$SUT" --step post_task_qa --phase-dir "$PHASE_DIR"
+  assert_success
+}
+
+@test "post_plan_qa gate passes when .qa-gate-results.jsonl has post-plan entry" {
+  create_gate_results "post-plan" "PASS"
+  run bash "$SUT" --step post_plan_qa --phase-dir "$PHASE_DIR"
+  assert_success
+}
+
+@test "post_plan_qa gate fails when .qa-gate-results.jsonl missing" {
+  run bash "$SUT" --step post_plan_qa --phase-dir "$PHASE_DIR"
+  assert_failure
+}
+
+@test "post_plan_qa gate passes when step is skipped" {
+  mk_exec_state_with_skip "post_plan_qa"
+  run bash "$SUT" --step post_plan_qa --phase-dir "$PHASE_DIR"
   assert_success
 }
