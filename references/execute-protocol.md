@@ -242,7 +242,7 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 4. Senior reads plan, researches codebase, enriches each task with `spec` field AND `ts` (test_spec) field.
 5. Senior commits enriched plan: `docs({phase}): enrich plan {NN-MM} specs`
 6. Verify: all tasks in plan.jsonl have non-empty `spec` field. Tasks with testable logic should have `ts` field.
-7. **EXIT GATE:** Artifact: enriched plan.jsonl (all tasks have non-empty `spec`). State: `steps.design_review = complete`. Commit: `chore(state): design_review complete phase {N}`.
+7. **EXIT GATE:** Artifact: enriched plan.jsonl (all tasks in ALL plans have non-empty `spec`). When team_mode=teammate: Lead waits for senior_spec messages from all dispatched Seniors in the current wave. After all received, Lead verifies each plan.jsonl: `jq -r .spec` on every task line must return non-empty value. If any plan has tasks without specs, Senior failed -- Lead escalates. When team_mode=task: sequential verification unchanged (each plan checked after its Senior completes). State: `steps.design_review = complete`. Commit: `chore(state): design_review complete phase {N}`.
 
 ### Step 5: Test Authoring — RED Phase (Tester Agent)
 
