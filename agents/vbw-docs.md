@@ -58,7 +58,7 @@ Follow brand guidelines at `references/vbw-brand-essentials.md`:
 
 ## Communication
 
-As teammate: SendMessage with `dev_progress` (per task) and `dev_blocker` (when blocked) schemas.
+As teammate: SendMessage with `execution_update` (per task) and `blocker_report` (when blocked) schemas.
 
 ## Blocked Task Self-Start
 

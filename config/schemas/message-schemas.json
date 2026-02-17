@@ -15,13 +15,13 @@
       "description": "Plan contract issued by Lead/Architect"
     },
     "execution_update": {
-      "allowed_roles": ["dev"],
+      "allowed_roles": ["dev", "docs"],
       "payload_required": ["plan_id", "task_id", "status", "commit"],
       "payload_optional": ["files_modified", "concerns", "evidence"],
       "description": "Task progress/completion update from Dev"
     },
     "blocker_report": {
-      "allowed_roles": ["dev", "debugger"],
+      "allowed_roles": ["dev", "debugger", "docs"],
       "payload_required": ["plan_id", "task_id", "blocker", "needs"],
       "payload_optional": ["attempted", "severity"],
       "description": "Escalation when agent is blocked"
@@ -64,6 +64,6 @@
     "qa": {"can_send": ["qa_verdict", "shutdown_response"], "can_receive": ["plan_contract", "shutdown_request"]},
     "scout": {"can_send": ["scout_findings", "shutdown_response"], "can_receive": ["plan_contract", "shutdown_request"]},
     "debugger": {"can_send": ["blocker_report", "shutdown_response"], "can_receive": ["plan_contract", "shutdown_request"]},
-    "docs": {"can_send": ["shutdown_response"], "can_receive": ["plan_contract", "shutdown_request"]}
+    "docs": {"can_send": ["execution_update", "blocker_report", "shutdown_response"], "can_receive": ["plan_contract", "approval_response", "shutdown_request"]}
   }
 }

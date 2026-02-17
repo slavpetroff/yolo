@@ -311,6 +311,22 @@ teardown() {
   echo "$output" | jq -e '.valid == true'
 }
 
+@test "validate-message: shutdown_response from lead passes" {
+  cd "$TEST_TEMP_DIR"
+  MSG='{"id":"shut-resp-005","type":"shutdown_response","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approve":true,"final_status":"complete"}}'
+  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.valid == true'
+}
+
+@test "validate-message: shutdown_response from docs passes" {
+  cd "$TEST_TEMP_DIR"
+  MSG='{"id":"shut-resp-006","type":"shutdown_response","phase":1,"task":"","author_role":"docs","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approve":true,"final_status":"idle"}}'
+  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.valid == true'
+}
+
 @test "validate-message: shutdown_response missing request_id rejected" {
   cd "$TEST_TEMP_DIR"
   MSG='{"id":"shut-resp-bad","type":"shutdown_response","phase":1,"task":"","author_role":"dev","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"approve":true,"final_status":"complete"}}'
@@ -348,24 +364,8 @@ teardown() {
 }
 
 # =============================================================================
-# Finding 4: shutdown_response from docs and lead; shutdown_request to docs/lead
+# validate-message.sh: shutdown_request targeted to specific roles
 # =============================================================================
-
-@test "validate-message: shutdown_response from docs passes" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-resp-005","type":"shutdown_response","phase":1,"task":"","author_role":"docs","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approve":true,"final_status":"idle"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
-}
-
-@test "validate-message: shutdown_response from lead passes" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-resp-006","type":"shutdown_response","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approve":true,"final_status":"complete"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
-}
 
 @test "validate-message: shutdown_request targeted to docs passes" {
   cd "$TEST_TEMP_DIR"

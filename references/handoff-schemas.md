@@ -24,8 +24,8 @@ V2 inter-agent messages use strict JSON schemas. Every message includes a mandat
 |---|---|---|
 | scout_findings | scout | lead, architect |
 | plan_contract | lead, architect | dev, qa, scout |
-| execution_update | dev | lead |
-| blocker_report | dev, debugger | lead |
+| execution_update | dev, docs | lead |
+| blocker_report | dev, debugger, docs | lead |
 | qa_verdict | qa | lead |
 | approval_request | dev, lead | lead, architect |
 | approval_response | lead, architect | dev, lead |
@@ -265,6 +265,8 @@ On receiving `shutdown_request`: respond with `shutdown_response` (approve=true)
 ## Backward Compatibility
 
 Old-format messages (without full envelope) are accepted when `v2_typed_protocol=false`. The validate-message.sh script parses the `type` field to determine schema and validates accordingly.
+
+**Note:** `shutdown_request` and `shutdown_response` were introduced in v2.0. When `v2_typed_protocol=false`, validate-message.sh short-circuits to valid (no schema check), so shutdown messages pass through without rejection. Agents running in V1 mode will not recognize these types and should treat unrecognized messages as plain markdown.
 
 When receiving messages, agents should:
 1. Try to parse as V2 typed message (full envelope)
