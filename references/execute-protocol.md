@@ -343,7 +343,7 @@ When team_mode=task: Dev-written summary.jsonl is verified (unchanged behavior):
 2. If missing: message Dev to write it. If unavailable: write from git log.
 3. Only after verification: mark plan `"complete"` in .execution-state.json.
 
-**EXIT GATE:** Artifact: `{plan_id}.summary.jsonl` per plan (valid JSONL). State: `steps.implementation = complete`. Commit: `chore(state): implementation complete phase {N}`.
+**EXIT GATE:** Artifact: `{plan_id}.summary.jsonl` per plan (valid JSONL). When team_mode=teammate: Lead verifies all summary.jsonl files were written by Lead aggregation (all `task_complete` messages collected, all plans accounted for). Lead checks summary.jsonl validity: `jq empty {phase-dir}/{plan_id}.summary.jsonl` for each plan. When team_mode=task: Dev-written summary.jsonl verified per existing protocol. State: `steps.implementation = complete`. Commit: `chore(state): implementation complete phase {N}`.
 
 ### Step 7: Code Review (Senior Agent)
 
@@ -629,6 +629,7 @@ Each transition commits `.execution-state.json` so resume works on exit. Schema:
          - Frontend (yolo-frontend): architect, senior, dev, tester, qa, qa-code (6)
          - UI/UX (yolo-uiux): architect, senior, dev, tester, qa, qa-code (6)
        Lead coordinates via SendMessage instead of file-based artifacts
+       - **Parallel Dev dispatch within department:** Each department Lead uses TaskCreate + Dynamic Dev Scaling within its team (see references/teammate-api-patterns.md ## Dynamic Dev Scaling). Devs within a department team self-claim tasks. File-overlap detection is per-department (each Lead maintains its own claimed_files set). Cross-department file conflicts are prevented by the department-guard.sh hook (unchanged).
        On completion: Lead sends department_result via SendMessage to go.md
        Shutdown: Lead sends shutdown_request to all teammates, waits for shutdown_response
      ```
