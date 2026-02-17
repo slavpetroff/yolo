@@ -35,22 +35,23 @@ Agents: QA Lead, QA Code, Senior (escalation)
 Active during: Code Review, QA, Security
 Handoff: code-review.jsonl → Lead, verification.jsonl → Lead
 
-## 10-Step Workflow
+## 11-Step Workflow
 
 Each phase follows this cadence. Full protocol with entry/exit gates: see @references/execute-protocol.md.
 
 | Step | Agent | Input | Output | Commit | Skip |
 |------|-------|-------|--------|--------|------|
 | 1 | Critic | reqs + PROJECT + codebase | critique.jsonl | `docs({phase}): critique and gap analysis` | turbo, exists |
-| 2 | Architect | reqs + codebase + critique | architecture.toon | `docs({phase}): architecture design` | exists |
-| 3 | Lead | architecture.toon + reqs | plan.jsonl | `docs({phase}): plan {NN-MM}` | -- |
-| 4 | Senior | plan + architecture + codebase | enriched plan (spec+ts) | `docs({phase}): enrich plan {NN-MM} specs` | -- |
-| 5 | Tester | enriched plan (ts fields) | test files + test-plan.jsonl | `test({phase}): RED phase tests` | turbo, no ts |
-| 6 | Dev | enriched plan + test files | code + summary.jsonl | `{type}({phase}-{plan}): {task}` | -- |
-| 7 | Senior | git diff + plan + tests | code-review.jsonl | `docs({phase}): code review {NN-MM}` | -- |
-| 8 | QA Lead + Code | plan + summary + artifacts | verification + qa-code.jsonl | `docs({phase}): verification results` | --skip-qa, turbo |
-| 9 | Security | commits + deps | security-audit.jsonl | `docs({phase}): security audit` | --skip-security |
-| 10 | Lead | all artifacts | state.json + ROADMAP.md | `chore(state): phase {N} complete` | -- |
+| 2 | Scout | critique (critical/major) + reqs + codebase | research.jsonl | `docs({phase}): research findings` | turbo |
+| 3 | Architect | reqs + codebase + critique | architecture.toon | `docs({phase}): architecture design` | exists |
+| 4 | Lead | architecture.toon + reqs | plan.jsonl | `docs({phase}): plan {NN-MM}` | -- |
+| 5 | Senior | plan + architecture + codebase | enriched plan (spec+ts) | `docs({phase}): enrich plan {NN-MM} specs` | -- |
+| 6 | Tester | enriched plan (ts fields) | test files + test-plan.jsonl | `test({phase}): RED phase tests` | turbo, no ts |
+| 7 | Dev | enriched plan + test files | code + summary.jsonl | `{type}({phase}-{plan}): {task}` | -- |
+| 8 | Senior | git diff + plan + tests | code-review.jsonl | `docs({phase}): code review {NN-MM}` | -- |
+| 9 | QA Lead + Code | plan + summary + artifacts | verification + qa-code.jsonl | `docs({phase}): verification results` | --skip-qa, turbo |
+| 10 | Security | commits + deps | security-audit.jsonl | `docs({phase}): security audit` | --skip-security |
+| 11 | Lead | all artifacts | state.json + ROADMAP.md | `chore(state): phase {N} complete` | -- |
 
 ## Escalation Chain (STRICT — NO LEVEL SKIPPING)
 
@@ -194,9 +195,9 @@ When `departments.frontend` or `departments.uiux` is true in config, YOLO operat
 
 **Total: 26 agents across 4 groups.**
 
-Each department runs the same 10-step workflow independently. Cross-department coordination follows `references/cross-team-protocol.md`. Full multi-department orchestration: `references/multi-dept-protocol.md`.
+Each department runs the same 11-step workflow independently. Cross-department coordination follows `references/cross-team-protocol.md`. Full multi-department orchestration: `references/multi-dept-protocol.md`.
 
-**Parallel execution model:** When `department_workflow` = "parallel", department Leads are spawned as **background Task subagents** (`run_in_background=true`). go.md orchestrates wave-based dispatch: UX first (if active), then FE + BE in parallel after the UX handoff gate passes. Each Lead runs its full 10-step workflow using foreground Task subagents internally. This uses the proven Task tool architecture -- no Teammate API dependency.
+**Parallel execution model:** When `department_workflow` = "parallel", department Leads are spawned as **background Task subagents** (`run_in_background=true`). go.md orchestrates wave-based dispatch: UX first (if active), then FE + BE in parallel after the UX handoff gate passes. Each Lead runs its full 11-step workflow using foreground Task subagents internally. This uses the proven Task tool architecture -- no Teammate API dependency.
 
 **File-based coordination:** Cross-department synchronization uses file-based gates in the phase directory: `.dept-status-{dept}.json` for per-department status tracking, `.handoff-*` sentinel files for handoff gates, and `.phase-orchestration.json` for master orchestration state. All writes are atomic via flock locking in `scripts/dept-status.sh`. See `references/multi-dept-protocol.md` for coordination file schemas and `references/cross-team-protocol.md` for gate validation commands.
 
@@ -223,7 +224,7 @@ Every command enters through go.md (Owner proxy) and dispatches through the comp
 
 | Command | Entry Point | Primary Spawn | Hierarchy Chain | Escalation Path |
 |---------|-------------|---------------|-----------------|------------------|
-| /yolo:go (execute) | go.md | Critic, Architect, Lead | go.md -> Critic -> Architect -> Lead -> Senior -> Tester -> Dev -> QA -> Security -> Sign-off | Per-step escalation (see 10-Step Workflow above) |
+| /yolo:go (execute) | go.md | Critic, Architect, Lead | go.md -> Critic -> Architect -> Lead -> Senior -> Tester -> Dev -> QA -> Security -> Sign-off | Per-step escalation (see 11-Step Workflow above) |
 | /yolo:debug | go.md | Lead | go.md -> Lead -> Debugger(s) | Debugger -> Lead -> Architect (if >3 files or interface change) |
 | /yolo:fix | go.md | Lead | go.md -> Lead -> {trivial: Dev, needs-spec: Senior -> Dev} | Dev -> Senior -> Lead -> go.md (scope too large -> /yolo:go) |
 | /yolo:research | go.md | Lead | go.md -> Lead -> Scout(s) | Scout -> Lead -> go.md (contradictions or architecture impact) |
