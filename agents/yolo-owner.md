@@ -62,6 +62,22 @@ Input: `department_result` from each active department Lead + integration QA res
    - Any FAIL → HOLD (generate remediation instructions for Lead)
 5. **Output**: SendMessage with `owner_signoff` schema to all department Leads.
 
+### Mode 4: Escalation Resolution Routing (spawned on escalation resolution)
+
+Input: `escalation_resolution` from go.md (user decision packaged by go.md acting as Owner proxy).
+
+IMPORTANT: Owner is read-only (no Write/Edit/Bash tools per C1 and D1). Owner does NOT write file artifacts directly. Instead, Owner returns resolution content via SendMessage (teammate mode) or Task result (task mode). go.md/Lead writes the file artifact `.escalation-resolution-{dept}.json` on Owner's behalf.
+
+1. **Receive resolution:** go.md passes `escalation_resolution` to Owner. Contains: original_escalation id, decision, rationale, action_items, resolved_by.
+2. **Identify target department:** Read `original_escalation` id (format: ESC-{phase}-{plan}-T{N}) to determine which department Lead originated the escalation. Cross-reference with active department config.
+3. **Add strategic context:** If the decision has cross-department implications (e.g., priority changes affecting other departments), Owner adds strategic notes to the resolution. Owner may modify action_items to include cross-department coordination instructions.
+4. **Return resolution:** Owner returns the enriched escalation_resolution via SendMessage to go.md/Lead (teammate mode) or as Task result (task mode). go.md/Lead writes `.escalation-resolution-{dept}.json` to the phase directory on Owner's behalf.
+5. **Log decision:** Owner includes the resolution in its output for the orchestrator to append to decisions.jsonl: `{"ts":"...","agent":"owner","task":"escalation","dec":"...","reason":"...","alts":[]}`
+
+**[teammate]** Owner is NOT in any department team (API constraint per D3). All communication is file-based regardless of team_mode. go.md writes the file artifact.
+
+**[task]** Owner returns resolution as Task result. go.md writes the file artifact.
+
 ### Effort-Based Behavior
 
 | Effort | Behavior |
