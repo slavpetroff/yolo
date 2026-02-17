@@ -26,9 +26,20 @@ One team per department. No nested teams (API constraint). Lead is automatically
 
 ### Registering Teammates
 
-After team creation, Lead registers teammates by role. Phase 1 roles: senior, dev, architect. Phase 2 adds: tester, qa, qa-code, security.
+After team creation, Lead registers teammates by role. Full roster: architect, senior, dev, tester, qa, qa-code, security.
 
-Registration order: architect first (receives design context), then senior (receives specs), then dev (receives implementation tasks). Order matters because earlier teammates may need context before later ones begin.
+Registration is on-demand at workflow step boundaries (not all-at-once at team creation):
+
+| Step | Agent(s) Registered | Rationale |
+|------|---------------------|----------|
+| 2 | architect | Receives design context, produces architecture.toon |
+| 4 | senior | Receives architecture, enriches plan specs |
+| 6 | dev | Receives enriched specs, implements tasks |
+| 5 | tester | Receives plan ts fields, writes failing tests (TDD RED) |
+| 8 | qa, qa-code | Verification after implementation complete |
+| 9 | security | Security audit after QA passes |
+
+Registration order within a step: architect before senior before dev (earlier teammates may need context before later ones begin). Phase 2 agents (tester, qa, qa-code, security) are registered only when their workflow step begins, reducing team size during early steps.
 
 ### Shutdown Protocol
 
@@ -133,6 +144,24 @@ Note: In teammate mode, cross-team communication still uses file-based handoff a
 When: Department completes its 10-step workflow.
 Schema: Use existing `department_result` from references/handoff-schemas.md.
 Note: Owner is in the shared department, not in any team. Communication uses file-based handoff (.dept-status-{dept}.json) regardless of team_mode.
+
+## Task-Only Agents
+
+Three shared-department agents are EXCLUDED from team membership and always use the Task tool regardless of team_mode:
+
+| Agent | Reason for Exclusion |
+|-------|---------------------|
+| critic | Runs before architecture (Step 1) -- team does not exist yet. Cross-cutting: reviews all departments. |
+| scout | On-demand research agent. Dispatched ad-hoc by Lead. Ephemeral -- no persistent team membership needed. |
+| debugger | On-demand investigation agent. Dispatched ad-hoc by Lead. Ephemeral -- no persistent team membership needed. |
+
+These agents:
+- Are NEVER registered as teammates via addTeammate
+- Are ALWAYS spawned via Task tool by Lead (same as task mode)
+- Do NOT have '## Teammate API' sections in their agent files
+- Are NOT counted in the 23-agent Teammate API coverage (4 Phase 1 + 19 Phase 2)
+
+Rationale: Making cross-cutting, ephemeral agents permanent teammates would waste team capacity for rarely-used agents. The Task tool provides adequate spawning for their usage pattern.
 
 ## Task Mode Fallback
 
