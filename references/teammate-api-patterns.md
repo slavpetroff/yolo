@@ -348,6 +348,56 @@ Behavior: Lead logs error, commits any partial artifacts, escalates to Architect
 
 Fallback is per-department. If Backend teammate fails, only Backend falls back to Task tool. Frontend and UI/UX continue in teammate mode unaffected. Each Lead manages its own fallback state independently.
 
+## Health Tracking
+
+> This section is active ONLY when team_mode=teammate.
+
+Lead monitors teammate health via SendMessage response patterns. No custom heartbeat protocol -- health is inferred from existing communication.
+
+### Agent Lifecycle States
+
+| State | Meaning | Trigger |
+|-------|---------|--------|
+| `start` | Agent registered and receiving first assignment | addTeammate completes |
+| `idle` | Agent completed work, waiting for next assignment | task_complete received, no new task assigned |
+| `stop` | Agent received shutdown_request and sent shutdown_response | shutdown protocol completes |
+| `disappeared` | Agent has not responded within 60s of expected signal | Timeout on SendMessage response |
+
+### Tracking Algorithm
+
+Lead maintains an in-memory map: `agent_health = Map<agent_id, {state, timestamp, prev_state, dept}>`.
+
+1. On addTeammate success: set state=start, timestamp=now.
+2. On receiving task_complete: set state=idle, timestamp=now.
+3. On sending task assignment: update timestamp (expected response within 60s).
+4. On receiving shutdown_response: set state=stop, timestamp=now.
+5. On timeout (60s since last expected response): set state=disappeared, trigger recovery.
+
+### Recovery on Disappeared Agent
+
+When an agent enters `disappeared` state:
+1. Log: "[HEALTH] Agent {agent_id} disappeared after 60s timeout."
+2. Remove agent's files from claimed_files set.
+3. Mark agent's in-progress task as available.
+4. Trigger Tier 2 fallback (see ## Fallback Cascade) -- reassign work via Task tool.
+5. Update circuit breaker state (see agents/yolo-lead.md ## Circuit Breaker).
+
+### agent_health_event Schema
+
+```json
+{
+  "type": "agent_health_event",
+  "agent_id": "dev-1",
+  "dept": "backend",
+  "state": "start | idle | stop | disappeared",
+  "timestamp": "2026-02-17T10:30:00Z",
+  "prev_state": "idle",
+  "timeout_triggered": false
+}
+```
+
+This event is logged internally by Lead for debugging. It is NOT sent via SendMessage -- it is a Lead-internal tracking record.
+
 ## Task Mode Fallback
 
 When team_mode=task (default), all patterns above are replaced by:
