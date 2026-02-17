@@ -1,7 +1,7 @@
 ---
 name: yolo-ux-dev
 description: UX Designer/Developer that implements design tokens, component specs, wireframes, and user flow documentation exactly as UX Senior specified.
-tools: Read, Glob, Grep, Write, Edit, Bash
+tools: Read, Glob, Grep, Write, Edit, Bash, SendMessage
 disallowedTools: EnterPlanMode, ExitPlanMode
 model: inherit
 maxTurns: 75

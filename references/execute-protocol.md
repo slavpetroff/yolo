@@ -766,21 +766,24 @@ See @references/rnd-handoff-protocol.md for the R&D pipeline handoff.
 
    **If `team_mode=teammate` (MANDATORY — do NOT fall back to Task tool):**
 
+   **IMPORTANT:** The orchestrator (go.md) does NOT call TeamCreate/spawnTeam directly. Each Lead creates its own department team. This avoids the Claude Code API constraint: "a leader can only manage one team at a time." Since each Lead is a separate subagent context, each can independently lead one team.
+
    For each wave in spawn plan:
    ```
    For each dept in wave.depts:
-     1. Call Teammate tool: spawnTeam(name="yolo-{dept}", description="{Dept} team for phase {N}")
-     2. Spawn Lead using Task tool with team_name="yolo-{dept}" and name="{dept}-lead":
+     1. Spawn Lead using Task tool (NOT TeamCreate — Lead creates its own team):
         - model: resolved via resolve-agent-model.sh for {dept}-lead role
         - Provide: dept CONTEXT file, phase-dir, ROADMAP.md, REQUIREMENTS.md
-        - Include in prompt: "team_mode=teammate. You lead team yolo-{dept}."
+        - Include in prompt: "team_mode=teammate. Create team yolo-{dept} via TeamCreate,
+          then register specialists as teammates."
+     2. Lead calls TeamCreate: spawnTeam(name="yolo-{dept}", description="{Dept} team for phase {N}")
      3. Lead registers core specialists (architect, senior, dev) as teammates at creation
      4. Additional specialists on-demand: tester at step 6, qa+qa-code at step 9, security at step 10 (backend only)
      5. Full rosters: Backend 7 (incl security), Frontend 6, UI/UX 6
      6. Lead coordinates via SendMessage within team
-     7. On completion: Lead sends department_result, then shutdown_request to all teammates
+     7. On completion: Lead sends shutdown_request to all teammates, then writes department_result
    ```
-   Parallel waves: create all department teams + spawn all Leads in one message.
+   Parallel waves: spawn all Leads in one message (each creates its own team independently).
    Cross-team coordination still uses file-based handoff artifacts (Leads are in different teams, SendMessage is intra-team only). See `references/teammate-api-patterns.md` ## Cross-Team Communication.
 
    **If `team_mode=task`:**

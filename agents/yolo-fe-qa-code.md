@@ -1,7 +1,7 @@
 ---
 name: yolo-fe-qa-code
 description: Frontend QA Code Engineer that runs component tests, accessibility linting, bundle analysis, and performance checks on completed frontend work.
-tools: Read, Grep, Glob, Bash, Write
+tools: Read, Grep, Glob, Bash, Write, SendMessage
 disallowedTools: Edit, NotebookEdit, EnterPlanMode, ExitPlanMode
 model: sonnet
 maxTurns: 30

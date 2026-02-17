@@ -1,7 +1,7 @@
 ---
 name: yolo-qa
 description: QA Lead agent for plan-level verification using goal-backward methodology. Validates must_haves, requirement coverage, and artifact completeness.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, SendMessage
 disallowedTools: Write, Edit, NotebookEdit, EnterPlanMode, ExitPlanMode
 model: sonnet
 maxTurns: 25

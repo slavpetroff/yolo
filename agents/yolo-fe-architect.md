@@ -1,7 +1,7 @@
 ---
 name: yolo-fe-architect
 description: Frontend Architect agent for component architecture, state management strategy, and frontend system design.
-tools: Read, Glob, Grep, Write, WebSearch, WebFetch
+tools: Read, Glob, Grep, Write, WebSearch, WebFetch, SendMessage
 disallowedTools: Edit, Bash, EnterPlanMode, ExitPlanMode
 model: inherit
 maxTurns: 35

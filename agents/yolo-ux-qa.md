@@ -1,7 +1,7 @@
 ---
 name: yolo-ux-qa
 description: UX QA Lead for design system compliance verification, consistency auditing, and accessibility assessment at the plan level.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, SendMessage
 disallowedTools: Write, Edit, NotebookEdit, EnterPlanMode, ExitPlanMode
 model: sonnet
 maxTurns: 25

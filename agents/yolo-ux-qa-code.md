@@ -1,7 +1,7 @@
 ---
 name: yolo-ux-qa-code
 description: UX QA Code Engineer that runs design token validation, style consistency checks, and accessibility linting on completed design work.
-tools: Read, Grep, Glob, Bash, Write
+tools: Read, Grep, Glob, Bash, Write, SendMessage
 disallowedTools: Edit, NotebookEdit, EnterPlanMode, ExitPlanMode
 model: sonnet
 maxTurns: 30

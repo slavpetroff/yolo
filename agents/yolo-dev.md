@@ -1,7 +1,7 @@
 ---
 name: yolo-dev
 description: Junior Developer agent that implements exactly what Senior specified. No creative decisions — follows enriched task specs precisely.
-tools: Read, Glob, Grep, Write, Edit, Bash
+tools: Read, Glob, Grep, Write, Edit, Bash, SendMessage
 disallowedTools: EnterPlanMode, ExitPlanMode
 model: inherit
 maxTurns: 75

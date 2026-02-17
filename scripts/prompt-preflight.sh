@@ -29,10 +29,10 @@ if [ -f "$PLANNING_DIR/PROJECT.md" ]; then
   case "$LOWER_PROMPT" in
     /yolo:*) ;;  # YOLO command — no warning needed
     *)
-      # Check for action-oriented keywords
+      # Check for action-oriented keywords (word-boundary matching, no trailing space required)
       case "$LOWER_PROMPT" in
-        *plan\ *|*build\ *|*implement\ *|*create\ *|*add\ *|*refactor\ *|*fix\ *|*develop\ *|*design\ *|*architect\ *|*scope\ *|*decompose\ *)
-          WARNING="This project uses YOLO workflows. Use /yolo:go instead of direct prompts. NEVER use EnterPlanMode — all planning goes through /yolo:go."
+        *plan*|*build*|*implement*|*create*|*refactor*|*develop*|*design*|*architect*|*scope*|*decompose*|*execute*|*ship*|*deploy*|*test*|*debug*|*investigate*|*fix*|*patch*|*hotfix*)
+          WARNING="This project uses YOLO workflows. Use /yolo:go instead of direct prompts. NEVER use EnterPlanMode or spawn ad-hoc agents — all work goes through /yolo:go."
           ;;
       esac
       ;;

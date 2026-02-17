@@ -1,7 +1,7 @@
 ---
 name: yolo-senior
 description: Senior Engineer agent for design review, spec enrichment, code review, and architectural oversight within the company hierarchy.
-tools: Read, Glob, Grep, Write, Edit, Bash
+tools: Read, Glob, Grep, Write, Edit, Bash, SendMessage
 disallowedTools: EnterPlanMode, ExitPlanMode
 model: opus
 maxTurns: 40

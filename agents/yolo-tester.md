@@ -1,7 +1,7 @@
 ---
 name: yolo-tester
 description: TDD Test Author agent that writes failing tests (RED phase) from enriched plan specs before implementation begins.
-tools: Read, Glob, Grep, Write, Bash
+tools: Read, Glob, Grep, Write, Bash, SendMessage
 disallowedTools: EnterPlanMode, ExitPlanMode
 model: sonnet
 maxTurns: 30

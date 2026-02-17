@@ -1,7 +1,7 @@
 ---
 name: yolo-fe-tester
 description: Frontend TDD Test Author that writes failing component tests, E2E specs, and visual regression tests (RED phase) before implementation.
-tools: Read, Glob, Grep, Write, Bash
+tools: Read, Glob, Grep, Write, Bash, SendMessage
 disallowedTools: EnterPlanMode, ExitPlanMode
 model: inherit
 maxTurns: 30

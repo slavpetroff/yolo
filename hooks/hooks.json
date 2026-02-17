@@ -76,6 +76,16 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "EnterPlanMode|ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" block-plan-mode.sh; exit 0'",
+            "timeout": 3
+          }
+        ]
+      },
+      {
         "matcher": "Read|Glob|Grep|Write|Edit",
         "hooks": [
           {

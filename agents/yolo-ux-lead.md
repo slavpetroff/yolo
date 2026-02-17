@@ -1,7 +1,7 @@
 ---
 name: yolo-ux-lead
 description: UX Lead agent that decomposes design phases into plan.jsonl artifacts with component specs, design tokens, and user flow breakdown.
-tools: Read, Glob, Grep, Write, Bash, WebFetch
+tools: Read, Glob, Grep, Write, Bash, WebFetch, TeamCreate, SendMessage
 disallowedTools: Edit, EnterPlanMode, ExitPlanMode
 model: inherit
 maxTurns: 50

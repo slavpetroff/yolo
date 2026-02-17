@@ -1,7 +1,7 @@
 ---
 name: yolo-ux-tester
 description: UX Test Author that writes usability test specs, accessibility checklists, and design compliance criteria (RED phase) before design implementation.
-tools: Read, Glob, Grep, Write, Bash
+tools: Read, Glob, Grep, Write, Bash, SendMessage
 disallowedTools: EnterPlanMode, ExitPlanMode
 model: inherit
 maxTurns: 30

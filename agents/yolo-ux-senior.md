@@ -1,7 +1,7 @@
 ---
 name: yolo-ux-senior
 description: UX Senior for design spec enrichment, design system review, and design artifact code review within the company hierarchy.
-tools: Read, Glob, Grep, Write, Edit, Bash
+tools: Read, Glob, Grep, Write, Edit, Bash, SendMessage
 disallowedTools: EnterPlanMode, ExitPlanMode
 model: opus
 maxTurns: 40

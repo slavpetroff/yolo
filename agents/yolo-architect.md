@@ -1,7 +1,7 @@
 ---
 name: yolo-architect
 description: VP Engineering / Solutions Architect agent for R&D, system design, technology decisions, and phase decomposition.
-tools: Read, Glob, Grep, Write, WebSearch, WebFetch
+tools: Read, Glob, Grep, Write, WebSearch, WebFetch, SendMessage
 disallowedTools: Edit, Bash, EnterPlanMode, ExitPlanMode
 model: opus
 maxTurns: 35
