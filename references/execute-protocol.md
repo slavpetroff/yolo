@@ -296,6 +296,10 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 
    Full self-claiming protocol: `agents/yolo-dev.md` ## Task Self-Claiming. File-overlap detection: `agents/yolo-lead.md` ## Summary Aggregation ### File-Overlap Detection.
 
+   **Lead Summary Aggregation (teammate mode):** Lead collects `task_complete` messages from all Devs. Per plan: (1) Lead tracks completion count (`tasks_completed` vs `tasks_total` from plan header). (2) When all tasks in a plan report complete, Lead constructs `summary_aggregation` (see `references/handoff-schemas.md` ## summary_aggregation). (3) Lead writes `{plan_id}.summary.jsonl` to phase directory with aggregated `commit_hashes`, `files_modified`, `deviations`. (4) Lead commits summary.jsonl using `scripts/git-commit-serialized.sh -m "docs({phase}): summary {NN-MM}"`. (5) Lead verifies summary.jsonl is valid JSONL (`jq empty`). This replaces per-Dev summary writes -- in teammate mode, Dev does NOT write summary.jsonl (see `agents/yolo-dev.md` ## Task Self-Claiming ### Stage 3 Override).
+
+   Full aggregation protocol: `agents/yolo-lead.md` ## Summary Aggregation.
+
    > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
    > ```bash
    > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "dev" --project-dir ".")
@@ -333,7 +337,8 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 **Dev escalation chain:** Dev → Senior (not Lead). If Dev sends `dev_blocker`, route to Senior.
 
 **Summary verification gate (mandatory):**
-When Dev reports completion:
+When team_mode=teammate: Lead-written summary.jsonl is verified (Lead is sole writer). Lead checks `jq empty {phase-dir}/{plan_id}.summary.jsonl` after writing.
+When team_mode=task: Dev-written summary.jsonl is verified (unchanged behavior):
 1. Verify `{phase_dir}/{plan_id}.summary.jsonl` exists with valid JSONL.
 2. If missing: message Dev to write it. If unavailable: write from git log.
 3. Only after verification: mark plan `"complete"` in .execution-state.json.
