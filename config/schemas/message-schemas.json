@@ -43,14 +43,26 @@
       "payload_required": ["request_id", "approved", "reason"],
       "payload_optional": ["conditions", "modifications"],
       "description": "Response to an approval request"
+    },
+    "shutdown_request": {
+      "allowed_roles": ["lead"],
+      "payload_required": ["reason", "team_name"],
+      "payload_optional": [],
+      "description": "Graceful termination signal from orchestrator to all teammates"
+    },
+    "shutdown_response": {
+      "allowed_roles": ["dev", "qa", "scout", "lead", "debugger", "docs"],
+      "payload_required": ["request_id", "approve", "final_status"],
+      "payload_optional": ["pending_work"],
+      "description": "Acknowledgment from teammate that it will terminate"
     }
   },
   "role_hierarchy": {
-    "lead": {"can_send": ["plan_contract", "approval_request", "approval_response"], "can_receive": ["execution_update", "blocker_report", "qa_verdict", "scout_findings", "approval_request"]},
+    "lead": {"can_send": ["plan_contract", "approval_request", "approval_response", "shutdown_request"], "can_receive": ["execution_update", "blocker_report", "qa_verdict", "scout_findings", "approval_request", "shutdown_response"]},
     "architect": {"can_send": ["plan_contract", "approval_response"], "can_receive": ["scout_findings", "approval_request"]},
-    "dev": {"can_send": ["execution_update", "blocker_report", "approval_request"], "can_receive": ["plan_contract", "approval_response"]},
-    "qa": {"can_send": ["qa_verdict"], "can_receive": ["plan_contract"]},
-    "scout": {"can_send": ["scout_findings"], "can_receive": ["plan_contract"]},
-    "debugger": {"can_send": ["blocker_report"], "can_receive": ["plan_contract"]}
+    "dev": {"can_send": ["execution_update", "blocker_report", "approval_request", "shutdown_response"], "can_receive": ["plan_contract", "approval_response", "shutdown_request"]},
+    "qa": {"can_send": ["qa_verdict", "shutdown_response"], "can_receive": ["plan_contract", "shutdown_request"]},
+    "scout": {"can_send": ["scout_findings", "shutdown_response"], "can_receive": ["plan_contract", "shutdown_request"]},
+    "debugger": {"can_send": ["blocker_report", "shutdown_response"], "can_receive": ["plan_contract", "shutdown_request"]}
   }
 }
