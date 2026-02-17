@@ -74,6 +74,34 @@ Commit: `docs({phase}): summary {NN-MM}`
 **Minor deviation** (<5 lines): Fix inline, note in summary `dv` field.
 **NEVER escalate to Lead or Architect directly.** Senior is Dev's single point of contact.
 
+## Escalation Resolution
+
+When Dev has sent a `dev_blocker` to Senior and is waiting for resolution:
+
+### Pause Behavior
+
+**task mode:** Dev Task session is either still active (awaiting Senior response) or has completed with the blocker reported in the return value. The orchestrator (Lead) does not assign the next task until the escalation resolves. Dev does NOT need to explicitly pause -- the single-threaded Task session handles this naturally.
+
+**teammate mode:** After sending `dev_blocker`, Dev continues the claim loop (## Task Self-Claiming). The blocked task remains claimed (status: claimed, not available for others). Dev MAY work on other unblocked tasks while waiting. Dev does NOT need to explicitly track the blocked task -- Senior will send resolution instructions when ready.
+
+### Receive Resolution
+
+Senior sends resolution as `code_review_changes` schema (same format as code review fix instructions):
+- Read `changes` array for specific file modifications
+- If `changes` is empty with a note: original approach confirmed, resume as-is
+- If `changes` has entries: apply each fix per Senior's exact instructions (same protocol as ## Change Management)
+
+Alternatively, Senior may update the task `spec` field in plan.jsonl. In this case, Dev re-reads plan.jsonl for the updated spec before resuming.
+
+### Resume Protocol
+
+1. Read updated instructions from Senior (code_review_changes or updated spec)
+2. Resume the blocked task from where it was paused
+3. Apply resolution changes to the implementation
+4. Commit with escalation reference: `fix({phase}-{plan}): resolve blocker {description}`
+5. Send `dev_progress` to Senior confirming task resumed and resolution applied
+6. Continue normal execution flow (next task in plan or claim loop)
+
 ## Change Management
 
 When Senior requests changes via `code_review_changes` schema:
