@@ -292,3 +292,68 @@ Progress bar width: always 10 chars per brand-essentials.toon progress_bars spec
 - `➜` (Info/arrow) -- next action / transition
 - `█` (Filled block) -- progress bar filled
 - `░` (Empty block) -- progress bar empty
+
+## Gate Skip/Override Messaging
+
+Warning messages displayed when QA gates are bypassed. Every skip must show the consequence so users make informed decisions.
+
+### Config-Disabled Gate
+
+When a gate is disabled via qa_gates config (e.g., `qa_gates.post_task: false`).
+
+```
+  ⚠ Post-task QA gate disabled via config. Tests will not run after task commits.
+```
+
+Shown once at the start of Step 7 execution, not repeated per task.
+
+### --yolo Flag Override
+
+When user passes --yolo flag to /yolo:go, ALL gates are skipped.
+
+```
+  ⚠ All QA gates skipped (--yolo flag). No automated testing during execution.
+
+  Consequences:
+    ○ Post-task gate: skipped -- test regressions may go undetected per task
+    ○ Post-plan gate: skipped -- plan may progress with failing tests
+    ○ Post-phase gate: skipped -- QA agents will run without pre-verification
+```
+
+### failure_threshold Override
+
+When qa_gates.failure_threshold is set to "off" (log-only, never block).
+
+```
+  ⚠ QA gate threshold set to 'off'. Gate failures will be logged but will not block execution.
+```
+
+When set to "lenient" (only critical failures block).
+
+```
+  ⚠ QA gate threshold set to 'lenient'. Only critical test failures will block execution.
+```
+
+### Individual Gate Skip During Execution
+
+When a specific gate is skipped at runtime (e.g., disabled between tasks).
+
+```
+  ○ {gate-name} gate: skipped (disabled)
+```
+
+This replaces the normal gate status line. It is logged in .qa-gate-results.jsonl with `r:"SKIP"` for audit trail.
+
+### Re-enable Warning
+
+Shown when user re-enables a previously disabled gate.
+
+```
+  ✓ {gate-name} gate re-enabled. Gate will run on next trigger.
+  ⚠ Prior skipped gates were not retroactively executed. Consider running /yolo:qa to verify.
+```
+
+### Cross-References
+- Output patterns: `references/qa-output-patterns.md` for gate result templates
+- Config options: this file, Config Option Help Text section above
+- Gate integration: `references/qa-gate-integration.md` (plan 04-08) for full skip/override logic
