@@ -418,6 +418,8 @@ Note: "Run inline" means the execute-protocol agent runs the verify protocol dir
 6. Only THEN proceed to state updates and user-facing output below
 Failure to shut down leaves agents running in the background, consuming API credits (visible as hanging panes in tmux, invisible but still costly without tmux). If no team was created: skip shutdown sequence.
 
+**Post-shutdown verification:** After TeamDelete, there must be ZERO active teammates. If the Pure-Vibe loop or auto-chain will re-enter Plan mode next, confirm no prior agents linger before spawning new ones. This gate survives compaction — if you lost context about whether shutdown happened, assume it did NOT and send `shutdown_request` to any teammates that may still exist before proceeding.
+
 **Control Plane cleanup:** Lock and token state cleanup already handled by existing V3 Lock-Lite and Token Budget cleanup blocks.
 
 **V3 Event Log — phase end (REQ-16):** If `v3_event_log=true` in config:
