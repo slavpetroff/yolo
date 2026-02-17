@@ -22,7 +22,7 @@ Brainstorm and gap-analysis findings for a phase, produced before architecture b
 
 Note: Critic has no Write tool — returns findings to Lead who writes critique.jsonl and commits.
 
-## `test_plan_result` (Tester -> Lead)
+## `test_plan_result` (Tester -> Senior)
 
 TDD RED phase test authoring results.
 
