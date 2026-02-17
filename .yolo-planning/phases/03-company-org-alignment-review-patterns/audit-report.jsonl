@@ -29,3 +29,29 @@
 {"id":"AG-029","area":"agent-prompts","agent":"yolo-senior.md","gap":"Review cycles section lacks formal escalation path documentation beyond 2 cycles max statement","severity":"minor","req":"REQ-05","cat":"review-cycles"}
 {"id":"AG-030","area":"agent-prompts","agent":"yolo-fe-senior.md","gap":"Review cycles mentioned inline but lacks formal escalation path documentation","severity":"minor","req":"REQ-05","cat":"review-cycles"}
 {"id":"AG-031","area":"agent-prompts","agent":"yolo-ux-senior.md","gap":"Review cycles not explicitly documented with max cycles and escalation path","severity":"minor","req":"REQ-05","cat":"review-cycles"}
+{"id":"WF-001","area":"workflow","agent":"execute-protocol.md","gap":"No formalized R&D handoff protocol between Critic-Scout-Architect pipeline (Steps 1-3)","severity":"major","req":"REQ-05","cat":"handoff-protocol"}
+{"id":"WF-002","area":"workflow","agent":"execute-protocol.md","gap":"Missing Architect->Lead stage-gate completeness checklist for architecture.toon before Lead can plan (Step 3->4)","severity":"major","req":"REQ-05","cat":"handoff-protocol"}
+{"id":"WF-003","area":"workflow","agent":"execute-protocol.md","gap":"Missing change management formalization with Minor/Major classification for Senior->Dev revision cycles (Step 7->8)","severity":"major","req":"REQ-05","cat":"change-management"}
+{"id":"WF-004","area":"workflow","agent":"execute-protocol.md","gap":"No inter-step status reporting protocol from Leads during workflow execution","severity":"major","req":"REQ-05","cat":"status-reporting"}
+{"id":"WF-005","area":"workflow","agent":"execute-protocol.md","gap":"QA feedback loop content not fully specified -- remediation chain exists but lacks detail on what feedback content flows back to Senior/Dev","severity":"minor","req":"REQ-05","cat":"review-cycles"}
+{"id":"WF-006","area":"workflow","agent":"commands/go.md:323","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-007","area":"workflow","agent":"commands/go.md:326","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-008","area":"workflow","agent":"commands/go.md:328","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-009","area":"workflow","agent":"references/multi-dept-protocol.md:85","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-010","area":"workflow","agent":"references/multi-dept-protocol.md:90","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-011","area":"workflow","agent":"references/multi-dept-protocol.md:145","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-012","area":"workflow","agent":"references/handoff-schemas.md:365","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-013","area":"workflow","agent":"references/teammate-api-patterns.md:165","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-014","area":"workflow","agent":"references/cross-team-protocol.md:28","gap":"Stale 10-step reference in diagram (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-015","area":"workflow","agent":"references/cross-team-protocol.md:35","gap":"Stale 10-step references in diagram (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-016","area":"workflow","agent":"references/cross-team-protocol.md:54","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-017","area":"workflow","agent":"references/cross-team-protocol.md:100","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-018","area":"workflow","agent":"references/cross-team-protocol.md:145","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-019","area":"workflow","agent":"references/cross-team-protocol.md:178","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-020","area":"workflow","agent":"agents/yolo-lead.md:14","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-021","area":"workflow","agent":"agents/yolo-fe-lead.md:13","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-022","area":"workflow","agent":"agents/yolo-ux-lead.md:14","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-023","area":"workflow","agent":"references/departments/backend.toon:28","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-024","area":"workflow","agent":"references/departments/uiux.toon:30","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-025","area":"workflow","agent":"references/departments/frontend.toon:30","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
+{"id":"WF-026","area":"workflow","agent":"references/departments/shared.toon:49","gap":"Stale 10-step reference (should be 11-step)","severity":"major","req":"REQ-05","cat":"stale-reference"}
