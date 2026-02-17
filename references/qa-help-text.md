@@ -217,3 +217,78 @@ When gate detects files modified by a task that have no corresponding test files
 - `○` (Pending/neutral) -- uncovered file in checklist
 - `➜` (Info/arrow) -- remediation action
 - `--` (Separator) -- between identifier and description
+
+## Gate Progression Messaging
+
+Messages displayed during gate-level transitions in the 11-step workflow. Shows the user where they are in the gate cascade.
+
+### Post-Task to Post-Plan Transition
+
+Displayed after the last task in a plan completes its post-task gate. Signals escalation to plan-level verification.
+
+```
+  ✓ All {N} task gates passed for plan {NN-MM}.
+  ➜ Running post-plan gate...
+```
+
+Example:
+```
+  ✓ All 5 task gates passed for plan 04-06.
+  ➜ Running post-plan gate...
+```
+
+### Post-Plan to Next Plan Transition
+
+Displayed after post-plan gate passes and execution moves to the next plan in the wave.
+
+```
+  ✓ Plan {NN-MM} gate passed. Proceeding to plan {NN-MM}.
+```
+
+Example:
+```
+  ✓ Plan 04-06 gate passed. Proceeding to plan 04-07.
+```
+
+### Post-Plan to Post-Phase Transition
+
+Displayed after the last plan in the phase completes its post-plan gate. Signals escalation to phase-level verification.
+
+```
+  ✓ All {N} plan gates passed for phase {NN}.
+  ➜ Running post-phase gate...
+```
+
+Example:
+```
+  ✓ All 10 plan gates passed for phase 04.
+  ➜ Running post-phase gate...
+```
+
+### Post-Phase to QA Agent Transition
+
+Displayed after post-phase gate passes and QA agents are about to spawn.
+
+```
+  ✓ Post-phase gate passed.
+  ➜ Spawning QA agents for deep verification...
+```
+
+### Cumulative Progress Display
+
+Shown at each gate transition to give the user a sense of overall progress. Uses progress_bars format from brand essentials.
+
+```
+  Gate progress:
+    Post-task:  ██████████ 100% ({N}/{M} tasks)
+    Post-plan:  █████░░░░░  50% ({N}/{M} plans)
+    Post-phase: ░░░░░░░░░░   0% (pending)
+```
+
+Progress bar width: always 10 chars per brand-essentials.toon progress_bars specification.
+
+### Symbol Usage (Progression)
+- `✓` (Success/complete) -- gate level passed
+- `➜` (Info/arrow) -- next action / transition
+- `█` (Filled block) -- progress bar filled
+- `░` (Empty block) -- progress bar empty
