@@ -4,7 +4,7 @@ Loaded on demand by /yolo:go Execute mode. Not a user-facing command.
 
 Implements the 11-step company-grade engineering workflow. See `references/company-hierarchy.md` for full hierarchy and `references/artifact-formats.md` for JSONL schemas.
 
-**Spawn strategy:** Agent spawning is controlled by `team_mode` from resolve-team-mode.sh (passed by go.md). When `team_mode=task` (default): all agents are spawned via Task tool as documented below. When `team_mode=teammate`: top-level agent spawning from go.md uses Teammate API (spawnTeam for department Leads); within-team spawning (Steps 1-9) is handled by agent prompt conditionals using SendMessage. Teammate registration is on-demand at workflow step boundaries: core specialists (architect, senior, dev) at team creation, tester at step 5, qa + qa-code at step 8, security at step 9 (backend only). See `references/teammate-api-patterns.md` for Teammate API patterns and `references/teammate-api-patterns.md` ## Registering Teammates for step-to-role mapping.
+**Spawn strategy:** Agent spawning is controlled by `team_mode` from resolve-team-mode.sh (passed by go.md). When `team_mode=task` (default): all agents are spawned via Task tool as documented below. When `team_mode=teammate`: top-level agent spawning from go.md uses Teammate API (spawnTeam for department Leads); within-team spawning (Steps 1-10) is handled by agent prompt conditionals using SendMessage. Teammate registration is on-demand at workflow step boundaries: core specialists (architect, senior, dev) at team creation, tester at step 6, qa + qa-code at step 9, security at step 10 (backend only). See `references/teammate-api-patterns.md` for Teammate API patterns and `references/teammate-api-patterns.md` ## Registering Teammates for step-to-role mapping.
 
 ## Owner-First Communication Rule
 
@@ -434,7 +434,7 @@ When team_mode=task: Dev-written summary.jsonl is verified (unchanged behavior):
    - Lead decides: accept with known issues OR escalate to Architect for design change.
 6. If `r: "approve"`:
    - If `config.approval_gates.code_review` is true → pause, display review summary, AskUserQuestion "Proceed to QA?" Options: "Proceed" / "Review changes".
-   - Otherwise → proceed to Step 8.
+   - Otherwise → proceed to Step 9.
 7. Senior commits: `docs({phase}): code review {NN-MM}`
 8. Verify: code-review.jsonl exists with `r: "approve"`.
 9. **EXIT GATE:** Artifact: `code-review.jsonl` per plan (r: "approve"). When team_mode=teammate: Lead waits for code_review_result messages from all dispatched Seniors in the current wave. After all received, Lead verifies each plan has code-review.jsonl with `r: "approve"` in line 1 (via `jq -r .r` equals "approve"). If any plan has changes_requested after cycle 2, Senior escalates to Lead per existing protocol. When team_mode=task: sequential verification unchanged (each plan checked after its Senior completes). State: `steps.code_review = complete`. Commit: `chore(state): code_review complete phase {N}`.
@@ -481,7 +481,7 @@ When team_mode=task: Dev-written summary.jsonl is verified (unchanged behavior):
 7. QA Code runs TDD compliance (Phase 0), tests, lint, patterns. Produces qa-code.jsonl. Commits: `docs({phase}): code quality review`
 
 **Result handling:**
-- Both PASS → Manual QA (if enabled) → Step 9 (or Step 10 if security disabled)
+- Both PASS → Manual QA (if enabled) → Step 10 (or Step 11 if security disabled)
 - QA Lead FAIL → remediation plan → Lead assigns → Senior re-specs → Dev fixes → re-verify (max 2 cycles)
 - QA Code PARTIAL/FAIL → **remediation loop:**
   1. QA Code writes `gaps.jsonl` with `st: "open"` entries (critical/major findings).
@@ -511,7 +511,7 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
     - Critical failure → Lead escalates to Architect for design re-evaluation
     - Major/minor failure → Lead assigns to Senior for re-spec → Dev fixes
     - After fix → re-run manual QA for failed items only
-12. If all PASS (automated + manual) → proceed to Step 9.
+12. If all PASS (automated + manual) → proceed to Step 10.
 13. **EXIT GATE:** Verify `{phase-dir}/verification.jsonl` exists with valid JSONL (`jq empty`). Verify `{phase-dir}/qa-code.jsonl` exists with valid JSONL. Update `.execution-state.json`: set `steps.qa.status` to `"complete"`, `steps.qa.completed_at` to ISO timestamp, `steps.qa.artifact` to `"{phase-dir}/verification.jsonl"`. Commit: `chore(state): qa complete phase {N}`.
 
 ### Step 10: Security Audit (optional)
@@ -671,9 +671,9 @@ Each transition commits `.execution-state.json` so resume works on exit. Schema:
        Register Lead as team lead (automatic with spawnTeam)
        Lead registers core specialists (architect, senior, dev) as teammates at creation
        Lead registers additional specialists on-demand at workflow step boundaries:
-         - Step 5 (test authoring): register tester as teammate
-         - Step 8 (QA): register qa + qa-code as teammates
-         - Step 9 (security): register security as teammate (backend team ONLY)
+         - Step 6 (test authoring): register tester as teammate
+         - Step 9 (QA): register qa + qa-code as teammates
+         - Step 10 (security): register security as teammate (backend team ONLY)
        Full team rosters:
          - Backend (yolo-backend): architect, senior, dev, tester, qa, qa-code, security (7)
          - Frontend (yolo-frontend): architect, senior, dev, tester, qa, qa-code (6)
@@ -709,9 +709,9 @@ Each transition commits `.execution-state.json` so resume works on exit. Schema:
 
 5. **On all departments complete:**
    - Verify via `dept-gate.sh --gate all-depts --phase-dir {phase-dir}`
-   - Proceed to Integration QA (foreground, Step 8 equivalent)
-   - Proceed to Security audit (foreground, Step 9 equivalent)
-   - Proceed to Owner sign-off (Step 10)
+   - Proceed to Integration QA (foreground, Step 9 equivalent)
+   - Proceed to Security audit (foreground, Step 10 equivalent)
+   - Proceed to Owner sign-off (Step 11)
 
 6. **Cleanup on completion or failure:**
    ```bash
@@ -724,9 +724,9 @@ Each transition commits `.execution-state.json` so resume works on exit. Schema:
 
 **Teammate mode per-department 11-step:** When `team_mode=teammate`, the per-department 11-step workflow is identical in logic but uses SendMessage for intra-team coordination instead of Task tool spawning. The Lead creates the team via spawnTeam and registers specialists on-demand:
 - **Team creation:** Lead registers architect, senior, dev as teammates
-- **Step 5:** Lead registers tester as teammate. Tester sends test_plan_result to Senior (not Lead) via SendMessage.
-- **Step 8:** Lead registers qa + qa-code as teammates. Both send results to Lead via SendMessage. QA Code writes gaps.jsonl as file artifact if PARTIAL/FAIL.
-- **Step 9 (backend only):** Lead registers security as teammate. Security sends security_audit to Lead via SendMessage. FE/UX teams skip this step.
+- **Step 6:** Lead registers tester as teammate. Tester sends test_plan_result to Senior (not Lead) via SendMessage.
+- **Step 9:** Lead registers qa + qa-code as teammates. Both send results to Lead via SendMessage. QA Code writes gaps.jsonl as file artifact if PARTIAL/FAIL.
+- **Step 10 (backend only):** Lead registers security as teammate. Security sends security_audit to Lead via SendMessage. FE/UX teams skip this step.
 - **Shutdown:** On department completion, Lead sends shutdown_request to all registered teammates. Each teammate commits pending artifacts and sends shutdown_response. Lead then writes .dept-status-{dept}.json (file-based, for cross-department gate) and sends department_result.
 See `references/teammate-api-patterns.md` ## Team Lifecycle for spawnTeam and shutdown patterns. See ## Registering Teammates for the full step-to-role mapping.
 

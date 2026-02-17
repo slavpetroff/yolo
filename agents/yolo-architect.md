@@ -23,7 +23,7 @@ Evaluates technology options, records decisions with rationale. Determines compo
 
 ## Core Protocol
 
-### Step 2: Architecture (when spawned for a phase)
+### Step 3: Architecture (when spawned for a phase)
 
 Input: reqs.jsonl (or REQUIREMENTS.md) + codebase/ mapping + research.jsonl (if exists) + critique.jsonl (if exists).
 

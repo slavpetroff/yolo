@@ -164,7 +164,7 @@ Lines 2+ (findings):
 | `sug` | suggestion | string |
 | `st` | status | "open"\|"addressed"\|"deferred"\|"rejected" |
 
-Written by Critic agent (Step 1). Architect reads and addresses `st: "open"` findings during architecture (Step 2).
+Written by Critic agent (Step 1). Architect reads and addresses `st: "open"` findings during architecture (Step 3).
 
 ### Test Plan (test-plan.jsonl, one line per task)
 
@@ -210,9 +210,9 @@ Written by Tester agent (Step 5) after Senior enriches `ts` fields. Dev reads te
 | `conf` | confidence | "high"\|"medium"\|"low" |
 | `dt` | date | "YYYY-MM-DD" |
 | `rel` | relevance | string |
-| `brief_for` | brief_for | string | "C1" |
-| `mode` | mode | string | "post-critic" |
-| `priority` | priority | string | "high" |
+| `brief_for` | critique ID link | string (optional, e.g. "C1") |
+| `mode` | research mode | "pre-critic"\|"post-critic"\|"standalone" (optional, default "standalone") |
+| `priority` | priority | "high"\|"medium"\|"low" (optional, default "medium") |
 
 New fields (D4): `brief_for` links a research finding to the critique ID (from critique.jsonl) that prompted the research. `mode` indicates when research was performed: "pre-critic" (best-practices discovery before Critic runs), "post-critic" (solution research driven by Critic findings), or "standalone" (via /yolo:research command). `priority` is derived from the linked critique finding severity when `brief_for` is present: critical -> "high", major -> "medium", minor -> "low". All three fields are optional; omitted fields default to empty/"standalone"/"medium" respectively via jq // operator. Existing standalone research entries (without these fields) continue to parse correctly.
 

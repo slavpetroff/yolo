@@ -78,7 +78,7 @@ Note: Senior has TWO modes. Design review mode (Step 5) and code review mode (St
 | plan.jsonl (header) | N/A | - | |
 | plan.jsonl (tasks, design) | id, a, f, done, v | {id,a,f,done,v} | For spec enrichment |
 | plan.jsonl (tasks, review) | id, a, f, spec, ts, done | {id,a,f,spec,ts,done} | For code review against spec |
-| critique.jsonl | id, desc, rec (where st=open) | select(.st=="open") \| {id,desc,rec} | Only open findings for spec enrichment |
+| critique.jsonl | id, q/desc, sug/rec (where st=open) | select(.st=="open") \| {id, q: (.q // .desc), sug: (.sug // .rec)} | Schema uses q,sug; real files may use desc,rec — handle both |
 | test-plan.jsonl | id, tf, tc, red | {id,tf,tc,red} | For TDD compliance check |
 | summary.jsonl | N/A | - | |
 | research.jsonl | N/A | - | |

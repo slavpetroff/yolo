@@ -194,7 +194,7 @@ run_filter() {
 
 # --- senior + critique.jsonl (1 test) ---
 
-@test 'senior+critique returns only open findings with id,desc,rec' {
+@test 'senior+critique returns only open findings with id,q,sug' {
   run_filter --role senior --artifact "$FIXTURE_DIR/sample-critique.jsonl" --type critique
   assert_success
   # Only C1 and C2 are st=open; C3 is st=addressed
@@ -202,7 +202,9 @@ run_filter() {
   line_count=$(echo "$output" | wc -l | tr -d ' ')
   assert [ "$line_count" -eq 2 ]
   echo "$output" | head -1 | jq -e '.id == "C1"'
-  echo "$output" | head -1 | jq -e 'has("sev") | not'  # only id, desc, rec
+  echo "$output" | head -1 | jq -e 'has("sev") | not'  # only id, q, sug
+  echo "$output" | head -1 | jq -e '.q == "Missing auth middleware"'  # verify value not null
+  echo "$output" | head -1 | jq -e '.sug == "Add express-jwt"'  # verify value not null
 }
 
 # --- tester + plan.jsonl (1 test) ---

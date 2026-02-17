@@ -96,7 +96,7 @@ case "$BASE_ROLE" in
         else
           tail -n +2 "$ARTIFACT" | jq -c '{id,a,f,done,v}'
         fi ;;
-      critique) jq -c 'select(.st=="open") | {id,desc,rec}' "$ARTIFACT" ;;
+      critique) jq -c 'select(.st=="open") | {id, q: (.q // .desc // ""), sug: (.sug // .rec // "")}' "$ARTIFACT" ;;
       test-plan) jq -c '{id,tf,tc,red}' "$ARTIFACT" ;;
       *) echo "Error: senior does not consume $TYPE artifacts" >&2; exit 1 ;;
     esac ;;
