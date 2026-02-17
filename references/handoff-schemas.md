@@ -10,7 +10,7 @@ V2 inter-agent messages use strict JSON schemas. Every message includes a mandat
   "type": "scout_findings|plan_contract|execution_update|blocker_report|qa_verdict|approval_request|approval_response|shutdown_request|shutdown_response",
   "phase": 1,
   "task": "1-1-T3",
-  "author_role": "lead|dev|qa|scout|debugger|architect",
+  "author_role": "lead|dev|qa|scout|debugger|architect|docs",
   "timestamp": "2026-02-12T10:00:00Z",
   "schema_version": "2.0",
   "payload": {},
@@ -90,9 +90,9 @@ Issued plan contract defining task scope and constraints.
 }
 ```
 
-## `execution_update` (Dev -> Lead)
+## `execution_update` (Dev/Docs -> Lead)
 
-Task progress or completion update from Dev.
+Task progress or completion update from Dev or Docs.
 
 ```json
 {
@@ -116,7 +116,7 @@ Task progress or completion update from Dev.
 }
 ```
 
-## `blocker_report` (Dev/Debugger -> Lead)
+## `blocker_report` (Dev/Debugger/Docs -> Lead)
 
 Escalation when agent is blocked and cannot proceed.
 

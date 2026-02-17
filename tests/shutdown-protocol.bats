@@ -343,6 +343,14 @@ teardown() {
   [[ "$output" == *"missing payload field"* ]]
 }
 
+@test "validate-message: shutdown_response missing final_status rejected" {
+  cd "$TEST_TEMP_DIR"
+  MSG='{"id":"shut-resp-bad3","type":"shutdown_response","phase":1,"task":"","author_role":"dev","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approve":true}}'
+  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"missing payload field"* ]]
+}
+
 # =============================================================================
 # validate-message.sh: target_role routing for shutdown messages
 # =============================================================================
@@ -395,4 +403,28 @@ teardown() {
   MSG='{"id":"shut-fallback","type":"shutdown_request","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"vbw-phase-01"}}'
   run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
   [ "$status" -eq 0 ]
+}
+
+# =============================================================================
+# Architect exclusion: shutdown messages rejected for planning-only role
+# =============================================================================
+
+@test "validate-message: shutdown_request targeted to architect rejected" {
+  cd "$TEST_TEMP_DIR"
+  MSG='{"id":"shut-arch-1","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"architect","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"vbw-phase-01"}}'
+  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
+  [ "$status" -eq 2 ]
+}
+
+@test "validate-message: shutdown_response from architect rejected" {
+  cd "$TEST_TEMP_DIR"
+  MSG='{"id":"shut-arch-2","type":"shutdown_response","phase":1,"task":"","author_role":"architect","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approve":true,"final_status":"idle"}}'
+  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"not authorized"* ]]
+}
+
+@test "architect agent documents shutdown exemption" {
+  grep -q '## Shutdown Handling' "$PROJECT_ROOT/agents/vbw-architect.md"
+  sed -n '/^## Shutdown Handling$/,/^## /p' "$PROJECT_ROOT/agents/vbw-architect.md" | grep -qi 'planning-only'
 }
