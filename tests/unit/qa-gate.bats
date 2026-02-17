@@ -122,3 +122,76 @@ mk_phase_exact() {
   run bash -c "echo '{\"agent_name\":\"yolo-dev\"}' | bash '$SUT'"
   assert_success
 }
+
+# --- Config-aware behavior ---
+
+# Helper: set up qa-gate.sh in a temp dir with a mock resolve-qa-config.sh
+# qa-gate.sh uses BASH_SOURCE to find resolve-qa-config.sh, so both must coexist
+setup_config_aware() {
+  local qa_config_json="$1"
+  local gate_dir="$TEST_WORKDIR/gate-scripts"
+  mkdir -p "$gate_dir"
+  cp "$SUT" "$gate_dir/qa-gate.sh"
+
+  # Create a mock resolve-qa-config.sh that outputs the given config
+  cat > "$gate_dir/resolve-qa-config.sh" <<MOCK
+#!/usr/bin/env bash
+echo '$qa_config_json'
+MOCK
+  chmod +x "$gate_dir/resolve-qa-config.sh"
+
+  echo "$gate_dir/qa-gate.sh"
+}
+
+@test "skips checks when post_task is disabled in config" {
+  # Setup: summary gap > 1 that would normally block
+  mk_phase_exact 1 "setup" 3 1
+  mk_recent_commit "feat(01-01): add feature"
+
+  local gate_script
+  gate_script=$(setup_config_aware '{"post_task":false,"post_plan":true,"post_phase":true,"timeout_seconds":300,"failure_threshold":"critical"}')
+
+  run bash -c "echo '{\"agent_name\":\"yolo-dev\"}' | bash '$gate_script'"
+  assert_success
+}
+
+@test "runs checks normally when post_task is enabled" {
+  # Setup: summary gap > 1 with no conventional commits = would block
+  mk_phase_exact 1 "setup" 3 1
+  mk_recent_commit "random commit message"
+
+  local gate_script
+  gate_script=$(setup_config_aware '{"post_task":true,"post_plan":true,"post_phase":true,"timeout_seconds":300,"failure_threshold":"critical"}')
+
+  run bash -c "echo '{\"agent_name\":\"yolo-dev\"}' | bash '$gate_script'"
+  assert_failure 2
+}
+
+@test "runs checks when config has no qa_gates key (backward compat)" {
+  # Config with empty object (no qa_gates key)
+  mk_phase_exact 1 "setup" 3 1
+  mk_recent_commit "random commit message"
+
+  # Mock resolve script returns {} (no qa_gates fields)
+  local gate_script
+  gate_script=$(setup_config_aware '{}')
+
+  run bash -c "echo '{\"agent_name\":\"yolo-dev\"}' | bash '$gate_script'"
+  assert_failure 2
+}
+
+@test "runs checks when resolve-qa-config.sh is missing (fail-open)" {
+  # Summary gap > 1 with no conventional commits = would block
+  mk_phase_exact 1 "setup" 3 1
+  mk_recent_commit "random commit message"
+
+  # Copy qa-gate.sh to a temp dir WITHOUT resolve-qa-config.sh
+  local gate_dir="$TEST_WORKDIR/gate-no-resolve"
+  mkdir -p "$gate_dir"
+  cp "$SUT" "$gate_dir/qa-gate.sh"
+  # Ensure no resolve script exists
+  rm -f "$gate_dir/resolve-qa-config.sh"
+
+  run bash -c "echo '{\"agent_name\":\"yolo-dev\"}' | bash '$gate_dir/qa-gate.sh'"
+  assert_failure 2
+}
