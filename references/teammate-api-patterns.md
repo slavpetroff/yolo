@@ -163,6 +163,101 @@ These agents:
 
 Rationale: Making cross-cutting, ephemeral agents permanent teammates would waste team capacity for rarely-used agents. The Task tool provides adequate spawning for their usage pattern.
 
+## Task Coordination (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate.
+
+Lead manages a shared task list for parallel Dev assignment. See `references/handoff-schemas.md` for `task_claim` and `task_complete` message schemas. See `references/artifact-formats.md` for `td` (task_depends) field definition.
+
+### TaskCreate (Plan-to-Task Mapping)
+
+Lead reads plan.jsonl tasks (lines 2+) and creates a shared task list item for each task. Fields:
+
+| Field | Source | Description |
+|-------|--------|-------------|
+| `task_id` | task `id` field | e.g., "T1" |
+| `plan_id` | header `p`-`n` | e.g., "03-01" |
+| `action` | task `a` field | Task description |
+| `files` | task `f` field | Files this task modifies |
+| `status` | hardcoded | Initial value: `"available"` |
+| `assignee` | hardcoded | Initial value: `null` |
+| `blocked_by` | task `td` field + plan `d` field | Dependency list (see below) |
+
+**Plan-to-task mapping algorithm:**
+
+1. Read plan header (line 1) to extract `p`, `n`, and `d` (plan-level dependencies).
+2. For each task (lines 2+), read `id`, `a`, `f`, `td`.
+3. Compute `blocked_by`:
+   - If task has `td` field: add each entry as `{plan_id}/{td_entry}` (e.g., `"03-01/T1"`).
+   - If plan has `d` field (cross-plan deps): for each referenced plan, add ALL task IDs from that plan as `{dep_plan_id}/{task_id}` entries to `blocked_by`.
+4. Create shared task list item with all fields.
+
+```json
+{
+  "task_id": "T3",
+  "plan_id": "03-01",
+  "action": "Add ## Task-Level Blocking section",
+  "files": ["references/teammate-api-patterns.md"],
+  "status": "available",
+  "assignee": null,
+  "blocked_by": ["03-01/T1", "03-01/T2"]
+}
+```
+
+### TaskList (Available Task Query)
+
+Dev queries for tasks matching ALL of the following:
+- `status` = `"available"`
+- `assignee` = `null`
+- `blocked_by` is empty (all dependencies resolved)
+
+Lead filters results to EXCLUDE tasks whose `f` field intersects the `claimed_files` set (file-overlap check).
+
+**claimed_files algorithm:**
+
+Lead maintains a `Set<string>` called `claimed_files`.
+
+- **On `task_claim` event:** add all entries from `task.files` to `claimed_files`.
+- **On `task_complete` event:** remove all entries from `task.files` from `claimed_files`.
+- **Before returning TaskList results:** for each candidate task, check if any entry in `task.files` exists in `claimed_files`. If yes, exclude that task from results.
+
+```
+function filterAvailableTasks(candidates, claimed_files):
+  result = []
+  for task in candidates:
+    if task.status != "available": continue
+    if task.assignee != null: continue
+    if task.blocked_by is not empty: continue
+    overlap = intersection(task.files, claimed_files)
+    if overlap is not empty: continue
+    result.append(task)
+  return result
+```
+
+### TaskUpdate (Claim and Complete)
+
+Dev calls TaskUpdate with `task_id` and one of two operations:
+
+**Claiming a task:**
+
+```json
+{
+  "task_id": "T3",
+  "status": "claimed",
+  "assignee": "dev-1"
+}
+```
+
+**Completing a task:**
+
+```json
+{
+  "task_id": "T3",
+  "status": "complete",
+  "commit": "abc1234"
+}
+```
+
 ## Task Mode Fallback
 
 When team_mode=task (default), all patterns above are replaced by:
