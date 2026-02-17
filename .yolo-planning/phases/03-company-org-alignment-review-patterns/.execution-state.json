@@ -1,0 +1,107 @@
+{
+  "phase": 3,
+  "phase_name": "company-org-alignment-review-patterns",
+  "status": "running",
+  "started_at": "2026-02-17T18:39:00Z",
+  "step": "planning",
+  "wave": 1,
+  "total_waves": 2,
+  "plans": [
+    {
+      "id": "03-01",
+      "title": "Hierarchy audit and gap checklist",
+      "wave": 1,
+      "status": "pending"
+    },
+    {
+      "id": "03-02",
+      "title": "Review ownership language in agent prompts",
+      "wave": 1,
+      "status": "pending"
+    },
+    {
+      "id": "03-03",
+      "title": "R&D handoff protocol and change management loops",
+      "wave": 2,
+      "status": "pending"
+    },
+    {
+      "id": "03-04",
+      "title": "Cross-team status reporting and audit verification",
+      "wave": 2,
+      "status": "pending"
+    }
+  ],
+  "steps": {
+    "critique": {
+      "status": "complete",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "architecture": {
+      "status": "complete",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "planning": {
+      "status": "complete",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "design_review": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "test_authoring": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "implementation": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "code_review": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "qa": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "security": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "signoff": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    }
+  }
+}
