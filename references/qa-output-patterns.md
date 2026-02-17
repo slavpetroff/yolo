@@ -144,3 +144,75 @@ When some tasks passed gate but others need remediation. Shows per-task status u
 - `➜` (Info/arrow) -- remediation next step
 - `--` (Separator) -- between task ID and description, between issue and reference
 - Single-line box-drawing: `┌ ─ ┐ │ └ ┘` (standard_task level per brand essentials)
+
+## Post-Phase Gate Output
+
+Displayed before QA agent spawn (Step 9). Uses double-line box-drawing (critical_phase level per brand essentials). This is the highest-criticality gate -- failure blocks QA agent spawn entirely (cost savings: prevents expensive LLM agents from running on known-broken code).
+
+### Pass State
+
+Shows phase-level aggregate metrics in a double-line box.
+
+```
+╔════════════════════════════════════════╗
+║ ✓ Post-phase QA: PASS                 ║
+║                                        ║
+║         Phase: {NN} {title}            ║
+║         Plans: {N}/{M} complete        ║
+║         Tests: {N} passed ({X.Xs})     ║
+║         Gates: {N}/{M} passed          ║
+╚════════════════════════════════════════╝
+
+  ➜ Spawning QA agents for deep verification...
+```
+
+### Fail State
+
+Uses double-line box for summary, then lists blocking gates with escalation path.
+
+```
+╔════════════════════════════════════════╗
+║ ✗ Post-phase QA: FAIL                 ║
+║                                        ║
+║         Phase: {NN} {title}            ║
+║         Plans: {N}/{M} complete        ║
+║         Tests: {P} passed, {F} failed  ║
+║         Gates: {N}/{M} passed          ║
+╚════════════════════════════════════════╝
+
+  Blocking gates:
+    ✗ Post-plan {NN-MM}: {failure summary}
+    ✗ Post-plan {NN-MM}: {failure summary}
+
+  ✗ QA agent spawn blocked. Remediation required.
+  ➜ Fix blocking gates. A remediation plan will be generated.
+```
+
+### Partial State
+
+When some plans passed gate but others failed. Lists per-plan gate status.
+
+```
+╔════════════════════════════════════════╗
+║ ⚠ Post-phase QA: PARTIAL              ║
+║                                        ║
+║         Phase: {NN} {title}            ║
+║         Plans: {N}/{M} complete        ║
+╚════════════════════════════════════════╝
+
+  Plan gate results:
+    ✓ {NN-MM} -- {plan title}
+    ✗ {NN-MM} -- {plan title}: {failure reason}
+    ○ {NN-MM} -- {plan title} (not executed)
+
+  ➜ Remediate failing plan gates before QA agents can spawn.
+```
+
+### Symbol Usage (Post-Phase)
+- `✓` (Success/complete) -- gate passed, plan gate passed
+- `✗` (Failure/error) -- gate failed, plan gate failed, spawn blocked
+- `⚠` (Warning) -- partial result
+- `○` (Pending/neutral) -- plan gate not executed
+- `➜` (Info/arrow) -- next step / remediation
+- `--` (Separator) -- between plan ID and title
+- Double-line box-drawing: `╔ ═ ╗ ║ ╚ ╝` (critical_phase level per brand essentials)
