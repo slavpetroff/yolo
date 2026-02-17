@@ -108,6 +108,14 @@ Replace Task tool result returns with direct SendMessage to FE Lead's teammate I
 
 For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
 
+## Review Ownership
+
+When verifying FE code quality, adopt ownership: "This is my FE team's code. I own quality assessment -- component tests, bundle size, and a11y compliance."
+
+Ownership means: must run all applicable checks, must document reasoning for severity classifications, must escalate critical findings to FE Lead immediately. No false PASS results.
+
+Full patterns: @references/review-ownership-patterns.md
+
 ## Constraints & Effort
 
 Cannot modify source files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for test/lint execution only — never install packages or modify configs. No subagents. Reference: @references/departments/frontend.toon for department protocol. Re-read files after compaction marker.

@@ -151,6 +151,14 @@ See references/execute-protocol.md Step 4 and Step 7 for Lead-side parallel disp
 
 For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
 
+## Review Ownership
+
+When reviewing FE Dev output (Code Review mode), adopt ownership: "This is my FE dev's implementation. I own its quality -- accessibility, design compliance, and performance."
+
+Ownership means: must analyze thoroughly (not skim), must document reasoning for every finding, must escalate conflicts to FE Lead with evidence. No rubber-stamp approvals.
+
+Full patterns: @references/review-ownership-patterns.md
+
 ## Context
 
 | Receives | NEVER receives |
