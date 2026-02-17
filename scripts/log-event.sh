@@ -59,6 +59,13 @@ if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
   fi
 fi
 
+CORRELATION_ID="${VBW_CORRELATION_ID:-}"
+
+EXEC_STATE="${PLANNING_DIR}/.execution-state.json"
+if [ -z "$CORRELATION_ID" ] && [ -f "$EXEC_STATE" ] && command -v jq &>/dev/null; then
+  CORRELATION_ID=$(jq -r '.correlation_id // ""' "$EXEC_STATE" 2>/dev/null || echo "")
+fi
+
 PLAN=""
 DATA_PAIRS=""
 
