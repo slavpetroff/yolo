@@ -4,7 +4,7 @@ Loaded on demand by /yolo:go Execute mode. Not a user-facing command.
 
 Implements the 10-step company-grade engineering workflow. See `references/company-hierarchy.md` for full hierarchy and `references/artifact-formats.md` for JSONL schemas.
 
-**Spawn strategy:** Agent spawning is controlled by `team_mode` from resolve-team-mode.sh (passed by go.md). When `team_mode=task` (default): all agents are spawned via Task tool as documented below. When `team_mode=teammate`: top-level agent spawning from go.md uses Teammate API (spawnTeam for department Leads); within-team spawning (Steps 1-9) is handled by agent prompt conditionals using SendMessage. See `references/teammate-api-patterns.md` for Teammate API patterns.
+**Spawn strategy:** Agent spawning is controlled by `team_mode` from resolve-team-mode.sh (passed by go.md). When `team_mode=task` (default): all agents are spawned via Task tool as documented below. When `team_mode=teammate`: top-level agent spawning from go.md uses Teammate API (spawnTeam for department Leads); within-team spawning (Steps 1-9) is handled by agent prompt conditionals using SendMessage. Teammate registration is on-demand at workflow step boundaries: core specialists (architect, senior, dev) at team creation, tester at step 5, qa + qa-code at step 8, security at step 9 (backend only). See `references/teammate-api-patterns.md` for Teammate API patterns and `references/teammate-api-patterns.md` ## Registering Teammates for step-to-role mapping.
 
 ## Owner-First Communication Rule
 
@@ -51,6 +51,8 @@ Each agent receives ONLY what it needs (progressive scoping — lower agents see
 | 7 | Senior (Review) | plan.jsonl, git diff, test-plan.jsonl | CONTEXT, ROADMAP |
 | 8 | QA | plan.jsonl, summary.jsonl, .ctx-qa.toon | CONTEXT, architecture.toon |
 | 9 | Security | summary.jsonl (file list), .ctx-security.toon | CONTEXT, plans |
+
+**Teammate mode context delivery:** When `team_mode=teammate`, the Receives column content is delivered via SendMessage instead of Task tool parameters. The NEVER pass column restrictions are identical -- SendMessage does not change what context an agent should receive, only how it is delivered. Lead constructs the SendMessage payload with exactly the artifacts listed in Receives for each step.
 
 **Key principle:** Dev's `spec` field IS its complete instruction set. Escalation flows UP (broader context to resolve), resolution flows DOWN as updated artifacts (never raw context files).
 
@@ -233,6 +235,7 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 
 1. Update execution state: `"step": "test_authoring"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} tester {phases_dir} {plan_path}`
+2.5. **Teammate registration (team_mode=teammate only):** Lead registers tester as a teammate in the department team before sending test authoring context. The tester receives the enriched plan.jsonl via SendMessage from Lead (replacing Task tool parameter passing). Tester sends `test_plan_result` back to Senior (NOT Lead) via SendMessage when complete. In task mode, this step is skipped (tester spawned via Task tool as documented below).
 3. For each plan.jsonl with tasks that have `ts` fields:
    - Spawn yolo-tester with Task tool:
      - model: "${TESTER_MODEL}"
@@ -336,6 +339,7 @@ When Dev reports completion:
 
 1. Update execution state: `"step": "qa"`
 2. **Tier resolution:** turbo=skip, fast=quick, balanced=standard, thorough=deep.
+2.5. **Teammate registration (team_mode=teammate only):** Lead registers qa and qa-code as teammates in the department team. QA Lead receives plan.jsonl + summary.jsonl via SendMessage from Lead. QA Code receives summary.jsonl + test-plan.jsonl via SendMessage. QA Lead sends `qa_result` to Lead via SendMessage. QA Code sends `qa_code_result` to Lead via SendMessage. If QA Code result is PARTIAL/FAIL, QA Code also writes gaps.jsonl as a file artifact (not SendMessage -- it is a persistent artifact for remediation). In task mode, this step is skipped (qa/qa-code spawned via Task tool as documented below).
 3. Compile context:
    - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} qa {phases_dir}`
    - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} qa-code {phases_dir}`
@@ -410,6 +414,7 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 
 1. Update execution state: `"step": "security"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} security {phases_dir}`
+2.5. **Teammate registration (team_mode=teammate only, backend team ONLY):** Lead registers security as a teammate. Security agent exists only in the backend team (yolo-backend) -- FE/UX teams skip this step entirely. Security receives summary.jsonl file list via SendMessage from Lead. Security sends `security_audit` result to Lead via SendMessage. FAIL result is still a hard stop regardless of transport mode. In task mode, this step is skipped (security spawned via Task tool as documented below).
 3. Spawn yolo-security:
    - model: "${SECURITY_MODEL}"
    - Provide: summary.jsonl (file list), compiled context
@@ -601,6 +606,14 @@ Each transition commits `.execution-state.json` so resume works on exit. Schema:
    Removes: .dept-status-*.json, .handoff-*, .dept-lock-*, .phase-orchestration.json
 
 **Full protocol details:** See references/multi-dept-protocol.md for dispatch flow and coordination files. See references/cross-team-protocol.md for handoff gate definitions. REQ-03: Multi-department orchestration via file-based coordination.
+
+**Teammate mode per-department 10-step:** When `team_mode=teammate`, the per-department 10-step workflow is identical in logic but uses SendMessage for intra-team coordination instead of Task tool spawning. The Lead creates the team via spawnTeam and registers specialists on-demand:
+- **Team creation:** Lead registers architect, senior, dev as teammates
+- **Step 5:** Lead registers tester as teammate. Tester sends test_plan_result to Senior (not Lead) via SendMessage.
+- **Step 8:** Lead registers qa + qa-code as teammates. Both send results to Lead via SendMessage. QA Code writes gaps.jsonl as file artifact if PARTIAL/FAIL.
+- **Step 9 (backend only):** Lead registers security as teammate. Security sends security_audit to Lead via SendMessage. FE/UX teams skip this step.
+- **Shutdown:** On department completion, Lead sends shutdown_request to all registered teammates. Each teammate commits pending artifacts and sends shutdown_response. Lead then writes .dept-status-{dept}.json (file-based, for cross-department gate) and sends department_result.
+See `references/teammate-api-patterns.md` ## Team Lifecycle for spawnTeam and shutdown patterns. See ## Registering Teammates for the full step-to-role mapping.
 
 **Execution state extension:** `.execution-state.json` gains `departments` object when multi_dept=true, mirroring `.phase-orchestration.json` department statuses for resume support.
 
