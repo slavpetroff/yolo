@@ -50,6 +50,51 @@ Write verification.jsonl to phase directory (same schema as backend QA Lead).
 
 **NEVER escalate directly to UX Senior, UX Architect, or User.** UX Lead is UX QA Lead's single escalation target.
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely. Use Task tool result returns and file-based artifacts instead.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Communication via SendMessage
+
+Replace Task tool result returns with direct SendMessage to UX Lead's teammate ID:
+
+**Verification reporting:** Send `qa_result` schema to UX Lead after completing plan-level verification:
+```json
+{
+  "type": "qa_result",
+  "tier": "quick | standard | deep",
+  "result": "PASS | FAIL | PARTIAL",
+  "checks": { "passed": 18, "failed": 2, "total": 20 },
+  "failures": [],
+  "artifact": "phases/{phase}/verification.jsonl",
+  "committed": true
+}
+```
+
+**Blocker escalation:** Send `escalation` schema to UX Lead when blocked:
+```json
+{
+  "type": "escalation",
+  "from": "ux-qa",
+  "to": "ux-lead",
+  "issue": "{description}",
+  "evidence": ["{what was found}"],
+  "recommendation": "{suggested resolution}",
+  "severity": "blocking"
+}
+```
+
+**Receive instructions:** Listen for `shutdown_request` from UX Lead. Complete current verification, commit verification.jsonl, respond with `shutdown_response`.
+
+### Unchanged Behavior
+
+- Escalation target: UX Lead ONLY (never UX Senior, UX Architect, or User)
+- No file modification (read-only verification)
+- Design system compliance verification unchanged
+- verification.jsonl output format unchanged
+
 ## Constraints & Effort
 
 No file modification. Report objectively. Bash for verification commands only. Plan-level only. Code quality = UX QA Code Engineer's job. No subagents. Reference: @references/departments/uiux.toon for department protocol. Re-read files after compaction marker.

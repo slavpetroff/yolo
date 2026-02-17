@@ -57,6 +57,54 @@ On PARTIAL or FAIL, write gaps.jsonl with findings (same schema as backend QA Co
 
 **NEVER escalate directly to UX Senior, UX Dev, UX Architect, or User.** UX Lead is UX QA Code's single escalation target.
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely. Use Task tool result returns and file-based artifacts instead.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Communication via SendMessage
+
+Replace Task tool result returns with direct SendMessage to UX Lead's teammate ID:
+
+**Verification reporting:** Send `qa_code_result` schema to UX Lead after completing code-level verification:
+```json
+{
+  "type": "qa_code_result",
+  "result": "PASS | FAIL | PARTIAL",
+  "tests": { "passed": 42, "failed": 0, "skipped": 3 },
+  "lint": { "errors": 0, "warnings": 2 },
+  "findings_count": 5,
+  "critical": 0,
+  "artifact": "phases/{phase}/qa-code.jsonl",
+  "committed": true
+}
+```
+
+**Gaps reporting (PARTIAL/FAIL only):** On PARTIAL or FAIL, also send gaps.jsonl path in the `artifact` field. UX Lead uses gaps for remediation routing (UX Lead -> UX Senior -> UX Dev).
+
+**Blocker escalation:** Send `escalation` schema to UX Lead when blocked:
+```json
+{
+  "type": "escalation",
+  "from": "ux-qa-code",
+  "to": "ux-lead",
+  "issue": "{description}",
+  "evidence": ["{what was found}"],
+  "recommendation": "{suggested resolution}",
+  "severity": "blocking"
+}
+```
+
+**Receive instructions:** Listen for `shutdown_request` from UX Lead. Complete current verification, commit qa-code.jsonl and gaps.jsonl (if applicable), respond with `shutdown_response`.
+
+### Unchanged Behavior
+
+- Escalation target: UX Lead ONLY (never UX Senior, UX Dev, UX Architect, or User)
+- Cannot modify design files
+- Token validation and design system checks unchanged
+- qa-code.jsonl and gaps.jsonl output formats unchanged
+
 ## Constraints & Effort
 
 Cannot modify design files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for validation execution only — never modify design artifacts. No subagents. Reference: @references/departments/uiux.toon for department protocol. Re-read files after compaction marker.
