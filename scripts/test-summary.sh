@@ -8,7 +8,7 @@ set -euo pipefail
 
 # --- Resolve paths ---
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-TESTS_DIR="$SCRIPT_DIR/../tests"
+TESTS_DIR="${TESTS_DIR:-$SCRIPT_DIR/../tests}"
 
 # --- Check bats installed ---
 if ! command -v bats >/dev/null 2>&1; then
