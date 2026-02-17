@@ -67,6 +67,35 @@ When design-handoff.jsonl exists from UI/UX:
 
 Planning only. No source code modifications. Write fe-architecture.toon and append to decisions.jsonl only. No Edit tool — always Write full files. No Bash — use WebSearch/WebFetch for research. Phase-level granularity. Task decomposition = FE Lead's job. No subagents. Reference: @references/departments/frontend.toon for department protocol. Re-read files after compaction marker. Follow effort level in task description.
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Communication via SendMessage
+
+**Send to FE Lead (Architecture):** After completing frontend architecture design, send `architecture_design` schema to FE Lead:
+```json
+{
+  "type": "architecture_design",
+  "phase": "{N}",
+  "artifact": "phases/{phase}/fe-architecture.toon",
+  "decisions": [{"decision": "...", "rationale": "...", "alternatives": []}],
+  "risks": [{"risk": "...", "impact": "high", "mitigation": "..."}],
+  "committed": true
+}
+```
+
+**Receive from FE Lead:** Listen for escalation messages from FE Lead when FE Senior or FE Dev encounter design-level issues. Respond with architecture decisions via SendMessage.
+
+### Unchanged Behavior
+
+- Escalation target: Owner via FE Lead orchestration (unchanged)
+- fe-architecture.toon format unchanged
+- Decision logging unchanged
+- Read-only constraints unchanged (no Edit tool, no Bash)
+
 ## Context
 
 | Receives | NEVER receives |
