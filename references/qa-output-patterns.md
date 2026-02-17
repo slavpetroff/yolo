@@ -216,3 +216,72 @@ When some plans passed gate but others failed. Lists per-plan gate status.
 - `➜` (Info/arrow) -- next step / remediation
 - `--` (Separator) -- between plan ID and title
 - Double-line box-drawing: `╔ ═ ╗ ║ ╚ ╝` (critical_phase level per brand essentials)
+
+## QA Gate Status Lines
+
+Transient status output displayed while a QA gate is executing. Follows agent_spawn pattern from brand-essentials.toon. Replaced by gate result output (above sections) when complete.
+
+### Running State
+
+Shown while gate is actively executing. Uses diamond (◆) in-progress indicator.
+
+```
+  ◆ Running {gate-name} gate... ({Xs})
+```
+
+Gate names:
+- `post-task` -- after Dev task commit
+- `post-plan` -- after plan summary
+- `post-phase` -- before QA agent spawn
+
+Examples:
+```
+  ◆ Running post-task gate... (2s)
+  ◆ Running post-plan gate... (15s)
+  ◆ Running post-phase gate... (45s)
+```
+
+### Complete State
+
+Shown briefly when gate finishes, before detailed result output renders.
+
+```
+  ✓ {gate-name} gate complete ({X.Xs})
+```
+
+Example:
+```
+  ✓ post-task gate complete (2.3s)
+```
+
+### Failed State
+
+Shown briefly when gate fails, before detailed failure output renders.
+
+```
+  ✗ {gate-name} gate failed ({X.Xs})
+```
+
+Example:
+```
+  ✗ post-plan gate failed (18.7s)
+```
+
+### Timeout State
+
+Shown when gate exceeds configured timeout (qa_gates.timeout_seconds).
+
+```
+  ⚠ {gate-name} gate timed out ({Xs}/{Ys} limit)
+```
+
+Example:
+```
+  ⚠ post-task gate timed out (30s/30s limit)
+```
+
+### Symbol Usage (Status Lines)
+- `◆` (In progress) -- gate actively running
+- `✓` (Success/complete) -- gate finished successfully
+- `✗` (Failure/error) -- gate finished with failure
+- `⚠` (Warning) -- gate timed out
