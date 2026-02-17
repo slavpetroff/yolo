@@ -3,7 +3,7 @@
   "phase_name": "05-escalation-gates-owner-user-loop",
   "status": "running",
   "started_at": "2026-02-18T12:00:00Z",
-  "step": "critique",
+  "step": "design_review",
   "wave": 1,
   "total_waves": 3,
   "plans": [
@@ -16,7 +16,7 @@
     "critique": {"status": "complete", "started_at": "2026-02-18T12:00:00Z", "completed_at": "2026-02-18T12:01:00Z", "artifact": ".yolo-planning/phases/05-escalation-gates-owner-user-loop/critique.jsonl", "reason": ""},
     "research": {"status": "complete", "started_at": "2026-02-18T12:01:00Z", "completed_at": "2026-02-18T12:02:00Z", "artifact": ".yolo-planning/phases/05-escalation-gates-owner-user-loop/research.jsonl", "reason": ""},
     "architecture": {"status": "complete", "started_at": "2026-02-18T12:02:00Z", "completed_at": "2026-02-18T12:05:00Z", "artifact": ".yolo-planning/phases/05-escalation-gates-owner-user-loop/architecture.toon", "reason": ""},
-    "planning": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "planning": {"status": "complete", "started_at": "2026-02-18T12:05:00Z", "completed_at": "2026-02-18T12:06:00Z", "artifact": ".yolo-planning/.execution-state.json", "reason": ""},
     "design_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
     "test_authoring": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
     "implementation": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
