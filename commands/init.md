@@ -218,18 +218,21 @@ If greenfield: write `{"conventions": []}`. Display: `○ Conventions — none y
 
 ### Step 3.5: Generate bootstrap CLAUDE.md
 
-YOLO needs its rules and state sections in a CLAUDE.md file. /yolo:go regenerates later with project content.
+Generate initial CLAUDE.md with YOLO bootstrap sections using the central script.
 
-**Brownfield handling:** Read root `CLAUDE.md` via Read tool.
-- **Exists:** Do NOT overwrite. Append YOLO sections after `---` separator. Preserve all existing content. Display `✓ CLAUDE.md (YOLO sections appended to existing)`.
-- **Does not exist:** Write new file with full template. Display `✓ CLAUDE.md (created)`.
+**Brownfield handling:** If root `CLAUDE.md` exists, pass it as 4th arg for section preservation.
 
-**YOLO sections** (used for both new and append): YOLO Rules (commit format, one commit per task, no secrets, plan before building, no fabrication, use YOLO commands), State (planning dir, project status), Installed Skills (from STATE.md or "None"), Project Conventions (from conventions.json or "None yet"), Commands (/yolo:status, /yolo:help), Plugin Isolation (if GSD_ISOLATION_ENABLED=true: GSD/YOLO cross-contamination prevention).
+```
+if [ -f CLAUDE.md ]; then
+  bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-claude.sh CLAUDE.md "$PROJECT_NAME" "$CORE_VALUE" CLAUDE.md --minimal
+else
+  bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-claude.sh CLAUDE.md "$PROJECT_NAME" "$CORE_VALUE" --minimal
+fi
+```
 
-**New file:** `# YOLO-Managed Project` heading + intro line + all sections above.
-**Existing file:** `---` separator + all sections above (no heading).
+The `--minimal` flag generates only init-appropriate sections (YOLO Rules, Project Conventions, Commands, Plugin Isolation) since no project context exists yet. Active Context, Key Decisions, Department Architecture, and Installed Skills are added later by `/yolo:go` bootstrap mode (B6) which calls bootstrap-claude.sh without `--minimal`.
 
-Keep total YOLO addition under 40 lines. Add `✓ CLAUDE.md` to summary.
+Display `✓ CLAUDE.md (created)` or `✓ CLAUDE.md (YOLO sections merged with existing)`.
 
 ### Step 4: Present summary
 

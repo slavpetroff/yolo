@@ -408,7 +408,11 @@ FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
 5. Git branch merge: if `milestone/{SLUG}` branch exists, merge --no-ff. Conflict -> abort, warn. No branch -> skip.
 6. Git tag: unless --no-tag, `git tag -a {tag} -m "Shipped milestone: {name}"`. Default: `milestone/{SLUG}`.
 7. Update ACTIVE: remaining milestones -> set ACTIVE to first. None -> remove ACTIVE.
-8. Regenerate CLAUDE.md: update Active Context, remove shipped refs. Preserve non-YOLO content — only replace YOLO-managed sections, keep user's own sections intact.
+8. Regenerate CLAUDE.md via bootstrap-claude.sh:
+   ```
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-claude.sh CLAUDE.md "$PROJECT_NAME" "$CORE_VALUE" CLAUDE.md
+   ```
+   Script handles section replacement and user content preservation. After regeneration, update Active Context section via Edit tool: set **Work:** to next milestone name (if any) or "No active milestone", set **Last shipped:** to archived milestone name with metrics (phases, plans, tasks, commits, tests).
 9. Present: Phase Banner with metrics (phases, tasks, commits, requirements, deviations), archive path, tag, branch status, memory status. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh go`.
 
 ### Pure-YOLO Phase Loop
