@@ -1,0 +1,3 @@
+{"id":"C1","cat":"gap","sev":"critical","q":"Missing auth middleware","ctx":"No JWT validation","sug":"Add express-jwt","st":"open"}
+{"id":"C2","cat":"risk","sev":"major","q":"No rate limiting","ctx":"API exposed","sug":"Add express-rate-limit","st":"open"}
+{"id":"C3","cat":"improvement","sev":"minor","q":"Could use TypeScript strict mode","ctx":"tsconfig loose","sug":"Enable strict","st":"addressed"}

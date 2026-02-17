@@ -1,0 +1,3 @@
+{"p":"01","n":"01","t":"Test plan","w":1,"d":[],"xd":[],"mh":{"tr":["test passes"],"ar":[{"p":"src/foo.ts","pv":"exists","c":"module"}],"kl":[]},"obj":"Test objective","sk":["commit"],"auto":true}
+{"id":"T1","tp":"auto","a":"Create foo module","f":["src/foo.ts"],"v":"module exports","done":"Foo created","spec":"Create src/foo.ts with default export","ts":"Test foo.ts exports"}
+{"id":"T2","tp":"auto","a":"Create bar module","f":["src/bar.ts"],"v":"module exports","done":"Bar created","spec":"Create src/bar.ts with named export","ts":"Test bar.ts exports"}
