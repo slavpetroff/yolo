@@ -95,6 +95,45 @@ for file in "$COMMANDS_DIR"/*.md; do
 done
 
 echo ""
+echo "=== Milestone Context Verification ==="
+
+# Commands that reference milestone-scoped paths in their Steps section must have
+# either:
+# 1. The ACTIVE milestone shell interpolation in their Context section, OR
+# 2. Bash in allowed-tools (so the agent can read ACTIVE at runtime)
+# Without either, the agent has no way to discover the active milestone slug.
+for file in "$COMMANDS_DIR"/*.md; do
+  base="$(basename "$file" .md)"
+
+  # Extract body after frontmatter, excluding Context section (which contains the fix itself)
+  body="$(awk '/^---$/{d++; next} d>=2' "$file")"
+  body_no_context="$(printf '%s\n' "$body" | awk '/^## Context$/{skip=1; next} /^## /{skip=0} !skip')"
+
+  # Check if the command body (outside Context) references milestone-scoped paths
+  if ! printf '%s\n' "$body_no_context" | grep -qi 'milestone[-_ ]scoped\|milestone.*ACTIVE\|ACTIVE.*milestone'; then
+    continue
+  fi
+
+  # This command is milestone-aware — check for mitigation
+  has_context_interp=false
+  if grep -q 'cat \.vbw-planning/ACTIVE' "$file" 2>/dev/null; then
+    has_context_interp=true
+  fi
+
+  has_bash=false
+  FRONTMATTER="$(extract_frontmatter "$file")"
+  if printf '%s\n' "$FRONTMATTER" | grep '^allowed-tools:' | grep -qw 'Bash'; then
+    has_bash=true
+  fi
+
+  if $has_context_interp || $has_bash; then
+    pass "$base: milestone-aware command has ACTIVE context or Bash access"
+  else
+    fail "$base: milestone-aware command has NO way to read .vbw-planning/ACTIVE (needs context interpolation or Bash in allowed-tools)"
+  fi
+done
+
+echo ""
 echo "=== Command Reference Verification ==="
 
 while IFS= read -r ref; do

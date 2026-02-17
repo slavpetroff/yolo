@@ -32,5 +32,4 @@ Recommended flow:
 3. Run `/vbw:todo "Test todo"`.
 4. Verify `.vbw-planning/STATE.md` contains:
    - `## Todos`
-   - `### Pending Todos`
-   - inserted todo item under Pending Todos
+   - inserted todo item under `## Todos`

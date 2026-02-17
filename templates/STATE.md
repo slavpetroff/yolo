@@ -12,8 +12,6 @@ Status: {ready|active|complete}
 - {decision}
 
 ## Todos
-
-### Pending Todos
 {todos-or-none}
 
 ## Blockers

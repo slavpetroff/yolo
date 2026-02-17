@@ -29,6 +29,27 @@ echo "Running hook hookEventName checks..."
 bash "$ROOT/testing/verify-hook-event-name.sh"
 
 echo ""
+if command -v bats &>/dev/null && ls "$ROOT/tests/"*.bats &>/dev/null; then
+  echo "Running bats test suites..."
+  bats_pass=0
+  bats_fail=0
+  for f in "$ROOT/tests/"*.bats; do
+    if bats "$f"; then
+      bats_pass=$((bats_pass + 1))
+    else
+      bats_fail=$((bats_fail + 1))
+    fi
+  done
+  echo ""
+  echo "==============================="
+  echo "BATS: $bats_pass files passed, $bats_fail files failed"
+  echo "==============================="
+  [ "$bats_fail" -eq 0 ] || exit 1
+else
+  echo "Skipping bats tests (bats not installed or no .bats files found)."
+fi
+
+echo ""
 if [ "${RUN_VIBE_VERIFY:-0}" = "1" ]; then
   echo "Running vibe consolidation checks..."
   bash "$ROOT/scripts/verify-vibe.sh"

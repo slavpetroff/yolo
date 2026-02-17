@@ -233,7 +233,9 @@ Hooks handle continuous verification: PostToolUse validates SUMMARY.md, TaskComp
 - At plan failure: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh plan_end {phase} {plan} status=failed 2>/dev/null || true`
 - On error: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh error {phase} {plan} message={error_summary} 2>/dev/null || true`
 
-**V2 Full Event Types (REQ-09, REQ-10):** If `v3_event_log=true` in config, emit all 11 V2 event types at correct lifecycle points:
+**V2 Full Event Types (REQ-09, REQ-10):** If `v3_event_log=true` in config, emit all 13 V2 event types at correct lifecycle points.
+
+> **Naming convention:** Event types (`shutdown_sent`/`shutdown_received`) log _what happened_ — the orchestrator sent or received a message. Message types (`shutdown_request`/`shutdown_response`) define _what was communicated_ — the typed payload in SendMessage. Events are emitted by `log-event.sh`; messages are validated by `validate-message.sh`.
 - `phase_planned`: at plan completion (after Lead writes PLAN.md): `log-event.sh phase_planned {phase}`
 - `task_created`: when task is defined in plan: `log-event.sh task_created {phase} {plan} task_id={id}`
 - `task_claimed`: when Dev starts a task: `log-event.sh task_claimed {phase} {plan} task_id={id} role=dev`
@@ -245,6 +247,8 @@ Hooks handle continuous verification: PostToolUse validates SUMMARY.md, TaskComp
 - `task_completed_confirmed`: emitted by two-phase-complete.sh after validation
 - `task_blocked`: already emitted by auto-repair.sh
 - `task_reassigned`: when task is re-assigned to different agent: `log-event.sh task_reassigned {phase} {plan} task_id={id} from={old} to={new}`
+- `shutdown_sent`: when orchestrator sends shutdown_request to teammates: `log-event.sh shutdown_sent {phase} team={team_name} targets={count}`
+- `shutdown_received`: when orchestrator has collected all shutdown_response messages: `log-event.sh shutdown_received {phase} team={team_name} approved={count} rejected={count}`
 
 **V3 Snapshot — per-plan checkpoint (REQ-18):** If `v3_snapshot_resume=true` in config:
 - After each plan completes (SUMMARY.md verified):
@@ -406,10 +410,12 @@ Note: "Run inline" means the execute-protocol agent runs the verify protocol dir
 ### Step 5: Update state and present summary
 
 **HARD GATE — Shutdown before ANY output or state updates:** If team was created (based on prefer_teams decision), you MUST shut down the team BEFORE updating state, presenting results, or asking the user anything. This is blocking and non-negotiable:
-1. Send `shutdown_request` via SendMessage to EVERY teammate (each dev-{MM}, qa) — do not skip any
-2. Wait for each `shutdown_response` with `approve: true`. If a teammate rejects, re-request immediately.
-3. Call TeamDelete for team "vbw-phase-{NN}"
-4. Only THEN proceed to state updates and user-facing output below
+1. Send `shutdown_request` via SendMessage to EVERY active teammate (excluding yourself — the orchestrator controls the sequence, not the lead agent) — do not skip any
+2. Log event: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh shutdown_sent {phase} team={team_name} targets={count} 2>/dev/null || true`
+3. Wait for each `shutdown_response` with `approved: true`. If a teammate rejects, re-request immediately (max 3 attempts per teammate — if still rejected after 3 attempts, log a warning and proceed with TeamDelete).
+4. Log event: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh shutdown_received {phase} team={team_name} approved={count} rejected={count} 2>/dev/null || true`
+5. Call TeamDelete for team "vbw-phase-{NN}"
+6. Only THEN proceed to state updates and user-facing output below
 Failure to shut down leaves agents running in the background, consuming API credits (visible as hanging panes in tmux, invisible but still costly without tmux). If no team was created: skip shutdown sequence.
 
 **Control Plane cleanup:** Lock and token state cleanup already handled by existing V3 Lock-Lite and Token Budget cleanup blocks.
@@ -459,7 +465,18 @@ Display per @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md:
 
 **"What happened" (NRW-02):** If config `plain_summary` is true (default), append 2-4 plain-English sentences between QA and Next Up. No jargon. Source from SUMMARY.md files + QA result. If false, skip.
 
+**Discovered Issues:** If any Dev or QA agent reported pre-existing failures, out-of-scope bugs, or issues unrelated to this phase's work, list them in the summary output between "What happened" and Next Up:
+```text
+  Discovered Issues:
+    ⚠ {issue-1}
+    ⚠ {issue-2}
+  Suggest: /vbw:todo <description> to track
+```
+This is **display-only**. Do NOT edit STATE.md, do NOT add todos, do NOT invoke /vbw:todo, and do NOT enter an interactive loop. The user decides whether to track these. If no discovered issues: omit the section entirely.
+
 Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh execute {qa-result}` and display output.
+
+**STOP.** Execute mode is complete. Return control to the user. Do NOT take further actions — no file edits, no additional commits, no interactive prompts, no improvised follow-up work. The user will decide what to do next based on the summary and suggest-next output.
 
 ## Output Format
 

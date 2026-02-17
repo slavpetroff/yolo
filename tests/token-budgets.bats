@@ -267,9 +267,9 @@ generate_chars() {
 
 # --- Token budgets config ---
 
-@test "token-budgets.json has all 6 roles" {
+@test "token-budgets.json has all 7 roles" {
   run jq '.budgets | keys | length' "$CONFIG_DIR/token-budgets.json"
-  [ "$output" = "6" ]
+  [ "$output" = "7" ]
 }
 
 @test "token-budgets.json scout cap is lowest" {

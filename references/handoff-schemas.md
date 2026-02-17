@@ -7,10 +7,10 @@ V2 inter-agent messages use strict JSON schemas. Every message includes a mandat
 ```json
 {
   "id": "uuid-v4",
-  "type": "scout_findings|plan_contract|execution_update|blocker_report|qa_verdict|approval_request|approval_response",
+  "type": "scout_findings|plan_contract|execution_update|blocker_report|qa_verdict|approval_request|approval_response|shutdown_request|shutdown_response",
   "phase": 1,
   "task": "1-1-T3",
-  "author_role": "lead|dev|qa|scout|debugger|architect",
+  "author_role": "lead|dev|qa|scout|debugger|architect|docs",
   "timestamp": "2026-02-12T10:00:00Z",
   "schema_version": "2.0",
   "payload": {},
@@ -24,11 +24,13 @@ V2 inter-agent messages use strict JSON schemas. Every message includes a mandat
 |---|---|---|
 | scout_findings | scout | lead, architect |
 | plan_contract | lead, architect | dev, qa, scout |
-| execution_update | dev | lead |
-| blocker_report | dev, debugger | lead |
+| execution_update | dev, docs | lead |
+| blocker_report | dev, debugger, docs | lead |
 | qa_verdict | qa | lead |
 | approval_request | dev, lead | lead, architect |
 | approval_response | lead, architect | dev, lead |
+| shutdown_request | lead (orchestrator) | dev, qa, scout, lead, debugger, docs |
+| shutdown_response | dev, qa, scout, lead, debugger, docs | lead (orchestrator) |
 
 Unauthorized sender -> message rejected (v2_typed_protocol=true) or logged (false).
 
@@ -88,9 +90,9 @@ Issued plan contract defining task scope and constraints.
 }
 ```
 
-## `execution_update` (Dev -> Lead)
+## `execution_update` (Dev/Docs -> Lead)
 
-Task progress or completion update from Dev.
+Task progress or completion update from Dev or Docs.
 
 ```json
 {
@@ -114,7 +116,7 @@ Task progress or completion update from Dev.
 }
 ```
 
-## `blocker_report` (Dev/Debugger -> Lead)
+## `blocker_report` (Dev/Debugger/Docs -> Lead)
 
 Escalation when agent is blocked and cannot proceed.
 
@@ -214,9 +216,59 @@ Response to an approval request.
 }
 ```
 
+## `shutdown_request` (Orchestrator -> All teammates)
+
+Graceful termination signal sent by the orchestrator after phase/plan work is complete.
+
+```json
+{
+  "id": "shut-001",
+  "type": "shutdown_request",
+  "phase": 1,
+  "task": "",
+  "author_role": "lead",
+  "timestamp": "2026-02-12T10:30:00Z",
+  "schema_version": "2.0",
+  "confidence": "high",
+  "payload": {
+    "reason": "phase_complete|plan_complete|user_abort",
+    "team_name": "vbw-phase-01"
+  }
+}
+```
+
+## `shutdown_response` (Teammate -> Orchestrator)
+
+Acknowledgment from a teammate that it will terminate.
+
+```json
+{
+  "id": "shut-resp-001",
+  "type": "shutdown_response",
+  "phase": 1,
+  "task": "",
+  "author_role": "dev",
+  "timestamp": "2026-02-12T10:30:05Z",
+  "schema_version": "2.0",
+  "confidence": "high",
+  "payload": {
+    "request_id": "shut-001",
+    "approved": true,
+    "final_status": "complete|idle|in_progress",
+    "pending_work": ""
+  }
+}
+```
+
+On receiving `shutdown_request`: respond with `shutdown_response` (approved=true), finish any in-progress tool call, then STOP all further work. Do NOT start new tasks, fix additional issues, or take any action after responding. The orchestrator will call TeamDelete after collecting all responses.
+
+> **Conditional refusal:** The schema allows `approved: false` with `pending_work` describing what remains. Currently all agents are instructed to always approve. The orchestrator retries up to 3 times on rejection before proceeding. If a future agent needs to delay shutdown (e.g., mid-write to disk), update its Shutdown Handling section to allow conditional refusal with `approved: false`.
+
 ## Backward Compatibility
 
 Old-format messages (without full envelope) are accepted when `v2_typed_protocol=false`. The validate-message.sh script parses the `type` field to determine schema and validates accordingly.
+
+**Note:** `shutdown_request` and `shutdown_response` were introduced in v2.0. When `v2_typed_protocol=false`, validate-message.sh short-circuits to valid (no schema check), so shutdown messages pass through without rejection. Agents running in V1 mode will not recognize these types and should treat unrecognized messages as plain markdown.
 
 When receiving messages, agents should:
 1. Try to parse as V2 typed message (full envelope)
