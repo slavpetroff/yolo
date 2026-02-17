@@ -6,10 +6,10 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** No active milestone
+**Work:** Workflow Hardening, Org Alignment & Optimization -- Phase 2 complete, Phase 3 next
 **Last shipped:** Teammate API Integration -- 4 phases, 19 plans, 84 tasks, 76 commits, 876 tests
 **Previous:** Dynamic Departments & Agent Teams -- 3 phases, 11 plans, 38 tasks, 49 commits, 209 tests
-**Next action:** Run /yolo:go to start a new milestone
+**Next action:** Execute Phase 3 (Company Org Alignment & Review Patterns)
 
 ## Department Architecture
 
@@ -56,7 +56,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Company hierarchy: Architect → Lead → Senior → Dev | 2026-02-13 | Mirrors real engineering org, each level distills scope |
 | JSONL abbreviated keys for agent artifacts | 2026-02-13 | 85-93% token savings vs Markdown, jq-parseable |
 | TOON for compiled context, MD for user-facing only | 2026-02-13 | Agents read TOON natively, humans read Markdown |
-| 8-step workflow per phase | 2026-02-13 | Architecture → Plan → Design Review → Implement → Code Review → QA → Security → Sign-off |
+| 11-step workflow per phase | 2026-02-13 | Critique → Research → Architecture → Plan → Design Review → Test Authoring → Implement → Code Review → QA → Security → Sign-off |
 | Commit every artifact immediately | 2026-02-13 | Survives exit, enables resume from any point |
 | 4 departments (Backend, Frontend, UI/UX, Shared) | 2026-02-13 | Mirrors real company org, config-driven enable/disable |
 | Additive dept agents (fe-*, ux-* prefix, no rename) | 2026-02-13 | Zero breakage of existing agents, clean namespace |
@@ -70,10 +70,13 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | go.md routes debug/fix/research via NL parser | 2026-02-14 | Prevents ambiguous routing to removed VBW commands; explicit keyword matching |
 | Verification gates in execute-protocol.md | 2026-02-16 | Prevents silent step skipping; entry/exit gates on every step |
 | Commands route through Lead hierarchy | 2026-02-16 | debug/fix/research/qa all delegate through Lead, not directly to specialists |
-| 10-step workflow expanded to enforcement contract | 2026-02-16 | Entry/exit gates with mandatory artifact verification on every step |
+| 11-step workflow expanded to enforcement contract | 2026-02-16 | Entry/exit gates with mandatory artifact verification on every step; research step added 2026-02-17 |
 | Dynamic dept personas based on project type | 2026-02-16 | Static TOON conventions don't fit non-web projects (e.g., shell scripts) |
 | One team per department via Teammate API | 2026-02-16 | 3 teams × N agents = 21+ parallel capacity vs 7 with Task tool only |
 | UX maps to project interface type | 2026-02-16 | CLI → help/error output, web → UI components, API → docs/specs |
+| Scout research step in 11-step workflow | 2026-02-17 | Critic→Scout→Architect pipeline; orchestrator writes research.jsonl |
+| Per-agent field filtering via filter-agent-context.sh | 2026-02-17 | 11 base roles × 10 artifact types; graceful degradation to inline jq |
+| Append-mode research (turbo-only skip) | 2026-02-17 | Pre-Critic and post-Critic entries coexist; file existence doesn't trigger skip |
 
 ## Installed Skills
 
