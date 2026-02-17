@@ -503,6 +503,21 @@ Note: NO `--scope` flag -- post-plan runs full test suite per architecture D4.
 
 **ENTRY GATE:** Verify `{phase-dir}/code-review.jsonl` exists with `r: "approve"` in line 1 (`jq -r .r` equals `"approve"`). If not: STOP "Step 8 artifact missing — code-review.jsonl not found or not approved. Run step 8 first."
 
+**Post-phase QA Gate (automated pre-check):**
+
+Before spawning QA agents (LLM-powered, expensive), run the post-phase gate as a fast automated pre-check (script-only, <60s). This catches obvious failures before committing LLM cost.
+
+```bash
+result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate-post-phase.sh \
+  --phase-dir "{phase-dir}")
+gate_status=$(echo "$result" | jq -r '.gate')
+```
+
+- On `gate_status=pass`: Proceed to QA agent spawn below.
+- On `gate_status=fail`: BLOCK QA agent spawn. Read gate JSON for failure details: `plans.complete` (incomplete plans), `steps.fl` (failed validation gates), `tst.fl` (test failures). Generate remediation: for incomplete plans, route back to Step 7. For failed gates, identify which step artifacts are missing. For test failures, route to Senior for re-spec. Do NOT spawn QA agents until post-phase gate passes -- this saves LLM cost on obviously-broken phases.
+
+Post-phase gate result is available to QA agents via `{phase-dir}/.qa-gate-results.jsonl`. QA Lead and QA Code can reference prior gate results for incremental verification.
+
 1. Update execution state: `"step": "qa"`
 2. **Tier resolution:** turbo=skip, fast=quick, balanced=standard, thorough=deep.
 2.5. **Teammate registration (team_mode=teammate only):** Lead registers qa and qa-code as teammates in the department team. QA Lead receives plan.jsonl + summary.jsonl via SendMessage from Lead. QA Code receives summary.jsonl + test-plan.jsonl via SendMessage. QA Lead sends `qa_result` to Lead via SendMessage. QA Code sends `qa_code_result` to Lead via SendMessage. If QA Code result is PARTIAL/FAIL, QA Code also writes gaps.jsonl as a file artifact (not SendMessage -- it is a persistent artifact for remediation). In task mode, this step is skipped (qa/qa-code spawned via Task tool as documented below).
