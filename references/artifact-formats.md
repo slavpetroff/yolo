@@ -186,7 +186,7 @@ Written by Tester agent (Step 5) after Senior enriches `ts` fields. Dev reads te
 | `ph` | current phase | number |
 | `tt` | total phases | number |
 | `st` | status | "planning"\|"executing"\|"verifying"\|"complete" |
-| `step` | workflow step | "critique"\|"architecture"\|"planning"\|"design_review"\|"test_authoring"\|"implementation"\|"code_review"\|"qa"\|"security"\|"signoff" |
+| `step` | workflow step | "critique"\|"research"\|"architecture"\|"planning"\|"design_review"\|"test_authoring"\|"implementation"\|"code_review"\|"qa"\|"security"\|"signoff" |
 | `pr` | progress | number (0-100) |
 | `started` | start date | "YYYY-MM-DD" |
 
@@ -210,6 +210,11 @@ Written by Tester agent (Step 5) after Senior enriches `ts` fields. Dev reads te
 | `conf` | confidence | "high"\|"medium"\|"low" |
 | `dt` | date | "YYYY-MM-DD" |
 | `rel` | relevance | string |
+| `brief_for` | brief_for | string | "C1" |
+| `mode` | mode | string | "post-critic" |
+| `priority` | priority | string | "high" |
+
+New fields (D4): `brief_for` links a research finding to the critique ID (from critique.jsonl) that prompted the research. `mode` indicates when research was performed: "pre-critic" (best-practices discovery before Critic runs), "post-critic" (solution research driven by Critic findings), or "standalone" (via /yolo:research command). `priority` is derived from the linked critique finding severity when `brief_for` is present: critical -> "high", major -> "medium", minor -> "low". All three fields are optional; omitted fields default to empty/"standalone"/"medium" respectively via jq // operator. Existing standalone research entries (without these fields) continue to parse correctly.
 
 ### Gaps (gaps.jsonl)
 
