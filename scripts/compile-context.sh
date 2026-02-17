@@ -559,7 +559,12 @@ case "$BASE_ROLE" in
       if [ -n "$PLAN_PATH" ] && [ -f "$PLAN_PATH" ]; then
         TASK_COUNT=$(tail -n +2 "$PLAN_PATH" | wc -l | tr -d ' ')
         echo "tasks[${TASK_COUNT}]{id,action,files,done,spec,test_spec}:"
-        tail -n +2 "$PLAN_PATH" | jq -r 'select((.id // empty) != "") | "  \(.id),\(.a // ""),\(.f // [] | join(";")),\(.done // ""),\(.spec // ""),\(.ts // "")"' 2>/dev/null || true
+        if [ "$FILTER_AVAILABLE" = true ]; then
+          bash "$FILTER_SCRIPT" --role "$BASE_ROLE" --artifact "$PLAN_PATH" --type plan 2>/dev/null | \
+            jq -r 'select((.id // empty) != "") | "  \(.id),\(.a // ""),\(.f // [] | join(";")),\(.done // ""),\(.spec // ""),\(.ts // "")"' 2>/dev/null || true
+        else
+          tail -n +2 "$PLAN_PATH" | jq -r 'select((.id // empty) != "") | "  \(.id),\(.a // ""),\(.f // [] | join(";")),\(.done // ""),\(.spec // ""),\(.ts // "")"' 2>/dev/null || true
+        fi
       fi
       echo ""
       # Codebase patterns for test conventions
@@ -620,9 +625,16 @@ case "$BASE_ROLE" in
       echo "files_to_audit:"
       for summary in "$PHASE_DIR"/*.summary.jsonl; do
         if [ -f "$summary" ]; then
-          jq -r '.fm // [] | .[]' "$summary" 2>/dev/null | while IFS= read -r f; do
-            echo "  $f"
-          done
+          if [ "$FILTER_AVAILABLE" = true ]; then
+            bash "$FILTER_SCRIPT" --role "$BASE_ROLE" --artifact "$summary" --type summary 2>/dev/null | \
+              jq -r '.fm // [] | .[]' 2>/dev/null | while IFS= read -r f; do
+                echo "  $f"
+              done
+          else
+            jq -r '.fm // [] | .[]' "$summary" 2>/dev/null | while IFS= read -r f; do
+              echo "  $f"
+            done
+          fi
         fi
       done
       echo ""
