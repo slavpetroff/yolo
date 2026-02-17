@@ -538,3 +538,101 @@ run_cc() {
   # enforce_budget enforces 1000-token (4000-char) limit; allow +200 for one-line overshoot
   assert [ "$char_count" -le 4200 ]
 }
+
+# --- Field filtering integration tests (plan 02-04) ---
+
+@test "dev context does not contain plan header obj field" {
+  local plan="$PHASES_DIR/01-setup/01-01.plan.jsonl"
+  cp "$FIXTURES_DIR/plans/filter-test-plan.jsonl" "$plan"
+  run bash -c "cd '$TEST_WORKDIR' && bash '$SUT' 01 dev '$PHASES_DIR' '$plan'"
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-dev.toon"
+  # Dev context should have task data but NOT header obj field
+  run cat "$ctx"
+  assert_output --partial "T1"
+  refute_output --partial "Build auth middleware"
+}
+
+@test "dev context does not contain task v field when filter available" {
+  local plan="$PHASES_DIR/01-setup/01-01.plan.jsonl"
+  cp "$FIXTURES_DIR/plans/filter-test-plan.jsonl" "$plan"
+  run bash -c "cd '$TEST_WORKDIR' && bash '$SUT' 01 dev '$PHASES_DIR' '$plan'"
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-dev.toon"
+  run cat "$ctx"
+  # The 'v' field value 'middleware exports' should NOT appear in dev context
+  # Note: when filter is unavailable (fallback), 'v' also does not appear because
+  # the jq expression never extracts .v. So this test passes in both modes.
+  refute_output --partial "middleware exports"
+}
+
+@test "dev context includes spec field from tasks" {
+  local plan="$PHASES_DIR/01-setup/01-01.plan.jsonl"
+  cp "$FIXTURES_DIR/plans/filter-test-plan.jsonl" "$plan"
+  run bash -c "cd '$TEST_WORKDIR' && bash '$SUT' 01 dev '$PHASES_DIR' '$plan'"
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-dev.toon"
+  run cat "$ctx"
+  assert_output --partial "JWT validation"
+}
+
+@test "qa context includes plan_context with must_have when plan provided" {
+  local plan="$PHASES_DIR/01-setup/01-01.plan.jsonl"
+  cp "$FIXTURES_DIR/plans/filter-test-plan.jsonl" "$plan"
+  run bash -c "cd '$TEST_WORKDIR' && bash '$SUT' 01 qa '$PHASES_DIR' '$plan'"
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-qa.toon"
+  run cat "$ctx"
+  # QA should see plan header data
+  assert_output --partial "Build auth middleware"
+  assert_output --partial "auth middleware exists"
+  # QA should NOT see task spec details
+  refute_output --partial "JWT validation"
+  refute_output --partial "express-rate-limit"
+}
+
+@test "security context includes file paths from summaries" {
+  cp "$FIXTURES_DIR/summaries/filter-test-summary.jsonl" "$PHASES_DIR/01-setup/01-01.summary.jsonl"
+  run_cc 01 security
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-security.toon"
+  run cat "$ctx"
+  assert_output --partial "src/auth.ts"
+  assert_output --partial "src/rate-limit.ts"
+}
+
+@test "security context does not contain commit hashes from summaries" {
+  cp "$FIXTURES_DIR/summaries/filter-test-summary.jsonl" "$PHASES_DIR/01-setup/01-01.summary.jsonl"
+  run_cc 01 security
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-security.toon"
+  run cat "$ctx"
+  # Security should NOT see commit hashes (ch field)
+  refute_output --partial "abc1234"
+  refute_output --partial "def5678"
+  # Security should NOT see built descriptions
+  refute_output --partial "rate limiter"
+}
+
+@test "tester context includes task test_spec from plan" {
+  local plan="$PHASES_DIR/01-setup/01-01.plan.jsonl"
+  cp "$FIXTURES_DIR/plans/filter-test-plan.jsonl" "$plan"
+  run bash -c "cd '$TEST_WORKDIR' && bash '$SUT' 01 tester '$PHASES_DIR' '$plan'"
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-tester.toon"
+  run cat "$ctx"
+  assert_output --partial "validates tokens"
+  assert_output --partial "rate limiting"
+}
+
+@test "qa-code context includes files_to_check from summaries" {
+  cp "$FIXTURES_DIR/summaries/filter-test-summary.jsonl" "$PHASES_DIR/01-setup/01-01.summary.jsonl"
+  run_cc 01 qa-code
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-qa-code.toon"
+  run cat "$ctx"
+  assert_output --partial "files_to_check:"
+  assert_output --partial "src/auth.ts"
+  # Should NOT have commit hashes
+  refute_output --partial "abc1234"
+}

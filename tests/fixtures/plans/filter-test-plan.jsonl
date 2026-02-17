@@ -1,0 +1,3 @@
+{"p":"01","n":"01","t":"Filter test plan","w":1,"d":[],"xd":[],"mh":{"tr":["auth middleware exists","returns 401 on invalid token"],"ar":[{"p":"src/auth.ts","pv":"exists","c":"middleware"}],"kl":[]},"obj":"Build auth middleware","sk":["commit"],"auto":true}
+{"id":"T1","tp":"auto","a":"Create auth middleware","f":["src/auth.ts"],"v":"middleware exports","done":"Auth created","spec":"Create src/auth.ts with JWT validation","ts":"Test auth.ts validates tokens"}
+{"id":"T2","tp":"auto","a":"Create rate limiter","f":["src/rate-limit.ts"],"v":"limiter works","done":"Rate limit created","spec":"Create src/rate-limit.ts with express-rate-limit","ts":"Test rate limiting"}
