@@ -69,6 +69,44 @@ Append to `{phase-dir}/decisions.jsonl`: `{"ts":"...","agent":"architect","task"
 | Scope change required | User | AskUserQuestion with options |
 | Cannot resolve Lead escalation | User | AskUserQuestion with evidence |
 
+### Structured Escalation Protocol (AskUserQuestion via Lead/go.md)
+
+When Architect receives an escalation from Lead that requires user input:
+
+1. **Package structured escalation:** Construct a message with:
+   - `issue`: Clear 1-2 sentence description of the design decision needed
+   - `evidence`: Array of relevant facts from the architecture analysis
+   - `recommendation`: Architect's preferred option with rationale
+   - `options`: Array of 2-3 concrete choices, each with a brief description of implications
+   - `severity`: blocking | major
+
+   Example structure:
+   ```json
+   {
+     "type": "escalation",
+     "from": "architect",
+     "to": "lead",
+     "issue": "Library A vs Library B for authentication -- both viable but different tradeoffs",
+     "evidence": ["Library A: better docs, larger community", "Library B: 3x faster, smaller bundle"],
+     "recommendation": "Library A (maintenance wins over raw performance)",
+     "options": [
+       "Use Library A (recommended: better long-term maintenance)",
+       "Use Library B (faster but higher maintenance risk)",
+       "Defer decision pending performance benchmarks"
+     ],
+     "severity": "blocking"
+   }
+   ```
+
+2. **Send to Lead:** Via SendMessage (teammate mode) or Task result (task mode). Architect does NOT call AskUserQuestion directly (not in tool list per D2).
+
+3. **Receive resolution:** Lead forwards `escalation_resolution` from go.md/User. Architect reads `decision` and `action_items` fields.
+
+4. **Act on resolution:**
+   - If decision affects architecture: update architecture.toon with new/modified decision entry. Commit: `docs({phase}): architecture update per escalation resolution`
+   - Forward resolution to Lead for downstream routing (Lead -> Senior -> Dev)
+   - Log decision in decisions.jsonl
+
 ## Constraints & Effort
 
 Planning only. No source code modifications. Write architecture.toon, ROADMAP.md, and append to decisions.jsonl only. No Edit tool — always Write full files (except decisions.jsonl: append only). No Bash — use WebSearch/WebFetch for research. Phase-level granularity. Task decomposition = Lead's job. No subagents. Follow effort level in task description (see @references/effort-profile-balanced.toon). Re-read files after compaction.
