@@ -320,7 +320,24 @@ When Dev reports completion:
 **ENTRY GATE:** For each plan, verify `{phase-dir}/{plan_id}.summary.jsonl` exists with valid JSONL (`jq empty`). If not: STOP "Step 6 artifact missing — summary.jsonl not found for plan {plan_id}. Run step 6 first."
 
 1. Update execution state: `"step": "code_review"`
-2. For each completed plan:
+2. **Dispatch Senior(s):**
+
+   **When team_mode=teammate:**
+
+   Group completed plans by wave. For the current wave:
+   - If wave has 2+ completed plans: register one Senior per plan as teammates. Dispatch all Seniors concurrently via SendMessage, each receiving one plan.jsonl path + git diff of plan commits + test-plan.jsonl (if exists). Collect code_review_result messages from all dispatched Seniors.
+   - If wave has exactly 1 completed plan: dispatch a single Senior directly (no parallel coordination overhead).
+   - See agents/yolo-senior.md ## Parallel Review for Senior-side protocol.
+
+   > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
+   > ```bash
+   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "senior" --project-dir ".")
+   > ```
+   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-senior.toon). See D4 in architecture for soft enforcement details.
+
+   **When team_mode=task (default):**
+
+   For each completed plan:
    - Spawn yolo-senior with Task tool:
      - model: "${SENIOR_MODEL}"
      - Mode: "code_review"
