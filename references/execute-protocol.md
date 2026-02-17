@@ -278,7 +278,29 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
 
 1. Update execution state: `"step": "implementation"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} dev {phases_dir} {plan_path}`
-3. For each uncompleted plan, TaskCreate:
+3. **Task Creation and Dev Dispatch:**
+
+   **When team_mode=teammate:**
+
+   a. **TaskCreate mapping:** Lead reads each plan.jsonl, creates shared task list items via TaskCreate for each task. Map plan-level `d` (depends_on) field: if plan B depends on plan A, all tasks in B have `blocked_by=[all tasks in A]`. Map task-level `td` (task_depends) field: if task T3 has `td:["T1"]`, add `blocked_by="{plan_id}/T1"` for intra-plan ordering. See `references/teammate-api-patterns.md` ## Task-Level Blocking.
+
+   b. **File-overlap enforcement:** Tasks whose `f` field overlaps with currently-executing tasks are NOT claimable. Lead maintains `claimed_files` set per `agents/yolo-lead.md` ## Summary Aggregation ### File-Overlap Detection.
+
+   c. **Dynamic Dev scaling:** Lead computes `dev_count = min(available_unblocked_tasks, 5)` via `scripts/compute-dev-count.sh --available N`. Lead registers `dev_count` Dev agents as teammates. See `references/teammate-api-patterns.md` ## Dynamic Dev Scaling.
+
+   d. **Serialized commits:** All Devs use `scripts/git-commit-serialized.sh` for commits (flock-based locking prevents index.lock conflicts). See `agents/yolo-dev.md` ## Task Self-Claiming ### Serialized Commits.
+
+   e. **Dev claim loop:** Spawned Devs call TaskList to find available tasks, claim via TaskUpdate, execute per spec, commit, report `task_complete` to Lead and `dev_progress` to Senior. Loop continues until no tasks remain. See `agents/yolo-dev.md` ## Task Self-Claiming ### Claim Loop.
+
+   > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
+   > ```bash
+   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "dev" --project-dir ".")
+   > ```
+   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-dev.toon). See D4 in architecture for soft enforcement details.
+
+   **When team_mode=task (default):**
+
+   For each uncompleted plan, TaskCreate:
    ```
    subject: "Execute {NN-MM}: {plan-title}"
    description: |
@@ -290,16 +312,15 @@ Every step in the 10-step workflow below MUST follow these templates. Entry gate
    activeForm: "Executing {NN-MM}"
    ```
    **CRITICAL:** Pass `model: "${DEV_MODEL}"` to Task tool.
+   Wire dependencies via TaskUpdate: `addBlockedBy` from plan `d` (depends_on) field.
+   Spawn Dev teammates and assign tasks.
+   Display: `◆ Spawning Dev (${DEV_MODEL})...`
 
    > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
    > ```bash
    > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "dev" --project-dir ".")
    > ```
    > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-dev.toon). See D4 in architecture for soft enforcement details.
-
-4. Wire dependencies via TaskUpdate: `addBlockedBy` from plan `d` (depends_on) field.
-5. Spawn Dev teammates and assign tasks.
-6. Display: `◆ Spawning Dev (${DEV_MODEL})...`
 
 **Dev TDD protocol:**
 - Before each task with `ts`: run tests, verify FAIL (RED). If tests pass → escalate to Senior.
