@@ -213,6 +213,7 @@ Every step in the 11-step workflow below MUST follow these templates. Entry gate
      "plans": [{"id": "NN-MM", "title": "...", "wave": W, "status": "pending|complete"}],
      "steps": {
        "critique": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+       "research": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
        "architecture": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
        "planning": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
        "design_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
@@ -592,17 +593,18 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 | Step | state.step | Entry Artifact | Exit Artifact | Commit Format | Skip Conditions |
 |------|-----------|----------------|---------------|---------------|----------------|
 | 1. Critique | `critique` | Phase dir exists | `critique.jsonl` | `docs({phase}): critique and gap analysis` | `--effort=turbo`, critique.jsonl exists |
-| 2. Architecture | `architecture` | `critique.jsonl` OR step 1 skipped | `architecture.toon` | `docs({phase}): architecture design` | architecture.toon exists |
-| 3. Load Plans | `planning` | `architecture.toon` OR step 2 skipped | `.execution-state.json` + `*.plan.jsonl` | `chore(state): execution state phase {N}` | NONE (mandatory) |
-| 4. Design Review | `design_review` | `*.plan.jsonl` exists | enriched `plan.jsonl` (all tasks have `spec`) | `docs({phase}): enrich plan {NN-MM} specs` | NONE (mandatory) |
-| 5. Test Authoring | `test_authoring` | enriched `plan.jsonl` with `spec` fields | `test-plan.jsonl` + test files | `test({phase}): RED phase tests for plan {NN-MM}` | `--effort=turbo`, no `ts` fields |
-| 6. Implementation | `implementation` | enriched `plan.jsonl` + `test-plan.jsonl` (if step 5 ran) | `{plan_id}.summary.jsonl` per plan | `{type}({phase}-{plan}): {task}` per task | NONE (mandatory) |
-| 7. Code Review | `code_review` | `{plan_id}.summary.jsonl` for each plan | `code-review.jsonl` with `r: "approve"` | `docs({phase}): code review {NN-MM}` | NONE (mandatory) |
-| 8. QA | `qa` | `code-review.jsonl` with `r: "approve"` | `verification.jsonl` + `qa-code.jsonl` | `docs({phase}): verification results` | `--skip-qa`, `--effort=turbo` |
-| 9. Security | `security` | `verification.jsonl` OR step 8 skipped | `security-audit.jsonl` | `docs({phase}): security audit` | `--skip-security`, config `security_audit` != true |
-| 10. Sign-off | `signoff` | `security-audit.jsonl` OR step 9 skipped + `code-review.jsonl` approved | `.execution-state.json` complete + ROADMAP.md | `chore(state): phase {N} complete` | NONE (mandatory) |
+| 2. Research | `research` | `critique.jsonl` OR step 1 skipped | `research.jsonl` | `docs({phase}): research findings` | `--effort=turbo` |
+| 3. Architecture | `architecture` | `research.jsonl` OR step 2 skipped | `architecture.toon` | `docs({phase}): architecture design` | architecture.toon exists |
+| 4. Load Plans | `planning` | `architecture.toon` OR step 3 skipped | `.execution-state.json` + `*.plan.jsonl` | `chore(state): execution state phase {N}` | NONE (mandatory) |
+| 5. Design Review | `design_review` | `*.plan.jsonl` exists | enriched `plan.jsonl` (all tasks have `spec`) | `docs({phase}): enrich plan {NN-MM} specs` | NONE (mandatory) |
+| 6. Test Authoring | `test_authoring` | enriched `plan.jsonl` with `spec` fields | `test-plan.jsonl` + test files | `test({phase}): RED phase tests for plan {NN-MM}` | `--effort=turbo`, no `ts` fields |
+| 7. Implementation | `implementation` | enriched `plan.jsonl` + `test-plan.jsonl` (if step 6 ran) | `{plan_id}.summary.jsonl` per plan | `{type}({phase}-{plan}): {task}` per task | NONE (mandatory) |
+| 8. Code Review | `code_review` | `{plan_id}.summary.jsonl` for each plan | `code-review.jsonl` with `r: "approve"` | `docs({phase}): code review {NN-MM}` | NONE (mandatory) |
+| 9. QA | `qa` | `code-review.jsonl` with `r: "approve"` | `verification.jsonl` + `qa-code.jsonl` | `docs({phase}): verification results` | `--skip-qa`, `--effort=turbo` |
+| 10. Security | `security` | `verification.jsonl` OR step 9 skipped | `security-audit.jsonl` | `docs({phase}): security audit` | `--skip-security`, config `security_audit` != true |
+| 11. Sign-off | `signoff` | `security-audit.jsonl` OR step 10 skipped + `code-review.jsonl` approved | `.execution-state.json` complete + ROADMAP.md | `chore(state): phase {N} complete` | NONE (mandatory) |
 
-Each transition commits `.execution-state.json` so resume works on exit. Schema: see Step 3 item 7 above. Per-step status values: `"pending"`, `"running"`, `"complete"`, `"skipped"`. The `reason` field is populated only for skipped steps.
+Each transition commits `.execution-state.json` so resume works on exit. Schema: see Step 4 item 7 above. Per-step status values: `"pending"`, `"running"`, `"complete"`, `"skipped"`. The `reason` field is populated only for skipped steps.
 
 **Multi-department note:** When `multi_dept=true`, `.phase-orchestration.json` is created alongside `.execution-state.json` and tracks per-department status and gate state. See ## Multi-Department Execution above for schema.
 
