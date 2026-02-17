@@ -1,0 +1,28 @@
+{
+  "phase": 5,
+  "phase_name": "05-escalation-gates-owner-user-loop",
+  "status": "running",
+  "started_at": "2026-02-18T12:00:00Z",
+  "step": "critique",
+  "wave": 1,
+  "total_waves": 3,
+  "plans": [
+    {"id": "05-01", "title": "Escalation schemas and timeout config", "wave": 1, "status": "pending"},
+    {"id": "05-02", "title": "Wire upward escalation path", "wave": 1, "status": "pending"},
+    {"id": "05-03", "title": "Wire downward resolution path", "wave": 2, "status": "pending"},
+    {"id": "05-04", "title": "Escalation round-trip tests and timeout script", "wave": 3, "status": "pending"}
+  ],
+  "steps": {
+    "critique": {"status": "complete", "started_at": "2026-02-18T12:00:00Z", "completed_at": "2026-02-18T12:01:00Z", "artifact": ".yolo-planning/phases/05-escalation-gates-owner-user-loop/critique.jsonl", "reason": ""},
+    "research": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "architecture": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "planning": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "design_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "test_authoring": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "implementation": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "code_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "qa": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "security": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+    "signoff": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""}
+  }
+}
