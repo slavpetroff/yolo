@@ -8,8 +8,15 @@ set -euo pipefail
 #                   ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code
 # Exit 0 on success, exit 1 when phase directory not found.
 
+# --- Parse --measure flag (must be first arg if present) ---
+MEASURE=false
+if [ "${1:-}" = "--measure" ]; then
+  MEASURE=true
+  shift
+fi
+
 if [ $# -lt 2 ]; then
-  echo "Usage: compile-context.sh <phase-number> <role> [phases-dir] [plan-path]" >&2
+  echo "Usage: compile-context.sh [--measure] <phase-number> <role> [phases-dir] [plan-path]" >&2
   exit 1
 fi
 
@@ -733,6 +740,39 @@ esac
 OUTPUT_FILE="${PHASE_DIR}/.ctx-${ROLE}.toon"
 if [ -f "$OUTPUT_FILE" ]; then
   enforce_budget "$OUTPUT_FILE" "$BUDGET"
+fi
+
+# --- Token reduction measurement (D9: char/4 approximation) ---
+if [ "$MEASURE" = true ] && [ -f "$OUTPUT_FILE" ]; then
+  FILTERED_CHARS=$(wc -c < "$OUTPUT_FILE" | tr -d ' ')
+  FILTERED_TOKENS=$(( FILTERED_CHARS / 4 ))
+
+  # Approximate unfiltered size from raw artifact file sizes (plan + summaries)
+  UNFILTERED_CHARS=0
+  if [ -n "$PLAN_PATH" ] && [ -f "$PLAN_PATH" ]; then
+    PLAN_CHARS=$(wc -c < "$PLAN_PATH" | tr -d ' ')
+    UNFILTERED_CHARS=$(( UNFILTERED_CHARS + PLAN_CHARS ))
+  fi
+  for summary in "$PHASE_DIR"/*.summary.jsonl; do
+    if [ -f "$summary" ]; then
+      SUMMARY_CHARS=$(wc -c < "$summary" | tr -d ' ')
+      UNFILTERED_CHARS=$(( UNFILTERED_CHARS + SUMMARY_CHARS ))
+    fi
+  done
+  # If no artifact data, use filtered as unfiltered (no reduction)
+  if [ "$UNFILTERED_CHARS" -eq 0 ]; then
+    UNFILTERED_CHARS="$FILTERED_CHARS"
+  fi
+  UNFILTERED_TOKENS=$(( UNFILTERED_CHARS / 4 ))
+
+  if [ "$UNFILTERED_TOKENS" -gt 0 ]; then
+    REDUCTION_PCT=$(( (UNFILTERED_TOKENS - FILTERED_TOKENS) * 100 / UNFILTERED_TOKENS ))
+  else
+    REDUCTION_PCT=0
+  fi
+
+  # Output measurement JSON to stderr (stdout has the file path)
+  echo "{\"role\":\"$ROLE\",\"filtered_chars\":$FILTERED_CHARS,\"unfiltered_chars\":$UNFILTERED_CHARS,\"reduction_pct\":$REDUCTION_PCT,\"note\":\"char/4 approx\"}" >&2
 fi
 
 echo "$OUTPUT_FILE"

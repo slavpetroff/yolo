@@ -636,3 +636,38 @@ run_cc() {
   # Should NOT have commit hashes
   refute_output --partial "abc1234"
 }
+
+# --- --measure flag tests (plan 02-04 T5) ---
+
+@test "--measure flag outputs JSON measurement to stderr" {
+  local plan="$PHASES_DIR/01-setup/01-01.plan.jsonl"
+  cp "$FIXTURES_DIR/plans/filter-test-plan.jsonl" "$plan"
+  run bash -c "cd '$TEST_WORKDIR' && bash '$SUT' --measure 01 dev '$PHASES_DIR' '$plan' 2>&1 1>/dev/null"
+  assert_success
+  assert_output --partial '"role":"dev"'
+  assert_output --partial '"filtered_chars"'
+  assert_output --partial '"reduction_pct"'
+  assert_output --partial '"note":"char/4 approx"'
+}
+
+@test "--measure outputs file path on stdout" {
+  local plan="$PHASES_DIR/01-setup/01-01.plan.jsonl"
+  cp "$FIXTURES_DIR/plans/filter-test-plan.jsonl" "$plan"
+  run bash -c "cd '$TEST_WORKDIR' && bash '$SUT' --measure 01 dev '$PHASES_DIR' '$plan' 2>/dev/null"
+  assert_success
+  assert_output --partial ".ctx-dev.toon"
+}
+
+@test "without --measure no JSON measurement on stderr" {
+  local plan="$PHASES_DIR/01-setup/01-01.plan.jsonl"
+  cp "$FIXTURES_DIR/plans/filter-test-plan.jsonl" "$plan"
+  run bash -c "cd '$TEST_WORKDIR' && bash '$SUT' 01 dev '$PHASES_DIR' '$plan' 2>&1 1>/dev/null"
+  assert_success
+  refute_output --partial '"filtered_chars"'
+}
+
+@test "--measure with no artifacts shows 0 reduction" {
+  run bash -c "cd '$TEST_WORKDIR' && bash '$SUT' --measure 01 architect '$PHASES_DIR' 2>&1 1>/dev/null"
+  assert_success
+  assert_output --partial '"reduction_pct":0'
+}
