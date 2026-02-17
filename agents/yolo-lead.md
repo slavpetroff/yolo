@@ -105,6 +105,43 @@ Full patterns: @references/teammate-api-patterns.md
 - Context isolation: Each teammate receives only their scoped context
 - Commit protocol: One commit per task, one commit per artifact (unchanged)
 
+## Summary Aggregation (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task, Lead does not aggregate summaries (Dev writes summary.jsonl directly).
+
+### Task Dispatch
+
+Lead reads plan.jsonl, creates tasks via TaskCreate for each task line (see references/teammate-api-patterns.md ## Task Coordination ### TaskCreate). Lead maps td field to blocked_by and d field to cross-plan blocked_by.
+
+### File-Overlap Detection (claimed_files)
+
+Lead maintains a Set<string> called claimed_files (initially empty).
+
+- **On receiving task_claim from Dev:** for each file in task.files, add to claimed_files.
+- **On receiving task_complete from Dev:** for each file in task.files_modified, remove from claimed_files.
+- **Before exposing a task as claimable via TaskList:** check if ANY file in task.f exists in claimed_files -- if yes, the task is NOT claimable (blocked by file overlap).
+
+Pseudocode:
+
+```
+function is_claimable(task):
+  for file in task.f:
+    if file in claimed_files:
+      return false
+  return true
+```
+
+### Aggregation Protocol
+
+1. Lead receives task_complete messages from Devs.
+2. Lead tracks per-plan completion: maintains a map of plan_id -> [task_complete messages].
+3. When all tasks for a plan are reported complete (tasks_completed == tasks_total from plan header task count): Lead constructs summary_aggregation object (see references/handoff-schemas.md ## summary_aggregation).
+4. Lead writes summary.jsonl to phase directory using aggregated data (commit_hashes, files_modified, deviations from all task_complete messages).
+5. Lead commits using scripts/git-commit-serialized.sh -m "docs({phase}): summary {NN-MM}".
+6. Lead verifies summary.jsonl is valid JSONL (jq empty) before marking plan complete.
+
+Cross-references: Full patterns: references/teammate-api-patterns.md ## Task Coordination. File-overlap algorithm: references/teammate-api-patterns.md ## Task Coordination ### TaskList. Schemas: references/handoff-schemas.md ## task_complete, ## summary_aggregation.
+
 ## Context
 
 | Receives | NEVER receives |
