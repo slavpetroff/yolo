@@ -285,3 +285,50 @@ Example:
 - `✓` (Success/complete) -- gate finished successfully
 - `✗` (Failure/error) -- gate finished with failure
 - `⚠` (Warning) -- gate timed out
+
+## Brand-Essentials Integration
+
+Mapping between yolo-brand-essentials.toon symbols and QA gate states.
+
+### Symbol-to-State Mapping
+
+| Symbol | Unicode | Brand Meaning | QA Gate Usage |
+|--------|---------|---------------|---------------|
+| ✓ | U+2713 | Success/complete | Gate passed, test passed, task complete |
+| ✗ | U+2717 | Failure/error | Gate failed, test failed, spawn blocked |
+| ◆ | U+25C6 | In progress | Gate actively running |
+| ○ | U+25CB | Pending/neutral | Task blocked, gate not executed |
+| ⚠ | U+26A0 | Warning | Partial result, timeout, missing infrastructure |
+| ➜ | U+279C | Info/arrow | Remediation suggestion, next step |
+| -- | U+2014 | Separator | Between identifiers and descriptions |
+
+### Box-Drawing Level Mapping
+
+| Gate Level | Box Style | Brand Category | Rationale |
+|------------|-----------|----------------|-----------|
+| Post-task | Single-line (┌─┐│└┘) | standard_task | Task-level, low ceremony |
+| Post-plan | Single-line (┌─┐│└┘) | standard_task | Plan-level, medium ceremony |
+| Post-phase | Double-line (╔═╗║╚╝) | critical_phase | Phase-level, high ceremony |
+
+Note: Post-task pass state uses no box (single-line output only) to minimize noise during rapid task execution.
+
+## Quick-Reference Matrix
+
+Lookup table: find the output template by gate level and result state.
+
+| Gate Level | PASS | FAIL | PARTIAL | WARN |
+|------------|------|------|---------|------|
+| Post-task | Single line: `✓ Post-task QA: N tests passed (Xs)` | Multi-line: failures list + remediation | `⚠` no relevant tests | `⚠` missing infrastructure |
+| Post-plan | Single-line box with metrics | Single-line box + blocking issues | Single-line box + per-task checklist | N/A |
+| Post-phase | Double-line box with metrics | Double-line box + blocking gates | Double-line box + per-plan checklist | N/A |
+| Status line | `✓ gate complete` | `✗ gate failed` | N/A | `⚠ gate timed out` |
+
+## Rules
+
+1. **No ANSI color codes** -- not rendered in Claude Code model output (brand rule 1)
+2. **No Nerd Font glyphs** -- not universally available (brand rule 2)
+3. **Content readable without box-drawing** -- degrade gracefully (brand rule 3)
+4. **Lines under 80 chars inside boxes** -- visual consistency (brand rule 4)
+5. **Consistent symbol usage** -- never use ✓ for failure or ✗ for success (brand rule 5)
+6. **Two-part error messages** -- every failure output has problem + remediation (stop_message pattern)
+7. **Metrics use left-padded labels** -- 14-char left-pad per metrics_block pattern
