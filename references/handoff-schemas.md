@@ -262,6 +262,8 @@ Acknowledgment from a teammate that it will terminate.
 
 On receiving `shutdown_request`: respond with `shutdown_response` (approved=true), finish any in-progress tool call, then STOP all further work. Do NOT start new tasks, fix additional issues, or take any action after responding. The orchestrator will call TeamDelete after collecting all responses.
 
+> **Conditional refusal:** The schema allows `approved: false` with `pending_work` describing what remains. Currently all agents are instructed to always approve. The orchestrator retries up to 3 times on rejection before proceeding. If a future agent needs to delay shutdown (e.g., mid-write to disk), update its Shutdown Handling section to allow conditional refusal with `approved: false`.
+
 ## Backward Compatibility
 
 Old-format messages (without full envelope) are accepted when `v2_typed_protocol=false`. The validate-message.sh script parses the `type` field to determine schema and validates accordingly.

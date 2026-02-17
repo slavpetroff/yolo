@@ -424,6 +424,14 @@ teardown() {
   [[ "$output" == *"not authorized"* ]]
 }
 
+@test "validate-message: shutdown_request from architect as sender rejected" {
+  cd "$TEST_TEMP_DIR"
+  MSG='{"id":"shut-arch-3","type":"shutdown_request","phase":1,"task":"","author_role":"architect","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"vbw-phase-01"}}'
+  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"not authorized"* ]]
+}
+
 @test "architect agent documents shutdown exemption" {
   grep -q '## Shutdown Handling' "$PROJECT_ROOT/agents/vbw-architect.md"
   sed -n '/^## Shutdown Handling$/,/^## /p' "$PROJECT_ROOT/agents/vbw-architect.md" | grep -qi 'planning-only'
