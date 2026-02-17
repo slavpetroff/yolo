@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 # dept-orchestrate.bats — Unit tests for scripts/dept-orchestrate.sh
 # Department orchestration: generates JSON spawn plan from resolve-departments.sh output.
+# Schema: {team_mode, waves:[{id, depts:[{dept, spawn_strategy, team_name?}], gate}], timeout_minutes}
 
 setup() {
   load '../test_helper/common'
@@ -11,17 +12,16 @@ setup() {
 
 # Helper: create config with custom settings
 mk_config() {
-  local backend="${1:-true}"
-  local frontend="${2:-false}"
-  local uiux="${3:-false}"
-  local workflow="${4:-backend_only}"
+  local backend="${1:-true}" frontend="${2:-false}" uiux="${3:-false}" workflow="${4:-backend_only}" team_mode="${5:-task}" agent_teams="${6:-false}"
   mkdir -p "$TEST_WORKDIR/.yolo-planning"
   jq -n \
     --argjson be "$backend" \
     --argjson fe "$frontend" \
     --argjson ux "$uiux" \
     --arg wf "$workflow" \
-    '{departments:{backend:$be,frontend:$fe,uiux:$ux},department_workflow:$wf}' \
+    --arg tm "$team_mode" \
+    --argjson at "$agent_teams" \
+    '{departments:{backend:$be,frontend:$fe,uiux:$ux},department_workflow:$wf,team_mode:$tm,agent_teams:$at}' \
     > "$TEST_WORKDIR/.yolo-planning/config.json"
 }
 
@@ -43,15 +43,21 @@ run_orchestrate() {
   wave_count=$(echo "$output" | jq '.waves | length')
   assert_equal "$wave_count" "2"
 
-  local w0_depts w0_gate w1_depts_fe w1_depts_be w1_gate
-  w0_depts=$(echo "$output" | jq -r '.waves[0].depts[0]')
+  local tm
+  tm=$(echo "$output" | jq -r '.team_mode')
+  assert_equal "$tm" "task"
+
+  local w0_dept w0_gate w0_ss w1_depts_fe w1_depts_be w1_gate
+  w0_dept=$(echo "$output" | jq -r '.waves[0].depts[0].dept')
   w0_gate=$(echo "$output" | jq -r '.waves[0].gate')
-  w1_depts_fe=$(echo "$output" | jq -r '.waves[1].depts | contains(["frontend"])')
-  w1_depts_be=$(echo "$output" | jq -r '.waves[1].depts | contains(["backend"])')
+  w0_ss=$(echo "$output" | jq -r '.waves[0].depts[0].spawn_strategy')
+  w1_depts_fe=$(echo "$output" | jq -r '[.waves[1].depts[].dept] | contains(["frontend"])')
+  w1_depts_be=$(echo "$output" | jq -r '[.waves[1].depts[].dept] | contains(["backend"])')
   w1_gate=$(echo "$output" | jq -r '.waves[1].gate')
 
-  assert_equal "$w0_depts" "uiux"
+  assert_equal "$w0_dept" "uiux"
   assert_equal "$w0_gate" "handoff-ux-complete"
+  assert_equal "$w0_ss" "task"
   assert_equal "$w1_depts_fe" "true"
   assert_equal "$w1_depts_be" "true"
   assert_equal "$w1_gate" "all-depts-complete"
@@ -72,14 +78,20 @@ run_orchestrate() {
   wave_count=$(echo "$output" | jq '.waves | length')
   assert_equal "$wave_count" "1"
 
-  local has_fe has_be gate
-  has_fe=$(echo "$output" | jq -r '.waves[0].depts | contains(["frontend"])')
-  has_be=$(echo "$output" | jq -r '.waves[0].depts | contains(["backend"])')
+  local tm
+  tm=$(echo "$output" | jq -r '.team_mode')
+  assert_equal "$tm" "task"
+
+  local has_fe has_be gate ss
+  has_fe=$(echo "$output" | jq -r '[.waves[0].depts[].dept] | contains(["frontend"])')
+  has_be=$(echo "$output" | jq -r '[.waves[0].depts[].dept] | contains(["backend"])')
   gate=$(echo "$output" | jq -r '.waves[0].gate')
+  ss=$(echo "$output" | jq -r '.waves[0].depts[0].spawn_strategy')
 
   assert_equal "$has_fe" "true"
   assert_equal "$has_be" "true"
   assert_equal "$gate" "all-depts-complete"
+  assert_equal "$ss" "task"
 }
 
 # --- Sequential 3-dept workflow ---
@@ -93,16 +105,22 @@ run_orchestrate() {
   wave_count=$(echo "$output" | jq '.waves | length')
   assert_equal "$wave_count" "3"
 
-  local w0_dept w0_gate w1_dept w1_gate w2_dept w2_gate
-  w0_dept=$(echo "$output" | jq -r '.waves[0].depts[0]')
+  local tm
+  tm=$(echo "$output" | jq -r '.team_mode')
+  assert_equal "$tm" "task"
+
+  local w0_dept w0_gate w0_ss w1_dept w1_gate w2_dept w2_gate
+  w0_dept=$(echo "$output" | jq -r '.waves[0].depts[0].dept')
   w0_gate=$(echo "$output" | jq -r '.waves[0].gate')
-  w1_dept=$(echo "$output" | jq -r '.waves[1].depts[0]')
+  w0_ss=$(echo "$output" | jq -r '.waves[0].depts[0].spawn_strategy')
+  w1_dept=$(echo "$output" | jq -r '.waves[1].depts[0].dept')
   w1_gate=$(echo "$output" | jq -r '.waves[1].gate')
-  w2_dept=$(echo "$output" | jq -r '.waves[2].depts[0]')
+  w2_dept=$(echo "$output" | jq -r '.waves[2].depts[0].dept')
   w2_gate=$(echo "$output" | jq -r '.waves[2].gate')
 
   assert_equal "$w0_dept" "uiux"
   assert_equal "$w0_gate" "handoff-ux-complete"
+  assert_equal "$w0_ss" "task"
   assert_equal "$w1_dept" "frontend"
   assert_equal "$w1_gate" "handoff-frontend-complete"
   assert_equal "$w2_dept" "backend"
@@ -120,12 +138,18 @@ run_orchestrate() {
   wave_count=$(echo "$output" | jq '.waves | length')
   assert_equal "$wave_count" "1"
 
-  local dept gate
-  dept=$(echo "$output" | jq -r '.waves[0].depts[0]')
+  local tm
+  tm=$(echo "$output" | jq -r '.team_mode')
+  assert_equal "$tm" "task"
+
+  local dept gate ss
+  dept=$(echo "$output" | jq -r '.waves[0].depts[0].dept')
   gate=$(echo "$output" | jq -r '.waves[0].gate')
+  ss=$(echo "$output" | jq -r '.waves[0].depts[0].spawn_strategy')
 
   assert_equal "$dept" "backend"
   assert_equal "$gate" "all-depts-complete"
+  assert_equal "$ss" "task"
 }
 
 # --- JSON validity ---
@@ -148,6 +172,16 @@ run_orchestrate() {
   local timeout_type
   timeout_type=$(echo "$output" | jq -r '.timeout_minutes | type')
   assert_equal "$timeout_type" "number"
+
+  # team_mode is string
+  local tm_type
+  tm_type=$(echo "$output" | jq -r '.team_mode | type')
+  assert_equal "$tm_type" "string"
+
+  # depts items are objects (not strings)
+  local dept_type
+  dept_type=$(echo "$output" | jq -r '.waves[0].depts[0] | type')
+  assert_equal "$dept_type" "object"
 }
 
 # --- Missing config defaults ---
@@ -156,12 +190,16 @@ run_orchestrate() {
   run_orchestrate "$TEST_WORKDIR/nonexistent.json" "$TEST_WORKDIR/phase"
   assert_success
 
-  local wave_count dept
+  local wave_count dept tm ss
   wave_count=$(echo "$output" | jq '.waves | length')
-  dept=$(echo "$output" | jq -r '.waves[0].depts[0]')
+  dept=$(echo "$output" | jq -r '.waves[0].depts[0].dept')
+  tm=$(echo "$output" | jq -r '.team_mode')
+  ss=$(echo "$output" | jq -r '.waves[0].depts[0].spawn_strategy')
 
   assert_equal "$wave_count" "1"
   assert_equal "$dept" "backend"
+  assert_equal "$tm" "task"
+  assert_equal "$ss" "task"
 }
 
 # --- Missing args ---
@@ -183,10 +221,82 @@ run_orchestrate() {
   wave_count=$(echo "$output" | jq '.waves | length')
   assert_equal "$wave_count" "2"
 
-  local w0_dept w1_dept
-  w0_dept=$(echo "$output" | jq -r '.waves[0].depts[0]')
-  w1_dept=$(echo "$output" | jq -r '.waves[1].depts[0]')
+  local tm
+  tm=$(echo "$output" | jq -r '.team_mode')
+  assert_equal "$tm" "task"
+
+  local w0_dept w1_dept w0_ss
+  w0_dept=$(echo "$output" | jq -r '.waves[0].depts[0].dept')
+  w1_dept=$(echo "$output" | jq -r '.waves[1].depts[0].dept')
+  w0_ss=$(echo "$output" | jq -r '.waves[0].depts[0].spawn_strategy')
 
   assert_equal "$w0_dept" "uiux"
   assert_equal "$w1_dept" "backend"
+  assert_equal "$w0_ss" "task"
+}
+
+# --- Teammate mode tests ---
+
+@test "teammate mode parallel 3-dept: spawnTeam strategy with team names" {
+  mk_config true true true parallel teammate true
+  export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+  run_orchestrate
+  assert_success
+
+  local tm ss tn
+  tm=$(echo "$output" | jq -r '.team_mode')
+  assert_equal "$tm" "teammate"
+
+  ss=$(echo "$output" | jq -r '.waves[0].depts[0].spawn_strategy')
+  assert_equal "$ss" "spawnTeam"
+
+  tn=$(echo "$output" | jq -r '.waves[0].depts[0].team_name')
+  assert_equal "$tn" "yolo-uiux"
+
+  local w1_be_ss w1_be_tn
+  w1_be_ss=$(echo "$output" | jq -r '[.waves[1].depts[] | select(.dept=="backend")] | .[0].spawn_strategy')
+  w1_be_tn=$(echo "$output" | jq -r '[.waves[1].depts[] | select(.dept=="backend")] | .[0].team_name')
+  assert_equal "$w1_be_ss" "spawnTeam"
+  assert_equal "$w1_be_tn" "yolo-backend"
+}
+
+@test "teammate mode backend-only: spawnTeam strategy" {
+  mk_config true false false backend_only teammate true
+  export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+  run_orchestrate
+  assert_success
+
+  local tm ss tn
+  tm=$(echo "$output" | jq -r '.team_mode')
+  assert_equal "$tm" "teammate"
+
+  ss=$(echo "$output" | jq -r '.waves[0].depts[0].spawn_strategy')
+  assert_equal "$ss" "spawnTeam"
+
+  tn=$(echo "$output" | jq -r '.waves[0].depts[0].team_name')
+  assert_equal "$tn" "yolo-backend"
+}
+
+@test "teammate requested but env var missing: falls back to task" {
+  mk_config true true true parallel teammate true
+  unset CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
+  run_orchestrate
+  assert_success
+
+  local tm ss
+  tm=$(echo "$output" | jq -r '.team_mode')
+  assert_equal "$tm" "task"
+
+  ss=$(echo "$output" | jq -r '.waves[0].depts[0].spawn_strategy')
+  assert_equal "$ss" "task"
+}
+
+@test "task mode: no team_name field in depts" {
+  mk_config true false false backend_only
+  run_orchestrate
+  assert_success
+
+  local tn
+  tn=$(echo "$output" | jq -r '.waves[0].depts[0].team_name // "absent"')
+  assert_equal "$tn" "absent"
 }
