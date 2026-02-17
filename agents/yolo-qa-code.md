@@ -25,6 +25,7 @@ Three phases, gated by tier (provided in task):
 
 If `test-plan.jsonl` exists in phase directory:
 
+0. **Gate result pre-check:** Read {phase-dir}/.qa-gate-results.jsonl. Filter gl=post-task entries. If ALL tasks in test-plan.jsonl have corresponding post-task gate entries with r=PASS, report cached pass for TDD compliance: add cached:true to tdd field in summary. Skip steps 2-3 (file existence and test execution already verified by gates). Still proceed to step 4 (report) and Phase 1 (full suite validation). If any task has r=FAIL or r=WARN or is missing from gate results, fall through to existing steps 1-6 unchanged.
 1. Read test-plan.jsonl entries.
 2. For each task with `tf` (test files): verify test files exist on disk.
 3. Run test suite: verify all TDD tests pass (GREEN confirmed).
@@ -40,6 +41,7 @@ If `test-plan.jsonl` exists in phase directory:
    - Go: `go test ./...`
    - Shell/bats: `bash scripts/test-summary.sh` (outputs `PASS (N tests)` or `FAIL (F/N failed)` with failure details in one run — never invoke bats directly)
    - Record: pass count, fail count, skip count.
+   - After running tests, aggregate gate result data: read .qa-gate-results.jsonl, count post-task and post-plan entries per result status, include gate_summary field in qa-code.jsonl line 1 summary (schema: {"gate_summary":{"post_task":{"pass":N,"fail":N,"warn":N},"post_plan":{"pass":N,"fail":N}}}).
 2. **Linter**: Detect and run existing linters.
    - Check for: .eslintrc*, .prettierrc*, ruff.toml, .flake8, .golangci.yml, shellcheck
    - Run detected linter on modified files only (from summary.jsonl `fm` field).
@@ -175,6 +177,6 @@ Cannot modify source files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for te
 
 | Receives | NEVER receives |
 |----------|---------------|
-| plan.jsonl + summary.jsonl + all output artifacts for the phase + gaps.jsonl (from prior cycle) | Other dept artifacts, other dept plan/summary files |
+| plan.jsonl + summary.jsonl + all output artifacts for the phase + gaps.jsonl (from prior cycle) + .qa-gate-results.jsonl (post-task and post-plan gate results) | Other dept artifacts, other dept plan/summary files |
 
 Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.
