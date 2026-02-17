@@ -4,7 +4,15 @@ Loaded on demand by /yolo:go Execute mode. Not a user-facing command.
 
 Implements the 11-step company-grade engineering workflow. See `references/company-hierarchy.md` for full hierarchy and `references/artifact-formats.md` for JSONL schemas.
 
-**Spawn strategy:** Agent spawning is controlled by `team_mode` from resolve-team-mode.sh (passed by go.md). When `team_mode=task` (default): all agents are spawned via Task tool as documented below. When `team_mode=teammate`: top-level agent spawning from go.md uses Teammate API (spawnTeam for department Leads); within-team spawning (Steps 1-10) is handled by agent prompt conditionals using SendMessage. Teammate registration is on-demand at workflow step boundaries: core specialists (architect, senior, dev) at team creation, tester at step 6, qa + qa-code at step 9, security at step 10 (backend only). See `references/teammate-api-patterns.md` for Teammate API patterns and `references/teammate-api-patterns.md` ## Registering Teammates for step-to-role mapping.
+## Spawn Strategy Gate (MANDATORY — read FIRST before any step)
+
+`team_mode` is passed by go.md from resolve-team-mode.sh. This determines ALL agent spawning for the entire protocol. You MUST check this value and follow the correct path at every step.
+
+**If `team_mode=teammate`:** Department teams are created via Teammate API by go.md before this protocol runs. Within each step, agents that belong to the department team (architect, senior, dev, tester, qa, qa-code, security) are spawned as teammates using `Task` tool with `team_name` param, and coordinate via `SendMessage`. You MUST NOT use bare Task tool (without team_name) for these agents. The ONLY agents spawned via bare Task tool are the three Task-only shared agents: critic, scout, debugger — they are explicitly excluded from team membership (see `references/teammate-api-patterns.md` ## Task-Only Agents).
+
+**If `team_mode=task`:** All agents are spawned via Task tool as documented below. No Teammate API usage.
+
+At each step below, "Spawn X with Task tool" is the task-mode instruction. When team_mode=teammate, replace with: "Dispatch X via SendMessage within the department team" (or register as teammate if first time in this step). The teammate-specific instructions at each step are marked with **[teammate]** blocks.
 
 ## Owner-First Communication Rule
 
@@ -700,8 +708,30 @@ See @references/rnd-handoff-protocol.md for the R&D pipeline handoff.
    ```
    Commit: `chore(state): orchestration state phase {N}`
 
-3. **Spawn department Leads per wave:**
-   For each wave in spawn plan, spawn department Leads as **background Task subagents** (`run_in_background=true`):
+3. **Spawn department Leads per wave (OBEY spawn strategy gate at top of this file):**
+
+   **If `team_mode=teammate` (MANDATORY — do NOT fall back to Task tool):**
+
+   For each wave in spawn plan:
+   ```
+   For each dept in wave.depts:
+     1. Call Teammate tool: spawnTeam(name="yolo-{dept}", description="{Dept} team for phase {N}")
+     2. Spawn Lead using Task tool with team_name="yolo-{dept}" and name="{dept}-lead":
+        - model: resolved via resolve-agent-model.sh for {dept}-lead role
+        - Provide: dept CONTEXT file, phase-dir, ROADMAP.md, REQUIREMENTS.md
+        - Include in prompt: "team_mode=teammate. You lead team yolo-{dept}."
+     3. Lead registers core specialists (architect, senior, dev) as teammates at creation
+     4. Additional specialists on-demand: tester at step 6, qa+qa-code at step 9, security at step 10 (backend only)
+     5. Full rosters: Backend 7 (incl security), Frontend 6, UI/UX 6
+     6. Lead coordinates via SendMessage within team
+     7. On completion: Lead sends department_result, then shutdown_request to all teammates
+   ```
+   Parallel waves: create all department teams + spawn all Leads in one message.
+   Cross-team coordination still uses file-based handoff artifacts (Leads are in different teams, SendMessage is intra-team only). See `references/teammate-api-patterns.md` ## Cross-Team Communication.
+
+   **If `team_mode=task`:**
+
+   For each wave in spawn plan, spawn department Leads as background Task subagents (`run_in_background=true`):
    ```
    For each dept in wave.depts:
      Spawn {dept} Lead as Task subagent:
@@ -712,31 +742,7 @@ See @references/rnd-handoff-protocol.md for the R&D pipeline handoff.
        - On completion: Lead writes .dept-status-{dept}.json via dept-status.sh
        - On completion: Lead writes handoff sentinel (e.g., .handoff-ux-complete)
    ```
-
-   **Team mode conditional (spawn strategy):**
-   - **When `team_mode=task` (default):** Spawn department Leads as background Task subagents exactly as documented above. File-based coordination via dept-gate.sh, dept-status.sh, and handoff sentinels.
-   - **When `team_mode=teammate`:** Replace Task subagent spawning with Teammate API team creation:
-     ```
-     For each dept in wave.depts:
-       Create team via spawnTeam:
-         - name: "yolo-{dept}" (e.g., yolo-backend, yolo-frontend, yolo-uiux)
-         - description: "{Dept} engineering team for phase {N}: {phase-name}"
-       Register Lead as team lead (automatic with spawnTeam)
-       Lead registers core specialists (architect, senior, dev) as teammates at creation
-       Lead registers additional specialists on-demand at workflow step boundaries:
-         - Step 6 (test authoring): register tester as teammate
-         - Step 9 (QA): register qa + qa-code as teammates
-         - Step 10 (security): register security as teammate (backend team ONLY)
-       Full team rosters:
-         - Backend (yolo-backend): architect, senior, dev, tester, qa, qa-code, security (7)
-         - Frontend (yolo-frontend): architect, senior, dev, tester, qa, qa-code (6)
-         - UI/UX (yolo-uiux): architect, senior, dev, tester, qa, qa-code (6)
-       Lead coordinates via SendMessage instead of file-based artifacts
-       - **Parallel Dev dispatch within department:** Each department Lead uses TaskCreate + Dynamic Dev Scaling within its team (see references/teammate-api-patterns.md ## Dynamic Dev Scaling). Devs within a department team self-claim tasks. File-overlap detection is per-department (each Lead maintains its own claimed_files set). Cross-department file conflicts are prevented by the department-guard.sh hook (unchanged).
-       On completion: Lead sends department_result via SendMessage to go.md
-       Shutdown: Lead sends shutdown_request to all teammates, waits for shutdown_response
-     ```
-     Cross-team coordination between departments still uses file-based handoff artifacts (api-contracts.jsonl, design-handoff.jsonl) because Leads are in DIFFERENT teams. SendMessage only works within a single team. Since each department is its own team, inter-department coordination cannot use SendMessage. This is by design -- it enforces the same strict context isolation that file-based gates provide. See `references/teammate-api-patterns.md` ## Cross-Team Communication.
+   File-based coordination via dept-gate.sh, dept-status.sh, and handoff sentinels.
 
 4. **Poll for gate satisfaction:**
    After spawning a wave, enter polling loop:
