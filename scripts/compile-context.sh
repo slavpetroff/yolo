@@ -106,6 +106,17 @@ if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
   V3_METRICS_ENABLED=$(jq -r '.v3_metrics // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
 fi
 
+V3_ROLLING_SUMMARY=false
+if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
+  V3_ROLLING_SUMMARY=$(jq -r '.v3_rolling_summary // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
+fi
+
+ROLLING_CONTEXT_PATH="${PLANNING_DIR}/ROLLING-CONTEXT.md"
+ROLLING_CONTEXT_SECTION=""
+if [ "$V3_ROLLING_SUMMARY" = "true" ] && [ "$PHASE_NUM" -gt 1 ] 2>/dev/null && [ -f "$ROLLING_CONTEXT_PATH" ]; then
+  ROLLING_CONTEXT_SECTION=$(cat "$ROLLING_CONTEXT_PATH" 2>/dev/null || true)
+fi
+
 # Record start time for metrics
 if [ "$V3_METRICS_ENABLED" = "true" ]; then
   START_TIME=$(date +%s 2>/dev/null || echo "0")
@@ -194,6 +205,12 @@ case "$ROLE" in
   lead)
     {
       echo "## Phase ${PHASE} Context (Compiled)"
+      if [ -n "$ROLLING_CONTEXT_SECTION" ]; then
+        echo ""
+        echo "### Prior Phase Context (Rolling Summary)"
+        echo "$ROLLING_CONTEXT_SECTION"
+        echo ""
+      fi
       echo ""
       echo "### Goal"
       echo "$PHASE_GOAL"
@@ -245,6 +262,12 @@ case "$ROLE" in
   dev)
     {
       echo "## Phase ${PHASE} Context"
+      if [ -n "$ROLLING_CONTEXT_SECTION" ]; then
+        echo ""
+        echo "### Prior Phase Context (Rolling Summary)"
+        echo "$ROLLING_CONTEXT_SECTION"
+        echo ""
+      fi
       echo ""
       echo "### Goal"
       echo "$PHASE_GOAL"
@@ -327,6 +350,12 @@ case "$ROLE" in
   qa)
     {
       echo "## Phase ${PHASE} Verification Context"
+      if [ -n "$ROLLING_CONTEXT_SECTION" ]; then
+        echo ""
+        echo "### Prior Phase Context (Rolling Summary)"
+        echo "$ROLLING_CONTEXT_SECTION"
+        echo ""
+      fi
       echo ""
       echo "### Goal"
       echo "$PHASE_GOAL"
@@ -356,6 +385,12 @@ case "$ROLE" in
   scout)
     {
       echo "## Phase ${PHASE} Research Context"
+      if [ -n "$ROLLING_CONTEXT_SECTION" ]; then
+        echo ""
+        echo "### Prior Phase Context (Rolling Summary)"
+        echo "$ROLLING_CONTEXT_SECTION"
+        echo ""
+      fi
       echo ""
       echo "### Goal"
       echo "$PHASE_GOAL"
@@ -401,6 +436,12 @@ case "$ROLE" in
   debugger)
     {
       echo "## Phase ${PHASE} Debug Context"
+      if [ -n "$ROLLING_CONTEXT_SECTION" ]; then
+        echo ""
+        echo "### Prior Phase Context (Rolling Summary)"
+        echo "$ROLLING_CONTEXT_SECTION"
+        echo ""
+      fi
       echo ""
       echo "### Goal"
       echo "$PHASE_GOAL"
@@ -474,6 +515,12 @@ case "$ROLE" in
   architect)
     {
       echo "## Phase ${PHASE} Architecture Context"
+      if [ -n "$ROLLING_CONTEXT_SECTION" ]; then
+        echo ""
+        echo "### Prior Phase Context (Rolling Summary)"
+        echo "$ROLLING_CONTEXT_SECTION"
+        echo ""
+      fi
       echo ""
       echo "### Goal"
       echo "$PHASE_GOAL"
