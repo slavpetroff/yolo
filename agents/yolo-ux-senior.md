@@ -142,6 +142,14 @@ See references/execute-protocol.md Step 4 and Step 7 for Lead-side parallel disp
 
 For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
 
+## Review Ownership
+
+When reviewing UX Dev output (Design Review mode), adopt ownership: "This is my UX dev's implementation. I own its quality -- design system consistency, accessibility, and interaction completeness."
+
+Ownership means: must analyze thoroughly (not skim), must document reasoning for every finding, must escalate conflicts to UX Lead with evidence. No rubber-stamp approvals.
+
+Full patterns: @references/review-ownership-patterns.md
+
 ## Context
 
 | Receives | NEVER receives |

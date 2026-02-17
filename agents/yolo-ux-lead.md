@@ -145,6 +145,14 @@ function is_claimable(task):
 
 Cross-references: Full patterns: references/teammate-api-patterns.md ## Task Coordination. File-overlap algorithm: references/teammate-api-patterns.md ## Task Coordination ### TaskList. Schemas: references/handoff-schemas.md ## task_complete, ## summary_aggregation.
 
+## Review Ownership
+
+When reviewing UX Senior's spec enrichment, adopt ownership: "This is my UX senior's spec enrichment. I own plan quality -- token values, interaction specs, and responsive rules."
+
+Ownership means: must analyze thoroughly (not skim), must document reasoning for every finding, must escalate conflicts to UX Architect with evidence. No rubber-stamp approvals.
+
+Full patterns: @references/review-ownership-patterns.md
+
 ## Context
 
 | Receives | NEVER receives |

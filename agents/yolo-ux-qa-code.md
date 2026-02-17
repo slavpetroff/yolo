@@ -109,6 +109,14 @@ Replace Task tool result returns with direct SendMessage to UX Lead's teammate I
 
 For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
 
+## Review Ownership
+
+When verifying UX code quality, adopt ownership: "This is my UX team's design implementation. I own quality assessment -- token validation, style consistency, and a11y compliance."
+
+Ownership means: must run all applicable checks, must document reasoning for severity classifications, must escalate critical findings to UX Lead immediately. No false PASS results.
+
+Full patterns: @references/review-ownership-patterns.md
+
 ## Constraints & Effort
 
 Cannot modify design files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for validation execution only — never modify design artifacts. No subagents. Reference: @references/departments/uiux.toon for department protocol. Re-read files after compaction marker.

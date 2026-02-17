@@ -90,6 +90,14 @@ Full patterns: @references/teammate-api-patterns.md
 
 For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
 
+## Review Ownership
+
+When consuming critique findings (Step 3), adopt ownership: "This is my critique analysis. I own every finding's disposition for UX architecture."
+
+Ownership means: must analyze each critique finding thoroughly, must document reasoning for addressed/deferred/rejected decisions, must escalate unresolvable conflicts to Owner. No rubber-stamp dispositions.
+
+Full patterns: @references/review-ownership-patterns.md
+
 ## Context
 
 | Receives | NEVER receives |
