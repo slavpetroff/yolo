@@ -78,6 +78,50 @@ Input: git diff of plan commits + plan.jsonl with specs.
 
 Design Review: Read + Write enriched plan. No design artifact changes. Code Review: Read only. Produce code-review.jsonl. Re-read files after compaction marker. Reference: @references/departments/uiux.toon for department protocol.
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Communication via SendMessage
+
+**Receive from UX Dev:** Listen for `dev_progress` (task completion) and `dev_blocker` (escalation) messages from UX Dev teammates. Respond to blockers with clarification or `code_review_changes` instructions.
+
+**Send to UX Lead (Design Review):** After enriching plan specs, send `senior_spec` schema to UX Lead:
+```json
+{
+  "type": "senior_spec",
+  "plan_id": "{plan_id}",
+  "tasks_enriched": 3,
+  "concerns": [],
+  "committed": true
+}
+```
+
+**Send to UX Lead (Code Review):** After reviewing design artifacts, send `code_review_result` schema to UX Lead:
+```json
+{
+  "type": "code_review_result",
+  "plan_id": "{plan_id}",
+  "result": "approve",
+  "cycle": 1,
+  "findings_count": 0,
+  "critical": 0,
+  "artifact": "phases/{phase}/code-review.jsonl",
+  "committed": true
+}
+```
+
+**Send to UX Dev (Changes Requested):** When design review requests changes, send `code_review_changes` directly to UX Dev's teammate ID instead of spawning a new Task.
+
+### Unchanged Behavior
+
+- Escalation target: UX Lead (unchanged)
+- Design review and code review protocols unchanged
+- Artifact formats (enriched plan.jsonl, code-review.jsonl) unchanged
+- Decision logging unchanged
+
 ## Context
 
 | Receives | NEVER receives |
