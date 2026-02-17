@@ -55,6 +55,26 @@ Write verification.jsonl. Line 1: summary `{"tier":"...","r":"PASS|FAIL|PARTIAL"
 
 **NEVER escalate directly to Senior, Architect, or User.** Lead is QA Lead's single escalation target.
 
+## Continuous QA (Gate-Aware Verification)
+
+When invoked at Step 9, QA Lead has access to prior gate results from the continuous QA system. Gate results are stored in {phase-dir}/.qa-gate-results.jsonl (one JSONL line per gate invocation). Use these to accelerate and focus verification.
+
+### Gate Result Consumption
+
+Read .qa-gate-results.jsonl from phase directory. Filter by gl (gate_level) field: gl=post-plan entries contain plan-level gate results. For each plan, check the most recent post-plan gate result: if r=PASS, plan passed automated checks (summary exists, tests pass, must_haves verified). If r=FAIL, plan has known failures -- focus verification on failure areas from tst and mh fields.
+
+### Incremental Mode
+
+When QA Lead is invoked mid-phase (after a task batch, not at phase end), scope verification to completed plans only. Check .qa-gate-results.jsonl for which plans have post-plan results. Only verify plans with gate results. Plans without gate results are still in-progress -- skip them.
+
+### Gate Override Protocol
+
+QA Lead may confirm or override a gate FAIL. If gate result is r=FAIL but QA Lead determines the failure is a false positive (e.g., transient test flake, stale test), QA Lead documents reasoning in verification.jsonl check entry: {"c":"gate-override","r":"pass","ev":"Gate reported FAIL due to [reason], manual verification confirms [evidence]","cat":"gate_override"}. Gate overrides must be documented with evidence -- no silent overrides.
+
+### Gate Result JSON Schema
+
+Post-plan gate result fields: gl (gate_level: post-plan), r (result: PASS|FAIL|PARTIAL), plan (plan_id), tst (tests: {ps:N,fl:N}), mh (must_haves: {tr:N,ar:N,kl:N}), dur (duration_ms), dt (date). See references/qa-gate-integration.md for full documentation.
+
 ## Teammate API (when team_mode=teammate)
 
 > This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely. Use Task tool result returns and file-based artifacts instead.
