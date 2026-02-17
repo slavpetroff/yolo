@@ -258,6 +258,35 @@ Dev calls TaskUpdate with `task_id` and one of two operations:
 }
 ```
 
+## Dynamic Dev Scaling (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate.
+
+**Formula:** `dev_count = min(available_unblocked_tasks, 5)`
+
+The cap of 5 prevents resource exhaustion. When `available_unblocked_tasks` is 0, Lead waits for `task_complete` events before spawning any Devs.
+
+### Lead Algorithm
+
+1. Lead counts `available_unblocked_tasks` from TaskList (status=available, no blocked_by, no file-overlap).
+2. Lead calls `scripts/compute-dev-count.sh --available N` to get `dev_count`.
+3. Lead registers `dev_count` Dev agents as teammates (if not already registered).
+4. Lead dispatches initial task assignments.
+5. Lead enters monitoring loop:
+   - When a `task_complete` event is received, Lead removes files from `claimed_files`.
+   - Lead re-evaluates blocked tasks (some may now be unblocked).
+   - Lead recomputes `dev_count`.
+   - If newly unblocked tasks exist and idle Devs are available, Lead assigns them.
+
+### Canonical Implementation
+
+The formula is implemented in `scripts/compute-dev-count.sh` (canonical -- prompts reference this script).
+
+```bash
+bash scripts/compute-dev-count.sh --available 7
+# outputs: 5
+```
+
 ## Task Mode Fallback
 
 When team_mode=task (default), all patterns above are replaced by:
