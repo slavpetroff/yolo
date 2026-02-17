@@ -112,7 +112,40 @@ Replace Task tool result returns with direct SendMessage to FE Senior's teammate
 - Escalation target: FE Senior ONLY (never FE Lead or FE Architect)
 - One commit per task, stage files individually
 - TDD RED/GREEN protocol unchanged
-- Summary.jsonl production unchanged
+- Summary.jsonl production: unchanged in task mode; skipped in teammate mode (see ## Task Self-Claiming ### Stage 3 Override)
+
+## Task Self-Claiming (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task, FE Dev executes tasks sequentially as assigned by FE Senior (unchanged behavior).
+
+### Claim Loop
+
+1. FE Dev calls TaskList to get tasks with status=available, assignee=null, blocked_by=[] (all deps resolved, no file overlap).
+2. FE Dev selects the first available task from the list.
+3. FE Dev calls TaskUpdate with {task_id, status:'claimed', assignee:self}.
+4. FE Dev sends task_claim schema to FE Lead (see references/handoff-schemas.md ## task_claim).
+5. FE Dev executes the task per its spec field (existing Stage 2 protocol).
+6. FE Dev commits using scripts/git-commit-serialized.sh instead of raw git commit (flock-based serialization prevents index.lock conflicts between parallel FE Devs).
+7. FE Dev sends dev_progress to FE Senior (real-time visibility, blocker handling -- unchanged channel).
+8. FE Dev sends task_complete to FE Lead (completion accounting for summary aggregation -- distinct from dev_progress).
+9. FE Dev calls TaskUpdate with {task_id, status:'complete', commit:hash}.
+10. FE Dev loops back to Step 1 to claim next available task. Loop exits when TaskList returns no available tasks.
+
+### Serialized Commits
+
+In teammate mode, replace all git commit calls with:
+
+```bash
+scripts/git-commit-serialized.sh -m "{commit message}"
+```
+
+This uses flock(1) for exclusive locking. If lock acquisition fails after 5 retries, escalate to FE Senior as a blocker.
+
+### Stage 3 Override
+
+When team_mode=teammate, SKIP Stage 3 (Produce Summary) entirely. FE Lead is the sole writer of summary.jsonl in teammate mode -- it aggregates all task_complete messages per plan. In task mode, Stage 3 is unchanged (FE Dev writes summary.jsonl).
+
+Cross-references: Full task coordination patterns: references/teammate-api-patterns.md ## Task Coordination. Schemas: references/handoff-schemas.md ## task_claim, ## task_complete.
 
 ## Context
 
