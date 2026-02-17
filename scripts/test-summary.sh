@@ -85,5 +85,11 @@ else
   for entry in "${FAILED_TESTS[@]}"; do
     echo "  $entry"
   done
+  if [ ${#PERF_FAILURES[@]} -gt 0 ]; then
+    echo "  perf (non-blocking):"
+    for entry in "${PERF_FAILURES[@]}"; do
+      echo "    $entry"
+    done
+  fi
   exit 1
 fi

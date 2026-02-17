@@ -202,7 +202,7 @@ Per-department circuit breaker. In-memory state within Lead session (not persist
 ### Transitions
 
 | From | To | Trigger |
-|------|----|---------
+|------|----|---------|
 | Closed | Open | 2+ disappeared agents within 5 minutes |
 | Open | Half-Open | 2 minutes elapsed since entering open state |
 | Half-Open | Closed | Probe agent responds successfully |

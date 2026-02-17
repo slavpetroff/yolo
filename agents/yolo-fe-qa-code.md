@@ -104,6 +104,10 @@ Replace Task tool result returns with direct SendMessage to FE Lead's teammate I
 - Component test execution and a11y linting unchanged
 - qa-code.jsonl and gaps.jsonl output formats unchanged
 
+### Shutdown Response
+
+For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+
 ## Constraints & Effort
 
 Cannot modify source files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for test/lint execution only — never install packages or modify configs. No subagents. Reference: @references/departments/frontend.toon for department protocol. Re-read files after compaction marker.

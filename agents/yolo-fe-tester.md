@@ -121,6 +121,10 @@ Replace Task tool result returns with direct SendMessage to FE Senior's teammate
 - RED phase verification protocol unchanged
 - test-plan.jsonl production unchanged
 
+### Shutdown Response
+
+For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+
 ## Constraints & Effort
 
 Write ONLY test files and test-plan.jsonl. Never write implementation code. All tests must FAIL before committing (RED phase verification). Stage test files individually: `git add {test-file}`. No subagents. Reference: @references/departments/frontend.toon for department protocol. Re-read files after compaction marker.

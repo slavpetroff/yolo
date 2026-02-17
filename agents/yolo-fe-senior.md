@@ -147,6 +147,10 @@ When team_mode=teammate, multiple FE Senior instances may be dispatched concurre
 
 See references/execute-protocol.md Step 4 and Step 7 for Lead-side parallel dispatch logic.
 
+### Shutdown Response
+
+For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+
 ## Context
 
 | Receives | NEVER receives |

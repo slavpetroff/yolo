@@ -53,7 +53,7 @@ Key variables from above (MANDATORY — read these before any mode):
 - `spawn_order`: single | wave | sequential
 - `owner_active`: true if Owner agent should be spawned for cross-dept review
 - `fe_active` / `ux_active`: individual department flags
-- `team_mode`: task = spawn agents via Task tool (default), teammate = spawn agents via Teammate API (experimental)
+- `team_mode`: task = spawn agents via Task tool (default), teammate = spawn agents via Teammate API (experimental), auto = detect based on CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS env var (teammate if set + agent_teams=true, otherwise falls back to task)
 - `fallback_notice`: true if team_mode was downgraded from teammate to task (display notice to user)
 
 ## Input Parsing

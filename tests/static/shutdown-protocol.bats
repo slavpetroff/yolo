@@ -43,14 +43,16 @@ setup() {
   assert_success
 }
 
-@test "8 teammate agents reference Shutdown Response" {
+@test "18 teammate agents reference Shutdown Response" {
   local count=0
-  for agent in yolo-senior.md yolo-architect.md yolo-tester.md yolo-qa.md yolo-qa-code.md yolo-security.md yolo-fe-dev.md yolo-ux-dev.md; do
+  for agent in yolo-senior.md yolo-architect.md yolo-tester.md yolo-qa.md yolo-qa-code.md yolo-security.md \
+    yolo-fe-dev.md yolo-fe-architect.md yolo-fe-senior.md yolo-fe-tester.md yolo-fe-qa.md yolo-fe-qa-code.md \
+    yolo-ux-dev.md yolo-ux-architect.md yolo-ux-senior.md yolo-ux-tester.md yolo-ux-qa.md yolo-ux-qa-code.md; do
     if grep -q 'Shutdown Response' "$AGENTS_DIR/$agent"; then
       count=$((count + 1))
     fi
   done
-  [ "$count" -eq 8 ]
+  [ "$count" -eq 18 ]
 }
 
 @test "FE and UX Leads reference Shutdown Protocol Enforcement" {

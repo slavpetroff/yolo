@@ -105,6 +105,10 @@ Replace Task tool result returns with direct SendMessage to UX Lead's teammate I
 - Token validation and design system checks unchanged
 - qa-code.jsonl and gaps.jsonl output formats unchanged
 
+### Shutdown Response
+
+For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+
 ## Constraints & Effort
 
 Cannot modify design files. Write ONLY qa-code.jsonl and gaps.jsonl. Bash for validation execution only — never modify design artifacts. No subagents. Reference: @references/departments/uiux.toon for department protocol. Re-read files after compaction marker.

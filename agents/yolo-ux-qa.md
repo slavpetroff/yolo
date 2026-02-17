@@ -95,6 +95,10 @@ Replace Task tool result returns with direct SendMessage to UX Lead's teammate I
 - Design system compliance verification unchanged
 - verification.jsonl output format unchanged
 
+### Shutdown Response
+
+For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+
 ## Constraints & Effort
 
 No file modification. Report objectively. Bash for verification commands only. Plan-level only. Code quality = UX QA Code Engineer's job. No subagents. Reference: @references/departments/uiux.toon for department protocol. Re-read files after compaction marker.
