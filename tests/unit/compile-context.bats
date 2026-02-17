@@ -482,3 +482,59 @@ run_cc() {
   assert_output --partial "Build backend API"
   assert_output --partial "Express"
 }
+
+# --- Scout role with critique findings ---
+
+@test "scout case includes research directives from critique.jsonl" {
+  printf '{"id":"C-01","sev":"critical","q":"Auth token expiry not validated"}\n' > "$PHASES_DIR/01-setup/critique.jsonl"
+  printf '{"id":"C-02","sev":"major","q":"Rate limiting missing"}\n' >> "$PHASES_DIR/01-setup/critique.jsonl"
+  printf '{"id":"C-03","sev":"minor","q":"Typo in comment"}\n' >> "$PHASES_DIR/01-setup/critique.jsonl"
+  run_cc 01 scout
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-scout.toon"
+  run cat "$ctx"
+  assert_output --partial "research_directives:"
+  assert_output --partial "C-01"
+  assert_output --partial "Auth token expiry not validated"
+  assert_output --partial "C-02"
+  assert_output --partial "Rate limiting missing"
+  refute_output --partial "C-03"
+  refute_output --partial "Typo in comment"
+}
+
+@test "scout case includes codebase references" {
+  mkdir -p "$TEST_WORKDIR/.yolo-planning/codebase"
+  echo "# Index" > "$TEST_WORKDIR/.yolo-planning/codebase/INDEX.md"
+  echo "# Patterns" > "$TEST_WORKDIR/.yolo-planning/codebase/PATTERNS.md"
+  run_cc 01 scout
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-scout.toon"
+  run cat "$ctx"
+  assert_output --partial "codebase:"
+  assert_output --partial "INDEX.md"
+  assert_output --partial "PATTERNS.md"
+}
+
+@test "scout case works without critique.jsonl" {
+  run_cc 01 scout
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-scout.toon"
+  run cat "$ctx"
+  assert_output --partial "phase:"
+  assert_output --partial "goal:"
+  refute_output --partial "research_directives:"
+}
+
+@test "scout case respects token budget" {
+  # Create critique.jsonl with 50 critical findings
+  for i in $(seq 1 50); do
+    printf '{"id":"C-%02d","sev":"critical","q":"Finding number %d with a fairly descriptive message about what is wrong"}\n' "$i" "$i"
+  done > "$PHASES_DIR/01-setup/critique.jsonl"
+  run_cc 01 scout
+  assert_success
+  local ctx="$PHASES_DIR/01-setup/.ctx-scout.toon"
+  local char_count
+  char_count=$(wc -c < "$ctx")
+  # enforce_budget enforces 1000-token (4000-char) limit; allow +200 for one-line overshoot
+  assert [ "$char_count" -le 4200 ]
+}

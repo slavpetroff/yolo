@@ -659,6 +659,20 @@ case "$BASE_ROLE" in
       emit_header
       echo ""
       get_requirements
+      echo ""
+      if [ -f "$PHASE_DIR/critique.jsonl" ]; then
+        echo "research_directives:"
+        jq -r 'select(.sev == "critical" or .sev == "major") | "  \(.id // ""): \(.q // .desc // "")"' "$PHASE_DIR/critique.jsonl" 2>/dev/null || true
+      fi
+      echo ""
+      if [ "$HAS_CODEBASE" = true ]; then
+        echo "codebase:"
+        for base in INDEX ARCHITECTURE PATTERNS; do
+          if [ -f "$PLANNING_DIR/codebase/${base}.md" ]; then
+            echo "  @$PLANNING_DIR/codebase/${base}.md"
+          fi
+        done
+      fi
       REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
       get_tool_restrictions
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
