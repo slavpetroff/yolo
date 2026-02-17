@@ -38,6 +38,7 @@ Model Profile: $PROFILE
 - Max tasks per plan: 3 | 5 | 7
 - Model Profile
 - Departments
+- QA Gates
 
 **Step 2.5:** If "Model Profile" was selected, AskUserQuestion with 2 options:
 - Use preset profile (quality/balanced/budget)
@@ -138,6 +139,66 @@ jq --argjson fe "$NEW_FE" --argjson ux "$NEW_UX" --arg wf "$NEW_WF" \
 
 Display: `✓ Departments: {comma-separated active} — workflow: {NEW_WF}`
 
+**Step 2.7:** If "QA Gates" was selected in Step 2, show current QA gate state and allow toggling.
+
+Read current QA gate config:
+```bash
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+QA_CONFIG=$(bash "$PLUGIN_ROOT/scripts/resolve-qa-config.sh" ".yolo-planning/config.json" "$PLUGIN_ROOT/config/defaults.json" 2>/dev/null) || QA_CONFIG='{"post_task":true,"post_plan":true,"post_phase":true,"timeout_seconds":300,"failure_threshold":"critical"}'
+
+IFS='|' read -r QA_PT QA_PP QA_PH QA_TO QA_FT <<< "$(echo "$QA_CONFIG" | jq -r '[
+  .post_task,
+  .post_plan,
+  .post_phase,
+  .timeout_seconds,
+  .failure_threshold
+] | join("|")')"
+```
+
+Display current state:
+```
+Current QA Gates:
+  Post-task:          {✓ or ○}
+  Post-plan:          {✓ or ○}
+  Post-phase:         {✓ or ○}
+  Timeout:            {QA_TO}s
+  Failure threshold:  {QA_FT}
+```
+
+Use AskUserQuestion multiSelect: "Toggle QA gate settings:"
+- **"Post-task gate"** — description: "Currently: {enabled|disabled}. Runs after each task completion."
+- **"Post-plan gate"** — description: "Currently: {enabled|disabled}. Runs after each plan completion."
+- **"Post-phase gate"** — description: "Currently: {enabled|disabled}. Runs after each phase completion."
+- **"Timeout"** — description: "Currently: {QA_TO}s. Enter new timeout value."
+- **"Failure threshold"** — description: "Currently: {QA_FT}. Choose critical/major/minor."
+
+For gate toggles (Post-task, Post-plan, Post-phase), flip the boolean value.
+
+For Timeout, if selected, AskUserQuestion: "Enter new timeout in seconds (positive integer):" — validate positive integer.
+
+For Failure threshold, if selected, AskUserQuestion with 3 options:
+- **"critical"** — description: "Only critical failures block."
+- **"major"** — description: "Major and critical failures block."
+- **"minor"** — description: "All failures block."
+
+Ensure qa_gates object exists:
+```bash
+if ! jq -e '.qa_gates' .yolo-planning/config.json >/dev/null 2>&1; then
+  jq '.qa_gates = {}' .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
+fi
+```
+
+Apply each changed field via jq:
+```bash
+jq --argjson pt "$NEW_PT" --argjson pp "$NEW_PP" --argjson ph "$NEW_PH" \
+   --argjson to "$NEW_TO" --arg ft "$NEW_FT" \
+  '.qa_gates.post_task = $pt | .qa_gates.post_plan = $pp | .qa_gates.post_phase = $ph | .qa_gates.timeout_seconds = $to | .qa_gates.failure_threshold = $ft' \
+  .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+  mv .yolo-planning/config.json.tmp .yolo-planning/config.json
+```
+
+Display: `✓` per changed setting with `➜`.
+
 **Step 3:** Apply changes to config.json. Display ✓ per changed setting with ➜. No changes: "✓ No changes made."
 
 **Step 4: Profile drift detection** — if effort/autonomy/verification_tier changed:
@@ -150,6 +211,15 @@ Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh config` and display.
 ### With arguments: `<setting> <value>`
 
 Validate setting + value. Update config.json. Display ✓ with ➜.
+
+Dotted key paths for nested objects (e.g., `qa_gates.post_task false`): parse on `.` separator, apply via jq nested assignment:
+```bash
+# Example: /yolo:config qa_gates.post_task false
+PARENT=$(echo "$SETTING" | cut -d. -f1)
+CHILD=$(echo "$SETTING" | cut -d. -f2)
+jq ".$PARENT.$CHILD = $VALUE" .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
+```
+Supported dotted settings: `qa_gates.post_task`, `qa_gates.post_plan`, `qa_gates.post_phase`, `qa_gates.timeout_seconds`, `qa_gates.failure_threshold`.
 
 ### Skill-hook wiring: `skill_hook <skill> <event> <matcher>`
 
@@ -205,6 +275,11 @@ Display: `✓ Model override: $AGENT ➜ $MODEL`
 | plain_summary | boolean | true/false | true |
 | active_profile | string | profile name or "custom" | default |
 | custom_profiles | object | user-defined profiles | {} |
+| qa_gates.post_task | boolean | true/false | true |
+| qa_gates.post_plan | boolean | true/false | true |
+| qa_gates.post_phase | boolean | true/false | true |
+| qa_gates.timeout_seconds | number | positive integer | 300 |
+| qa_gates.failure_threshold | string | critical/major/minor | critical |
 
 ## Output Format
 
