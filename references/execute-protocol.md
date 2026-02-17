@@ -397,6 +397,26 @@ Gate decision:
 - Before each task with `ts`: run tests, verify FAIL (RED). If tests pass → escalate to Senior.
 - After implementing: run tests, verify PASS (GREEN). If fail after 3 attempts → escalate to Senior.
 
+**Post-task QA Gate (after each task commit):**
+
+After each Dev task commit (and TDD GREEN verification if applicable), run the post-task QA gate as a fast automated check before proceeding to the next task:
+
+```bash
+result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate-post-task.sh \
+  --phase-dir "{phase-dir}" --plan "{plan-id}" --task "{task-id}" --scope)
+gate_status=$(echo "$result" | jq -r '.gate')
+```
+
+Note: `--scope` flag is DEFAULT per architecture D4 (scoped to task-modified files only for speed).
+
+- On `gate_status=pass`: Dev proceeds to next task.
+- On `gate_status=fail`: Dev pauses. Senior reviews test failures from gate JSON output (`tst.fl` field). Senior re-specs fix. Dev implements fix and re-commits. Re-run post-task gate. Max 2 remediation cycles per task -- after cycle 2 still failing, Senior escalates to Lead.
+- On `gate_status=warn`: Dev proceeds (warn indicates missing test infrastructure, not test failure). Gate result is recorded for QA agent review.
+
+**[teammate]** When `team_mode=teammate`: Dev runs post-task gate autonomously after each self-claimed task commit (part of the Dev claim loop step 5-6). Dev sends gate result to Senior via `dev_progress` message (include `gate_status` field). If gate fails, Dev sends `dev_blocker` to Senior with gate output. Senior routes fix instructions back to Dev via `code_review_changes` schema.
+
+**[task]** When `team_mode=task`: Orchestrator (Lead) runs post-task gate after each Dev task commit. On failure, orchestrator messages Dev with fix instructions from Senior.
+
 **Dev escalation chain:** Dev → Senior (not Lead). If Dev sends `dev_blocker`, route to Senior.
 
 **Summary verification gate (mandatory):**
