@@ -287,6 +287,36 @@ bash scripts/compute-dev-count.sh --available 7
 # outputs: 5
 ```
 
+## Task-Level Blocking (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate.
+
+### Intra-Plan Blocking (td field)
+
+When a task has `td:["T1","T3"]`, it means this task is blocked until tasks T1 AND T3 in the SAME plan are complete. Lead maps `td` entries to TaskCreate `blocked_by` parameter using format `{plan_id}/{td_entry}` (e.g., `03-01/T1`).
+
+When `td` is absent or empty, the task has no intra-plan dependencies (can run immediately if plan-level deps are satisfied).
+
+### Cross-Plan Blocking (d field)
+
+When plan B has `d:["03-01"]`, ALL tasks in plan B are blocked by ALL tasks in plan 03-01. Lead maps this by adding `blocked_by` entries for every task in plan 03-01 to every task in plan B.
+
+This is coarse-grained by design -- plan-level dependency means nothing in B can start until everything in A is done.
+
+### Cross-Phase Blocking (xd field)
+
+When a plan has `xd` entries, Lead verifies the referenced artifact exists (summary.jsonl with `s:complete`) before creating any tasks from that plan. `xd` blocking is resolved at plan load time, not at task level.
+
+### Concrete Example
+
+Plan 03-02 has `d:["03-01"]`. Plan 03-01 has tasks T1-T7.
+
+This means all tasks in 03-02 have `blocked_by=['03-01/T1','03-01/T2',...,'03-01/T7']`.
+
+Within 03-01, if T3 has `td:['T1']`, then T3 has `blocked_by=['03-01/T1']`.
+
+See `references/artifact-formats.md` ## Plan Task for `td` field definition. See `scripts/resolve-task-deps.sh` for canonical dependency resolution.
+
 ## Task Mode Fallback
 
 When team_mode=task (default), all patterns above are replaced by:
