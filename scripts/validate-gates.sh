@@ -244,6 +244,35 @@ case "$STEP" in
     fi
     ;;
 
+  post_task_qa)
+    # Entry: .qa-gate-results.jsonl contains post-task result for specified task
+    if check_artifact_exists "$PHASE_DIR/.qa-gate-results.jsonl"; then
+      # Verify at least one post-task entry exists
+      _has_post_task=$(jq -r 'select(.gl=="post-task")' "$PHASE_DIR/.qa-gate-results.jsonl" 2>/dev/null | head -1) || true
+      if [ -z "$_has_post_task" ]; then
+        MISSING+=("post-task gate results in .qa-gate-results.jsonl")
+        GATE_RESULT="fail"
+      fi
+    elif ! check_step_skipped "post_task_qa"; then
+      MISSING+=(".qa-gate-results.jsonl")
+      GATE_RESULT="fail"
+    fi
+    ;;
+
+  post_plan_qa)
+    # Entry: .qa-gate-results.jsonl contains post-plan result
+    if check_artifact_exists "$PHASE_DIR/.qa-gate-results.jsonl"; then
+      _has_post_plan=$(jq -r 'select(.gl=="post-plan")' "$PHASE_DIR/.qa-gate-results.jsonl" 2>/dev/null | head -1) || true
+      if [ -z "$_has_post_plan" ]; then
+        MISSING+=("post-plan gate results in .qa-gate-results.jsonl")
+        GATE_RESULT="fail"
+      fi
+    elif ! check_step_skipped "post_plan_qa"; then
+      MISSING+=(".qa-gate-results.jsonl")
+      GATE_RESULT="fail"
+    fi
+    ;;
+
   *)
     echo "ERROR: Unknown step: $STEP" >&2
     exit 1
