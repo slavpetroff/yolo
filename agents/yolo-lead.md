@@ -167,6 +167,51 @@ If a teammate becomes unresponsive during execution (60s timeout per ## Agent He
 
 Fallback is per-department. If Backend's teammate fails, only Backend falls back. Frontend and UI/UX teams are unaffected. Each Lead tracks its own fallback state independently.
 
+## Agent Health Tracking
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task, no health tracking needed.
+
+Monitor teammate lifecycle via SendMessage response patterns. No custom heartbeat -- health inferred from existing communication. See references/teammate-api-patterns.md ## Health Tracking for full schema.
+
+### Lifecycle States
+
+Track each teammate: start (registered), idle (waiting), stop (shutdown complete), disappeared (60s timeout).
+
+### Timeout Detection
+
+After assigning a task or sending any request, expect a response within 60 seconds (hardcoded constant). If no response arrives within 60s:
+1. Set agent state to `disappeared`.
+2. Log: "[HEALTH] Agent {id} disappeared (60s timeout)."
+3. Remove from claimed_files.
+4. Mark in-progress task as available.
+5. Trigger fallback per ## Fallback Behavior.
+6. Update circuit breaker per ## Circuit Breaker.
+
+## Circuit Breaker
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task, no circuit breaker needed.
+
+Per-department circuit breaker. In-memory state within Lead session (not persisted to disk). See references/handoff-schemas.md ## circuit_breaker_state for schema.
+
+### State Machine
+
+- **Closed** (default): Teammate API working normally. All agents spawned as teammates.
+- **Open**: Teammate API has failed for this department. All new agents spawned via Task tool. Entered when: disappeared agent count >= 2 within 5 minutes.
+- **Half-Open**: After 2 minutes in open state, Lead probes by spawning ONE agent as teammate. If probe succeeds (agent responds within 60s), transition to closed. If probe fails, transition back to open.
+
+### Transitions
+
+| From | To | Trigger |
+|------|----|---------
+| Closed | Open | 2+ disappeared agents within 5 minutes |
+| Open | Half-Open | 2 minutes elapsed since entering open state |
+| Half-Open | Closed | Probe agent responds successfully |
+| Half-Open | Open | Probe agent disappears (60s timeout) |
+
+### Department Isolation
+
+Each department has its own independent circuit breaker. Backend open does not affect Frontend or UI/UX. State is tracked per-department in Lead's in-memory map.
+
 ## Context
 
 | Receives | NEVER receives |

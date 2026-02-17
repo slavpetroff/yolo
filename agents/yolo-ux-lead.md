@@ -100,6 +100,10 @@ Full patterns: @references/teammate-api-patterns.md
 
 For fallback behavior, see agents/yolo-lead.md ## Fallback Behavior. Apply same patterns with uiux team names (yolo-uiux).
 
+### Health Tracking and Circuit Breaker
+
+For health tracking and circuit breaker patterns, see agents/yolo-lead.md ## Agent Health Tracking and ## Circuit Breaker. Apply same patterns with uiux team (yolo-uiux).
+
 ## Summary Aggregation (when team_mode=teammate)
 
 > This section is active ONLY when team_mode=teammate. When team_mode=task, UX Lead does not aggregate summaries (UX Dev writes summary.jsonl directly).

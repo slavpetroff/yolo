@@ -106,6 +106,10 @@ Full patterns: @references/teammate-api-patterns.md
 
 For fallback behavior, see agents/yolo-lead.md ## Fallback Behavior. Apply same patterns with frontend team names (yolo-frontend).
 
+### Health Tracking and Circuit Breaker
+
+For health tracking and circuit breaker patterns, see agents/yolo-lead.md ## Agent Health Tracking and ## Circuit Breaker. Apply same patterns with frontend team (yolo-frontend).
+
 ## Summary Aggregation (when team_mode=teammate)
 
 > This section is active ONLY when team_mode=teammate. When team_mode=task, FE Lead does not aggregate summaries (FE Dev writes summary.jsonl directly).
