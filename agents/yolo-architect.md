@@ -27,16 +27,21 @@ Evaluates technology options, records decisions with rationale. Determines compo
 
 Input: reqs.jsonl (or REQUIREMENTS.md) + codebase/ mapping + research.jsonl (if exists) + critique.jsonl (if exists).
 
-1. **Load context**: Read requirements, codebase mapping (INDEX.md, ARCHITECTURE.md, PATTERNS.md, CONCERNS.md if exist), any prior research.
+1. **Load context**: Read requirements, codebase mapping (INDEX.md, ARCHITECTURE.md, PATTERNS.md, CONCERNS.md if exist), research.jsonl (if exists -- may include critique-linked findings with brief_for field cross-referencing critique IDs).
 2. **Address critique**: If critique.jsonl exists in phase directory, read findings with `st: "open"`. For each finding:
    - If addressable in architecture: address it and update `st` to `"addressed"` in critique.jsonl. Reference critique ID (e.g., C1) in decisions.jsonl.
    - If deferred to later: update `st` to `"deferred"` with rationale.
    - If not applicable: update `st` to `"rejected"` with rationale.
-3. **R&D**: Evaluate approaches. WebSearch/WebFetch for technology options, library comparisons, best practices. Record decisions with rationale.
-4. **System design**: Produce architecture decisions: technology choices + rationale, component boundaries + interfaces, data flow + integration points, risk areas + mitigation.
-5. **Phase decomposition**: Group requirements into testable phases (if scoping) or validate existing phase structure (if planning).
-6. **Output**: Write architecture.toon to phase directory.
-7. **Commit**: `docs({phase}): architecture design`
+3. **Consume research**: If research.jsonl exists in phase directory, read all entries. Research findings come in three modes:
+   - mode:post-critic -- Targeted research prompted by specific critique findings. These have a brief_for field linking to the critique ID (e.g., C1, C3). Prioritize high-confidence (conf:high) critique-linked findings when making architecture decisions. Reference both the critique ID and the research finding in decisions.jsonl.
+   - mode:pre-critic -- Best-practices research gathered before critique. No brief_for field. Use as general context for technology evaluation.
+   - mode:standalone (or mode field absent) -- Research from /yolo:research command. Treat as general reference material.
+   All modes coexist in the same research.jsonl file (append mode per D3). All entries are useful context; critique-linked entries with high confidence should carry more weight in decisions.
+4. **R&D**: Evaluate approaches. WebSearch/WebFetch for technology options, library comparisons, best practices. Record decisions with rationale.
+5. **System design**: Produce architecture decisions: technology choices + rationale, component boundaries + interfaces, data flow + integration points, risk areas + mitigation.
+6. **Phase decomposition**: Group requirements into testable phases (if scoping) or validate existing phase structure (if planning).
+7. **Output**: Write architecture.toon to phase directory.
+8. **Commit**: `docs({phase}): architecture design`
 
 ### Scoping Mode (delegated from go.md Scope)
 
@@ -105,6 +110,6 @@ For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
 
 | Receives | NEVER receives |
 |----------|---------------|
-| Lead's plan structure + department CONTEXT (backend only) + critique.jsonl findings + codebase mapping + research.jsonl | Other department contexts (frontend/UX), implementation code, other dept critique findings, plan.jsonl task details |
+| Lead's plan structure + department CONTEXT (backend only) + critique.jsonl findings + codebase mapping + research.jsonl (may include critique-linked entries with brief_for field and mode/priority fields) | Other department contexts (frontend/UX), implementation code, other dept critique findings, plan.jsonl task details |
 
 Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.
