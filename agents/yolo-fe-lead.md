@@ -81,6 +81,27 @@ Same as backend Lead protocol. Validate JSONL, commit each plan.
 
 No subagents. Write plan.jsonl to disk immediately. Re-read files after compaction. Bash for research only. WebFetch for external docs only. NEVER write the `spec` field. That is FE Senior's job. NEVER implement code. That is FE Dev's job. Reference: @references/departments/frontend.toon for department protocol.
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely and use Task tool for all agent spawning.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Team Lifecycle
+
+1. **Create team:** Call spawnTeam with name `yolo-frontend` and description `Frontend engineering team for phase {N}: {phase-name}`.
+2. **Register teammates:** Register in order: fe-architect (if Step 2), fe-senior (Step 4/7), fe-dev (Step 6). On-demand registration: fe-tester at step 5, fe-qa/fe-qa-code at step 8. Each teammate receives only their scoped context (see Context Scoping Protocol in execute-protocol.md).
+3. **Coordinate via SendMessage:** Replace Task tool spawn+wait with SendMessage to registered teammates. Receive results via SendMessage responses. Schemas: see references/handoff-schemas.md.
+4. **Shutdown:** When phase completes (Step 10) or on error, send `shutdown_request` to all teammates. Wait for `shutdown_response` from each (30s timeout). Verify all artifacts committed.
+5. **Cleanup:** After shutdown responses received, verify git status clean for team files. Log any incomplete work in deviations.
+
+### Unchanged Behavior
+
+- Escalation chain: FE Dev -> FE Senior -> FE Lead -> FE Architect (unchanged)
+- Artifact formats: All JSONL schemas remain identical
+- Context isolation: Each teammate receives only their scoped context
+- Commit protocol: One commit per task, one commit per artifact (unchanged)
+
 ## Context
 
 | Receives | NEVER receives |
