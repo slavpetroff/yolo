@@ -20,6 +20,7 @@ Canonical naming patterns for all YOLO artifacts. This document is the single so
 | `gaps.jsonl` | (no prefix) | Phase directory |
 | `manual-qa.jsonl` | (no prefix) | Phase directory |
 | `research.jsonl` | (no prefix) | Phase directory |
+| `.qa-gate-results.jsonl` | (dot-prefix, append-only) | Phase directory |
 | `reqs.jsonl` | (project-level) | `.yolo-planning/reqs.jsonl` |
 
 NN = zero-padded phase number. MM = zero-padded plan number. slug = lowercase-hyphenated-name.
@@ -161,6 +162,16 @@ Per task: `{id, tf, tc, red, desc}`.
 ### Manual QA (manual-qa.jsonl)
 
 Line 1: `{r, tests, dt}`.
+
+### QA Gate Results (.qa-gate-results.jsonl)
+
+Three schemas per gate level:
+- post-task: `{gl, r, plan, task, tst, dur, f, dt}`
+- post-plan: `{gl, r, plan, tc, tt, tst, dur, mh, dt}`
+- post-phase: `{gl, r, ph, plans, tst, dur, esc, gates, dt}`
+
+Valid `gl`: `"post-task"`, `"post-plan"`, `"post-phase"`.
+Valid `r`: `"PASS"`, `"FAIL"`, `"WARN"`.
 
 ## 7. Cross-Department Artifact Naming
 

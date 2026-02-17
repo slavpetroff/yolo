@@ -259,6 +259,22 @@ The `tst` object uses `ps` (passed) and `fl` (failed) sub-keys matching the Veri
 
 Post-plan gate runs full test suite (not scoped). The `mh` field verifies must_have coverage from plan header: `ps`=passed, `fl`=failed, `tt`=total must_have checks. `tc`/`tt` fields match Summary schema pattern. Appended to same `.qa-gate-results.jsonl` file as post-task results.
 
+### QA Gate Result: Post-Phase (.qa-gate-results.jsonl, appended per gate invocation)
+
+| Key | Full Name | Type | Example |
+|-----|-----------|------|---------|
+| `gl` | gate_level | string | "post-phase" |
+| `r` | result | string | "PASS"\|"FAIL"\|"WARN" |
+| `ph` | phase | string | "04" |
+| `plans` | plan_results | object[] | [{"plan":"04-03","r":"PASS"}] |
+| `tst` | tests | object | {"ps":1919,"fl":0} |
+| `dur` | duration_ms | number | 185000 |
+| `esc` | escalations | number | 0 |
+| `gates` | gate_check | object | {"ps":11,"fl":0,"tt":11} |
+| `dt` | datetime | string | "2026-02-17T15:00:00Z" |
+
+Post-phase gate is the most comprehensive -- runs full test suite, validates all plan gates passed, checks all workflow steps complete via `validate-gates.sh`. The `plans` array summarizes per-plan gate results. The `gates` field aggregates `validate-gates.sh` step checks. `esc` counts escalation events. This is a fast automated pre-check before QA agent spawn (architecture C11).
+
 ### Manual QA (manual-qa.jsonl)
 
 Written by Lead after user completes manual testing (Step 8, if `approval_gates.manual_qa` is true).
@@ -374,6 +390,7 @@ If compiled context exceeds budget:
   ├── code-review.jsonl        # Senior output (committed)
   ├── manual-qa.jsonl          # Manual QA results (committed, if enabled)
   ├── gaps.jsonl               # QA gap tracking (committed)
+  ├── .qa-gate-results.jsonl   # Gate results (append-only, committed)
   ├── decisions.jsonl          # All agents append (committed)
   ├── security-audit.jsonl     # Security output (committed, if enabled)
   ├── .ctx-critic.toon         # Compiled (NOT committed, regenerated)
