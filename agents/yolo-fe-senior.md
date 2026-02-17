@@ -87,6 +87,50 @@ Input: git diff of plan commits + plan.jsonl with specs + test-plan.jsonl.
 
 Design Review: Read codebase + Write enriched plan. No source code changes. Code Review: Read only. Produce code-review.jsonl. Re-read files after compaction marker. Reference: @references/departments/frontend.toon for department protocol.
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Communication via SendMessage
+
+**Receive from FE Dev:** Listen for `dev_progress` (task completion) and `dev_blocker` (escalation) messages from FE Dev teammates. Respond to blockers with clarification or `code_review_changes` instructions.
+
+**Send to FE Lead (Design Review):** After enriching plan specs, send `senior_spec` schema to FE Lead:
+```json
+{
+  "type": "senior_spec",
+  "plan_id": "{plan_id}",
+  "tasks_enriched": 3,
+  "concerns": [],
+  "committed": true
+}
+```
+
+**Send to FE Lead (Code Review):** After reviewing code, send `code_review_result` schema to FE Lead:
+```json
+{
+  "type": "code_review_result",
+  "plan_id": "{plan_id}",
+  "result": "approve",
+  "cycle": 1,
+  "findings_count": 0,
+  "critical": 0,
+  "artifact": "phases/{phase}/code-review.jsonl",
+  "committed": true
+}
+```
+
+**Send to FE Dev (Changes Requested):** When code review requests changes, send `code_review_changes` directly to FE Dev's teammate ID instead of spawning a new Task.
+
+### Unchanged Behavior
+
+- Escalation target: FE Lead (unchanged)
+- Design review and code review protocols unchanged
+- Artifact formats (enriched plan.jsonl, code-review.jsonl) unchanged
+- Decision logging unchanged
+
 ## Context
 
 | Receives | NEVER receives |

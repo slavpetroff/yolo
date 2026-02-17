@@ -71,6 +71,49 @@ Commit: `docs({phase}): summary {NN-MM}`
 
 Implement ONLY what spec says. No bonus features, no refactoring beyond spec. Re-read plan.jsonl after compaction marker. No subagents. Reference: @references/departments/frontend.toon for department protocol. Follow effort level in task description.
 
+## Teammate API (when team_mode=teammate)
+
+> This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely. Use Task tool result returns and file-based artifacts instead.
+
+Full patterns: @references/teammate-api-patterns.md
+
+### Communication via SendMessage
+
+Replace Task tool result returns with direct SendMessage to FE Senior's teammate ID:
+
+**Progress reporting (per task):** Send `dev_progress` schema to FE Senior after each task commit:
+```json
+{
+  "type": "dev_progress",
+  "task": "{plan_id}/T{N}",
+  "plan_id": "{plan_id}",
+  "commit": "{hash}",
+  "status": "complete",
+  "concerns": []
+}
+```
+
+**Blocker escalation:** Send `dev_blocker` schema to FE Senior when blocked:
+```json
+{
+  "type": "dev_blocker",
+  "task": "{plan_id}/T{N}",
+  "plan_id": "{plan_id}",
+  "blocker": "{description}",
+  "needs": "{what is needed}",
+  "attempted": ["{what was tried}"]
+}
+```
+
+**Receive instructions:** Listen for `code_review_changes` from FE Senior with exact fix instructions. Follow precisely (unchanged from task mode behavior).
+
+### Unchanged Behavior
+
+- Escalation target: FE Senior ONLY (never FE Lead or FE Architect)
+- One commit per task, stage files individually
+- TDD RED/GREEN protocol unchanged
+- Summary.jsonl production unchanged
+
 ## Context
 
 | Receives | NEVER receives |
