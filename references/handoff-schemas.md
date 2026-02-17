@@ -325,6 +325,26 @@ Lead constructs this internally from collected `task_complete` messages to write
 
 Lead constructs this internally from collected `task_complete` messages. Used to write summary.jsonl. In task mode, Dev writes summary.jsonl directly and this schema is not used.
 
+## `phase_progress` (Lead -> go.md, intra-phase progress)
+
+Intra-phase progress update from Lead to orchestrator. Used by go.md to display progress during execution.
+
+```json
+{
+  "type": "phase_progress",
+  "department": "backend | frontend | uiux",
+  "phase": "03",
+  "step": "implementation",
+  "plans_complete": 2,
+  "plans_total": 4,
+  "percent_complete": 50,
+  "blockers": [],
+  "eta": ""
+}
+```
+
+Sent at each workflow step transition. go.md uses this for progress display and timeout calculation. In single-department mode, Lead sends this to go.md directly. In multi-department mode, go.md reads from .dept-status-{dept}.json (file-based) instead.
+
 ## `shutdown_request` (Lead -> Teammates, when team_mode=teammate)
 
 Lead sends to all registered teammates to initiate graceful shutdown.

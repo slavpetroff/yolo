@@ -194,3 +194,53 @@ When departments conflict:
 ## Handoff Artifact Schemas
 
 Handoff artifact schemas (design_handoff, api_contract, department_result, owner_signoff): see @references/handoff-schemas.md ## Cross-Department Schemas for full definitions.
+
+## Cross-Team Status Reporting
+
+Defines how departments report progress during multi-department execution. Single-department mode uses execution-state.json directly and does not need this section.
+
+### Reporting Cadence
+
+| Level | Reporter | Frequency | Artifact | Reader |
+|-------|----------|-----------|----------|--------|
+| Task | Dev | Per task completion | `dev_progress` schema (to Senior) | Senior |
+| Plan | Lead | Per plan completion | `summary.jsonl` | Owner (at gates) |
+| Step | Lead | Per workflow step | `.dept-status-{dept}.json` | go.md (polling), Owner |
+| Phase | Lead | On department completion | `department_result` schema | Owner |
+
+### Status Schema (.dept-status-{dept}.json)
+
+Written by dept-status.sh (called by department Lead). Updated at each workflow step transition:
+
+```json
+{
+  "dept": "backend",
+  "status": "running | complete | failed",
+  "step": "implementation",
+  "percent_complete": 60,
+  "plans_complete": 2,
+  "plans_total": 3,
+  "blockers": [],
+  "eta": "ISO 8601 or empty",
+  "started_at": "ISO 8601",
+  "updated_at": "ISO 8601",
+  "error": ""
+}
+```
+
+### Aggregation
+
+Owner reads all department status files at gate boundaries:
+1. **UX-complete gate**: Read `.dept-status-uiux.json` for UX completion
+2. **All-depts gate**: Read all `.dept-status-{dept}.json` for completion
+3. **Sign-off**: Read `department_result` from each Lead
+
+go.md polls `.dept-status-{dept}.json` via dept-gate.sh for gate satisfaction (see ## Handoff Gates above).
+
+### Intra-Phase Progress (phase_progress schema)
+
+Leads report intra-phase progress to orchestrator via the `phase_progress` schema (see @references/handoff-schemas.md ## phase_progress). Used by go.md to display progress during long-running phases.
+
+### Teammate Mode
+
+When `team_mode=teammate`: Intra-department status reporting uses SendMessage (Dev->Senior via dev_progress, Dev->Lead via task_complete). Cross-department status reporting remains file-based (.dept-status-{dept}.json) because Leads are in separate teams.
