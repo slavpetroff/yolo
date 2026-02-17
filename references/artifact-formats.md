@@ -228,6 +228,21 @@ New fields (D4): `brief_for` links a research finding to the critique ID (from c
 | `st` | status | "open"\|"fixed"\|"accepted" |
 | `res` | resolution | string |
 
+### QA Gate Result: Post-Task (.qa-gate-results.jsonl, appended per gate invocation)
+
+| Key | Full Name | Type | Example |
+|-----|-----------|------|---------|
+| `gl` | gate_level | string | "post-task" |
+| `r` | result | string | "PASS"\|"FAIL"\|"WARN" |
+| `plan` | plan_id | string | "04-03" |
+| `task` | task_id | string | "T1" |
+| `tst` | tests | object | {"ps":12,"fl":0} |
+| `dur` | duration_ms | number | 2450 |
+| `f` | files_tested | string[] | ["tests/unit/resolve-qa-config.bats"] |
+| `dt` | datetime | string | "2026-02-17T14:30:00Z" |
+
+The `tst` object uses `ps` (passed) and `fl` (failed) sub-keys matching the Verification schema pattern. `WARN` result indicates infrastructure missing (no bats, no matching tests). Appended to `{phase-dir}/.qa-gate-results.jsonl` by `format-gate-result.sh`.
+
 ### Manual QA (manual-qa.jsonl)
 
 Written by Lead after user completes manual testing (Step 8, if `approval_gates.manual_qa` is true).
