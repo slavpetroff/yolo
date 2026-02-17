@@ -241,6 +241,59 @@ Escalation when agent cannot resolve an issue within their authority.
 }
 ```
 
+## `task_claim` (Dev -> Lead, when team_mode=teammate)
+
+Dev claims a task from the shared task list. Sent after calling TaskUpdate to set status to claimed.
+
+```json
+{
+  "type": "task_claim",
+  "task_id": "T3",
+  "plan_id": "03-01",
+  "files": ["references/teammate-api-patterns.md"],
+  "claimed_at": "2026-02-17T10:30:00Z"
+}
+```
+
+Dev sends to Lead after calling TaskUpdate to claim a task. Lead adds task files to `claimed_files` set for file-overlap detection. In task mode, this message is not used (Dev works sequentially).
+
+## `task_complete` (Dev -> Lead, when team_mode=teammate)
+
+Dev reports task completion with commit hash. Sent after committing the task.
+
+```json
+{
+  "type": "task_complete",
+  "task_id": "T3",
+  "plan_id": "03-01",
+  "commit": "abc1234",
+  "files_modified": ["references/teammate-api-patterns.md"],
+  "status": "complete",
+  "deviations": []
+}
+```
+
+Dev sends to Lead after committing task. Lead removes files from `claimed_files`, checks if all tasks in plan are complete, and aggregates into summary.jsonl. Distinct from `dev_progress` (sent to Senior for visibility) -- `task_complete` is for Lead accounting only.
+
+## `summary_aggregation` (Lead internal, when team_mode=teammate)
+
+Lead constructs this internally from collected `task_complete` messages to write summary.jsonl.
+
+```json
+{
+  "type": "summary_aggregation",
+  "plan_id": "03-01",
+  "tasks_completed": 7,
+  "tasks_total": 7,
+  "commit_hashes": ["abc1234", "def5678"],
+  "files_modified": ["a.md", "b.md"],
+  "deviations": [],
+  "status": "complete"
+}
+```
+
+Lead constructs this internally from collected `task_complete` messages. Used to write summary.jsonl. In task mode, Dev writes summary.jsonl directly and this schema is not used.
+
 ---
 
 ## Cross-Department Schemas
