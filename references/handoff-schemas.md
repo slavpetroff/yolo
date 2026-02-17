@@ -325,6 +325,35 @@ Lead constructs this internally from collected `task_complete` messages to write
 
 Lead constructs this internally from collected `task_complete` messages. Used to write summary.jsonl. In task mode, Dev writes summary.jsonl directly and this schema is not used.
 
+## `shutdown_request` (Lead -> Teammates, when team_mode=teammate)
+
+Lead sends to all registered teammates to initiate graceful shutdown.
+
+```json
+{
+  "type": "shutdown_request",
+  "reason": "phase_complete | timeout | error",
+  "deadline_seconds": 30
+}
+```
+
+Sent at Step 10 (sign-off) or on unrecoverable error. See references/teammate-api-patterns.md ### Shutdown Protocol for the full protocol. See agents/yolo-lead.md ## Shutdown Protocol Enforcement for Lead-side algorithm.
+
+## `shutdown_response` (Teammates -> Lead, when team_mode=teammate)
+
+Teammate sends to Lead after receiving shutdown_request.
+
+```json
+{
+  "type": "shutdown_response",
+  "status": "clean | in_progress | error",
+  "pending_work": ["task T3 implementation incomplete"],
+  "artifacts_committed": true
+}
+```
+
+See agents/yolo-dev.md ## Shutdown Response for teammate-side protocol.
+
 ---
 
 ## Cross-Department Schemas
