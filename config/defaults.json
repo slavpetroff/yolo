@@ -25,5 +25,12 @@
     "uiux": false
   },
   "department_workflow": "backend_only",
-  "cross_team_handoff": false
+  "cross_team_handoff": false,
+  "qa_gates": {
+    "post_task": true,
+    "post_plan": true,
+    "post_phase": true,
+    "timeout_seconds": 300,
+    "failure_threshold": "critical"
+  }
 }
