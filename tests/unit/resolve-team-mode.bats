@@ -102,14 +102,14 @@ get_val() {
   assert_line 'fallback_notice=false'
 }
 
-# --- 9. Output format: exactly 2 lines ---
+# --- 9. Output format: all lines match key=value ---
 
-@test "outputs exactly 2 lines" {
+@test "all output lines match key=value format" {
   run bash "$SUT" "$TEST_WORKDIR/nonexistent.json"
   assert_success
-  local line_count
-  line_count=$(echo "$output" | wc -l | tr -d ' ')
-  [ "$line_count" -eq 2 ]
+  while IFS= read -r line; do
+    [[ "$line" =~ ^[a-z_]+=.+ ]] || fail "Line does not match key=value: $line"
+  done <<< "$output"
 }
 
 # --- 10. Default config path when no argument ---
@@ -121,4 +121,86 @@ get_val() {
   assert_success
   assert_line 'team_mode=task'
   assert_line 'fallback_notice=false'
+}
+
+# --- 11. Auto mode with env var set and agent_teams=true -> teammate ---
+
+@test "auto mode with env var and agent_teams=true resolves to teammate" {
+  export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+  echo '{"team_mode":"auto","agent_teams":true}' > "$TEST_WORKDIR/cfg.json"
+  run bash "$SUT" "$TEST_WORKDIR/cfg.json"
+  assert_success
+  assert_line 'team_mode=teammate'
+  assert_line 'fallback_notice=false'
+  assert_line 'auto_detected=true'
+}
+
+# --- 12. Auto mode without env var -> task with fallback ---
+
+@test "auto mode without env var falls back to task" {
+  unset CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS 2>/dev/null || true
+  echo '{"team_mode":"auto","agent_teams":true}' > "$TEST_WORKDIR/cfg.json"
+  run bash "$SUT" "$TEST_WORKDIR/cfg.json"
+  assert_success
+  assert_line 'team_mode=task'
+  assert_line 'fallback_notice=true'
+  assert_line 'auto_detected=false'
+}
+
+# --- 13. Auto mode with env var but agent_teams=false -> task ---
+
+@test "auto mode with agent_teams=false falls back to task" {
+  export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+  echo '{"team_mode":"auto","agent_teams":false}' > "$TEST_WORKDIR/cfg.json"
+  run bash "$SUT" "$TEST_WORKDIR/cfg.json"
+  assert_success
+  assert_line 'team_mode=task'
+  assert_line 'fallback_notice=true'
+  assert_line 'auto_detected=false'
+}
+
+# --- 14. Auto mode outputs exactly 3 lines ---
+
+@test "auto mode outputs exactly 3 lines" {
+  export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+  echo '{"team_mode":"auto","agent_teams":true}' > "$TEST_WORKDIR/cfg.json"
+  run bash "$SUT" "$TEST_WORKDIR/cfg.json"
+  assert_success
+  local line_count
+  line_count=$(echo "$output" | wc -l | tr -d ' ')
+  [ "$line_count" -eq 3 ]
+}
+
+# --- 15. Task mode still outputs exactly 2 lines ---
+
+@test "task mode outputs exactly 2 lines" {
+  echo '{"team_mode":"task","agent_teams":true}' > "$TEST_WORKDIR/cfg.json"
+  run bash "$SUT" "$TEST_WORKDIR/cfg.json"
+  assert_success
+  local line_count
+  line_count=$(echo "$output" | wc -l | tr -d ' ')
+  [ "$line_count" -eq 2 ]
+}
+
+# --- 16. Teammate mode still outputs exactly 2 lines ---
+
+@test "teammate mode outputs exactly 2 lines" {
+  export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+  echo '{"team_mode":"teammate","agent_teams":true}' > "$TEST_WORKDIR/cfg.json"
+  run bash "$SUT" "$TEST_WORKDIR/cfg.json"
+  assert_success
+  local line_count
+  line_count=$(echo "$output" | wc -l | tr -d ' ')
+  [ "$line_count" -eq 2 ]
+}
+
+# --- 17. Auto mode with missing agent_teams field defaults to true ---
+
+@test "auto mode with missing agent_teams defaults to true" {
+  export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+  echo '{"team_mode":"auto"}' > "$TEST_WORKDIR/cfg.json"
+  run bash "$SUT" "$TEST_WORKDIR/cfg.json"
+  assert_success
+  assert_line 'team_mode=teammate'
+  assert_line 'auto_detected=true'
 }
