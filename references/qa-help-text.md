@@ -88,3 +88,132 @@ Post-task QA gate (tests after each commit)?
 ```
 
 (Repeat for post_plan, post_phase, then prompt for timeout and threshold.)
+
+## Error Remediation Patterns
+
+Each failure type follows the stop_message two-part pattern from brand-essentials.toon:
+```
+✗ {What went wrong}. {How to fix it}.
+```
+
+Gate scripts use these templates to generate actionable error output.
+
+### Test Failures
+
+When one or more tests fail during gate execution.
+
+**Problem line:**
+```
+✗ {N} test(s) failed in {gate-name} gate.
+```
+
+**Detail lines** (one per failing test):
+```
+    {test-file}:{line} -- {test name}
+      Expected: {expected value}
+      Actual:   {actual value}
+```
+
+**Remediation line:**
+```
+➜ Review test output above. Fix the failing code or update the test expectation, then re-commit.
+```
+
+**Full example:**
+```
+✗ 2 test(s) failed in post-task gate.
+
+    tests/unit/resolve-qa-config.bats:42 -- reads fallback from defaults.json
+      Expected: 30
+      Actual:   0
+    tests/unit/resolve-qa-config.bats:58 -- handles missing config.json
+      Expected: exit 0
+      Actual:   exit 1
+
+➜ Review test output above. Fix the failing code or update the test expectation, then re-commit.
+```
+
+### Lint Errors
+
+When static analysis or lint checks fail (future extensibility).
+
+**Problem line:**
+```
+✗ {N} lint error(s) found in {gate-name} gate.
+```
+
+**Detail lines** (one per error):
+```
+    {file}:{line}:{col} -- {rule-name}: {message}
+```
+
+**Remediation line:**
+```
+➜ Fix lint errors above. See rule documentation for guidance.
+```
+
+**Full example:**
+```
+✗ 1 lint error(s) found in post-plan gate.
+
+    scripts/qa-gate-post-task.sh:15:3 -- SC2086: Double quote to prevent globbing and word splitting.
+
+➜ Fix lint errors above. See rule documentation for guidance.
+```
+
+### Timeout
+
+When gate execution exceeds qa_gates.timeout_seconds.
+
+**Problem line:**
+```
+⚠ {gate-name} gate timed out after {N}s (limit: {M}s).
+```
+
+**Remediation line:**
+```
+➜ Increase timeout via qa_gates.timeout_seconds in /yolo:config, or reduce test scope.
+```
+
+**Full example:**
+```
+⚠ post-task gate timed out after 30s (limit: 30s).
+
+➜ Increase timeout via qa_gates.timeout_seconds in /yolo:config, or reduce test scope.
+```
+
+### Missing Test Coverage
+
+When gate detects files modified by a task that have no corresponding test files.
+
+**Problem line:**
+```
+⚠ {N} modified file(s) have no test coverage.
+```
+
+**Detail lines** (one per uncovered file, using file_checklist pattern):
+```
+    ○ {file-path} -- no matching test file
+```
+
+**Remediation line:**
+```
+➜ Consider adding tests for uncovered files. This is a warning, not a blocking failure.
+```
+
+**Full example:**
+```
+⚠ 2 modified file(s) have no test coverage.
+
+    ○ scripts/format-gate-result.sh -- no matching test file
+    ○ scripts/resolve-qa-config.sh -- no matching test file
+
+➜ Consider adding tests for uncovered files. This is a warning, not a blocking failure.
+```
+
+### Symbol Usage (Remediation)
+- `✗` (Failure/error) -- blocking problem line
+- `⚠` (Warning) -- non-blocking problem line (timeout, missing coverage)
+- `○` (Pending/neutral) -- uncovered file in checklist
+- `➜` (Info/arrow) -- remediation action
+- `--` (Separator) -- between identifier and description
