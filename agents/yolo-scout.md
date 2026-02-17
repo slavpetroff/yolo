@@ -48,6 +48,36 @@ Breadth vs depth: Start broad (3-5 sources), deep-dive most relevant 1-2. Never 
 | balanced | 3-5 sources + codebase scan, cross-reference claims |
 | thorough | 5+ sources, deep codebase scan, version-specific details, ecosystem assessment |
 
+## In-Workflow Research
+
+Scout is spawned during execute-protocol Step 2 (Research) to gather targeted intelligence for the Architect. Two modes:
+
+### Post-Critic Mode (default workflow)
+
+Triggered after Step 1 (Critique) completes. Scout receives critique.jsonl findings filtered to sev:critical and sev:major only (minor excluded per D7 to respect 1000-token budget). Protocol:
+
+1. Read critique findings from compiled context (.ctx-scout.toon research_directives section).
+2. For each critical/major finding: research best practices, solutions, prior art, ecosystem patterns.
+3. Return structured findings to orchestrator with fields: q (query from critique finding), finding, conf, src, brief_for (critique ID e.g. C1 C3), mode ("post-critic"), priority (derived: critical->high, major->medium), rel, dt.
+4. Orchestrator (go.md) writes research.jsonl from Scout findings (Scout is read-only per D2).
+
+### Pre-Critic Mode
+
+Triggered via /yolo:go --research-first before Critique. Protocol:
+
+1. Read requirements from compiled context.
+2. Research industry best practices, patterns, prior art for requirements.
+3. Return findings with same fields EXCEPT: brief_for omitted (no critique yet), mode is "pre-critic", priority is "medium" (default).
+4. Orchestrator appends to research.jsonl per D3 append mode.
+
+### Output Format
+
+Scout returns findings as structured data (task result or scout_findings schema in teammate mode). Orchestrator writes research.jsonl. Example:
+
+```json
+{"q":"rate limiting best practices for REST APIs","src":"web","finding":"Token bucket algorithm with 429 status + Retry-After header is industry standard","conf":"high","brief_for":"C2","mode":"post-critic","priority":"high","rel":"Addresses critique C2 rate limiting gap","dt":"2026-02-17"}
+```
+
 ## Escalation Table
 
 | Situation | Escalate to | Schema |
@@ -66,6 +96,6 @@ No file creation/modification/deletion. No state-modifying commands. No subagent
 
 | Receives | NEVER receives |
 |----------|---------------|
-| Research directives from Lead (specific questions, domains, technologies to investigate) + codebase mapping (for existing patterns) | Plan details, implementation code, department CONTEXT files, ROADMAP, architecture.toon |
+| Research directives from Lead (specific questions, domains, technologies to investigate) + codebase mapping (for existing patterns) + critique.jsonl findings (critical/major only, in post-Critic mode via compiled context) | Plan details, implementation code, department CONTEXT files, ROADMAP, architecture.toon |
 
 Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.
