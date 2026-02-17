@@ -58,11 +58,12 @@
     }
   },
   "role_hierarchy": {
-    "lead": {"can_send": ["plan_contract", "approval_request", "approval_response", "shutdown_request"], "can_receive": ["execution_update", "blocker_report", "qa_verdict", "scout_findings", "approval_request", "shutdown_response"]},
+    "lead": {"can_send": ["plan_contract", "approval_request", "approval_response", "shutdown_request", "shutdown_response"], "can_receive": ["execution_update", "blocker_report", "qa_verdict", "scout_findings", "approval_request", "shutdown_request", "shutdown_response"]},
     "architect": {"can_send": ["plan_contract", "approval_response"], "can_receive": ["scout_findings", "approval_request"]},
     "dev": {"can_send": ["execution_update", "blocker_report", "approval_request", "shutdown_response"], "can_receive": ["plan_contract", "approval_response", "shutdown_request"]},
     "qa": {"can_send": ["qa_verdict", "shutdown_response"], "can_receive": ["plan_contract", "shutdown_request"]},
     "scout": {"can_send": ["scout_findings", "shutdown_response"], "can_receive": ["plan_contract", "shutdown_request"]},
-    "debugger": {"can_send": ["blocker_report", "shutdown_response"], "can_receive": ["plan_contract", "shutdown_request"]}
+    "debugger": {"can_send": ["blocker_report", "shutdown_response"], "can_receive": ["plan_contract", "shutdown_request"]},
+    "docs": {"can_send": ["shutdown_response"], "can_receive": ["plan_contract", "shutdown_request"]}
   }
 }

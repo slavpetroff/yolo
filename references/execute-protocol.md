@@ -406,7 +406,7 @@ Note: "Run inline" means the execute-protocol agent runs the verify protocol dir
 ### Step 5: Update state and present summary
 
 **HARD GATE — Shutdown before ANY output or state updates:** If team was created (based on prefer_teams decision), you MUST shut down the team BEFORE updating state, presenting results, or asking the user anything. This is blocking and non-negotiable:
-1. Send `shutdown_request` via SendMessage to EVERY teammate (each dev-{MM}, qa) — do not skip any
+1. Send `shutdown_request` via SendMessage to EVERY active teammate — do not skip any
 2. Wait for each `shutdown_response` with `approve: true`. If a teammate rejects, re-request immediately.
 3. Call TeamDelete for team "vbw-phase-{NN}"
 4. Only THEN proceed to state updates and user-facing output below

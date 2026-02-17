@@ -215,7 +215,7 @@ teardown() {
 }
 
 @test "message-schemas.json all teammate roles can_receive shutdown_request" {
-  for role in dev qa scout debugger; do
+  for role in dev qa scout debugger docs; do
     jq -e --arg r "$role" '.role_hierarchy[$r].can_receive | index("shutdown_request") != null' \
       "$CONFIG_DIR/schemas/message-schemas.json" || {
       echo "$role missing shutdown_request in can_receive"
@@ -225,7 +225,7 @@ teardown() {
 }
 
 @test "message-schemas.json all teammate roles can_send shutdown_response" {
-  for role in dev qa scout debugger; do
+  for role in dev qa scout debugger docs lead; do
     jq -e --arg r "$role" '.role_hierarchy[$r].can_send | index("shutdown_response") != null' \
       "$CONFIG_DIR/schemas/message-schemas.json" || {
       echo "$role missing shutdown_response in can_send"
@@ -345,4 +345,54 @@ teardown() {
   run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.valid == true'
+}
+
+# =============================================================================
+# Finding 4: shutdown_response from docs and lead; shutdown_request to docs/lead
+# =============================================================================
+
+@test "validate-message: shutdown_response from docs passes" {
+  cd "$TEST_TEMP_DIR"
+  MSG='{"id":"shut-resp-005","type":"shutdown_response","phase":1,"task":"","author_role":"docs","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approve":true,"final_status":"idle"}}'
+  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.valid == true'
+}
+
+@test "validate-message: shutdown_response from lead passes" {
+  cd "$TEST_TEMP_DIR"
+  MSG='{"id":"shut-resp-006","type":"shutdown_response","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approve":true,"final_status":"complete"}}'
+  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.valid == true'
+}
+
+@test "validate-message: shutdown_request targeted to docs passes" {
+  cd "$TEST_TEMP_DIR"
+  MSG='{"id":"shut-t3","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"docs","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"vbw-phase-01"}}'
+  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.valid == true'
+}
+
+@test "validate-message: shutdown_request targeted to lead passes" {
+  cd "$TEST_TEMP_DIR"
+  MSG='{"id":"shut-t4","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"vbw-phase-01"}}'
+  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.valid == true'
+}
+
+# =============================================================================
+# Finding 6: v2_typed_protocol=false fallback for shutdown messages
+# =============================================================================
+
+@test "validate-message: shutdown_request passes when v2_typed_protocol=false" {
+  cd "$TEST_TEMP_DIR"
+  jq '.v2_typed_protocol = false' \
+    "$TEST_TEMP_DIR/.vbw-planning/config.json" > "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" \
+    && mv "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  MSG='{"id":"shut-fallback","type":"shutdown_request","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"vbw-phase-01"}}'
+  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
+  [ "$status" -eq 0 ]
 }
