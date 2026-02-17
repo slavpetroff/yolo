@@ -233,6 +233,30 @@ if [ -f "$EXEC_STATE" ]; then
   fi
 fi
 
+# --- Orphaned .dept-status cleanup ---
+# Clean stale .dept-status-*.json files from prior crashed sessions.
+# Only runs when agent_teams=true in config (no cleanup needed for task-only mode).
+if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ]; then
+  DEPT_CLEANUP_TEAMS=$(jq -r 'if .agent_teams == false then "false" else "true" end' "$PLANNING_DIR/config.json" 2>/dev/null)
+  if [ "$DEPT_CLEANUP_TEAMS" = "true" ]; then
+    NOW_EPOCH=$(date +%s)
+    STALE_THRESHOLD=$((24 * 60 * 60))  # 24 hours in seconds
+    for dept_file in "$PLANNING_DIR"/.dept-status-*.json; do
+      [ -f "$dept_file" ] || continue
+      if [ "$(uname)" = "Darwin" ]; then
+        FILE_EPOCH=$(stat -f %m "$dept_file" 2>/dev/null || echo "$NOW_EPOCH")
+      else
+        FILE_EPOCH=$(stat -c %Y "$dept_file" 2>/dev/null || echo "$NOW_EPOCH")
+      fi
+      FILE_AGE=$((NOW_EPOCH - FILE_EPOCH))
+      if [ "$FILE_AGE" -gt "$STALE_THRESHOLD" ]; then
+        echo "YOLO: cleaning stale dept-status file: $(basename "$dept_file") (age: ${FILE_AGE}s)" >&2
+        rm -f "$dept_file"
+      fi
+    done
+  fi
+fi
+
 # --- Project state ---
 
 if [ ! -d "$PLANNING_DIR" ]; then
