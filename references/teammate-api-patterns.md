@@ -317,6 +317,37 @@ Within 03-01, if T3 has `td:['T1']`, then T3 has `blocked_by=['03-01/T1']`.
 
 See `references/artifact-formats.md` ## Plan Task for `td` field definition. See `scripts/resolve-task-deps.sh` for canonical dependency resolution.
 
+## Fallback Cascade
+
+Three-tier graceful degradation when Teammate API is unavailable or fails mid-execution.
+
+### Tier 1: Teammate API (Preferred)
+
+Conditions: team_mode=teammate (explicit or auto-detected), CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS env var set, agent_teams=true in config. All agents spawned via spawnTeam/addTeammate, communication via SendMessage.
+
+### Tier 2: Task Tool Fallback
+
+Triggers:
+- **Pre-execution:** resolve-team-mode.sh detects env var missing OR agent_teams=false. Outputs team_mode=task with fallback_notice=true.
+- **Runtime:** spawnTeam call fails (API error, timeout, unsupported). Lead catches failure and switches to Task tool for remaining agents.
+- **Mid-execution:** Teammate becomes unresponsive (60s timeout, see ## Health Tracking). Lead reassigns work via Task tool.
+
+Behavior: All agent spawning reverts to Task tool. File-based communication replaces SendMessage. Existing escalation chains, schemas, and artifact formats unchanged. Only the transport mechanism changes.
+
+Logging: Lead logs each fallback transition to stderr: "[FALLBACK] {reason}: switching from teammate to task for {agent/department}"
+
+### Tier 3: Error (Terminal)
+
+Triggers:
+- Task tool also fails (model unavailable, permissions error).
+- No further fallback possible.
+
+Behavior: Lead logs error, commits any partial artifacts, escalates to Architect with escalation schema. Phase execution halts with clear error message.
+
+### Department Isolation
+
+Fallback is per-department. If Backend teammate fails, only Backend falls back to Task tool. Frontend and UI/UX continue in teammate mode unaffected. Each Lead manages its own fallback state independently.
+
 ## Task Mode Fallback
 
 When team_mode=task (default), all patterns above are replaced by:
