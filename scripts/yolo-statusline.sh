@@ -452,9 +452,6 @@ if [ -n "$GH_URL" ]; then
 fi
 
 [ "$PCT" -ge 90 ] && BC="$R" || { [ "$PCT" -ge 70 ] && BC="$Y" || BC="$G"; }
-FL=$((PCT * 20 / 100)); EM=$((20 - FL))
-CTX_BAR=""; [ "$FL" -gt 0 ] && CTX_BAR=$(printf "%${FL}s" | tr ' ' '▓')
-[ "$EM" -gt 0 ] && CTX_BAR="${CTX_BAR}$(printf "%${EM}s" | tr ' ' '░')"
 
 if [ "$EXEC_STATUS" = "running" ] && [ "${EXEC_TOTAL:-0}" -gt 0 ] 2>/dev/null; then
   EXEC_PCT=$((EXEC_DONE * 100 / EXEC_TOTAL))
@@ -555,9 +552,33 @@ if [ "$_l1_width" -gt "$MAX_WIDTH" ]; then
   fi
 fi
 
-L2="Context: ${BC}${CTX_BAR}${X} ${BC}${PCT}%${X} ${CTX_USED_FMT}/${CTX_SIZE_FMT}"
-L2="$L2 ${D}│${X} Tokens: ${IN_TOK_FMT} in  ${OUT_TOK_FMT} out"
-L2="$L2 ${D}│${X} Prompt Cache: ${CACHE_COLOR}${CACHE_HIT_PCT}% hit${X} ${CACHE_W_FMT} write ${CACHE_R_FMT} read"
+_build_l2() {
+  local bar_w="$1" abbrev="$2"
+  local fl=$((PCT * bar_w / 100)); local em=$((bar_w - fl))
+  local ctx_bar=""
+  [ "$fl" -gt 0 ] && ctx_bar=$(printf "%${fl}s" | tr ' ' '▓')
+  [ "$em" -gt 0 ] && ctx_bar="${ctx_bar}$(printf "%${em}s" | tr ' ' '░')"
+  local line="Context: ${BC}${ctx_bar}${X} ${BC}${PCT}%${X} ${CTX_USED_FMT}/${CTX_SIZE_FMT}"
+  line="$line ${D}│${X} Tokens: ${IN_TOK_FMT} in  ${OUT_TOK_FMT} out"
+  if [ "$abbrev" = "1" ]; then
+    line="$line ${D}│${X} Cache: ${CACHE_COLOR}${CACHE_HIT_PCT}%${X} ${CACHE_W_FMT} wr ${CACHE_R_FMT} rd"
+  else
+    line="$line ${D}│${X} Prompt Cache: ${CACHE_COLOR}${CACHE_HIT_PCT}% hit${X} ${CACHE_W_FMT} write ${CACHE_R_FMT} read"
+  fi
+  printf '%s' "$line"
+}
+
+# Try bar sizes 20, 12, 8 with full labels, then 8 with abbreviated labels
+L2=$(_build_l2 20 0)
+if [ "$(visible_width "$L2")" -gt "$MAX_WIDTH" ]; then
+  L2=$(_build_l2 12 0)
+fi
+if [ "$(visible_width "$L2")" -gt "$MAX_WIDTH" ]; then
+  L2=$(_build_l2 8 0)
+fi
+if [ "$(visible_width "$L2")" -gt "$MAX_WIDTH" ]; then
+  L2=$(_build_l2 8 1)  # Abbreviate: "Prompt Cache: N% hit" -> "Cache: N%", "write" -> "wr", "read" -> "rd"
+fi
 
 L3="$USAGE_LINE"
 L4="Model: ${D}${MODEL}${X} ${D}│${X} Time: ${DUR_FMT} (API: ${API_DUR_FMT})"
