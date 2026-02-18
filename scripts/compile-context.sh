@@ -790,8 +790,48 @@ case "$BASE_ROLE" in
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
+  documenter)
+    {
+      emit_header
+      echo ""
+      # Files documented (from summary.jsonl fm field)
+      echo "files_to_document:"
+      for summary in "$PHASE_DIR"/*.summary.jsonl; do
+        if [ -f "$summary" ]; then
+          # Use inline jq directly (filter-agent-context.sh may not know documenter yet)
+          jq -r '.fm // [] | .[]' "$summary" 2>/dev/null | while IFS= read -r f; do
+            echo "  $f"
+          done
+        fi
+      done
+      echo ""
+      # Code review highlights
+      if [ -f "$PHASE_DIR/code-review.jsonl" ]; then
+        echo "code_review_highlights:"
+        jq -r 'select((.sev // "") == "critical" or (.sev // "") == "major") | "  \(.file // ""): \(.issue // "")"' "$PHASE_DIR/code-review.jsonl" 2>/dev/null || true
+        echo ""
+      fi
+      # Conventions for documentation standards
+      CONVENTIONS=$(get_conventions)
+      if [ -n "$CONVENTIONS" ]; then
+        CONV_COUNT=$(echo "$CONVENTIONS" | wc -l | tr -d ' ')
+        echo "conventions[${CONV_COUNT}]{category,rule}:"
+        echo "$CONVENTIONS"
+      fi
+      # Department-specific conventions
+      DEPT_CONV=$(get_dept_conventions)
+      if [ -n "$DEPT_CONV" ]; then
+        echo ''
+        echo 'dept_conventions:'
+        echo "$DEPT_CONV" | sed 's/^/  /'
+      fi
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
+    ;;
+
   *)
-    echo "Unknown role: $ROLE (base: $BASE_ROLE). Valid base roles: architect, lead, senior, dev, qa, qa-code, security, debugger, critic, tester, owner, scout" >&2
+    echo "Unknown role: $ROLE (base: $BASE_ROLE). Valid base roles: architect, lead, senior, dev, qa, qa-code, security, debugger, critic, tester, owner, scout, documenter" >&2
     exit 1
     ;;
 esac
