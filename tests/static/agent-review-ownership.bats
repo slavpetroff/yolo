@@ -6,33 +6,33 @@ setup() {
   # No fixtures needed -- reads real agent files via $AGENTS_DIR from common.bash
 }
 
-# All 17 reviewing agent filenames that must have ## Review Ownership sections
-# Per D1: Senior, Lead, Architect, Owner, PO, QA, QA-Code across 3 departments
+# All 20 reviewing agent filenames that must have ## Review Ownership sections
+# Per D1: Senior, Lead, Architect, Owner, PO, QA, QA-Code, Security across 3 departments
 REVIEWING_AGENTS=(
-  yolo-senior.md yolo-lead.md yolo-architect.md yolo-owner.md yolo-po.md yolo-qa.md yolo-qa-code.md
-  yolo-fe-senior.md yolo-fe-lead.md yolo-fe-architect.md yolo-fe-qa.md yolo-fe-qa-code.md
-  yolo-ux-senior.md yolo-ux-lead.md yolo-ux-architect.md yolo-ux-qa.md yolo-ux-qa-code.md
+  yolo-senior.md yolo-lead.md yolo-architect.md yolo-owner.md yolo-po.md yolo-qa.md yolo-qa-code.md yolo-security.md
+  yolo-fe-senior.md yolo-fe-lead.md yolo-fe-architect.md yolo-fe-qa.md yolo-fe-qa-code.md yolo-fe-security.md
+  yolo-ux-senior.md yolo-ux-lead.md yolo-ux-architect.md yolo-ux-qa.md yolo-ux-qa-code.md yolo-ux-security.md
 )
 
 # Non-reviewing agents that should NOT have ## Review Ownership
 EXCLUDED_AGENTS=(
   yolo-dev.md yolo-fe-dev.md yolo-ux-dev.md
   yolo-tester.md yolo-fe-tester.md yolo-ux-tester.md
-  yolo-critic.md yolo-scout.md yolo-debugger.md yolo-security.md
+  yolo-critic.md yolo-scout.md yolo-debugger.md
   yolo-analyze.md yolo-questionary.md yolo-roadmap.md
 )
 
-@test "exactly 17 reviewing agents require Review Ownership sections" {
-  assert_equal "${#REVIEWING_AGENTS[@]}" "17"
+@test "exactly 20 reviewing agents require Review Ownership sections" {
+  assert_equal "${#REVIEWING_AGENTS[@]}" "20"
 }
 
-@test "all 17 reviewing agent files exist" {
+@test "all 20 reviewing agent files exist" {
   for agent in "${REVIEWING_AGENTS[@]}"; do
     assert_file_exists "$AGENTS_DIR/$agent"
   done
 }
 
-@test "all 17 reviewing agents contain ## Review Ownership section" {
+@test "all 20 reviewing agents contain ## Review Ownership section" {
   for agent in "${REVIEWING_AGENTS[@]}"; do
     run grep -c '## Review Ownership' "$AGENTS_DIR/$agent"
     [[ $status -eq 0 ]] || fail "Missing ## Review Ownership in $agent"
@@ -40,14 +40,14 @@ EXCLUDED_AGENTS=(
   done
 }
 
-@test "all 17 reviewing agents reference review-ownership-patterns.md" {
+@test "all 20 reviewing agents reference review-ownership-patterns.md" {
   for agent in "${REVIEWING_AGENTS[@]}"; do
     run grep 'review-ownership-patterns.md' "$AGENTS_DIR/$agent"
     [[ $status -eq 0 ]] || fail "Missing review-ownership-patterns.md reference in $agent"
   done
 }
 
-@test "all 17 reviewing agents contain ownership language (must analyze)" {
+@test "all 20 reviewing agents contain ownership language (must analyze)" {
   for agent in "${REVIEWING_AGENTS[@]}"; do
     run grep -i 'must analyze\|ownership means\|own.*quality\|own.*thoroughness\|own.*accuracy\|own.*decisions\|own.*assessment' "$AGENTS_DIR/$agent"
     [[ $status -eq 0 ]] || fail "Missing ownership language in $agent"

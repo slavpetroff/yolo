@@ -77,9 +77,9 @@ run_resolve() {
   run jq -r '.project_type' <<< "$output_json"
   assert_output "generic"
 
-  # dev base tools: Read, Glob, Grep, Write, Edit, Bash
+  # dev base tools: Read, Glob, Grep, Write, Edit, Bash, SendMessage
   run jq -r '.tools | sort | join(",")' <<< "$output_json"
-  assert_output "Bash,Edit,Glob,Grep,Read,Write"
+  assert_output "Bash,Edit,Glob,Grep,Read,SendMessage,Write"
 }
 
 @test "cli-tool project: lead loses WebFetch" {
@@ -159,7 +159,7 @@ MOCKEOF
 
   # Dev tools should be unchanged (same as generic)
   run jq -r '.tools | sort | join(",")' <<< "$output_json"
-  assert_output "Bash,Edit,Glob,Grep,Read,Write"
+  assert_output "Bash,Edit,Glob,Grep,Read,SendMessage,Write"
 }
 
 @test "role not in overrides gets base tools unchanged" {
@@ -172,7 +172,7 @@ MOCKEOF
   local output_json="$output"
   # Dev tools should be the base set (no overrides for dev in cli-tool)
   run jq -r '.tools | sort | join(",")' <<< "$output_json"
-  assert_output "Bash,Edit,Glob,Grep,Read,Write"
+  assert_output "Bash,Edit,Glob,Grep,Read,SendMessage,Write"
 }
 
 # =====================

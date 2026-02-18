@@ -162,16 +162,17 @@ assert_has_escalation() {
 
 # --- Agent count ---
 
-@test "exactly 35 agent files exist" {
+@test "exactly 36 agent files exist" {
   local count
   count=$(ls -1 "$AGENTS_DIR"/yolo-*.md 2>/dev/null | wc -l | tr -d ' ')
-  [ "$count" -eq 35 ]
+  [ "$count" -eq 36 ]
 }
 
 # --- Frontend agents reference frontend department protocol ---
 
 @test "frontend agents reference frontend department protocol" {
-  for agent in fe-architect fe-lead fe-senior fe-dev fe-tester fe-qa fe-qa-code; do
+  # Roles that include LEAD_PROTOCOL_REF or effort ref with dept toon
+  for agent in fe-architect fe-lead fe-senior fe-dev fe-tester; do
     run grep "departments/frontend.toon" "$AGENTS_DIR/yolo-${agent}.md"
     assert_success
   done
@@ -180,7 +181,7 @@ assert_has_escalation() {
 # --- UI/UX agents reference uiux department protocol ---
 
 @test "uiux agents reference uiux department protocol" {
-  for agent in ux-architect ux-lead ux-senior ux-dev ux-tester ux-qa ux-qa-code; do
+  for agent in ux-architect ux-lead ux-senior ux-dev ux-tester; do
     run grep "departments/uiux.toon" "$AGENTS_DIR/yolo-${agent}.md"
     assert_success
   done

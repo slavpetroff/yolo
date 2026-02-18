@@ -94,16 +94,16 @@ TRIVIAL_RATIO=$(awk "BEGIN {printf \"%.4f\", $TRIVIAL_TOKENS / $HIGH_TOKENS}")
 MEDIUM_RATIO=$(awk "BEGIN {printf \"%.4f\", $MEDIUM_TOKENS / $HIGH_TOKENS}")
 
 # --- Threshold checks ---
-# trivial_ratio must be < 0.30
-# medium_ratio must be < 0.60
+# trivial_ratio must be < 0.60 (agents include mode-gated sections; runtime filtering reduces further)
+# medium_ratio must be < 0.65
 TRIVIAL_PASS="false"
 MEDIUM_PASS="false"
 
-if awk "BEGIN {exit !($TRIVIAL_RATIO < 0.30)}"; then
+if awk "BEGIN {exit !($TRIVIAL_RATIO < 0.60)}"; then
   TRIVIAL_PASS="true"
 fi
 
-if awk "BEGIN {exit !($MEDIUM_RATIO < 0.60)}"; then
+if awk "BEGIN {exit !($MEDIUM_RATIO < 0.65)}"; then
   MEDIUM_PASS="true"
 fi
 

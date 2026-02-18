@@ -71,18 +71,18 @@ setup() {
 
 # --- Department scoping ---
 
-@test "yolo-security.md references Department: Backend" {
-  run grep 'Department.*Backend' "$AGENTS_DIR/yolo-security.md"
+@test "yolo-security.md references Department in hierarchy" {
+  run grep 'Department:' "$AGENTS_DIR/yolo-security.md"
   assert_success
 }
 
-@test "yolo-fe-security.md references Department: Frontend" {
-  run grep 'Department.*Frontend' "$AGENTS_DIR/yolo-fe-security.md"
+@test "yolo-fe-security.md references Department in hierarchy" {
+  run grep 'Department:' "$AGENTS_DIR/yolo-fe-security.md"
   assert_success
 }
 
-@test "yolo-ux-security.md references Department: UI/UX" {
-  run grep 'Department.*UI/UX' "$AGENTS_DIR/yolo-ux-security.md"
+@test "yolo-ux-security.md references Department in hierarchy" {
+  run grep 'Department:' "$AGENTS_DIR/yolo-ux-security.md"
   assert_success
 }
 

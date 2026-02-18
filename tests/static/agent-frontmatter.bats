@@ -19,10 +19,13 @@ validate_agent_frontmatter() {
   # File exists
   [ -f "$agent_file" ] || { echo "File not found: $agent_file"; return 1; }
 
-  # First line is YAML frontmatter delimiter
+  # First content line is YAML frontmatter delimiter (skip GENERATED marker if present)
   local first_line
   first_line=$(head -1 "$agent_file")
-  [ "$first_line" = "---" ] || { echo "$agent_name: first line is not '---'"; return 1; }
+  if [[ "$first_line" == "<!-- GENERATED"* ]]; then
+    first_line=$(sed -n '2p' "$agent_file")
+  fi
+  [ "$first_line" = "---" ] || { echo "$agent_name: first line is not '---' (got: $first_line)"; return 1; }
 
   # Extract frontmatter
   local fm

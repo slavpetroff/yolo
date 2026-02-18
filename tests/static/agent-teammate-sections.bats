@@ -1,33 +1,33 @@
 #!/usr/bin/env bats
-# agent-teammate-sections.bats -- Static validation: all 23 agents have Teammate API sections
+# agent-teammate-sections.bats -- Static validation: all 25 agents have Teammate API sections
 
 setup() {
   load '../test_helper/common'
   # No fixtures needed -- reads real agent files via $AGENTS_DIR from common.bash
 }
 
-# All 23 agent filenames that must have ## Teammate API sections
+# All 25 agent filenames that must have ## Teammate API sections
 AGENTS=(
   yolo-lead.md yolo-senior.md yolo-dev.md yolo-architect.md
   yolo-tester.md yolo-fe-tester.md yolo-ux-tester.md
   yolo-qa.md yolo-fe-qa.md yolo-ux-qa.md
   yolo-qa-code.md yolo-fe-qa-code.md yolo-ux-qa-code.md
-  yolo-security.md yolo-owner.md
+  yolo-security.md yolo-fe-security.md yolo-ux-security.md yolo-owner.md
   yolo-fe-lead.md yolo-fe-senior.md yolo-fe-dev.md yolo-fe-architect.md
   yolo-ux-lead.md yolo-ux-senior.md yolo-ux-dev.md yolo-ux-architect.md
 )
 
-@test "exactly 23 agents require Teammate API sections" {
-  assert_equal "${#AGENTS[@]}" "23"
+@test "exactly 25 agents require Teammate API sections" {
+  assert_equal "${#AGENTS[@]}" "25"
 }
 
-@test "all 23 agent files exist" {
+@test "all 25 agent files exist" {
   for agent in "${AGENTS[@]}"; do
     assert_file_exists "$AGENTS_DIR/$agent"
   done
 }
 
-@test "all 23 agents contain ## Teammate API section" {
+@test "all 25 agents contain ## Teammate API section" {
   for agent in "${AGENTS[@]}"; do
     run grep -c '## Teammate API' "$AGENTS_DIR/$agent"
     [[ $status -eq 0 ]] || fail "Missing ## Teammate API in $agent"
@@ -35,7 +35,7 @@ AGENTS=(
   done
 }
 
-@test "all 23 agents contain team_mode=teammate guard" {
+@test "all 25 agents contain team_mode=teammate guard" {
   for agent in "${AGENTS[@]}"; do
     run grep -c 'team_mode=teammate' "$AGENTS_DIR/$agent"
     [[ $status -eq 0 ]] || fail "Missing team_mode=teammate guard in $agent"
@@ -43,7 +43,7 @@ AGENTS=(
   done
 }
 
-@test "all 23 agents reference @references/teammate-api-patterns.md" {
+@test "all 25 agents reference @references/teammate-api-patterns.md" {
   for agent in "${AGENTS[@]}"; do
     run grep '@references/teammate-api-patterns.md' "$AGENTS_DIR/$agent"
     [[ $status -eq 0 ]] || fail "Missing @references/teammate-api-patterns.md in $agent"
