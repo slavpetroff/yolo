@@ -5,7 +5,7 @@
 # applies per-agent overrides, and returns the final model string.
 #
 # Usage: resolve-agent-model.sh <agent-name> <config-path> <profiles-path>
-#   agent-name: Any agent key present in model-profiles.json (e.g., analyze, po, questionary, roadmap, lead, dev, fe-architect, ux-dev, owner)
+#   agent-name: Any agent key present in model-profiles.json (e.g., analyze, po, questionary, roadmap, lead, dev, fe-architect, ux-dev, owner, fe-security, ux-security, documenter, fe-documenter, ux-documenter)
 #   config-path: path to .yolo-planning/config.json
 #   profiles-path: path to config/model-profiles.json
 #
