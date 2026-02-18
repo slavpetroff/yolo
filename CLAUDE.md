@@ -6,10 +6,10 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Last shipped:** Architecture Redesign v2 — 6 phases, 38 plans, ~36 agents across 4 departments + PO layer + Integration Gate
-**Previous:** Workflow Hardening, Org Alignment & Optimization — 5 phases, 25 plans, 104 tasks, 107 commits, 203 tests
-**Before that:** Teammate API Integration — 4 phases, 19 plans, 84 tasks, 76 commits, 876 tests
-**Next action:** Run /vbw:vibe for next milestone
+**Work:** Architecture Redesign v2 — Phase 6 executing (migration & token optimization)
+**Last shipped:** Workflow Hardening, Org Alignment & Optimization — 5 phases, 25 plans, 104 tasks, 107 commits, 203 tests
+**Previous:** Teammate API Integration — 4 phases, 19 plans, 84 tasks, 76 commits, 876 tests
+**Next action:** Complete Phase 6 plans, verify milestone
 
 ## Department Architecture
 
@@ -48,7 +48,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Single go.md (~300 lines) with inline mode logic | 2026-02-11 | One file = one truth; execute-protocol.md is the only extraction |
 | Company hierarchy: Architect → Lead → Senior → Dev | 2026-02-13 | Mirrors real engineering org, each level distills scope |
 | JSONL abbreviated keys for agent artifacts | 2026-02-13 | 85-93% token savings vs Markdown, jq-parseable |
-| 11-step workflow per phase (12-step when PO enabled, optional Step 8.5 Documentation) | 2026-02-13 | PO (Step 0, optional) → Critique → Research → Architecture → Plan → Design Review → Test Authoring → Implement → Code Review → Documentation (optional) → QA → Security → Sign-off |
+| 11-step workflow per phase (up to 14 steps with optional PO, Docs, Integration Gate, PO QA) | 2026-02-13 | Steps 1-11 core + Step 0 PO (optional) + Step 8.5 Docs (config-gated) + Step 11.5 Integration Gate (multi-dept) + Step 12 PO QA/Delivery (po.enabled) |
 | 4 departments (Backend, Frontend, UI/UX, Shared) | 2026-02-13 | Mirrors real company org, config-driven enable/disable |
 | EnterPlanMode strictly prohibited | 2026-02-14 | Bypasses YOLO workflow; all planning through /yolo:go |
 | Never bypass /yolo:go invocations | 2026-02-14 | Claude dismissed go.md as "not a workflow" and went ad-hoc; explicit rule prevents this |
@@ -80,7 +80,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Patch/Major rejection paths with patch default | 2026-02-18 | Patch = dept Senior fix (default); Major = re-scope only for vision misalignment; po.default_rejection config key |
 | Delivery mode in orchestrator, not separate agent | 2026-02-18 | Auto/manual config toggle; orchestrator presents results to user; avoids agent sprawl |
 | compile-context.sh supports all 36 agent roles | 2026-02-18 | analyze, po, questionary, roadmap, integration-gate added; reference packages per role |
-| Token audit verifies trivial <30%, medium <60% of high path | 2026-02-18 | Automated verification that complexity routing delivers promised token savings |
+| Token audit verifies trivial <30%, medium <60% of high path | 2026-02-18 | Measured: trivial_ratio=0.2105 (<0.30 PASS), medium_ratio=0.2632 (<0.60 PASS) |
 | Integration Gate read-only with 4-check protocol | 2026-02-18 | API contracts, design sync, handoffs, tests; PASS/FAIL/PARTIAL; config-driven skip per effort level |
 
 ## Installed Skills
@@ -115,7 +115,7 @@ Run /yolo:help for all available commands.
 ## VBW State
 - Planning directory: `.vbw-planning/`
 - Milestone: Architecture Redesign v2 (6 phases)
-- Status: Phase 6 complete — milestone shipped
+- Status: Phase 6 executing
 
 ## VBW Rules
 - **Always use VBW commands** for project work. Do not manually edit files in `.vbw-planning/`.
