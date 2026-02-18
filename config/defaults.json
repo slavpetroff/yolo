@@ -37,5 +37,14 @@
     "timeout_seconds": 300,
     "auto_owner_on_timeout": true,
     "max_round_trips": 2
+  },
+  "complexity_routing": {
+    "enabled": true,
+    "trivial_confidence_threshold": 0.85,
+    "medium_confidence_threshold": 0.7,
+    "fallback_path": "high",
+    "force_analyze_model": "opus",
+    "max_trivial_files": 3,
+    "max_medium_tasks": 3
   }
 }
