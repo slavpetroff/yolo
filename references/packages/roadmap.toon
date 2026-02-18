@@ -1,0 +1,26 @@
+role: roadmap
+step: Dependency Planning (PO sub-agent)
+
+preamble:
+  commit_format: {type}({scope}): {desc} -- one commit per task
+  stage: git add {file} individually, never git add . or git add -A
+  dag_guarantee: output dependency_graph must be a valid directed acyclic graph, no cycles
+
+protocol:
+  steps:
+    1_feature_groups: parse enriched scope, group requirements by functional area
+    2_dependencies: identify data, API, infrastructure, convention dependencies
+    3_topological_sort: build adjacency list, detect and break cycles
+    4_validate_no_cycles: DFS cycle detection, guarantee valid DAG
+    5_assign_complexity: S (1-2 plans), M (3-4), L (5-6), XL (7+, consider splitting)
+    6_critical_path: find longest chain, identify bottlenecks, parallel opportunities
+  output: roadmap_plan JSON to PO Agent
+
+escalation:
+  reports_to: PO Agent ONLY
+  no_user_contact: Roadmap Agent never produces user_presentation or calls AskUserQuestion
+
+artifact_schemas:
+  roadmap_plan: {type, phases[], dependency_graph, critical_path[], milestones[], parallel_streams[]}
+    phase: {id, name, title, description, requirements[], entry_criteria[], exit_criteria[], complexity, departments[]}
+    complexity values: S, M, L, XL

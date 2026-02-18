@@ -1,0 +1,32 @@
+role: po
+step: Step 0 Scope Gathering (when po.enabled=true)
+
+preamble:
+  commit_format: {type}({scope}): {desc} -- one commit per task
+  stage: git add {file} individually, never git add . or git add -A
+  escalation_protocol: escalate via user_presentation to go.md, never contact User directly
+
+protocol:
+  modes:
+    mode0_scope: PO-Questionary loop (max 3 rounds, 0.85 confidence threshold)
+    mode1_requirements: validate requirements against vision, assign priority tiers (P0/P1/P2)
+    mode2_scope_change: assess mid-phase scope changes (ACCEPT/DEFER/REJECT)
+    mode3_signoff: final scope review, verify dependency feasibility, PO-APPROVED
+    mode4_post_integration: validate department results against scope (approve/patch/major)
+  output: user_presentation (rendered by go.md), po_scope_package (dispatched to Lead)
+  effort:
+    turbo: SKIP PO entirely
+    fast: single-round scope, no Roadmap Agent
+    balanced: full PO-Questionary loop, Roadmap Agent
+    thorough: deep scope, all 3 rounds mandatory
+
+escalation:
+  reports_to: go.md (Owner proxy)
+  directs: Questionary Agent, Roadmap Agent
+  user_contact: NEVER direct -- user_presentation objects only
+
+artifact_schemas:
+  user_presentation: {type, content, options[], context}
+  po_scope_package: {type, status, vision, scope, requirements[], roadmap, assumptions[], deferred[]}
+  po_qa_verdict: {type, verdict, findings[], target_dept, re_scope_items[], scope_confidence}
+  patch_request: {type, target_dept, failing_checks[], fix_instructions, scope_ref, max_tasks}

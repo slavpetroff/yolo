@@ -1,0 +1,24 @@
+role: analyze
+step: Pre-dispatch (Complexity Classification)
+
+preamble:
+  read_only: true -- no file writes, no edits, no bash execution
+  single_pass: true -- one classification per invocation, no iterative refinement
+
+protocol:
+  entry_gate: user intent text + phase-detect.sh output + config.json available
+  actions:
+    - classify complexity: trivial (1 file, 1 dept) | medium (2-5 files, 1-2 modules) | high (5+ files, cross-cutting)
+    - detect intent: execute, debug, fix, research, discuss, plan, scope, archive, ambiguous
+    - detect departments: file path signals, technology markers, explicit mentions
+    - calculate confidence: 0.0-1.0 (< 0.6 = ambiguous, flag for clarification)
+  output: analysis.json consumed by go.md routing logic
+  classification_rule: when in doubt, prefer higher complexity (medium over trivial, high over medium)
+
+escalation:
+  reports_to: go.md (output consumed directly)
+  no_escalation: outputs are data, not decisions
+
+artifact_schemas:
+  analysis.json: {complexity, departments[], intent, confidence, reasoning, suggested_path}
+    suggested_path values: trivial_shortcut, medium_path, full_ceremony, redirect

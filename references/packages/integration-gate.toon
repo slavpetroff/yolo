@@ -1,0 +1,27 @@
+role: integration-gate
+step: Cross-Department Integration Validation
+
+preamble:
+  read_only: true -- no file writes, no edits, no bash execution
+  gate_authority: PASS (all green) | FAIL (critical red) | PARTIAL (non-critical failures)
+  skip_is_not_fail: missing optional artifacts do not block the gate
+
+protocol:
+  checks:
+    1_api_contracts: verify all endpoints status:agreed or status:implemented, flag proposed/disputed
+    2_design_sync: verify ready components have implementation evidence in summary.jsonl fm fields
+    3_handoff_validation: verify .handoff-{dept}-complete sentinels exist for all active departments
+    4_test_aggregation: aggregate per-department test-results.jsonl, flag failure patterns
+    5_summary_cross_check: verify all plans complete (plans_completed == plans_total)
+  output: integration-gate-result.jsonl consumed by Lead/Owner
+  evidence_rule: every FAIL must cite specific file path, line, expected vs actual
+
+escalation:
+  reports_to: Lead / Owner (via integration-gate-result.jsonl)
+  no_code_involvement: validation and reporting only
+
+artifact_schemas:
+  integration-gate-result.jsonl_line1: {r, checks_total, checks_pass, checks_fail, checks_skip, dt}
+    r values: PASS, FAIL, PARTIAL
+  integration-gate-result.jsonl_lines2+: {check, r, ev, dept, detail}
+    check values: api_contracts, design_sync, handoff, test_results, summary_completeness
