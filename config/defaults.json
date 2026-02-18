@@ -1,4 +1,5 @@
 {
+  "_sections": "Phase 1: complexity_routing | Phase 2: critique, po, research_requests | Phase 3: review_loop, documenter | Phase 4: integration_gate, delivery | Phase 5: escalation, qa_gates, approval_gates",
   "effort": "balanced",
   "autonomy": "standard",
   "auto_commit": true,
