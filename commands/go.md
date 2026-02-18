@@ -76,19 +76,24 @@ Four input paths, evaluated in order:
 
 When `config_complexity_routing=true` AND $ARGUMENTS present AND no mode flags detected:
 
-1. **Spawn Analyze agent:**
-   ```
-   ANALYZE_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh analyze .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-   ```
-   Spawn yolo-analyze via Task tool with model: "${ANALYZE_MODEL}". Pass:
-   - User intent text: $ARGUMENTS
-   - Phase-detect output summary (phase state, brownfield, codebase map status)
-   - Config path: `.yolo-planning/config.json`
-   - Codebase map status: `has_codebase_map` value
+1. **Check shell classifier result:** Read `skip_analyze` from the pre-computed complexity-classify.sh output (Context section above). This field indicates whether the shell classifier's confidence is high enough to skip the LLM-based Analyze agent.
 
-2. **Receive analysis JSON** from Analyze agent with fields: complexity, departments, intent, confidence, reasoning, suggested_path.
+2. **Conditional Analyze spawn:**
+   - **If `skip_analyze=true`:** Use the shell classifier's output directly as the analysis JSON. Skip spawning the Analyze agent entirely. Display: `○ Shell classifier confidence sufficient — skipping Analyze agent`. The classify.sh output already contains complexity, departments, intent, confidence, reasoning, and suggested_path fields.
+   - **If `skip_analyze=false` OR `complexity=high`:** Spawn the Analyze agent for deeper LLM classification:
+     ```
+     ANALYZE_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh analyze .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+     ```
+     Spawn yolo-analyze via Task tool with model: "${ANALYZE_MODEL}". Pass:
+     - User intent text: $ARGUMENTS
+     - Phase-detect output summary (phase state, brownfield, codebase map status)
+     - Config path: `.yolo-planning/config.json`
+     - Codebase map status: `has_codebase_map` value
+     - Shell classifier result (classify.sh output) as `classify_result` for secondary validation
 
-3. **Route based on suggested_path:**
+3. **Receive analysis JSON** from Analyze agent (or use classify.sh output if skipped) with fields: complexity, departments, intent, confidence, reasoning, suggested_path.
+
+4. **Route based on suggested_path:**
    - `trivial_shortcut` (confidence >= `config_trivial_threshold`):
      ```bash
      result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-trivial.sh \
@@ -110,7 +115,7 @@ When `config_complexity_routing=true` AND $ARGUMENTS present AND no mode flags d
      - fix → Redirect to `/yolo:fix` with $ARGUMENTS
      - research → Redirect to `/yolo:research` with $ARGUMENTS
 
-4. **Confidence fallback:** If confidence < `config_medium_threshold`: fall through to Path 2 (natural language intent) as fallback. Display: `○ Analyze confidence too low ({confidence}) — falling back to intent detection`.
+5. **Confidence fallback:** If confidence < `config_medium_threshold`: fall through to Path 2 (natural language intent) as fallback. Display: `○ Analyze confidence too low ({confidence}) — falling back to intent detection`.
 
 ### Path 1: Flag detection
 
