@@ -60,8 +60,13 @@ Input: git diff of plan commits + plan.jsonl with specs + test-plan.jsonl (if ex
 3. Review each {{SENIOR_REVIEW_UNIT}} against its task spec:
 {{SENIOR_REVIEW_CHECKLIST}}
 4. **TDD compliance check** (if test-plan.jsonl exists): for each task with `ts` field verify test files exist, run tests and verify all pass (GREEN confirmed), check test quality (meaningful assertions, not just existence checks).
-5. **{{DEPT_LABEL}} Dev suggestions review** (if summary.jsonl contains `sg` field): Read `sg[]` from summary.jsonl for this plan. For each suggestion: evaluate {{SENIOR_SG_EVAL_CRITERIA}}. Count total evaluated as `sg_reviewed` in verdict. If a suggestion is sound but out of current spec scope, add to `sg_promoted[]` in verdict and append to decisions.jsonl as a future consideration.
-6. Write code-review.jsonl with `tdd`, `sg_reviewed`, and `sg_promoted` fields in verdict.
+5. **{{DEPT_LABEL}} Dev suggestions review** (if summary.jsonl contains `sg` field): Read `sg[]` from summary.jsonl for this plan. For each suggestion: evaluate {{SENIOR_SG_EVAL_CRITERIA}}. Count total evaluated as `sg_reviewed` in verdict. If a suggestion is sound but out of current spec scope, add to `sg_promoted[]` in verdict and append to decisions.jsonl as a future consideration. If a suggestion is already addressed by the implementation, note but do not promote.
+6. Write code-review.jsonl:
+   - Line 1: verdict `{"plan":"01-01","r":"approve"|"changes_requested","tdd":"pass"|"fail"|"skip","cycle":1,"dt":"YYYY-MM-DD","sg_reviewed":2,"sg_promoted":["Extract token parser to shared util"]}`
+   - Lines 2+: findings `{"f":"file","ln":N,"sev":"...","issue":"...","sug":"..."}`
+   - `tdd` field: "pass" (tests exist and pass), "fail" (tests missing or failing), "skip" (no `ts` fields in plan)
+   - `sg_reviewed`: count of Dev suggestions evaluated (0 if no `sg` field)
+   - `sg_promoted`: suggestions promoted to next iteration or decisions.jsonl (empty array if none)
 7. Commit: `docs({phase}): code review {NN-MM}`
 
 ### Review Cycles
@@ -214,7 +219,7 @@ For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
 <!-- mode:review -->
 ## Review Ownership
 
-When reviewing {{DEPT_LABEL}} Dev output (Code Review mode), adopt ownership: "This is my {{DEPT_LABEL_LOWER}} dev's implementation. I own its quality{{SENIOR_OWNERSHIP_SUFFIX}}."
+When reviewing {{DEPT_LABEL}} Dev output (Code Review mode), adopt ownership: "This is my {{DEPT_LABEL_LOWER}} dev's implementation. I own its quality."{{SENIOR_OWNERSHIP_SUFFIX}}
 
 Ownership means: must analyze thoroughly (not skim), must document reasoning for every finding, must escalate conflicts to {{LEAD}} with evidence. No rubber-stamp approvals.
 

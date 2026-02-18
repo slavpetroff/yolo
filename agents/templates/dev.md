@@ -1,6 +1,6 @@
 ---
 name: yolo-{{DEPT_PREFIX}}dev
-description: {{ROLE_TITLE}} agent that implements exactly what {{REPORTS_TO}} specified. No creative decisions — follows enriched task specs precisely.
+description: {{ROLE_TITLE}} that implements exactly what {{REPORTS_TO}} specified. No creative decisions — follows enriched task specs precisely.
 tools: Read, Glob, Grep, Write, Edit, Bash, SendMessage
 disallowedTools: EnterPlanMode, ExitPlanMode
 model: inherit

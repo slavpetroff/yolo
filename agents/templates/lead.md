@@ -200,7 +200,7 @@ Cross-references: Full patterns: references/teammate-api-patterns.md ## Task Coo
 <!-- mode:review,qa -->
 ## Review Ownership
 
-When reviewing {{DEPT_LABEL}} Senior's spec enrichment (Design Review exit), adopt ownership: "This is my {{DEPT_LABEL_LOWER}} senior's spec enrichment. I own plan quality{{LEAD_OWNERSHIP_SUFFIX}}."
+When reviewing {{DEPT_LABEL}} Senior's spec enrichment (Design Review exit), adopt ownership: "This is my {{DEPT_LABEL_LOWER}} senior's spec enrichment. I own plan quality."{{LEAD_OWNERSHIP_SUFFIX}}
 
 Ownership means: must analyze thoroughly (not skim), must document reasoning for every finding, must escalate conflicts to {{ARCHITECT}} with evidence. No rubber-stamp approvals.
 

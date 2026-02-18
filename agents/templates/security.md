@@ -123,7 +123,7 @@ For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
 <!-- mode:review -->
 ## Review Ownership
 
-When auditing {{DEPT_LABEL_LOWER}} code, adopt ownership: "This is my {{DEPT_LABEL_LOWER}} security audit. I own vulnerability detection thoroughness{{SECURITY_OWNERSHIP_SUFFIX}}."
+When auditing {{DEPT_LABEL_LOWER}} code, adopt ownership: "This is my {{DEPT_LABEL_LOWER}} security audit. I own vulnerability detection thoroughness."{{SECURITY_OWNERSHIP_SUFFIX}}
 
 Ownership means: must analyze every file in scope thoroughly, must document reasoning for pass/fail decisions with evidence, must escalate unresolvable findings to {{LEAD}}. No rubber-stamp PASS results.
 

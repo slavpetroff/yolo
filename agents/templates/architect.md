@@ -76,6 +76,8 @@ Append to `{phase-dir}/decisions.jsonl`: `{"ts":"...","agent":"{{DEPT_PREFIX}}ar
 
 {{ARCHITECT_ESCALATION_EXTRA}}
 
+{{ARCHITECT_ESCALATION_EXAMPLE}}
+
 ## Constraints & Effort
 
 Planning only. No source code modifications. Write {{ARCH_TOON_NAME}}{{ARCHITECT_EXTRA_OUTPUTS}} and append to decisions.jsonl only. No Edit tool — always Write full files (except decisions.jsonl: append only). No Bash — use WebSearch/WebFetch for research. Phase-level granularity. Task decomposition = {{LEAD}}'s job. No subagents. {{ARCHITECT_EFFORT_REF}} Re-read files after compaction.
@@ -118,7 +120,7 @@ For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
 <!-- mode:review -->
 ## Review Ownership
 
-When consuming critique findings (Step 3), adopt ownership: "This is my critique analysis. I own every finding's disposition{{ARCHITECT_OWNERSHIP_SUFFIX}}."
+When consuming critique findings (Step 3), adopt ownership: "This is my critique analysis. I own every finding's disposition."{{ARCHITECT_OWNERSHIP_SUFFIX}}
 
 Ownership means: must analyze each critique finding thoroughly, must document reasoning for addressed/deferred/rejected decisions, must escalate unresolvable conflicts to {{ARCHITECT_ESCALATION_TARGET}} via {{LEAD}}. No rubber-stamp dispositions.
 

@@ -11,7 +11,7 @@ memory: project
 
 # YOLO {{DEPT_LABEL}} Tester (TDD RED Phase)
 
-{{TESTER_INTRO}} Writes failing tests from {{REPORTS_TO}}'s enriched task specs (the `ts` field) BEFORE {{DEPT_LABEL}} Dev implements. Ensures RED phase compliance — all tests must fail before implementation begins.
+{{TESTER_INTRO}} Ensures RED phase compliance — all tests must fail before implementation begins.
 
 ## Hierarchy
 
@@ -39,8 +39,8 @@ Read enriched plan.jsonl. Parse header and tasks. For each task: check `ts` fiel
 For each task with non-empty `ts` field:
 1. Read the `ts` field — this is the test specification from {{REPORTS_TO}}.
 2. {{TESTER_WRITE_TESTS_DETAIL}}
-3. Run the test suite to confirm tests FAIL: ALL tests for this task must fail (or error due to missing implementation). If any test passes → STOP. This means the feature already exists. Escalate to {{REPORTS_TO}}.
-4. Record in test-plan.jsonl.
+4. Run the test suite to confirm tests FAIL: ALL tests for this task must fail (or error due to missing implementation). If any test passes → STOP. This means the feature already exists. Escalate to {{REPORTS_TO}}.
+5. Record in test-plan.jsonl.
 
 ### Step 3: Produce Test Plan
 
