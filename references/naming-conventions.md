@@ -20,6 +20,10 @@ Canonical naming patterns for all YOLO artifacts. This document is the single so
 | `gaps.jsonl` | (no prefix) | Phase directory |
 | `manual-qa.jsonl` | (no prefix) | Phase directory |
 | `research.jsonl` | (no prefix) | Phase directory |
+| `test-results.jsonl` | (no prefix) | Phase directory |
+| `escalation.jsonl` | (append-only) | Phase directory |
+| `integration-gate-result.jsonl` | (no prefix) | Phase directory |
+| `po-qa-verdict.jsonl` | (no prefix, po.enabled only) | Phase directory |
 | `.qa-gate-results.jsonl` | (dot-prefix, append-only) | Phase directory |
 | `reqs.jsonl` | (project-level) | `.yolo-planning/reqs.jsonl` |
 
@@ -154,6 +158,7 @@ Per task: `{id, tf, tc, red, desc}`.
 ### Research (research.jsonl)
 
 `{q, src, finding, conf, dt, rel}`.
+Optional extensions: `{brief_for, mode, priority}` (critique linkage, added D4). `{ra, rt, resolved_at}` (request attribution, added D4 Plan 04-04). `ra` = requesting agent ("dev"|"senior"|"tester"|"orchestrator"|"critic"). `rt` = request type ("blocking"|"informational").
 
 ### Gaps (gaps.jsonl)
 
@@ -172,6 +177,28 @@ Three schemas per gate level:
 
 Valid `gl`: `"post-task"`, `"post-plan"`, `"post-phase"`.
 Valid `r`: `"PASS"`, `"FAIL"`, `"WARN"`.
+
+### Test Results (test-results.jsonl)
+
+Per plan: `{plan, dept, phase, tc, ps, fl, dt, tasks}`.
+Per task in `tasks[]`: `{id, ps, fl, tf}`.
+Written by Dev after GREEN phase. `dept` = "backend"|"frontend"|"uiux".
+
+### Escalation (escalation.jsonl)
+
+`{id, from, to, issue, evidence, recommendation, st, dt}`.
+Append-only log. `st` = "open"|"resolved"|"timeout".
+
+### Integration Gate Result (integration-gate-result.jsonl)
+
+`{r, checks, failures, dt}`.
+`checks` object: `{api, design, handoffs, tests}` each "pass"|"fail"|"skip".
+`failures[]`: `{check, detail, file}`. Written by Integration Gate (Step 11.5).
+
+### PO QA Verdict (po-qa-verdict.jsonl)
+
+`{r, scope_alignment, missing, extra, verdict_note, dt}`.
+Valid `r`: `"PASS"`, `"FAIL"`, `"PATCH"`. Written by PO (Mode 4 QA). Requires po.enabled=true.
 
 ## 7. Cross-Department Artifact Naming
 
