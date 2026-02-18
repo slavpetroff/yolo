@@ -65,12 +65,22 @@ run_task_verify() {
   [ "$status" -eq 0 ]
 }
 
-@test "orchestrator prefix 'Execute NN-NN:' is stripped before keyword extraction" {
+@test "team-mode subject with 'Execute' prefix matches commit (prefix filtered as stop word)" {
   cd "$TEST_TEMP_DIR"
   # Commit message has domain keywords but NOT "execute" or the plan ID format
   add_commit "refactor(03-01): update authentication middleware"
 
   run run_task_verify "Execute 03-01: Update authentication middleware"
+  [ "$status" -eq 0 ]
+}
+
+@test "short task subject 'Execute 07-01: Fix bug' matches commit with domain keywords" {
+  cd "$TEST_TEMP_DIR"
+  add_commit "fix(07-01): resolve the bug in auth"
+
+  # "fix" and "bug" are ≤3 chars → filtered. "execute" is a stop word.
+  # Without domain keywords, fail-open (exit 0) should apply.
+  run run_task_verify "Execute 07-01: Fix bug"
   [ "$status" -eq 0 ]
 }
 
