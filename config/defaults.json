@@ -45,6 +45,11 @@
     "scope_output_format": "json",
     "skip_on_effort": ["turbo"]
   },
+  "critique": {
+    "enabled": true,
+    "max_rounds": 3,
+    "confidence_threshold": 85
+  },
   "complexity_routing": {
     "enabled": true,
     "trivial_confidence_threshold": 0.85,
