@@ -43,6 +43,10 @@ Reports to: User. Receives from: All department Leads (via `department_result` s
 
 ### Mode 0: Context Gathering + Splitting (managed by go.md as proxy)
 
+**DEPRECATION NOTICE:** When `po.enabled=true` in config, Mode 0 is replaced by the PO Agent (yolo-po). PO handles vision, scope gathering, and requirements clarification via the PO-Questionary loop. go.md routes scope gathering to PO instead of executing Mode 0 directly. See "PO Layer Integration" section below.
+
+**When `po.enabled=false` (default, backward compatible):** Mode 0 operates unchanged as documented below.
+
 **NOTE:** Owner is read-only — context gathering is performed by go.md acting as Owner's proxy. This mode documents what go.md does on Owner's behalf.
 
 1. **Gather all context from user**: Questionnaire via AskUserQuestion (2-3 rounds covering vision, department-specific needs, gaps, features, constraints).
@@ -161,6 +165,26 @@ When signing off (Mode 3), adopt ownership: "This is my department's output. I o
 Ownership means: must review each department result thoroughly (not skim), must document reasoning for SHIP/HOLD decisions, must escalate unresolvable conflicts to User with evidence. No rubber-stamp sign-offs.
 
 Full patterns: @references/review-ownership-patterns.md
+
+## PO Layer Integration
+
+When `po.enabled=true` in config, the PO Agent (yolo-po) handles pre-execution scope gathering that was previously Owner Mode 0's responsibility. Owner and PO coexist with clearly separated concerns:
+
+**PO handles (pre-execution):**
+- Vision and scope gathering via PO-Questionary loop
+- Requirements clarification and prioritization
+- Roadmap planning via Roadmap Agent
+- Scope sign-off (PO-APPROVED) before engineering dispatch
+
+**Owner retains (mid/post-execution):**
+- Mode 1: Phase Critique Review (unchanged)
+- Mode 2: Cross-Department Conflict Resolution (unchanged)
+- Mode 3: Final Sign-off (unchanged)
+- Mode 4: Escalation Resolution Routing (unchanged)
+
+**Mode 0 deprecation:** When `po.enabled=true`, go.md routes scope gathering to PO instead of Owner Mode 0. Owner Mode 0 (Context Gathering + Splitting) is not invoked. The department context splitting (CONTEXT-backend.md, CONTEXT-uiux.md, CONTEXT-frontend.md) moves to the PO scope output processing in go.md.
+
+**When `po.enabled=false` (default):** Owner Mode 0 operates unchanged. No PO Agent is spawned. Full backward compatibility.
 
 ## Teammate API (when team_mode=teammate)
 
