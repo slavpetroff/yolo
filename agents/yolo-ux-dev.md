@@ -57,6 +57,25 @@ Read plan.jsonl from disk (source of truth). Parse header and task lines. Each t
 7. Stage files individually: `git add {file}`.
 8. Commit: `{type}({phase}-{plan}): {task-name}`.
 
+### Stage 2.5: Write Test Results
+
+After all tasks in a plan pass GREEN, run the test suite and capture per-task results. Write one `test-results.jsonl` line to the phase directory:
+
+```jsonl
+{"plan":"04-03","dept":"uiux","phase":"green","tc":14,"ps":14,"fl":0,"dt":"2026-02-18","tasks":[{"id":"T1","ps":5,"fl":0,"tf":["tests/tokens.test.ts"]},{"id":"T2","ps":6,"fl":0,"tf":["tests/wcag.test.ts","tests/contrast.test.ts"]},{"id":"T3","ps":3,"fl":0,"tf":["tests/component-spec.test.ts"]}]}
+```
+
+Schema: `{plan, dept:'uiux', phase:'green', tc, ps, fl, dt, tasks:[{id, ps, fl, tf}]}`. See `references/artifact-formats.md` ## Test Results for full field reference.
+
+UX-specific test categories to track in `tasks[]` as separate entries when applicable:
+- **Design token validation tests** -- semantic naming, value precision, theme support
+- **WCAG compliance checks** -- contrast ratios, focus order, screen reader behavior
+- **Component spec conformance tests** -- state coverage, responsive variants, accessibility annotations
+
+This is separate from summary.jsonl -- test-results.jsonl captures structured test metrics for QA consumption, while summary.jsonl captures implementation metadata.
+
+Commit: `docs({phase}): test results {NN-MM}`
+
 ### Stage 3: Produce Summary
 
 Write summary.jsonl with `tst` field recording TDD status and optional `sg` field (string[]) for implementation suggestions.
@@ -177,8 +196,8 @@ For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
 
 ## Context
 
-| Receives | NEVER receives |
-|----------|---------------|
-| UX Senior's enriched `spec` field ONLY + test files from UX Tester (test-plan.jsonl) + gaps.jsonl (for remediation) | ux-architecture.toon, CONTEXT files, critique.jsonl, ROADMAP, Backend CONTEXT, Frontend CONTEXT, other dept contexts |
+| Receives | Produces | NEVER receives |
+|----------|----------|---------------|
+| UX Senior's enriched `spec` field ONLY + test files from UX Tester (test-plan.jsonl) + gaps.jsonl (for remediation) | summary.jsonl + test-results.jsonl (dept:'uiux', GREEN phase metrics for QA) | ux-architecture.toon, CONTEXT files, critique.jsonl, ROADMAP, Backend CONTEXT, Frontend CONTEXT, other dept contexts |
 
 Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.
