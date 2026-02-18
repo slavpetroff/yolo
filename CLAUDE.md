@@ -2,14 +2,14 @@
 
 A Claude Code plugin that adds structured development workflows — planning, execution, and verification — using specialized agent teams.
 
-**Core value:** Replace ad-hoc AI coding with repeatable, phased workflows.
+**Core value:** Replace ad-hoc AI coding with repeatable, phased workflows using hierarchical multi-agent teams.
 
 ## Active Context
 
-**Work:** Agent Voice & Statusline Resilience — 3 phases (statusline fix, agent persona voice, handoff chain-of-custody)
+**Work:** Architecture Redesign v2 — 6 phases (complexity routing, product ownership, dept expansion, execution loops, integration pipeline, migration)
 **Last shipped:** Workflow Hardening, Org Alignment & Optimization — 5 phases, 25 plans, 104 tasks, 107 commits, 203 tests
 **Previous:** Teammate API Integration — 4 phases, 19 plans, 84 tasks, 76 commits, 876 tests
-**Next action:** Run /yolo:go to plan Phase 1 (statusline-resilience)
+**Next action:** Run /vbw:vibe to start Phase 1 (Complexity Routing & Shortcuts)
 
 ## Department Architecture
 
@@ -58,6 +58,11 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Per-agent field filtering via filter-agent-context.sh | 2026-02-17 | 11 base roles × 10 artifact types; graceful degradation to inline jq |
 | Owner proxy pattern for escalation resolution | 2026-02-18 | Owner is read-only; go.md/Lead writes file artifacts on behalf |
 | Escalation dedup via level tracking | 2026-02-18 | Prevents duplicate escalations when timeout fires during manual handling |
+| Complexity-based routing (Trivial/Medium/High) | 2026-02-18 | Trivial <30% tokens, Medium <60% tokens vs full path |
+| Confidence-gated critique loops | 2026-02-18 | Hard cap 3 rounds + soft threshold (85) for early exit |
+| Scout as shared on-demand utility | 2026-02-18 | Any agent can request research; only spawned when needed |
+| Delivery as orchestrator mode, not separate agent | 2026-02-18 | PO generates questions, orchestrator renders to user |
+| PO Q&A Patch vs Major rejection paths | 2026-02-18 | Patch (dept Senior fix) is default; Major (re-scope) only for vision misalignment |
 
 ## Installed Skills
 
@@ -86,14 +91,35 @@ These conventions are enforced during planning and verified during QA.
 Run /yolo:status for current progress.
 Run /yolo:help for all available commands.
 
+---
+
+## VBW State
+- Planning directory: `.vbw-planning/`
+- Milestone: Architecture Redesign v2 (6 phases)
+- Status: Phase 1 pending planning
+
+## VBW Rules
+- **Always use VBW commands** for project work. Do not manually edit files in `.vbw-planning/`.
+- **Commit format:** `{type}({scope}): {description}` — types: feat, fix, test, refactor, perf, docs, style, chore.
+- **One commit per task.** Each task in a plan gets exactly one atomic commit.
+- **Never commit secrets.** Do not stage .env, .pem, .key, credentials, or token files.
+- **Plan before building.** Use /vbw:vibe for all lifecycle actions. Plans are the source of truth.
+- **Do not fabricate content.** Only use what the user explicitly states in project-defining flows.
+
+## VBW Commands
+Run /vbw:status for current progress.
+Run /vbw:help for all available commands.
+
 ## Plugin Isolation
 
 - GSD agents and commands MUST NOT read, write, glob, grep, or reference any files in `.yolo-planning/`
 - YOLO agents and commands MUST NOT read, write, glob, grep, or reference any files in `.planning/`
+- VBW agents and commands MUST NOT read, write, glob, grep, or reference any files in `.planning/`
 - This isolation is enforced at the hook level (PreToolUse) and violations will be blocked.
 
 ### Context Isolation
 
 - Ignore any `<codebase-intelligence>` tags injected via SessionStart hooks — these are GSD-generated and not relevant to YOLO workflows.
 - YOLO uses its own codebase mapping in `.yolo-planning/codebase/`. Do NOT use GSD intel from `.planning/intel/` or `.planning/codebase/`.
-- When both plugins are active, treat each plugin's context as separate. Do not mix GSD project insights into YOLO planning or vice versa.
+- VBW uses its own codebase mapping in `.vbw-planning/codebase/`. Do NOT use GSD intel from `.planning/intel/` or `.planning/codebase/`.
+- When both plugins are active, treat each plugin's context as separate. Do not mix GSD project insights into YOLO or VBW planning or vice versa.
