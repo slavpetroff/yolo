@@ -1,0 +1,4 @@
+{"p":"02","n":"01","t":"Create PO, Questionary, and Roadmap agent definitions","status":"complete","tasks":3,"commits":3}
+{"id":"T1","status":"done","commit":"93b653f","f":["agents/yolo-po.md"],"notes":"PO agent with model:opus, Modes 0-3, user_presentation output type, effort-based behavior table, owner-first proxy pattern preserved"}
+{"id":"T2","status":"done","commit":"98c81a4","f":["agents/yolo-questionary.md"],"notes":"Questionary agent with model:sonnet, 3-round protocol, scope_confidence early exit at 0.85, read-only, no user contact"}
+{"id":"T3","status":"done","commit":"fd237a5","f":["agents/yolo-roadmap.md"],"notes":"Roadmap agent with model:sonnet, dependency_graph adjacency list, critical_path, topological sort with cycle detection, DAG guarantee"}
