@@ -3,7 +3,7 @@ set -euo pipefail
 
 # compile-context.sh <phase-number> <role> [phases-dir] [plan-path]
 # Produces .ctx-{role}.toon in the phase directory with role-specific context.
-# Roles: architect, lead, senior, dev, qa, qa-code, security, debugger, critic, tester, owner
+# Roles: architect, lead, senior, dev, qa, qa-code, security, debugger, critic, tester, owner, integration-gate
 # Department roles: fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code
 #                   ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code
 # Exit 0 on success, exit 1 when phase directory not found.
@@ -866,8 +866,58 @@ case "$BASE_ROLE" in
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
+  integration-gate)
+    {
+      emit_header
+      echo ""
+      # API contracts for cross-dept validation
+      if [ -f "$PHASE_DIR/api-contracts.jsonl" ]; then
+        echo "api_contracts:"
+        jq -r '"  \(.endpoint // ""): status=\(.status // "")"' "$PHASE_DIR/api-contracts.jsonl" 2>/dev/null || true
+        echo ""
+      fi
+      # Design handoff for implementation sync check
+      if [ -f "$PHASE_DIR/design-handoff.jsonl" ]; then
+        echo "design_handoff:"
+        jq -r '"  \(.component // ""): status=\(.status // "")"' "$PHASE_DIR/design-handoff.jsonl" 2>/dev/null || true
+        echo ""
+      fi
+      # Test results per department
+      if [ -f "$PHASE_DIR/test-results.jsonl" ]; then
+        echo "test_results:"
+        jq -r '"  \(.plan // ""): dept=\(.dept // "") ps=\(.ps // 0) fl=\(.fl // 0)"' "$PHASE_DIR/test-results.jsonl" 2>/dev/null || true
+        echo ""
+      fi
+      # Summary fm fields for implementation evidence
+      echo "implementation_evidence:"
+      for summary in "$PHASE_DIR"/*.summary.jsonl; do
+        if [ -f "$summary" ]; then
+          jq -r '.fm // [] | .[]' "$summary" 2>/dev/null | while IFS= read -r f; do
+            echo "  $f"
+          done
+        fi
+      done
+      echo ""
+      # Active departments from config
+      if [ -f "${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")" && pwd)/..}/config/defaults.json" ]; then
+        echo "active_departments:"
+        jq -r '.departments | to_entries[] | select(.value == true) | "  \(.key)"' "${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")" && pwd)/..}/config/defaults.json" 2>/dev/null || true
+        echo ""
+      fi
+      # Handoff sentinels
+      echo "handoff_sentinels:"
+      for sentinel in "$PHASE_DIR"/.handoff-*-complete; do
+        if [ -f "$sentinel" ]; then
+          echo "  $(basename "$sentinel")"
+        fi
+      done
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
+    ;;
+
   *)
-    echo "Unknown role: $ROLE (base: $BASE_ROLE). Valid base roles: architect, lead, senior, dev, qa, qa-code, security, debugger, critic, tester, owner, scout, documenter" >&2
+    echo "Unknown role: $ROLE (base: $BASE_ROLE). Valid base roles: architect, lead, senior, dev, qa, qa-code, security, debugger, critic, tester, owner, scout, documenter, integration-gate" >&2
     exit 1
     ;;
 esac
