@@ -854,6 +854,29 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 7. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh execute {qa-result}`
 8. **EXIT GATE:** Artifact: `.execution-state.json` (status: complete, step: signoff) + ROADMAP.md updated. State commit in item 5 -- no additional commit.
 
+### Step 11.5: Integration Gate (optional — config-gated)
+
+**Guard:** Skip if `multi_dept=false` AND `integration_gate.enabled=false` in config. When both single-dept and integration gate disabled, this step adds no value. Skip Output per template. Commit: `chore(state): integration_gate skipped phase {N}`.
+
+**ENTRY GATE:** Verify `.yolo-planning/.execution-state.json` has `steps.signoff.status` = `"complete"` (Step 11 must finish first). If not: STOP "Step 11 artifact missing — signoff not complete. Run step 11 first."
+
+1. Update execution state: `"step": "integration_gate"`
+2. **Run integration gate:**
+   ```bash
+   result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/integration-gate.sh \
+     --phase-dir "{phase-dir}" \
+     --config .yolo-planning/config.json)
+   gate_status=$(echo "$result" | jq -r '.gate')
+   ```
+3. **Route on result:**
+   - On `gate_status=pass`: Display `✓ Integration gate passed`. Proceed to Step 12 (or end if PO disabled).
+   - On `gate_status=fail`: Display `✗ Integration gate failed`. Extract failure details from gate JSON (`failures[]` array). Route to PO for scope re-evaluation (if `po.enabled=true`) or STOP with failure report (if PO disabled). Failure details include: cross-department contract mismatches, API surface drift, shared artifact inconsistencies.
+   - On `gate_status=timeout`: STOP "Integration gate timed out after `integration_gate.timeout_seconds` (default 120s). Manual intervention required." Display per-department status from gate output.
+
+4. **Single-dept simplification:** When `multi_dept=false` but `integration_gate.enabled=true`, the integration gate runs a simplified check: test suite pass, no lint regressions, artifact completeness. Cross-department checks (contract validation, handoff verification) are skipped. This enables projects that want a final automated quality gate without multi-department overhead.
+
+5. **EXIT GATE:** Artifact: `.execution-state.json` updated with `steps.integration_gate.status` = `"complete"` and `steps.integration_gate.artifact` = gate result path. Commit: `chore(state): integration_gate complete phase {N}`.
+
 ## Execution State Transitions (Enforcement Contract)
 
 **This table is the enforcement contract.** go.md MUST verify the Entry Artifact column before running each step and verify the Exit Artifact column after each step completes. No exceptions.
