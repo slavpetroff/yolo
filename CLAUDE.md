@@ -79,6 +79,9 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Integration Gate as barrier convergence point | 2026-02-18 | All departments must pass gate checks (api_contracts, design_sync, handoffs, tests) before delivery; config-driven with retry |
 | Patch/Major rejection paths with patch default | 2026-02-18 | Patch = dept Senior fix (default); Major = re-scope only for vision misalignment; po.default_rejection config key |
 | Delivery mode in orchestrator, not separate agent | 2026-02-18 | Auto/manual config toggle; orchestrator presents results to user; avoids agent sprawl |
+| compile-context.sh supports all 36 agent roles | 2026-02-18 | analyze, po, questionary, roadmap, integration-gate added; reference packages per role |
+| Token audit verifies trivial <30%, medium <60% of high path | 2026-02-18 | Automated verification that complexity routing delivers promised token savings |
+| Integration Gate read-only with 4-check protocol | 2026-02-18 | API contracts, design sync, handoffs, tests; PASS/FAIL/PARTIAL; config-driven skip per effort level |
 
 ## Installed Skills
 
