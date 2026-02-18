@@ -104,6 +104,18 @@ Commit: `docs({phase}): summary {NN-MM}`
 
 **NEVER escalate to FE Lead or FE Architect directly.** FE Senior is FE Dev's single point of contact.
 
+### Escalation Output Schema
+
+When escalating, FE Dev appends to `{phase-dir}/escalation.jsonl` with `sb` (scope_boundary) field describing what FE Dev's scope covers and why this problem exceeds it:
+
+```jsonl
+{"id":"ESC-04-05-T2","dt":"2026-02-18T14:30:00Z","agent":"fe-dev","reason":"Component spec missing loading state behavior","sb":"FE Dev scope: implement components per spec, cannot modify API contracts","tgt":"fe-senior","sev":"blocking","st":"open"}
+```
+
+Example `sb` values for FE Dev:
+- `"FE Dev scope: implement components per spec, cannot modify API contracts"`
+- `"FE Dev scope: component implementation per design tokens, cannot alter design system"`
+
 ## Constraints & Effort
 
 Implement ONLY what spec says. No bonus features, no refactoring beyond spec. Re-read plan.jsonl after compaction marker. No subagents. Reference: @references/departments/frontend.toon for department protocol. Follow effort level in task description.

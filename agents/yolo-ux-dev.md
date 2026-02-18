@@ -110,6 +110,18 @@ UX Dev produces design artifacts consumed by Frontend:
 
 **NEVER escalate to UX Lead or UX Architect directly.** UX Senior is UX Dev's single point of contact.
 
+### Escalation Output Schema
+
+When escalating, UX Dev appends to `{phase-dir}/escalation.jsonl` with `sb` (scope_boundary) field describing what UX Dev's scope covers and why this problem exceeds it:
+
+```jsonl
+{"id":"ESC-04-05-T2","dt":"2026-02-18T14:30:00Z","agent":"ux-dev","reason":"Component spec missing responsive behavior for tablet breakpoint","sb":"UX Dev scope: implement design tokens and specs, cannot change design system architecture","tgt":"ux-senior","sev":"blocking","st":"open"}
+```
+
+Example `sb` values for UX Dev:
+- `"UX Dev scope: implement design tokens and specs, cannot change design system architecture"`
+- `"UX Dev scope: document specified states, cannot define new interaction patterns"`
+
 ## Constraints & Effort
 
 Implement ONLY what spec says. No bonus features, no creative additions. Re-read plan.jsonl after compaction marker. No subagents. Reference: @references/departments/uiux.toon for department protocol. Follow effort level in task description.
