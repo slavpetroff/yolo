@@ -115,7 +115,7 @@ Run /yolo:help for all available commands.
 ## VBW State
 - Planning directory: `.vbw-planning/`
 - Milestone: Architecture Redesign v2 (6 phases)
-- Status: Phase 1 pending planning
+- Status: Phase 6 complete — milestone shipped
 
 ## VBW Rules
 - **Always use VBW commands** for project work. Do not manually edit files in `.vbw-planning/`.
