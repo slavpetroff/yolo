@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # generate-agent.sh — Combine template + dept overlay to produce agent .md files
-# Usage: generate-agent.sh --role <role> --dept <backend|frontend|uiux> [--dry-run] [--output <path>]
+# Usage: generate-agent.sh --role <role> --dept <backend|frontend|uiux> [--mode <mode>] [--dry-run] [--output <path>]
 #
 # Templates:  agents/templates/<role>.md
 # Overlays:   agents/overlays/<dept>.json
@@ -17,23 +17,25 @@ AGENTS_DIR="$REPO_ROOT/agents"
 # --- Argument parsing ---
 ROLE=""
 DEPT=""
+MODE=""
 DRY_RUN=false
 OUTPUT=""
 
 usage() {
   cat <<'USAGE'
-Usage: generate-agent.sh --role <role> --dept <backend|frontend|uiux> [--dry-run] [--output <path>]
+Usage: generate-agent.sh --role <role> --dept <backend|frontend|uiux> [--mode <mode>] [--dry-run] [--output <path>]
 
 Options:
   --role <role>       Agent role: dev, senior, tester, qa, qa-code, architect, lead, security, documenter
   --dept <dept>       Department: backend, frontend, uiux
+  --mode <mode>       Filter sections by workflow mode: plan, implement, review, qa, test, full (default: full)
   --dry-run           Print generated output to stdout instead of writing file
   --output <path>     Custom output path (default: agents/yolo-<prefix><role>.md)
   --help              Show this help message
 
 Examples:
   generate-agent.sh --role dev --dept backend
-  generate-agent.sh --role dev --dept frontend --dry-run
+  generate-agent.sh --role dev --dept frontend --mode implement --dry-run
   generate-agent.sh --role security --dept uiux --output /tmp/test.md
 USAGE
   exit "${1:-0}"
@@ -43,6 +45,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --role)   ROLE="$2"; shift 2 ;;
     --dept)   DEPT="$2"; shift 2 ;;
+    --mode)   MODE="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
     --output) OUTPUT="$2"; shift 2 ;;
     --help)   usage 0 ;;
@@ -71,6 +74,14 @@ VALID_DEPTS="backend frontend uiux"
 if ! echo "$VALID_DEPTS" | tr ' ' '\n' | grep -qx "$DEPT"; then
   echo "Error: invalid dept '$DEPT'. Valid: $VALID_DEPTS" >&2
   exit 1
+fi
+
+if [[ -n "$MODE" ]]; then
+  VALID_MODES="plan implement review qa test full"
+  if ! echo "$VALID_MODES" | tr ' ' '\n' | grep -qx "$MODE"; then
+    echo "Error: invalid mode '$MODE'. Valid: $VALID_MODES" >&2
+    exit 1
+  fi
 fi
 
 TEMPLATE="$TEMPLATES_DIR/$ROLE.md"
@@ -128,6 +139,35 @@ if [[ -n "$UNREPLACED" ]]; then
   echo "Warning: unreplaced placeholders for role=$ROLE dept=$DEPT:" >&2
   echo "$UNREPLACED" | sed 's/^/  /' >&2
 fi
+
+# Step 5: Mode filtering
+# When --mode is specified (and not "full"), remove sections wrapped in
+# <!-- mode:X,Y,Z -->...<!-- /mode --> where the requested mode is not
+# in the comma-separated mode list. Unmarked content is always preserved.
+# Mode marker comments are always stripped from output regardless of --mode.
+FILTER_MODE="${MODE:-full}"
+jq -r '.' "$TMPDIR_WORK/output.txt" | awk -v mode="$FILTER_MODE" '
+  BEGIN { emit = 1 }
+  /^<!-- mode:[a-z,]+ -->$/ {
+    if (mode != "full") {
+      sub(/^<!-- mode:/, "")
+      sub(/ -->$/, "")
+      split($0, modes, ",")
+      found = 0
+      for (i in modes) {
+        if (modes[i] == mode) found = 1
+      }
+      emit = found
+    }
+    next
+  }
+  /^<!-- \/mode -->$/ {
+    emit = 1
+    next
+  }
+  emit { print }
+' > "$TMPDIR_WORK/filtered.txt"
+jq -Rs '.' "$TMPDIR_WORK/filtered.txt" > "$TMPDIR_WORK/output.txt"
 
 # --- Determine output path ---
 if [[ -z "$OUTPUT" ]]; then
