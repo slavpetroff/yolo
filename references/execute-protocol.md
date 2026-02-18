@@ -330,7 +330,7 @@ Gate decision:
        "security": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
        "signoff": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
        "integration_gate": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
-       "delivery": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": "", "verdict": ""}
+       "delivery": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": "", "verdict": "", "feedback_rounds": 0}
      }
    }
    ```
@@ -929,7 +929,30 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
    - Known limitations (accepted risks from code review, deferred items)
    - Suggested next steps
 
-7. **EXIT GATE:** Artifact: `.execution-state.json` updated with `steps.delivery.status` = `"complete"` and `steps.delivery.verdict` = `"{approve|patch|major}"`. Commit: `chore(state): delivery complete phase {N}`.
+### User Feedback Loop
+
+After delivery presentation (item 6), the user responds with one of three actions. Max 2 feedback rounds per delivery.
+
+**Round flow:**
+
+1. **User responds** via AskUserQuestion. Options:
+   - **Approve** — User accepts delivery. Phase is complete. Proceed to EXIT GATE.
+   - **Request Changes** — User provides specific change requests (free-text or structured). Route through PO Mode 2 (scope refinement) to classify changes as patch tasks.
+   - **Reject** — User rejects delivery entirely. PO packages rejection context and marks phase as `incomplete`. No further cycles — user must re-initiate via `/yolo:go`.
+
+2. **On Request Changes:**
+   - PO receives user feedback via Mode 2 (scope refinement). PO classifies each change request:
+     - `in_scope`: Change fits original scope. PO emits patch task. Route to Senior -> Dev -> Senior review (mini cycle, same as item 4 patch protocol).
+     - `out_of_scope`: Change exceeds original scope. PO flags as deferred item. Present to user: "This change exceeds the approved scope. Add to backlog?"
+   - After all in-scope changes are implemented: re-run delivery presentation (item 6). User responds again (round 2).
+   - Max 2 feedback rounds. After round 2: if user still requests changes, PO escalates remaining items to backlog and presents final delivery summary. Phase completes with `verdict: "approve"` and deferred items logged.
+
+3. **Feedback round tracking:**
+   - `.execution-state.json` tracks `steps.delivery.feedback_rounds` (integer, 0-2).
+   - Each round increments the counter and commits: `chore(state): delivery feedback round {N} phase {P}`.
+   - Display per round: `◆ User feedback round {N}/2 — processing {M} change requests`
+
+7. **EXIT GATE:** Artifact: `.execution-state.json` updated with `steps.delivery.status` = `"complete"`, `steps.delivery.verdict` = `"{approve|patch|major}"`, and `steps.delivery.feedback_rounds` = `{0|1|2}`. Commit: `chore(state): delivery complete phase {N}`.
 
 ## Execution State Transitions (Enforcement Contract)
 
