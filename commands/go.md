@@ -435,6 +435,85 @@ This mode delegates to protocol files. Before reading:
 
   When `team_mode=task`: Spawn department Leads as background Task subagents (`run_in_background=true`). File-based coordination via dept-gate.sh, dept-status.sh, and handoff sentinels. This is the current documented behavior.
 
+### Mode: Trivial Shortcut
+
+**Guard:** Only entered via Path 0 complexity-aware routing when suggested_path=trivial and confidence >= config_trivial_threshold. Never entered directly by flags or natural language.
+
+**Steps:**
+
+1. Display: `Trivial task detected — fast path active`
+2. Read route-trivial.sh output for `plan_path` and `steps_skipped`.
+3. Resolve Senior model:
+   ```
+   SENIOR_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh senior .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   ```
+4. Spawn yolo-senior directly (skip Critic, Scout, Architect, Lead) with:
+   - model: "${SENIOR_MODEL}"
+   - Mode: "design_review"
+   - User intent as context
+   - Inline plan.jsonl from route-trivial.sh (`plan_path`)
+   - Codebase mapping if available (`has_codebase_map`)
+   - Display: `◆ Spawning Senior (${SENIOR_MODEL}) for trivial path...`
+5. Senior enriches spec inline (single task, no formal plan decomposition).
+6. Resolve Dev model:
+   ```
+   DEV_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   ```
+7. Spawn Dev with enriched spec:
+   - model: "${DEV_MODEL}"
+   - Provide: enriched plan.jsonl (spec field)
+   - Display: `◆ Spawning Dev (${DEV_MODEL}) for trivial path...`
+8. Run post-task QA gate:
+   ```bash
+   result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate-post-task.sh \
+     --phase-dir "{phase-dir}" --plan "{plan-id}" --task "T1" --scope)
+   ```
+9. Skip QA agents and security audit.
+10. Commit and display completion:
+    ```
+    ✓ Trivial path complete — {1} task, {1} commit
+    ```
+    Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh execute`.
+
+Owner-first principle still applies — go.md is the user proxy throughout.
+
+### Mode: Medium Path
+
+**Guard:** Only entered via Path 0 complexity-aware routing when suggested_path=medium and confidence >= config_medium_threshold. Never entered directly by flags or natural language.
+
+**Steps:**
+
+1. Display: `Medium complexity — streamlined path active`
+2. Read route-medium.sh output for `steps_included`, `steps_skipped`, `has_architecture`.
+3. Skip Critic (Step 1) and Scout (Step 2).
+4. If `has_architecture=true` (architecture.toon exists in phase dir): use it. Otherwise skip architecture step.
+5. Resolve Lead model:
+   ```
+   LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   ```
+6. Spawn Lead for abbreviated planning:
+   - model: "${LEAD_MODEL}"
+   - Max tasks: `config_max_medium_tasks` from complexity_routing config (default 3)
+   - Single plan only
+   - Display: `◆ Spawning Lead (${LEAD_MODEL}) for medium path...`
+7. Continue with existing execute-protocol.md steps:
+   - Step 5: Design Review (Senior enriches specs)
+   - Step 7: Implementation (Dev executes tasks)
+   - Step 8: Code Review (Senior reviews code)
+8. Run post-plan QA gate only (skip QA Lead and QA Code agents):
+   ```bash
+   result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate-post-plan.sh \
+     --phase-dir "{phase-dir}" --plan "{plan-id}")
+   ```
+9. Skip security audit (Step 10).
+10. Sign-off via Lead (Step 11).
+    ```
+    ✓ Medium path complete — {N} tasks, {N} commits
+    ```
+    Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh execute`.
+
+This mode reuses execute-protocol.md steps 4-8 and 11 but skips steps 1-3, 9, and 10. Owner-first principle applies.
+
 ### Mode: Add Phase
 
 **Guard:** Initialized. Requires phase name in $ARGUMENTS.
