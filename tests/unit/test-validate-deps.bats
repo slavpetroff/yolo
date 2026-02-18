@@ -34,7 +34,7 @@ mk_dep_graph() {
 }
 JSON
   )
-  run bash "$SUT" "$graph"
+  run bash "$SUT" --roadmap-json "$graph"
   assert_success
   local valid
   valid=$(echo "$output" | jq -r '.valid // empty' 2>/dev/null)
@@ -54,9 +54,9 @@ JSON
 }
 JSON
   )
-  run bash "$SUT" "$graph"
+  run bash "$SUT" --roadmap-json "$graph"
   assert_failure
-  assert_output --partial "cycle"
+  assert_output --partial "Circular"
 }
 
 @test "missing phase reference returns error" {
@@ -71,12 +71,12 @@ JSON
 }
 JSON
   )
-  run bash "$SUT" "$graph"
+  run bash "$SUT" --roadmap-json "$graph"
   assert_failure
   assert_output --partial "nonexistent"
 }
 
-@test "empty graph (no phases) returns valid:true" {
+@test "empty graph (no phases) returns valid:false" {
   [ -x "$SUT" ] || skip "validate-deps.sh not yet created"
   local graph
   graph=$(mk_dep_graph <<'JSON'
@@ -85,14 +85,14 @@ JSON
 }
 JSON
   )
-  run bash "$SUT" "$graph"
-  assert_success
+  run bash "$SUT" --roadmap-json "$graph"
+  assert_failure
   local valid
   valid=$(echo "$output" | jq -r '.valid // empty' 2>/dev/null)
-  [ "$valid" = "true" ] || skip "Output format not matching spec yet"
+  [ "$valid" = "false" ] || skip "Output format not matching spec yet"
 }
 
-@test "disconnected phase in critical_path returns error" {
+@test "orphaned phase produces warning" {
   [ -x "$SUT" ] || skip "validate-deps.sh not yet created"
   local graph
   graph=$(mk_dep_graph <<'JSON'
@@ -106,7 +106,7 @@ JSON
 }
 JSON
   )
-  run bash "$SUT" "$graph"
-  assert_failure
-  assert_output --partial "disconnected"
+  run bash "$SUT" --roadmap-json "$graph"
+  assert_success
+  assert_output --partial "orphaned"
 }

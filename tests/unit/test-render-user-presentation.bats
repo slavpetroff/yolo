@@ -35,7 +35,7 @@ mk_presentation() {
 }
 JSON
   )
-  run bash "$SUT" "$pres"
+  run bash "$SUT" --presentation "$pres"
   assert_success
   assert_output --partial "project scope"
   assert_output --partial "Full rewrite"
@@ -53,7 +53,7 @@ JSON
 }
 JSON
   )
-  run bash "$SUT" "$pres"
+  run bash "$SUT" --presentation "$pres"
   assert_success
   assert_output --partial "No choices needed"
 }
@@ -68,7 +68,7 @@ JSON
 }
 JSON
   )
-  run bash "$SUT" "$pres"
+  run bash "$SUT" --presentation "$pres"
   assert_success
   assert_output --partial "Simple question"
 }
@@ -77,6 +77,6 @@ JSON
   [ -x "$SUT" ] || skip "render-user-presentation.sh not yet created"
   local file="$TEST_WORKDIR/bad.json"
   echo "this is not json {{{" > "$file"
-  run bash "$SUT" "$file"
+  run bash "$SUT" --presentation "$file"
   assert_failure
 }

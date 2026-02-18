@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# department-agents.bats — Validate all 26 agent files have correct YAML frontmatter
+# department-agents.bats — Validate all 30 agent files have correct YAML frontmatter
 # Checks: file exists, has name/description/tools, single-line description, escalation table
 
 setup() {
@@ -162,10 +162,10 @@ assert_has_escalation() {
 
 # --- Agent count ---
 
-@test "exactly 26 agent files exist" {
+@test "exactly 30 agent files exist" {
   local count
   count=$(ls -1 "$AGENTS_DIR"/yolo-*.md 2>/dev/null | wc -l | tr -d ' ')
-  [ "$count" -eq 26 ]
+  [ "$count" -eq 30 ]
 }
 
 # --- Frontend agents reference frontend department protocol ---
