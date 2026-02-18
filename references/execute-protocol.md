@@ -484,6 +484,21 @@ Gate decision:
 - Before each task with `ts`: run tests, verify FAIL (RED). If tests pass → escalate to Senior.
 - After implementing: run tests, verify PASS (GREEN). If fail after 3 attempts → escalate to Senior.
 
+**Research Request Handling (mid-implementation):**
+
+When Dev emits a `research_request` output (detected in `dev_progress` or standalone message), the orchestrator routes through `resolve-research-request.sh`:
+
+1. Read request JSON (query, context, request_type, priority).
+2. **If blocking** (`rt: "blocking"`): Spawn Scout synchronously via Task tool with query+context. Wait for result. Write finding to `research.jsonl` with `ra` and `rt` fields. Send `research_response` back to Dev. Dev resumes blocked task with research context.
+3. **If informational** (`rt: "informational"`): Queue Scout spawn. Dev continues current task uninterrupted. Findings appended to `research.jsonl` after current task completes.
+
+```bash
+result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-research-request.sh \
+  --phase-dir "{phase-dir}" --request "$request_json")
+```
+
+Blocking requests respect `research_requests.blocking_timeout_seconds` from config (default 120s). If timeout fires before Scout returns, the request auto-downgrades to informational and Dev is notified to continue.
+
 **Post-task QA Gate (after each task commit):**
 
 After each Dev task commit (and TDD GREEN verification if applicable), run the post-task QA gate as a fast automated check before proceeding to the next task:
@@ -505,6 +520,14 @@ Note: `--scope` flag is DEFAULT per architecture D4 (scoped to task-modified fil
 **[task]** When `team_mode=task`: Orchestrator (Lead) runs post-task gate after each Dev task commit. On failure, orchestrator messages Dev with fix instructions from Senior.
 
 **Dev escalation chain:** Dev → Senior (not Lead). If Dev sends `dev_blocker`, route to Senior.
+
+**Test Results Collection (after plan GREEN):**
+
+After all tasks in a plan pass GREEN, Dev writes `test-results.jsonl` with structured per-task metrics. Schema: `{plan, dept, phase:'green', tc, ps, fl, dt, tasks:[{id, ps, fl, tf}]}`. The `dept` field identifies origin department (`'backend'`, `'frontend'`, `'uiux'`). See `references/artifact-formats.md` ## Test Results for full schema.
+
+Commit: `docs({phase}): test results {NN-MM}`
+
+This is separate from summary.jsonl — test-results.jsonl captures structured test metrics for QA consumption, while summary.jsonl captures implementation metadata. QA agents (qa, qa-code) and Senior receive test-results.jsonl via context manifest.
 
 **Escalation State Tracking (mid-step, per D8):**
 
