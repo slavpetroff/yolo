@@ -942,6 +942,103 @@ case "$BASE_ROLE" in
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
+  po)
+    {
+      emit_header
+      echo ""
+      get_requirements
+      echo ""
+      # REQUIREMENTS.md for vision alignment
+      if [ -f "$PLANNING_DIR/REQUIREMENTS.md" ]; then
+        echo "requirements_doc: @$PLANNING_DIR/REQUIREMENTS.md"
+      fi
+      # ROADMAP.md for phase context
+      if [ -f "$ROADMAP" ]; then
+        echo "roadmap: @$ROADMAP"
+      fi
+      echo ""
+      # Prior phase summaries for scope context
+      echo "prior_summaries:"
+      for summary in "$PHASE_DIR"/*.summary.jsonl; do
+        if [ -f "$summary" ]; then
+          jq -r '"  \(.p // "")-\(.n // ""): s=\(.s // "")"' "$summary" 2>/dev/null || true
+        fi
+      done
+      echo ""
+      # Codebase mapping for completeness checks
+      if [ "$HAS_CODEBASE" = true ]; then
+        echo "codebase:"
+        for base in ARCHITECTURE INDEX; do
+          if [ -f "$PLANNING_DIR/codebase/${base}.md" ]; then
+            echo "  @$PLANNING_DIR/codebase/${base}.md"
+          fi
+        done
+      fi
+      echo ""
+      echo "success_criteria: $PHASE_SUCCESS"
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
+    ;;
+
+  questionary)
+    {
+      emit_header
+      echo ""
+      get_requirements
+      echo ""
+      # REQUIREMENTS.md for scope cross-reference
+      if [ -f "$PLANNING_DIR/REQUIREMENTS.md" ]; then
+        echo "requirements_doc: @$PLANNING_DIR/REQUIREMENTS.md"
+      fi
+      # Research findings for domain context
+      get_research
+      echo ""
+      # Codebase mapping for implied requirements detection
+      if [ "$HAS_CODEBASE" = true ]; then
+        echo "codebase:"
+        for base in ARCHITECTURE INDEX PATTERNS; do
+          if [ -f "$PLANNING_DIR/codebase/${base}.md" ]; then
+            echo "  @$PLANNING_DIR/codebase/${base}.md"
+          fi
+        done
+      fi
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
+    ;;
+
+  roadmap)
+    {
+      emit_header
+      echo ""
+      get_requirements
+      echo ""
+      # ROADMAP.md for existing roadmap state
+      if [ -f "$ROADMAP" ]; then
+        echo "roadmap: @$ROADMAP"
+      fi
+      # REQUIREMENTS.md for full requirement details
+      if [ -f "$PLANNING_DIR/REQUIREMENTS.md" ]; then
+        echo "requirements_doc: @$PLANNING_DIR/REQUIREMENTS.md"
+      fi
+      echo ""
+      # Codebase deps for dependency analysis
+      if [ "$HAS_CODEBASE" = true ]; then
+        echo "codebase:"
+        for base in ARCHITECTURE INDEX PATTERNS CONCERNS; do
+          if [ -f "$PLANNING_DIR/codebase/${base}.md" ]; then
+            echo "  @$PLANNING_DIR/codebase/${base}.md"
+          fi
+        done
+      fi
+      echo ""
+      echo "success_criteria: $PHASE_SUCCESS"
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
+    ;;
+
   *)
     echo "Unknown role: $ROLE (base: $BASE_ROLE). Valid base roles: architect, lead, senior, dev, qa, qa-code, security, debugger, critic, tester, owner, scout, documenter, integration-gate, analyze, po, questionary, roadmap" >&2
     exit 1
