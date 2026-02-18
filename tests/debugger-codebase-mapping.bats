@@ -659,3 +659,41 @@ STATE
 @test "execute-protocol.md post-build QA prompt includes codebase bootstrap" {
   grep -A5 'Post-build QA' "$PROJECT_ROOT/references/execute-protocol.md" | grep -q 'META.md'
 }
+
+# =============================================================================
+# Agent definitions: "whichever exist" qualifier in bootstrap (#96 round 4)
+# =============================================================================
+
+@test "debugger agent bootstrap qualifies files with existence check" {
+  grep -qE 'whichever.*exist|Skip any' "$PROJECT_ROOT/agents/vbw-debugger.md"
+}
+
+@test "qa agent bootstrap qualifies files with existence check" {
+  grep -qE 'whichever.*exist|Skip any' "$PROJECT_ROOT/agents/vbw-qa.md"
+}
+
+@test "lead agent bootstrap qualifies files with existence check" {
+  grep -qE 'whichever.*exist|Skip any' "$PROJECT_ROOT/agents/vbw-lead.md"
+}
+
+@test "architect agent bootstrap qualifies files with existence check" {
+  grep -qE 'whichever.*exist|Skip any' "$PROJECT_ROOT/agents/vbw-architect.md"
+}
+
+# =============================================================================
+# compaction-instructions.sh: default case does NOT include codebase (#96 round 4)
+# =============================================================================
+
+@test "compaction-instructions.sh default case does NOT include codebase mapping" {
+  # The wildcard *) case should not mention codebase — only named roles get it
+  # Feed an unknown agent name and verify no codebase reference in output
+  echo '{"agent_name":"unknown-agent","matcher":"auto"}' | \
+    bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
+  ! grep -q 'codebase' "$TEST_TEMP_DIR/compaction-output.json"
+}
+
+@test "compaction-instructions.sh docs agent does NOT include codebase mapping" {
+  echo '{"agent_name":"vbw-docs","matcher":"auto"}' | \
+    bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
+  ! grep -q 'codebase' "$TEST_TEMP_DIR/compaction-output.json"
+}
