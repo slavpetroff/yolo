@@ -130,6 +130,30 @@ Every step in the 11-step workflow below MUST follow these templates. Entry gate
 
 **Mandatory (failure = STOP, no --force):** planning, design_review, implementation, code_review, signoff.
 
+### Complexity-Aware Step Skipping
+
+When complexity routing is enabled (`config_complexity_routing=true` in phase-detect output) and the Analyze agent classifies the task, steps are skipped based on the suggested path:
+
+| Path | Steps That Run | Steps Skipped |
+|------|---------------|---------------|
+| Trivial (trivial_shortcut) | design_review (5), implementation (7), post-task QA gate | critique (1), research (2), architecture (3), planning (4), test_authoring (6), code_review (8), qa (9), security (10) |
+| Medium (medium_path) | planning (4), design_review (5), implementation (7), code_review (8), signoff (11) | critique (1), research (2), architecture (3), test_authoring (6), qa (9), security (10) |
+| High (full_ceremony) | All 11 steps per existing logic | Per existing skip conditions (turbo, --skip-qa, etc.) |
+
+**Rules:**
+
+1. **Trivial path:** Only Senior (design review), Dev (implementation), and the post-task QA gate run. Senior receives the inline plan directly from route-trivial.sh. No formal planning, no code review cycle, no QA agents, no security audit.
+
+2. **Medium path:** Lead performs abbreviated planning (single plan, max `complexity_routing.max_medium_tasks` tasks). Senior enriches, Dev implements, Senior reviews code. Post-plan QA gate runs but full QA agents (qa, qa-code) are skipped. Security audit is skipped.
+
+3. **High path:** All steps run per existing logic. Complexity routing has no effect when high path is selected — the full ceremony applies with standard skip conditions.
+
+4. **Step 11 (signoff) always runs** regardless of path. For trivial path, go.md handles sign-off inline. For medium and high paths, Lead performs sign-off per existing protocol.
+
+5. **Complexity path does NOT override explicit flags.** The `--skip-qa` and `--skip-security` flags are orthogonal to complexity routing. If complexity routing says "run QA" but `--skip-qa` is set, QA is skipped. If complexity routing says "skip QA" (trivial/medium), the flags are redundant but harmless.
+
+6. **Backward compatibility:** When `config_complexity_routing=false`, this section has no effect. All steps follow existing skip conditions only.
+
 ### Step 1: Critique / Brainstorm (Critic Agent)
 
 **Guard:** Skip if `--effort=turbo` OR `critique.jsonl` exists. Skip Output per template. Commit: `chore(state): critique skipped phase {N}`.
