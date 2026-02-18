@@ -85,6 +85,23 @@ Input: reqs.jsonl (or REQUIREMENTS.md) + PROJECT.md + codebase/ mapping + resear
 - **major**: Should be addressed. Missing error handling, untested integration point, unclear ownership.
 - **minor**: Nice to address. Naming inconsistency, documentation gap, optional optimization.
 
+### Confidence Scoring
+
+After producing findings for a round, Critic self-assesses coverage confidence (0-100) based on:
+- **Requirements coverage**: All REQs examined? Missing specs identified?
+- **Codebase coverage**: All modified areas reviewed? Adjacent impact considered?
+- **Risk surface coverage**: Known risk patterns checked? Security/perf/integration points evaluated?
+
+Each critique.jsonl entry includes:
+- `cf` (confidence): Integer 0-100 — the round's overall confidence score
+- `rd` (round): Integer 1-3 — which critique round produced this finding
+
+### Multi-Round Protocol
+
+- **Round 1**: Standard critique — full gap analysis, risk assessment, improvement suggestions. Compute cf.
+- **Round 2** (if cf < threshold): Targeted re-analysis of low-confidence areas only (gaps in coverage from Round 1). Recompute cf. Only produce findings for areas not adequately covered in Round 1.
+- **Round 3** (if cf still < threshold): Final sweep with forced assumptions documented. Any remaining low-confidence areas get explicit "assumed X because Y" entries. This is the hard cap — no Round 4 regardless of cf.
+
 ### Research Handoff
 
 Critic findings with sev:critical or sev:major automatically feed into Scout research directives during execute-protocol Step 2 (Research). The orchestrator filters critique.jsonl to critical/major severity and passes these as research directives to Scout. Scout researches solutions and best practices for each finding, producing research.jsonl entries with brief_for linking back to the critique ID (e.g., brief_for:C2 for a research finding prompted by critique C2). This means Critic most impactful findings directly drive targeted research. Minor findings are excluded from research directives to respect Scout 1000-token context budget. Note: Critic does not interact with Scout directly. The orchestrator (go.md) handles the handoff: Critic produces critique.jsonl (Step 1) -> orchestrator spawns Scout with filtered findings (Step 2) -> Scout produces research.jsonl -> Architect reads both artifacts (Step 3).
@@ -94,9 +111,10 @@ Critic findings with sev:critical or sev:major automatically feed into Scout res
 One JSON line per finding:
 
 ```jsonl
-{"id":"C1","cat":"gap","sev":"major","q":"What happens when token expires mid-request?","ctx":"reqs specify JWT auth but no refresh flow defined","sug":"Add requirement for token refresh or define failure behavior","st":"open"}
-{"id":"C2","cat":"risk","sev":"critical","q":"No rate limiting specified — API vulnerable to abuse","ctx":"REST endpoints in reqs but no throttling requirement","sug":"Add REQ for rate limiting: 100 req/min per user","st":"open"}
-{"id":"C3","cat":"alternative","sev":"minor","q":"Consider server-sent events instead of WebSocket for notifications","ctx":"Notification req says real-time but pattern is server→client only","sug":"SSE simpler for unidirectional updates, WebSocket overkill","st":"open"}
+{"id":"C1","cat":"gap","sev":"major","q":"What happens when token expires mid-request?","ctx":"reqs specify JWT auth but no refresh flow defined","sug":"Add requirement for token refresh or define failure behavior","st":"open","cf":72,"rd":1}
+{"id":"C2","cat":"risk","sev":"critical","q":"No rate limiting specified — API vulnerable to abuse","ctx":"REST endpoints in reqs but no throttling requirement","sug":"Add REQ for rate limiting: 100 req/min per user","st":"open","cf":72,"rd":1}
+{"id":"C3","cat":"alternative","sev":"minor","q":"Consider server-sent events instead of WebSocket for notifications","ctx":"Notification req says real-time but pattern is server→client only","sug":"SSE simpler for unidirectional updates, WebSocket overkill","st":"open","cf":72,"rd":1}
+{"id":"C4","cat":"gap","sev":"major","q":"No error recovery for failed token refresh","ctx":"Round 1 missed refresh failure path","sug":"Define retry policy or force re-auth on refresh failure","st":"open","cf":88,"rd":2}
 ```
 
 ## Status Values
@@ -122,7 +140,10 @@ As teammate: SendMessage with `critique_result` schema to Lead:
   "minor": 3,
   "categories": ["gap", "risk", "improvement", "question"],
   "artifact": "phases/01-auth/critique.jsonl",
-  "committed": false
+  "committed": false,
+  "rounds_used": 2,
+  "final_confidence": 88,
+  "early_exit": true
 }
 ```
 
