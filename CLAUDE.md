@@ -6,10 +6,10 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** Architecture Redesign v2 — 6 phases (complexity routing, product ownership, dept expansion, execution loops, integration pipeline, migration)
-**Last shipped:** Workflow Hardening, Org Alignment & Optimization — 5 phases, 25 plans, 104 tasks, 107 commits, 203 tests
-**Previous:** Teammate API Integration — 4 phases, 19 plans, 84 tasks, 76 commits, 876 tests
-**Next action:** Run /vbw:vibe to start Phase 1 (Complexity Routing & Shortcuts)
+**Last shipped:** Architecture Redesign v2 — 6 phases, 38 plans, ~36 agents across 4 departments + PO layer + Integration Gate
+**Previous:** Workflow Hardening, Org Alignment & Optimization — 5 phases, 25 plans, 104 tasks, 107 commits, 203 tests
+**Before that:** Teammate API Integration — 4 phases, 19 plans, 84 tasks, 76 commits, 876 tests
+**Next action:** Run /vbw:vibe for next milestone
 
 ## Department Architecture
 
