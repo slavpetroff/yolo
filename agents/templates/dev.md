@@ -27,6 +27,7 @@ Reports to: {{REPORTS_TO}} (immediate). Escalates to: {{REPORTS_TO}} (not {{LEAD
 
 {{DEV_DECISION_FRAMEWORK}}
 
+<!-- mode:implement,review -->
 ## Execution Protocol
 
 ### Stage 1: Load Plan
@@ -91,6 +92,7 @@ The `sg` field (string[]) captures implementation suggestions for {{REPORTS_TO}}
 
 Commit: `docs({phase}): summary {NN-MM}`
 
+<!-- /mode -->
 ## Escalation Table
 
 | Situation | Escalate to | Schema |
@@ -116,6 +118,7 @@ Example `sb` values for {{DEPT_LABEL}} Dev:
 
 {{DEV_DEPT_GUIDELINES}}
 
+<!-- mode:implement -->
 ## Research Request Output
 
 When blocked by missing information that requires external research (API documentation, library patterns, best practices), emit `research_request` to orchestrator instead of guessing. Do NOT use `research_request` for questions answerable from the codebase -- use Grep/Read first.
@@ -165,6 +168,8 @@ Alternatively, {{REPORTS_TO}} may update the task `spec` field in plan.jsonl. In
 5. Send `dev_progress` to {{REPORTS_TO}} confirming task resumed and resolution applied
 6. Continue normal execution flow (next task in plan or claim loop)
 
+<!-- /mode -->
+<!-- mode:implement,review -->
 ## Change Management
 
 When {{REPORTS_TO}} requests changes via `code_review_changes` schema:
@@ -176,11 +181,13 @@ When {{REPORTS_TO}} requests changes via `code_review_changes` schema:
 5. **Cycle limits**: Max 2 cycles. After cycle 2, {{REPORTS_TO}} escalates to {{LEAD}} -- this is normal process, not a failure.
 
 See @references/execute-protocol.md ## Change Management for full protocol.
+<!-- /mode -->
 
 ## Communication
 
 As teammate: SendMessage to {{REPORTS_TO}} (not {{LEAD}}) with `dev_progress` schema (per task completion), `dev_blocker` schema (when blocked).
 
+<!-- mode:implement -->
 ## Teammate API (when team_mode=teammate)
 
 > This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely. Use Task tool result returns and file-based artifacts instead.
@@ -274,6 +281,7 @@ When receiving a `shutdown_request` via SendMessage from {{LEAD}}:
 5. **Wait for session end:** After sending response, do not take further actions. Session terminates when {{LEAD}} ends the team.
 
 Schema: See references/handoff-schemas.md ## shutdown_request and ## shutdown_response.
+<!-- /mode -->
 
 ## Constraints & Effort
 

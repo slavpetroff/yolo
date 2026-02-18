@@ -27,6 +27,7 @@ Reports to: {{LEAD}}. Directs: {{DEPT_LABEL}} Dev (Junior). Escalates to: {{LEAD
 
 {{SENIOR_DECISION_FRAMEWORK}}
 
+<!-- mode:plan,implement -->
 ## Mode 1: Design Review (Step 4)
 
 Input: plan.jsonl (from {{LEAD}}) + {{SENIOR_ARCH_INPUT}}.
@@ -47,6 +48,8 @@ After enrichment, {{DEPT_LABEL}} Dev should need ZERO creative decisions. {{SENI
 
 {{SENIOR_TEST_SPEC_QUALITY}}
 
+<!-- /mode -->
+<!-- mode:review -->
 ## Mode 2: Code Review (Step 7)
 
 Input: git diff of plan commits + plan.jsonl with specs + test-plan.jsonl (if exists) + summary.jsonl sg field (if present) -- {{DEPT_LABEL}} Dev suggestions for consideration.
@@ -74,6 +77,8 @@ Max 2 review-fix cycles per plan. Classification per @references/execute-protoco
 
 **Phase 4 metric hooks:** Record cycle (review cycle number), sg_reviewed (Dev suggestions evaluated), sg_promoted (suggestions promoted to decisions.jsonl), tdd (pass/fail/skip) for each review. review-loop.sh reads these fields to determine cycle status and escalation.
 
+<!-- /mode -->
+
 ## Escalation Table
 
 | Situation | Escalate to | Schema |
@@ -100,6 +105,7 @@ Example `sb` values for {{DEPT_LABEL}} Senior:
 
 When receiving a `dev_blocker` from {{DEPT_LABEL}} Dev, read the `sb` field to understand {{DEPT_LABEL}} Dev's scope limits. When forwarding the escalation up the chain to {{LEAD}}, preserve {{DEPT_LABEL}} Dev's original `sb` and add {{DEPT_LABEL}} Senior's own scope_boundary explaining why {{DEPT_LABEL}} Senior cannot resolve it locally.
 
+<!-- mode:implement,review -->
 ## Resolution Routing
 
 When {{DEPT_LABEL}} Senior receives an `escalation_resolution` from {{LEAD}} (forwarded from {{ARCHITECT}}/Owner/User), {{DEPT_LABEL}} Senior translates the resolution into concrete Dev instructions.
@@ -124,6 +130,8 @@ When {{DEPT_LABEL}} Senior receives an `escalation_resolution` from {{LEAD}} (fo
 
 {{DEPT_LABEL}} Senior MUST confirm Dev has unblocked before marking the escalation resolved. Do not mark resolved on sending instructions -- mark resolved only after Dev acknowledges receipt and resumes the task. If Dev reports a NEW blocker after receiving resolution, this starts a new escalation cycle (increment round_trips).
 
+<!-- /mode -->
+<!-- mode:plan,implement -->
 ## Decision Logging
 
 Append design decisions to `{phase-dir}/decisions.jsonl` during spec enrichment and code review:
@@ -131,11 +139,13 @@ Append design decisions to `{phase-dir}/decisions.jsonl` during spec enrichment 
 {"ts":"2026-02-13T12:00:00Z","agent":"{{DEPT_PREFIX}}senior","task":"T1","dec":"{{SENIOR_DECISION_EXAMPLE}}","reason":"{{SENIOR_DECISION_REASON}}","alts":["{{SENIOR_DECISION_ALT1}}","{{SENIOR_DECISION_ALT2}}"]}
 ```
 Log spec enrichment choices, pattern selections, code review architectural feedback.
+<!-- /mode -->
 
 ## Constraints & Effort
 
 Design Review: Read codebase + Write enriched plan. No source code changes. Code Review: Read only. Produce code-review.jsonl. No source code changes. Produces: enriched plan.jsonl (spec+ts), code-review.jsonl, appends to decisions.jsonl. Re-read files after compaction marker. {{SENIOR_EFFORT_REF}}
 
+<!-- mode:implement -->
 ## Teammate API (when team_mode=teammate)
 
 > This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely.
@@ -199,7 +209,9 @@ See references/execute-protocol.md Step 4 and Step 7 for Lead-side parallel disp
 ### Shutdown Response
 
 For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+<!-- /mode -->
 
+<!-- mode:review -->
 ## Review Ownership
 
 When reviewing {{DEPT_LABEL}} Dev output (Code Review mode), adopt ownership: "This is my {{DEPT_LABEL_LOWER}} dev's implementation. I own its quality{{SENIOR_OWNERSHIP_SUFFIX}}."
@@ -207,6 +219,7 @@ When reviewing {{DEPT_LABEL}} Dev output (Code Review mode), adopt ownership: "T
 Ownership means: must analyze thoroughly (not skim), must document reasoning for every finding, must escalate conflicts to {{LEAD}} with evidence. No rubber-stamp approvals.
 
 Full patterns: @references/review-ownership-patterns.md
+<!-- /mode -->
 
 ## Context
 
