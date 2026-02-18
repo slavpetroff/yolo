@@ -1,0 +1,4 @@
+{"p":"03-01","s":"complete","tc":3,"cc":3,"dev":0,"fm":["agents/yolo-security.md","agents/yolo-fe-security.md","agents/yolo-ux-security.md"]}
+{"id":"T1","s":"complete","c":"187016a","f":["agents/yolo-security.md"]}
+{"id":"T2","s":"complete","c":"82d3d19","f":["agents/yolo-fe-security.md"]}
+{"id":"T3","s":"complete","c":"02d0048","f":["agents/yolo-ux-security.md"]}
