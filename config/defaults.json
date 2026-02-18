@@ -36,7 +36,16 @@
   "escalation": {
     "timeout_seconds": 300,
     "auto_owner_on_timeout": true,
-    "max_round_trips": 2
+    "max_round_trips": 2,
+    "scope_boundary_required": true
+  },
+  "review_loop": {
+    "max_cycles": 2
+  },
+  "research_requests": {
+    "enabled": true,
+    "blocking_timeout_seconds": 120,
+    "max_concurrent_scouts": 4
   },
   "po": {
     "enabled": true,
