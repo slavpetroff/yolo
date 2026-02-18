@@ -142,6 +142,16 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" template-generate-hook.sh; exit 0'",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "yolo-",
+        "hooks": [
+          {
+            "type": "command",
             "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" agent-start.sh; exit 0'",
             "timeout": 3
           }
