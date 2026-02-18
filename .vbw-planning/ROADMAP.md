@@ -12,7 +12,7 @@
 | 3 | Complete | 7 | 29 | 37 |
 | 4 | Complete | 7 | 34 | 37 |
 | 5 | Complete | 6 | 23 | 24 |
-| 6 | Pending | 0 | 0 | 0 |
+| 6 | Planned | 6 | 26 | 0 |
 
 ---
 
