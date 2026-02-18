@@ -1,0 +1,6 @@
+{"p":"01","n":"05","status":"complete","tasks_completed":5,"commits":["392e991","f8eb406","7c907d1","3db018e","bcc6b60"],"deviations":["T2 and T3 (Trivial + Medium modes) were written in a single edit since they are adjacent sections; T3 commit adds test_authoring skip clarification to create a distinct commit."]}
+{"id":"T1","status":"complete","commit_hash":"392e991","files_modified":["commands/go.md"]}
+{"id":"T2","status":"complete","commit_hash":"f8eb406","files_modified":["commands/go.md"]}
+{"id":"T3","status":"complete","commit_hash":"7c907d1","files_modified":["commands/go.md"]}
+{"id":"T4","status":"complete","commit_hash":"3db018e","files_modified":["commands/go.md"]}
+{"id":"T5","status":"complete","commit_hash":"bcc6b60","files_modified":["references/execute-protocol.md"]}
