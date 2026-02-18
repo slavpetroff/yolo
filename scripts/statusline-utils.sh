@@ -128,3 +128,27 @@ truncate_line() {
     print buf
   }'
 }
+
+# --- compute_bar_width() ---
+# Calculate per-bar width clamped to [MIN_BAR, MAX_BAR] or 0 (drop signal).
+# Usage: compute_bar_width available_width num_bars
+#   $1 = available_width (integer, total chars available for all bars)
+#   $2 = num_bars (integer, number of progress bars to fit)
+#   stdout = integer per-bar width, clamped to [3,20] or 0
+compute_bar_width() {
+  local available="$1" num_bars="$2"
+
+  # Guard: zero bars means nothing to compute
+  [ "$num_bars" -le 0 ] && { echo 0; return; }
+
+  local per_bar=$((available / num_bars))
+
+  # Clamp to [MIN_BAR, MAX_BAR] or signal drop with 0
+  if [ "$per_bar" -lt "$MIN_BAR" ]; then
+    echo 0  # Signal: drop a segment
+  elif [ "$per_bar" -gt "$MAX_BAR" ]; then
+    echo "$MAX_BAR"
+  else
+    echo "$per_bar"
+  fi
+}
