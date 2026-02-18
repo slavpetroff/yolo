@@ -35,6 +35,16 @@ load test_helper
   sed -n '/Pre-existing failures (DEVN-05)/,/^$/p' "$PROJECT_ROOT/agents/vbw-dev.md" | grep -q 'DEVN-04'
 }
 
+@test "dev agent deviation table has all 5 DEVN codes" {
+  for code in DEVN-01 DEVN-02 DEVN-03 DEVN-04 DEVN-05; do
+    grep -q "$code" "$PROJECT_ROOT/agents/vbw-dev.md" || { echo "Missing $code"; return 1; }
+  done
+}
+
+@test "dev agent deviation table has Default DEVN-04 when unsure" {
+  grep -qi 'Default.*DEVN-04.*when unsure' "$PROJECT_ROOT/agents/vbw-dev.md"
+}
+
 # =============================================================================
 # Fix command: discovered issues output
 # =============================================================================
@@ -246,6 +256,18 @@ load test_helper
 
 @test "lead agent aggregation mentions blocker_report" {
   sed -n '/Pre-Existing Issue Aggregation/,/^##/p' "$PROJECT_ROOT/agents/vbw-lead.md" | grep -q 'blocker_report'
+}
+
+@test "lead agent aggregation specifies JSON output format" {
+  sed -n '/Pre-Existing Issue Aggregation/,/^##/p' "$PROJECT_ROOT/agents/vbw-lead.md" | grep -q '{test, file, error}'
+}
+
+# =============================================================================
+# Execute-protocol: display format specification
+# =============================================================================
+
+@test "execute-protocol discovered issues specifies bullet display format" {
+  sed -n '/Discovered Issues/,/display-only/p' "$PROJECT_ROOT/references/execute-protocol.md" | grep -q 'testName.*path.*error'
 }
 
 # =============================================================================
