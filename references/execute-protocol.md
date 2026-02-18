@@ -328,7 +328,9 @@ Gate decision:
        "code_review": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
        "qa": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
        "security": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
-       "signoff": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""}
+       "signoff": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+       "integration_gate": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
+       "delivery": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": "", "verdict": ""}
      }
    }
    ```
@@ -948,8 +950,10 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 | 9. QA | `qa` | `code-review.jsonl` with `r: "approve"` | `verification.jsonl` + `qa-code.jsonl` | `docs({phase}): verification results` | `--skip-qa`, `--effort=turbo` |
 | 10. Security | `security` | `verification.jsonl` OR step 9 skipped | `security-audit.jsonl` | `docs({phase}): security audit` | `--skip-security`, config `security_audit` != true |
 | 11. Sign-off | `signoff` | `security-audit.jsonl` OR step 10 skipped + `code-review.jsonl` approved | `.execution-state.json` complete + ROADMAP.md | `chore(state): phase {N} complete` | NONE (mandatory) |
+| 11.5. Integration Gate | `integration_gate` | `steps.signoff.status` = `"complete"` | `.execution-state.json` updated (integration_gate complete) | `chore(state): integration_gate complete phase {N}` | `multi_dept=false` AND `integration_gate.enabled=false` |
+| 12. Delivery | `delivery` | `steps.integration_gate` complete OR skipped | `.execution-state.json` updated (delivery complete, verdict) | `chore(state): delivery complete phase {N}` | `po.enabled=false` |
 
-Each transition commits `.execution-state.json` so resume works on exit. Schema: see Step 4 item 7 above. Per-step status values: `"pending"`, `"running"`, `"complete"`, `"skipped"`. The `reason` field is populated only for skipped steps.
+Each transition commits `.execution-state.json` so resume works on exit. Schema: see Step 4 item 7 above. Per-step status values: `"pending"`, `"running"`, `"complete"`, `"skipped"`. The `reason` field is populated only for skipped steps. The `delivery` step entry has an additional `verdict` field (`"approve"`, `"patch"`, or `"major"`) populated on completion.
 
 **Multi-department note:** When `multi_dept=true`, `.phase-orchestration.json` is created alongside `.execution-state.json` and tracks per-department status and gate state. See ## Multi-Department Execution above for schema.
 
