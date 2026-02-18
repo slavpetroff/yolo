@@ -497,6 +497,64 @@ if [ -n "$BR" ]; then
   L1="$L1 ${D}Diff:${X} ${G}+${ADDED}${X} ${R}-${REMOVED}${X}"
 fi
 
+# --- L1 width budget (IP3) ---
+_l1_width=$(visible_width "$L1")
+if [ "$_l1_width" -gt "$MAX_WIDTH" ]; then
+  # Prepare plain text fallback for GH link (no OSC 8)
+  _GH_PLAIN=""
+  [ -n "$GH_URL" ] && _GH_PLAIN="$(basename "$GH_URL")${BR:+:$BR}"
+
+  _l1_rebuild() {
+    local include_diff="$1" include_commits="$2" include_files="$3" include_qa="$4"
+    local line
+    if [ "$EXEC_STATUS" = "running" ] && [ "${EXEC_TOTAL:-0}" -gt 0 ] 2>/dev/null; then
+      EXEC_PCT=$((EXEC_DONE * 100 / EXEC_TOTAL))
+      line="${C}${B}[YOLO]${X} Build: $(progress_bar "$EXEC_PCT" 8) ${EXEC_DONE}/${EXEC_TOTAL} plans"
+      [ "${EXEC_TWAVES:-0}" -gt 1 ] 2>/dev/null && line="$line ${D}│${X} Wave ${EXEC_WAVE}/${EXEC_TWAVES}"
+      # EXEC_CURRENT is dropped when rebuilding (it is the longest optional segment)
+    elif [ -d ".yolo-planning" ]; then
+      line="${C}${B}[YOLO]${X}"
+      [ "$TT" -gt 0 ] 2>/dev/null && line="$line Phase ${PH}/${TT}" || line="$line Phase ${PH:-?}"
+      [ "$PT" -gt 0 ] 2>/dev/null && line="$line ${D}│${X} Plans: ${PD}/${PT} (${PPD} this phase)"
+      line="$line ${D}│${X} Effort: $EF ${D}│${X} Model: $MP"
+      if [ "$include_qa" = "1" ]; then
+        if [ "$QA" = "pass" ]; then line="$line ${D}│${X} ${G}QA: pass${X}"
+        else line="$line ${D}│${X} ${D}QA: --${X}"; fi
+      fi
+    else
+      line="${C}${B}[YOLO]${X} ${D}no project${X}"
+    fi
+    if [ -n "$BR" ]; then
+      [ -n "$_GH_PLAIN" ] && line="$line ${D}│${X} $_GH_PLAIN" || line="$line ${D}│${X} $BR"
+      if [ "$include_files" = "1" ]; then
+        local git_ind=""
+        [ "${GIT_STAGED:-0}" -gt 0 ] 2>/dev/null && git_ind="${G}+${GIT_STAGED}${X}"
+        [ "${GIT_MODIFIED:-0}" -gt 0 ] 2>/dev/null && git_ind="${git_ind}${Y}~${GIT_MODIFIED}${X}"
+        [ -n "$git_ind" ] && line="$line ${D}Files:${X} $git_ind"
+      fi
+      [ "$include_commits" = "1" ] && [ "${GIT_AHEAD:-0}" -gt 0 ] 2>/dev/null && \
+        line="$line ${D}Commits:${X} ${C}↑${GIT_AHEAD}${X}"
+      [ "$include_diff" = "1" ] && \
+        line="$line ${D}Diff:${X} ${G}+${ADDED}${X} ${R}-${REMOVED}${X}"
+    fi
+    printf '%s' "$line"
+  }
+  # Try progressively dropping segments (OSC 8 already replaced by _GH_PLAIN)
+  L1=$(_l1_rebuild 1 1 1 1)  # All segments, no OSC 8
+  if [ "$(visible_width "$L1")" -gt "$MAX_WIDTH" ]; then
+    L1=$(_l1_rebuild 0 1 1 1)  # Drop Diff
+  fi
+  if [ "$(visible_width "$L1")" -gt "$MAX_WIDTH" ]; then
+    L1=$(_l1_rebuild 0 0 1 1)  # Drop Commits
+  fi
+  if [ "$(visible_width "$L1")" -gt "$MAX_WIDTH" ]; then
+    L1=$(_l1_rebuild 0 0 0 1)  # Drop Files
+  fi
+  if [ "$(visible_width "$L1")" -gt "$MAX_WIDTH" ]; then
+    L1=$(_l1_rebuild 0 0 0 0)  # Drop QA
+  fi
+fi
+
 L2="Context: ${BC}${CTX_BAR}${X} ${BC}${PCT}%${X} ${CTX_USED_FMT}/${CTX_SIZE_FMT}"
 L2="$L2 ${D}│${X} Tokens: ${IN_TOK_FMT} in  ${OUT_TOK_FMT} out"
 L2="$L2 ${D}│${X} Prompt Cache: ${CACHE_COLOR}${CACHE_HIT_PCT}% hit${X} ${CACHE_W_FMT} write ${CACHE_R_FMT} read"
