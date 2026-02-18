@@ -162,10 +162,10 @@ assert_has_escalation() {
 
 # --- Agent count ---
 
-@test "exactly 30 agent files exist" {
+@test "exactly 35 agent files exist" {
   local count
   count=$(ls -1 "$AGENTS_DIR"/yolo-*.md 2>/dev/null | wc -l | tr -d ' ')
-  [ "$count" -eq 30 ]
+  [ "$count" -eq 35 ]
 }
 
 # --- Frontend agents reference frontend department protocol ---
