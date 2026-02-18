@@ -109,7 +109,7 @@ When `config_complexity_routing=true` AND $ARGUMENTS present AND no mode flags d
      ```
      Then dispatch to **Mode: Medium Path** below.
    - `full_ceremony`: Call `bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-high.sh` (if exists), then proceed to **PO Layer** (if enabled) before existing Plan+Execute flow (full ceremony).
-   - `medium_path` with PO: If `po.enabled=true`, run abbreviated PO (single-round Questionary, skip Roadmap Agent) before medium path dispatch.
+   - `medium_path` with PO: If `po.enabled=true` AND complexity is NOT in `po.skip_on_complexity` array, run abbreviated PO (single-round Questionary, skip Roadmap Agent) before medium path dispatch. When `po.skip_on_complexity` includes `"medium"` (the default), PO is skipped entirely for medium-path tasks, saving ~2000 tokens.
    - `redirect`: Map Analyze intent to existing redirects:
      - debug → Redirect to `/yolo:debug` with $ARGUMENTS
      - fix → Redirect to `/yolo:fix` with $ARGUMENTS
@@ -189,6 +189,7 @@ Every mode triggers confirmation via AskUserQuestion before executing, with cont
 - `po.enabled=false` in config (backward compat — existing Critic→Architect→Lead flow unchanged)
 - `--effort=turbo` (PO skipped at turbo)
 - Path 0 result is `trivial_shortcut` (PO skipped for trivial tasks)
+- Classified complexity is in `po.skip_on_complexity` array (default: `["medium","trivial"]`). Read via: `jq -r '.po.skip_on_complexity // [] | .[]' .yolo-planning/config.json`. If the analysis JSON's `complexity` value is in this array, skip PO entirely.
 
 **When `po.enabled=true` AND guard conditions not met:**
 
