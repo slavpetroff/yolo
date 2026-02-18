@@ -1,0 +1,101 @@
+{
+  "phase": 1,
+  "phase_name": "bootstrap-naming-fixes",
+  "status": "running",
+  "started_at": "2026-02-17T12:56:06Z",
+  "step": "planning",
+  "wave": 1,
+  "total_waves": 2,
+  "plans": [
+    {
+      "id": "01-01",
+      "title": "Fix CLAUDE.md bootstrap override bug",
+      "wave": 1,
+      "status": "pending"
+    },
+    {
+      "id": "01-02",
+      "title": "Document canonical naming patterns and audit inconsistencies",
+      "wave": 1,
+      "status": "pending"
+    },
+    {
+      "id": "01-03",
+      "title": "Create naming validation script",
+      "wave": 2,
+      "status": "pending"
+    }
+  ],
+  "steps": {
+    "critique": {
+      "status": "complete",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "architecture": {
+      "status": "complete",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "planning": {
+      "status": "complete",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "design_review": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "test_authoring": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "implementation": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "code_review": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "qa": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "security": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "signoff": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    }
+  }
+}

@@ -1,0 +1,259 @@
+phase: 03
+title: Company Org Alignment & Review Patterns
+goal: Align agent hierarchy with real company processes -- add missing protocols, review ownership language, and cross-team communication patterns
+
+tech_decisions[7]:
+
+D1{
+  decision: Scope review ownership language to reviewing agents only (16 of 26)
+  rationale: Per C1 (critical) and R1 (Google reviewer taxonomy), ownership language applies to agents that review subordinate output. Dev, Tester, Scout, Critic, Debugger produce output reviewed by others -- they are authors, not reviewers. Reviewing agents: Senior (design review + code review), Lead (plan approval), Architect (architecture sign-off), Owner (department oversight), QA (verification), QA-Code (code quality). All 3 depts: 10 BE + 3 FE-only + 3 UX-only = 16 agents. Update ROADMAP success criterion from "All agent prompts" to "All reviewing agent prompts (16 of 26)". Critic reviews requirements but is advisory only (findings route to Lead) -- no subordinate ownership. Security reviews code but produces audit finding, not ownership handoff -- exclude. Tester validates specs but does not take ownership of Dev output.
+  alternatives:
+    - All 26 agents (adds noise to non-reviewer agents, violates Google reviewer role taxonomy per R1)
+    - Only Senior + Owner (too narrow, misses Lead/Architect/QA who also review)
+  ref: C1, R1, R2, R8
+}
+
+D2{
+  decision: Fix all stale 10-step references to 11-step across codebase (19 occurrences in 10 files)
+  rationale: Per C4 (major), stale references cause confusion. Phase 2 added Research as step 2, making it 11 steps. The Grep sweep found 19 occurrences across: agents/yolo-lead.md (1), agents/yolo-fe-lead.md (1), agents/yolo-ux-lead.md (1), references/cross-team-protocol.md (8), references/multi-dept-protocol.md (3), references/departments/backend.toon (1), references/departments/frontend.toon (1), references/departments/uiux.toon (1), references/departments/shared.toon (1), commands/go.md (3), references/teammate-api-patterns.md (1), references/handoff-schemas.md (1). Include as tasks in plan 03-01 (audit wave). Also fix step numbering in flow diagrams and workflow mode tables. The go.md step listing must be updated from 10-step to 11-step (Critique > Research > Architecture > Planning > Design Review > Test Authoring > Implementation > Code Review > QA > Security > Sign-off).
+  alternatives:
+    - Fix only agent files (leaves reference files stale)
+    - Defer to Phase 4 (accumulates more debt)
+  ref: C4
+}
+
+D3{
+  decision: Formalize Architect-to-Lead handoff using stage-gate model (Go/Recycle/Kill)
+  rationale: Per C5 (major) and R3/R4/R9 (high-conf), the Critic-to-Scout-to-Architect pipeline exists but Architect-to-Lead quality gate is missing. Architecture.toon must meet completeness criteria before Lead can plan against it. Gate model from R9: Entry criteria (what architecture.toon must contain), Gate review (Lead validates completeness), Exit decision (Go = proceed to planning, Recycle = Architect reworks, Kill = defer phase). Completeness checklist from R4: all requirements mapped to components, integration points defined, risks identified with mitigation, technology decisions with rationale. Extend execute-protocol.md Step 3 exit gate and Step 4 entry gate. Also add feedback loop: if Lead finds architecture.toon incomplete during planning, escalation to Architect triggers Recycle (not ad-hoc rework).
+  alternatives:
+    - No formal gate (current implicit "file exists" check is too weak per C5)
+    - Full RFC process (too heavyweight for single-dept mode)
+  ref: C5, R3, R4, R9
+}
+
+D4{
+  decision: Formalize Senior-Dev revision cycle as collaborative with 2-cycle max, Minor/Major classification
+  rationale: Per C7 (major) and R5/R6/R7 (high/med conf), the 2-cycle max is already industry-aligned (R5). Add classification from R6: Minor changes (nits, style, naming) auto-approve after cycle 1 if only nits. Major changes (logic, architecture, error handling) escalate after cycle 2. Senior-Dev relationship is collaborative per R7 -- Senior sends suggestions, Dev retains decision power within spec boundaries. Add extensibility hooks for Phase 4 continuous QA: define metric collection points (cycle count, finding severity distribution, time per cycle) that Phase 4 can instrument without rewriting Phase 3 artifacts.
+  alternatives:
+    - Hard 2-cycle limit with no classification (treats all changes equally, creates perverse incentives per R5)
+    - 3-cycle limit (delays feedback loop, per R5 optimal is 1-2)
+  ref: C7, R5, R6, R7, R10
+}
+
+D5{
+  decision: Integrate status reporting into cross-team-protocol.md (not standalone file)
+  rationale: Per C10 (minor), adding a standalone status-reporting-protocol.md increases cross-referencing overhead for agents. Status reporting is a subset of cross-team communication. Add a new section "## Cross-Team Status Reporting" to cross-team-protocol.md with: reporting cadence (per-step completion updates via .dept-status-{dept}.json), status schema (step, percent_complete, blockers, eta), aggregation (Owner reads all dept statuses at gate boundaries). This consolidation keeps the reference file count manageable while adding the required protocol.
+  alternatives:
+    - Standalone status-reporting-protocol.md (adds another reference file, per C10 critique)
+    - Merge into company-hierarchy.md (wrong scope -- hierarchy is about roles, not communication)
+  ref: C10
+}
+
+D6{
+  decision: Add BATS static tests for new agent sections and audit checklist verification
+  rationale: Per C2 (major), Phase 3 is entirely documentation changes with no automated verification. Add tests/static/agent-review-ownership.bats to verify: all 16 reviewing agents contain "## Review Ownership" section, all 16 reviewing agents contain ownership language patterns (grep for key phrases like "taking ownership" or "review ownership"). Add tests/static/protocol-11-step-refs.bats to verify: zero occurrences of "10-step" in agent files, reference files, and command files. These tests follow the existing static test pattern (grep-based validation of agent file structure) seen in agent-teammate-sections.bats and agent-frontmatter.bats.
+  alternatives:
+    - No tests (regressions possible per C2)
+    - Integration tests (too heavy for documentation verification)
+  ref: C2
+}
+
+D7{
+  decision: Use agent-to-artifact ownership matrix (CODEOWNERS-style) in review-ownership-patterns.md
+  rationale: Per R2 (high-conf) and C6 (major), a CODEOWNERS-style mapping enables machine-parseable validation. Create review-ownership-patterns.md with: ownership matrix (agent -> artifact type -> review authority), ownership language templates per role, responsibility definition per R8 (must analyze, must document reasoning, must escalate conflicts). Format as Markdown with embedded JSONL table for static test validation. This addresses C6 by providing structured data that BATS tests can grep for.
+  alternatives:
+    - Pure Markdown without structured data (not machine-parseable for tests per C6)
+    - JSONL-only reference file (harder for humans to review ownership patterns)
+  ref: C6, R2, R8
+}
+
+components[6]:
+
+C1{
+  name: Review Ownership Patterns
+  responsibility: Define reviewer-to-artifact ownership mapping and ownership language templates for 16 reviewing agents
+  interface: references/review-ownership-patterns.md read by agents during review steps (5, 8, 9)
+  files: references/review-ownership-patterns.md, agents/yolo-senior.md, agents/yolo-lead.md, agents/yolo-architect.md, agents/yolo-owner.md, agents/yolo-qa.md, agents/yolo-qa-code.md, agents/yolo-fe-senior.md, agents/yolo-fe-lead.md, agents/yolo-fe-architect.md, agents/yolo-fe-qa.md, agents/yolo-fe-qa-code.md, agents/yolo-ux-senior.md, agents/yolo-ux-lead.md, agents/yolo-ux-architect.md, agents/yolo-ux-qa.md, agents/yolo-ux-qa-code.md (17 files)
+}
+
+C2{
+  name: Stale Reference Remediation
+  responsibility: Update all 10-step references to 11-step across codebase
+  interface: 10 files with 19 occurrences. Text replacement + flow diagram updates.
+  files: agents/yolo-lead.md, agents/yolo-fe-lead.md, agents/yolo-ux-lead.md, references/cross-team-protocol.md, references/multi-dept-protocol.md, references/departments/backend.toon, references/departments/frontend.toon, references/departments/uiux.toon, references/departments/shared.toon, commands/go.md, references/teammate-api-patterns.md, references/handoff-schemas.md (12 files)
+}
+
+C3{
+  name: R&D Handoff Protocol
+  responsibility: Formalize Critic-Scout-Architect pipeline and Architect-Lead stage-gate handoff
+  interface: references/rnd-handoff-protocol.md referenced by execute-protocol.md Steps 1-4
+  files: references/rnd-handoff-protocol.md (new), references/execute-protocol.md (update entry/exit gates for steps 3-4)
+}
+
+C4{
+  name: Change Management Formalization
+  responsibility: Document Senior-Dev revision cycle with Minor/Major classification and Phase 4 extensibility hooks
+  interface: references/company-hierarchy.md ## Code Review Chain updated, agent prompts updated
+  files: references/company-hierarchy.md, agents/yolo-senior.md, agents/yolo-dev.md (update code review sections)
+}
+
+C5{
+  name: Cross-Team Status Reporting
+  responsibility: Add status reporting section to cross-team-protocol.md with schema and cadence
+  interface: references/cross-team-protocol.md ## Cross-Team Status Reporting section
+  files: references/cross-team-protocol.md, references/handoff-schemas.md (add status_report schema)
+}
+
+C6{
+  name: Static Test Suite
+  responsibility: BATS tests verifying new agent sections and stale reference elimination
+  interface: tests/static/agent-review-ownership.bats, tests/static/protocol-11-step-refs.bats
+  files: tests/static/agent-review-ownership.bats (new), tests/static/protocol-11-step-refs.bats (new)
+}
+
+risks[5]:
+
+R1{
+  risk: Agent prompt size increase from ownership language sections
+  impact: medium (each reviewing agent gains ~15-20 lines)
+  mitigation: Keep ownership language sections compact. Use reference to review-ownership-patterns.md rather than inlining full patterns. Progressive narrowing already limits what each agent sees.
+}
+
+R2{
+  risk: Stale reference fix introduces regressions in flow diagrams
+  impact: medium (broken ASCII art in cross-team-protocol.md)
+  mitigation: Preserve diagram structure. Only change numeric references within diagrams. Static test (protocol-11-step-refs.bats) catches any remaining 10-step references.
+}
+
+R3{
+  risk: Phase 4 extensibility hooks may not align with actual Phase 4 design
+  impact: low (hooks are metric collection points, not hard interfaces)
+  mitigation: Design hooks as observation points (metric recording), not control points (decision gates). Phase 4 can add triggers at hook locations without modifying Phase 3 artifacts.
+}
+
+R4{
+  risk: 12 files with stale references require coordinated update
+  impact: medium (incomplete update leaves inconsistent docs)
+  mitigation: Plan 03-01 audit task creates comprehensive list. Static test validates zero remaining 10-step references post-implementation. Single plan handles all reference files to ensure atomicity.
+}
+
+R5{
+  risk: Review ownership patterns in 16 agent files creates maintenance burden for future agent additions
+  impact: low (new agents are rare, pattern is documented)
+  mitigation: review-ownership-patterns.md serves as template. BATS test catches missing sections in known reviewing agents. New agents added to test list when created.
+}
+
+integration_points[4]:
+
+I1{
+  from: review-ownership-patterns.md
+  to: 16 reviewing agent prompts
+  protocol: Reference link (@references/review-ownership-patterns.md) in each agent's Review Ownership section. Agents read patterns at review steps.
+}
+
+I2{
+  from: rnd-handoff-protocol.md
+  to: execute-protocol.md Steps 3-4
+  protocol: Execute protocol references handoff protocol for entry/exit gate criteria. Architect reads handoff protocol for architecture.toon completeness checklist.
+}
+
+I3{
+  from: Change management formalization (company-hierarchy.md)
+  to: Senior + Dev agent prompts
+  protocol: Senior reads code review chain in company-hierarchy.md. Minor/Major classification applied during code review. Metric collection hooks defined for Phase 4.
+}
+
+I4{
+  from: Cross-team status reporting (cross-team-protocol.md)
+  to: Lead agent prompts (3 variants)
+  protocol: Leads write .dept-status-{dept}.json per reporting cadence. Owner reads status files at gate boundaries.
+}
+
+file_modification_summary:
+
+plan_03-01_audit_and_stale_refs:
+  wave: 1
+  new_files:
+    - references/audit-checklist.md
+  modified_files:
+    - agents/yolo-lead.md (10-step -> 11-step)
+    - agents/yolo-fe-lead.md (10-step -> 11-step)
+    - agents/yolo-ux-lead.md (10-step -> 11-step)
+    - references/cross-team-protocol.md (10-step -> 11-step, 8 occurrences + flow diagrams)
+    - references/multi-dept-protocol.md (10-step -> 11-step, 3 occurrences)
+    - references/departments/backend.toon (10-step -> 11-step)
+    - references/departments/frontend.toon (10-step -> 11-step)
+    - references/departments/uiux.toon (10-step -> 11-step)
+    - references/departments/shared.toon (10-step -> 11-step)
+    - commands/go.md (10-step -> 11-step, 3 occurrences)
+    - references/teammate-api-patterns.md (10-step -> 11-step)
+    - references/handoff-schemas.md (10-step -> 11-step)
+  artifacts:
+    - audit-report.jsonl (gap analysis output)
+
+plan_03-02_ownership_language:
+  wave: 1
+  new_files:
+    - references/review-ownership-patterns.md
+  modified_files:
+    - agents/yolo-senior.md (add ## Review Ownership section)
+    - agents/yolo-lead.md (add ## Review Ownership section)
+    - agents/yolo-architect.md (add ## Review Ownership section)
+    - agents/yolo-owner.md (add ## Review Ownership section)
+    - agents/yolo-qa.md (add ## Review Ownership section)
+    - agents/yolo-qa-code.md (add ## Review Ownership section)
+    - agents/yolo-fe-senior.md (add ## Review Ownership section)
+    - agents/yolo-fe-lead.md (add ## Review Ownership section)
+    - agents/yolo-fe-architect.md (add ## Review Ownership section)
+    - agents/yolo-fe-qa.md (add ## Review Ownership section)
+    - agents/yolo-fe-qa-code.md (add ## Review Ownership section)
+    - agents/yolo-ux-senior.md (add ## Review Ownership section)
+    - agents/yolo-ux-lead.md (add ## Review Ownership section)
+    - agents/yolo-ux-architect.md (add ## Review Ownership section)
+    - agents/yolo-ux-qa.md (add ## Review Ownership section)
+    - agents/yolo-ux-qa-code.md (add ## Review Ownership section)
+
+plan_03-03_handoff_and_change_mgmt:
+  wave: 2
+  depends_on: [03-01]
+  new_files:
+    - references/rnd-handoff-protocol.md
+  modified_files:
+    - references/execute-protocol.md (update Step 3 exit gate, Step 4 entry gate for stage-gate model)
+    - references/company-hierarchy.md (update ## Code Review Chain with Minor/Major classification, Phase 4 hooks)
+    - agents/yolo-senior.md (update ## Review Cycles with Minor/Major, add Phase 4 metric hooks)
+    - agents/yolo-dev.md (add change classification awareness, collaborative revision language)
+
+plan_03-04_status_reporting_and_verification:
+  wave: 2
+  depends_on: [03-01, 03-02]
+  new_files:
+    - tests/static/agent-review-ownership.bats
+    - tests/static/protocol-11-step-refs.bats
+  modified_files:
+    - references/cross-team-protocol.md (add ## Cross-Team Status Reporting section)
+    - references/handoff-schemas.md (add status_report schema)
+    - .yolo-planning/ROADMAP.md (update Phase 3 success criterion wording)
+
+dependency_ordering:
+  wave_1_parallel:
+    - 03-01: audit + stale ref fixes (independent)
+    - 03-02: ownership language patterns (independent)
+    note: No file overlap between 03-01 and 03-02. 03-01 touches reference/protocol/command files. 03-02 touches agent files and creates review-ownership-patterns.md.
+  wave_2_parallel:
+    - 03-03: handoff + change mgmt (depends on 03-01 audit findings, touches execute-protocol.md + company-hierarchy.md + yolo-senior.md + yolo-dev.md)
+    - 03-04: status reporting + verification (depends on 03-01 audit + 03-02 ownership language, touches cross-team-protocol.md + handoff-schemas.md + ROADMAP.md + tests/)
+    note: Minor overlap concern -- yolo-senior.md modified in 03-02 (ownership section) and 03-03 (review cycles). SAFE because 03-02 is wave 1 and 03-03 is wave 2. Wave 2 runs after wave 1 completes.
+    note: yolo-lead.md modified in 03-01 (10-step fix) and 03-02 (ownership section). SAFE because both are wave 1 but 03-01 changes line 14 (intro paragraph) while 03-02 adds new section. However, for teammate mode safety, 03-01 T3 should use td dependency if writing to same file as another task.
+
+critique_disposition:
+  C1: addressed (D1 -- scoped to 16 reviewing agents, success criterion updated)
+  C2: addressed (D6 -- BATS static tests for new sections)
+  C3: addressed (plan-level -- add td dependencies for sequential audit-report.jsonl writes in 03-01)
+  C4: addressed (D2 -- comprehensive 10-step->11-step fix across 12 files, 19 occurrences)
+  C5: addressed (D3 -- Architect->Lead stage-gate with Go/Recycle/Kill)
+  C6: addressed (D7 -- CODEOWNERS-style matrix in review-ownership-patterns.md with JSONL for test validation)
+  C7: addressed (D4 -- collaborative Senior-Dev cycle, Minor/Major classification, Phase 4 hooks)
+  C8: addressed (plan-level -- add td on T1-T4 for 03-04 T5, add 03-03 to 03-04 plan d field)
+  C9: addressed (D1 scope includes Architect ownership of critique analysis -- architect takes ownership of critique findings per R8 responsibility definition)
+  C10: addressed (D5 -- consolidated into cross-team-protocol.md)

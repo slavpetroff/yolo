@@ -1,0 +1,28 @@
+phase: 01
+goal: Fix CLAUDE.md override bug in bootstrap scripts and standardize all artifact naming conventions to eliminate unnecessary LLM error-recovery calls
+
+
+conventions[15]{category,rule}:
+  file-structure
+  naming
+  naming
+  naming
+  naming
+  style
+  style
+  style
+  tooling
+  style
+  style
+  patterns
+  patterns
+  tooling
+  patterns
+
+dept_conventions:
+  conventions:
+
+
+reference_package: @references/packages/dev.toon
+tool_restrictions:
+  Do NOT use: EnterPlanMode, ExitPlanMode

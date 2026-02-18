@@ -1,0 +1,20 @@
+phase: 05
+goal: Fix the broken escalation path so Dev blockers reach the user through Owner, and user feedback flows back down to unblock Dev — complete the round-trip
+
+
+research_directives:
+  C1: 
+  C2: 
+  C3: 
+  C4: 
+  C5: 
+  C6: 
+  C7: 
+  C8: 
+
+codebase:
+  @.yolo-planning/codebase/INDEX.md
+  @.yolo-planning/codebase/ARCHITECTURE.md
+  @.yolo-planning/codebase/PATTERNS.md
+tool_restrictions:
+  Do NOT use: Bash, Edit, EnterPlanMode, ExitPlanMode, NotebookEdit, Write

@@ -1,0 +1,107 @@
+{
+  "phase": 2,
+  "phase_name": "r-d-research-flow-context-optimization",
+  "status": "running",
+  "started_at": "2026-02-17T13:55:14Z",
+  "step": "planning",
+  "wave": 1,
+  "total_waves": 3,
+  "plans": [
+    {
+      "id": "02-01",
+      "title": "Research flow integration into execute-protocol",
+      "wave": 1,
+      "status": "pending"
+    },
+    {
+      "id": "02-02",
+      "title": "Research artifact format and Scout workflow enhancement",
+      "wave": 1,
+      "status": "pending"
+    },
+    {
+      "id": "02-03",
+      "title": "Agent-to-field mapping and filter-agent-context.sh script",
+      "wave": 2,
+      "status": "pending"
+    },
+    {
+      "id": "02-04",
+      "title": "Integrate filter-agent-context.sh into compile-context.sh",
+      "wave": 3,
+      "status": "pending"
+    }
+  ],
+  "steps": {
+    "critique": {
+      "status": "complete",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "architecture": {
+      "status": "complete",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "planning": {
+      "status": "complete",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "design_review": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "test_authoring": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "implementation": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "code_review": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "qa": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "security": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    },
+    "signoff": {
+      "status": "pending",
+      "started_at": "",
+      "completed_at": "",
+      "artifact": "",
+      "reason": ""
+    }
+  }
+}

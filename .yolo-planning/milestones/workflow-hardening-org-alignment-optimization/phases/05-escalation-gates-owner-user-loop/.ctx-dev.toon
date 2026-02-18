@@ -1,0 +1,28 @@
+phase: 05
+goal: Fix the broken escalation path so Dev blockers reach the user through Owner, and user feedback flows back down to unblock Dev — complete the round-trip
+
+
+conventions[15]{category,rule}:
+  file-structure
+  naming
+  naming
+  naming
+  naming
+  style
+  style
+  style
+  tooling
+  style
+  style
+  patterns
+  patterns
+  tooling
+  patterns
+
+dept_conventions:
+  conventions:
+
+
+reference_package: @references/packages/dev.toon
+tool_restrictions:
+  Do NOT use: EnterPlanMode, ExitPlanMode

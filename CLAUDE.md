@@ -6,10 +6,10 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** Workflow Hardening, Org Alignment & Optimization -- Phase 2 complete, Phase 3 next
-**Last shipped:** Teammate API Integration -- 4 phases, 19 plans, 84 tasks, 76 commits, 876 tests
-**Previous:** Dynamic Departments & Agent Teams -- 3 phases, 11 plans, 38 tasks, 49 commits, 209 tests
-**Next action:** Execute Phase 3 (Company Org Alignment & Review Patterns)
+**Work:** No active milestone
+**Last shipped:** Workflow Hardening, Org Alignment & Optimization — 5 phases, 25 plans, 104 tasks, 107 commits, 203 tests
+**Previous:** Teammate API Integration — 4 phases, 19 plans, 84 tasks, 76 commits, 876 tests
+**Next action:** Run /yolo:go to start a new milestone, or /yolo:status to review progress
 
 ## Department Architecture
 
@@ -45,38 +45,19 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Decision | Date | Rationale |
 |----------|------|-----------|
 | 3 preset profiles (quality/balanced/budget) | 2026-02-11 | Covers 95% of use cases; overrides handle edge cases |
-| Balanced as default (Sonnet + Haiku for Scout) | 2026-02-11 | Good quality/cost tradeoff for most projects |
-| Model profile integrated into /yolo:config | 2026-02-11 | One config interface, not separate command |
-| Pass explicit model param to Task tool | 2026-02-11 | Session /model doesn't propagate to subagents |
-| Hard delete old commands (no aliases, no deprecation) | 2026-02-11 | Zero technical debt; CHANGELOG documents the change |
 | Single go.md (~300 lines) with inline mode logic | 2026-02-11 | One file = one truth; execute-protocol.md is the only extraction |
-| NL parsing via prompt instructions, not code | 2026-02-11 | Zero maintenance; model improvements are free |
-| Confirmation gates mandatory (except --yolo) | 2026-02-11 | NL misinterpretation risk → always confirm before acting |
-| Per-project memory only | 2026-02-10 | Get basics right first, cross-project learning deferred |
 | Company hierarchy: Architect → Lead → Senior → Dev | 2026-02-13 | Mirrors real engineering org, each level distills scope |
 | JSONL abbreviated keys for agent artifacts | 2026-02-13 | 85-93% token savings vs Markdown, jq-parseable |
-| TOON for compiled context, MD for user-facing only | 2026-02-13 | Agents read TOON natively, humans read Markdown |
 | 11-step workflow per phase | 2026-02-13 | Critique → Research → Architecture → Plan → Design Review → Test Authoring → Implement → Code Review → QA → Security → Sign-off |
-| Commit every artifact immediately | 2026-02-13 | Survives exit, enables resume from any point |
 | 4 departments (Backend, Frontend, UI/UX, Shared) | 2026-02-13 | Mirrors real company org, config-driven enable/disable |
-| Additive dept agents (fe-*, ux-* prefix, no rename) | 2026-02-13 | Zero breakage of existing agents, clean namespace |
-| Per-department protocol files for token segregation | 2026-02-13 | 60% token reduction per agent vs monolithic hierarchy |
-| UX → FE+BE parallel workflow | 2026-02-13 | Design-first ensures Frontend/Backend build against specs |
-| Department guard hook for directory boundaries | 2026-02-13 | Prevents cross-department file writes at hook level |
 | EnterPlanMode strictly prohibited | 2026-02-14 | Bypasses YOLO workflow; all planning through /yolo:go |
-| Hooks use JSON permissionDecision:"deny" | 2026-02-14 | Claude Code requires JSON deny format, not exit 2 |
 | Never bypass /yolo:go invocations | 2026-02-14 | Claude dismissed go.md as "not a workflow" and went ad-hoc; explicit rule prevents this |
-| Owner-first: sole user contact in all modes | 2026-02-14 | No subagent talks to user directly; go.md acts as Owner proxy; escalation flows up chain |
-| go.md routes debug/fix/research via NL parser | 2026-02-14 | Prevents ambiguous routing to removed VBW commands; explicit keyword matching |
-| Verification gates in execute-protocol.md | 2026-02-16 | Prevents silent step skipping; entry/exit gates on every step |
-| Commands route through Lead hierarchy | 2026-02-16 | debug/fix/research/qa all delegate through Lead, not directly to specialists |
-| 11-step workflow expanded to enforcement contract | 2026-02-16 | Entry/exit gates with mandatory artifact verification on every step; research step added 2026-02-17 |
-| Dynamic dept personas based on project type | 2026-02-16 | Static TOON conventions don't fit non-web projects (e.g., shell scripts) |
+| Owner-first: sole user contact in all modes | 2026-02-14 | No subagent talks to user directly; go.md acts as Owner proxy |
 | One team per department via Teammate API | 2026-02-16 | 3 teams × N agents = 21+ parallel capacity vs 7 with Task tool only |
-| UX maps to project interface type | 2026-02-16 | CLI → help/error output, web → UI components, API → docs/specs |
 | Scout research step in 11-step workflow | 2026-02-17 | Critic→Scout→Architect pipeline; orchestrator writes research.jsonl |
 | Per-agent field filtering via filter-agent-context.sh | 2026-02-17 | 11 base roles × 10 artifact types; graceful degradation to inline jq |
-| Append-mode research (turbo-only skip) | 2026-02-17 | Pre-Critic and post-Critic entries coexist; file existence doesn't trigger skip |
+| Owner proxy pattern for escalation resolution | 2026-02-18 | Owner is read-only; go.md/Lead writes file artifacts on behalf |
+| Escalation dedup via level tracking | 2026-02-18 | Prevents duplicate escalations when timeout fires during manual handling |
 
 ## Installed Skills
 
@@ -95,8 +76,6 @@ These conventions are enforced during planning and verified during QA.
 - Stage files individually with git add, never git add . or git add -A [style]
 - Shell scripts use set -u minimum, set -euo pipefail for critical scripts [style]
 - Use jq for all JSON parsing, never grep/sed on JSON [tooling]
-- YAML frontmatter description must be single-line (multi-line breaks discovery) [style]
-- No prettier-ignore comment before YAML frontmatter, use .prettierignore instead [style]
 - All hooks route through hook-wrapper.sh for graceful degradation (DXP-01) [patterns]
 - Zero-dependency design: no package.json, npm, or build step [patterns]
 - All scripts target bash, not POSIX sh [tooling]
