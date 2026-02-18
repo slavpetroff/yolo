@@ -126,7 +126,7 @@ Every step in the 11-step workflow below MUST follow these templates. Entry gate
 
 ### Mandatory vs Skippable Steps
 
-**Skippable:** critique (turbo or exists), research (turbo), architecture (exists), test_authoring (turbo or no `ts`), qa (--skip-qa or turbo), security (--skip-security or config off).
+**Skippable:** critique (turbo or exists or critique.enabled=false), research (turbo), architecture (exists), test_authoring (turbo or no `ts`), documentation (documenter='never' or turbo), qa (--skip-qa or turbo), security (--skip-security or config off).
 
 **Mandatory (failure = STOP, no --force):** planning, design_review, implementation, code_review, signoff.
 
@@ -198,17 +198,27 @@ When `po.enabled=true` and guard conditions not met:
 
 **When PO is enabled, the workflow becomes 12-step (Step 0 + Steps 1-11).** Step 1 (Critique) entry gate is unchanged — it does not require scope-document.json. The scope-document.json is passed as additional context to Critic, Architect, and Lead alongside existing inputs.
 
-### Step 1: Critique / Brainstorm (Critic Agent)
+### Step 1: Critique / Brainstorm (Critic Agent — Confidence-Gated Multi-Round)
 
-**Guard:** Skip if `--effort=turbo` OR `critique.jsonl` exists. Skip Output per template. Commit: `chore(state): critique skipped phase {N}`.
+**Guard:** Skip if `--effort=turbo` OR `critique.jsonl` exists OR `critique.enabled=false` in config. Skip Output per template. Commit: `chore(state): critique skipped phase {N}`.
 
 **ENTRY GATE:** None (first step after optional Step 0). Verify phase directory exists: `[ -d "{phase-dir}" ]`. If not: STOP "Phase directory missing. Run /yolo:go --plan first."
 
 1. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} critic {phases_dir}`
-2. Spawn yolo-critic with Task tool:
+2. **Confidence-gated critique loop:** Instead of a single Critic spawn, run the critique-loop.sh orchestrator which manages multi-round critique with early exit on high confidence:
+   ```bash
+   CRITIQUE_RESULT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/critique-loop.sh \
+     --phase-dir "{phase-dir}" \
+     --config .yolo-planning/config.json \
+     --role {dept-critic-role})
+   ```
+   Where `{dept-critic-role}` is `critic` (backend), `fe-critic` (frontend), or `ux-critic` (uiux).
+
+   The loop spawns yolo-critic with Task tool per round:
    - model: "${CRITIC_MODEL}"
    - Provide: reqs.jsonl (or REQUIREMENTS.md), PROJECT.md, codebase/ mapping, research.jsonl (if exists)
    - Include compiled context: `{phase-dir}/.ctx-critic.toon`
+   - Include round number for multi-round protocol (see agents/yolo-critic.md § Multi-Round Protocol)
    - Effort: if `--effort=fast`, instruct Critic to limit to `critical` findings only
 
    > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
@@ -217,12 +227,20 @@ When `po.enabled=true` and guard conditions not met:
    > ```
    > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-critic.toon). See D4 in architecture for soft enforcement details.
 
-3. Display: `◆ Spawning Critic (${CRITIC_MODEL})...` → `✓ Critique complete`
+   Loop behavior:
+   - **Round 1**: Standard critique. Critic produces findings with `cf` (confidence) and `rd:1` fields.
+   - **Round 2** (if `cf < critique.confidence_threshold`, default 85): Targeted re-analysis of low-confidence areas only. Findings get `rd:2`.
+   - **Round 3** (if `cf` still < threshold): Final sweep with forced assumptions. Findings get `rd:3`. Hard cap — no Round 4 regardless.
+   - **Early exit**: If `cf >= threshold` at any round, loop exits immediately.
+
+   critique-loop.sh outputs JSON summary: `{rounds_used, final_confidence, early_exit, findings_total, findings_per_round}`.
+
+3. Display: `◆ Spawning Critic (${CRITIC_MODEL})...` → per-round confidence → `✓ Critique complete (cf:{final_confidence}, rounds:{rounds_used})`
 4. Critic returns findings via SendMessage (Critic has no Write tool).
-5. Write critique.jsonl from Critic's findings to phase directory.
+5. Write critique.jsonl from Critic's findings to phase directory. Each entry includes `cf` and `rd` fields.
 6. Commit: `docs({phase}): critique and gap analysis`
-7. **User gate (balanced/thorough effort):** Display critique summary. If critical findings exist, AskUserQuestion "Address these before architecture?" Options: "Proceed (Architect will address)" / "Pause to discuss".
-8. **EXIT GATE:** Artifact: `critique.jsonl` (valid JSONL). State: `steps.critique = complete`. Commit: `chore(state): critique complete phase {N}`.
+7. **User gate (balanced/thorough effort):** Display critique summary including confidence score and rounds used. If critical findings exist, AskUserQuestion "Address these before architecture?" Options: "Proceed (Architect will address)" / "Pause to discuss".
+8. **EXIT GATE:** Artifact: `critique.jsonl` (valid JSONL, entries have `cf` and `rd` fields). State: `steps.critique = complete`. Commit: `chore(state): critique complete phase {N}`.
 
 ### Step 2: Research (Scout Agent)
 
@@ -694,18 +712,55 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 12. If all PASS (automated + manual) → proceed to Step 10.
 13. **EXIT GATE:** Verify `{phase-dir}/verification.jsonl` exists with valid JSONL (`jq empty`). Verify `{phase-dir}/qa-code.jsonl` exists with valid JSONL. Update `.execution-state.json`: set `steps.qa.status` to `"complete"`, `steps.qa.completed_at` to ISO timestamp, `steps.qa.artifact` to `"{phase-dir}/verification.jsonl"`. Commit: `chore(state): qa complete phase {N}`.
 
-### Step 10: Security Audit (optional)
+### Step 8.5: Documentation (optional — Documenter Agent)
+
+**Guard:** Skip if documenter config is `'never'`. Skip if effort=turbo. Skip Output per template. Commit: `chore(state): documentation skipped phase {N}`.
+
+**ENTRY GATE:** Verify `{phase-dir}/code-review.jsonl` exists with `r: "approve"` in line 1. If not: STOP "Step 8 artifact missing — code-review.jsonl not approved. Run step 8 first."
+
+1. **Resolve documenter gate:**
+   ```bash
+   GATE_RESULT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-documenter-gate.sh \
+     --config .yolo-planning/config.json --defaults ${CLAUDE_PLUGIN_ROOT}/config/defaults.json)
+   DOC_SPAWN=$(echo "$GATE_RESULT" | jq -r '.spawn')
+   ```
+   - If `DOC_SPAWN=false` (documenter='on_request' and user did not request): skip. Display: `○ Documentation skipped (on_request, not requested)`
+   - If `DOC_SPAWN=true` (documenter='always' or user requested): proceed.
+
+2. **Spawn per-department documenter** based on active departments:
+   - Backend active: spawn yolo-documenter
+   - Frontend active: spawn yolo-fe-documenter
+   - UI/UX active: spawn yolo-ux-documenter
+   - Provide: plan.jsonl files, summary.jsonl files, code-review.jsonl, compiled context
+
+3. Documenter produces docs.jsonl. Commits: `docs({phase}): documentation`
+
+4. **Non-blocking:** QA (Step 9) proceeds regardless of documenter status. Documentation is additive, not a gate.
+
+5. **EXIT GATE:** Artifact: `docs.jsonl` (valid JSONL, if produced). State: `steps.documentation = complete`. Commit: `chore(state): documentation complete phase {N}`.
+
+### Step 10: Security Audit (optional — Per-Department Security Reviewers)
 
 **Guard:** Skip if `--skip-security` OR config `security_audit` != true. Skip Output per template. Commit: `chore(state): security skipped phase {N}`.
 
 **ENTRY GATE:** Verify `{phase-dir}/verification.jsonl` exists OR `steps.qa.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 9 artifact missing — verification.jsonl not found. Run step 9 first."
 
 1. Update execution state: `"step": "security"`
-2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} security {phases_dir}`
-2.5. **Teammate registration (team_mode=teammate only, backend team ONLY):** Lead registers security as a teammate. Security agent exists only in the backend team (yolo-backend) -- FE/UX teams skip this step entirely. Security receives summary.jsonl file list via SendMessage from Lead. Security sends `security_audit` result to Lead via SendMessage. FAIL result is still a hard stop regardless of transport mode. In task mode, this step is skipped (security spawned via Task tool as documented below).
-3. Spawn yolo-security:
-   - model: "${SECURITY_MODEL}"
-   - Provide: summary.jsonl (file list), compiled context
+2. **Per-department security dispatch:** Each active department gets its own scoped Security Reviewer. Compile context per dept:
+   - Backend active: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} security {phases_dir}`
+   - Frontend active: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} fe-security {phases_dir}`
+   - UI/UX active: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} ux-security {phases_dir}`
+
+2.5. **Teammate registration (team_mode=teammate only):** Each department Lead registers its security reviewer as a teammate within that department's team. Security receives summary.jsonl file list via SendMessage from Lead. Security sends `security_audit` result to Lead via SendMessage. FAIL result from ANY department is still a hard stop regardless of transport mode. In task mode, this step is skipped (security spawned via Task tool as documented below).
+
+3. **Spawn per-department security reviewers** for each active department:
+   - Backend: spawn yolo-security (BE-scoped — backend code, APIs, auth, data access)
+   - Frontend: spawn yolo-fe-security (FE-scoped — XSS, CSP, client-side storage, bundle analysis)
+   - UI/UX: spawn yolo-ux-security (UX-scoped — accessibility compliance, PII exposure, input validation)
+
+   When multiple departments active, spawn in parallel. Each reviewer receives:
+   - model: "${SECURITY_MODEL}" (resolved per dept role)
+   - Provide: summary.jsonl (file list), compiled context (dept-scoped)
 
    > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
    > ```bash
@@ -713,14 +768,14 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
    > ```
    > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-security.toon). See D4 in architecture for soft enforcement details.
 
-4. Security produces security-audit.jsonl. Commits: `docs({phase}): security audit`
-5. If `r: "FAIL"`: **HARD STOP**. Display findings. Only user `--force` overrides.
+4. Each Security Reviewer produces security-audit.jsonl (dept-prefixed when multi-dept: fe-security-audit.jsonl, ux-security-audit.jsonl). Commits: `docs({phase}): security audit`
+5. If `r: "FAIL"` from ANY department: **HARD STOP**. Display findings from failing department. Only user `--force` overrides.
 6. If `r: "WARN"`:
    - Display warnings.
    - If `config.approval_gates.security_warn` is true: pause for user approval.
    - Otherwise: continue.
-7. If `r: "PASS"`: continue.
-8. **EXIT GATE:** Artifact: `security-audit.jsonl` (valid JSONL). State: `steps.security = complete`. Commit: `chore(state): security complete phase {N}`.
+7. If `r: "PASS"` from all departments: continue.
+8. **EXIT GATE:** Artifact: `security-audit.jsonl` (valid JSONL, per-dept when multi-dept). State: `steps.security = complete`. Commit: `chore(state): security complete phase {N}`.
 
 ### Step 11: Sign-off (Lead)
 
@@ -781,6 +836,7 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 | 6. Test Authoring | `test_authoring` | enriched `plan.jsonl` with `spec` fields | `test-plan.jsonl` + test files | `test({phase}): RED phase tests for plan {NN-MM}` | `--effort=turbo`, no `ts` fields |
 | 7. Implementation | `implementation` | enriched `plan.jsonl` + `test-plan.jsonl` (if step 6 ran) | `{plan_id}.summary.jsonl` per plan | `{type}({phase}-{plan}): {task}` per task | NONE (mandatory) |
 | 8. Code Review | `code_review` | `{plan_id}.summary.jsonl` for each plan | `code-review.jsonl` with `r: "approve"` | `docs({phase}): code review {NN-MM}` | NONE (mandatory) |
+| 8.5. Documentation | `documentation` | `code-review.jsonl` with `r: "approve"` | `docs.jsonl` (if produced) | `docs({phase}): documentation` | `documenter='never'`, `--effort=turbo` |
 | 9. QA | `qa` | `code-review.jsonl` with `r: "approve"` | `verification.jsonl` + `qa-code.jsonl` | `docs({phase}): verification results` | `--skip-qa`, `--effort=turbo` |
 | 10. Security | `security` | `verification.jsonl` OR step 9 skipped | `security-audit.jsonl` | `docs({phase}): security audit` | `--skip-security`, config `security_audit` != true |
 | 11. Sign-off | `signoff` | `security-audit.jsonl` OR step 10 skipped + `code-review.jsonl` approved | `.execution-state.json` complete + ROADMAP.md | `chore(state): phase {N} complete` | NONE (mandatory) |
