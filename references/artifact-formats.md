@@ -244,8 +244,13 @@ Written by Dev after GREEN phase confirmation. RED phase results stay in test-pl
 | `brief_for` | critique ID link | string (optional, e.g. "C1") |
 | `mode` | research mode | "pre-critic"\|"post-critic"\|"standalone" (optional, default "standalone") |
 | `priority` | priority | "high"\|"medium"\|"low" (optional, default "medium") |
+| `ra` | requesting_agent | string (optional) | "dev"\|"senior"\|"tester"\|"orchestrator"\|"critic" |
+| `rt` | request_type | string (optional) | "blocking"\|"informational" |
+| `resolved_at` | resolved timestamp | string (optional, ISO 8601) | Only present when rt="blocking" and fulfilled |
 
 New fields (D4): `brief_for` links a research finding to the critique ID (from critique.jsonl) that prompted the research. `mode` indicates when research was performed: "pre-critic" (best-practices discovery before Critic runs), "post-critic" (solution research driven by Critic findings), or "standalone" (via /yolo:research command). `priority` is derived from the linked critique finding severity when `brief_for` is present: critical -> "high", major -> "medium", minor -> "low". All three fields are optional; omitted fields default to empty/"standalone"/"medium" respectively via jq // operator. Existing standalone research entries (without these fields) continue to parse correctly.
+
+New fields (D4, Plan 04-04): `ra` identifies the agent that requested the research (e.g., "dev", "senior"). `rt` indicates whether the request is "blocking" (requesting agent pauses until response) or "informational" (async, agent continues). `resolved_at` is an ISO 8601 timestamp present only on blocking requests once fulfilled. All three fields are optional and backward compatible — existing entries default to `ra:"orchestrator"`, `rt:"informational"` via `jq '.ra // "orchestrator"'` and `jq '.rt // "informational"'`.
 
 ### Gaps (gaps.jsonl)
 
@@ -440,6 +445,7 @@ If compiled context exceeds budget:
   ├── gaps.jsonl               # QA gap tracking (committed)
   ├── .qa-gate-results.jsonl   # Gate results (append-only, committed)
   ├── decisions.jsonl          # All agents append (committed)
+  ├── escalation.jsonl         # Escalation log (append-only, committed)
   ├── security-audit.jsonl     # Security output (committed, if enabled)
   ├── .ctx-critic.toon         # Compiled (NOT committed, regenerated)
   ├── .ctx-architect.toon      # Compiled (NOT committed, regenerated)
