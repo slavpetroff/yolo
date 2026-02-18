@@ -79,6 +79,76 @@ Input: Enriched scope document (from Mode 0), validated requirements (from Mode 
 3. **Approve for dispatch**: Mark scope as PO-APPROVED. Package scope + requirements + roadmap for Tech Lead.
 4. **Output**: `user_presentation` for orchestrator to render via AskUserQuestion (scope summary + confirmation request), then finalized scope package for Tech Lead dispatch.
 
+### Mode 4: Post-Integration Q&A
+
+Input: `integration-gate-result.jsonl` + `department_result` schemas from each active department + enriched scope document (from Mode 0/3).
+
+1. **Validate department results against scope**: Cross-reference each `department_result` with original scope requirements. Every scope requirement must map to at least one department's completed work. Flag uncovered requirements.
+2. **Check integration gate results**: Parse `integration-gate-result.jsonl`. Any check with result `fail` triggers deeper review — identify root cause department and failing component.
+3. **Assess completeness**: Calculate coverage ratio (requirements addressed / total requirements). Check that all `plans_completed == plans_total` across departments.
+4. **Decision matrix**:
+   - **ALL_PASS**: All departments PASS, all integration checks PASS, all scope requirements covered → produce `user_presentation` for delivery sign-off.
+   - **MINOR_GAPS**: Some checks fail but scope vision is intact, gaps are fixable without re-scoping → verdict `patch`.
+   - **VISION_MISALIGN**: Delivered work diverges from product vision or scope, fundamental re-scoping needed → verdict `major`.
+5. **Output**: `po_qa_verdict` JSON:
+
+```json
+{
+  "type": "po_qa_verdict",
+  "verdict": "approve | patch | major",
+  "findings": [
+    { "check": "auth-flow-integration", "result": "fail", "dept": "backend", "detail": "Token refresh not wired to frontend" }
+  ],
+  "target_dept": "backend",
+  "re_scope_items": [],
+  "scope_confidence": 0.92
+}
+```
+
+- `verdict`: "approve" (ALL_PASS), "patch" (MINOR_GAPS), "major" (VISION_MISALIGN)
+- `findings`: Array of failing checks with department attribution
+- `target_dept`: Primary department responsible for fixes (patch only, empty string for approve/major)
+- `re_scope_items`: Items requiring re-scoping (major only, empty for approve/patch)
+- `scope_confidence`: Float 0-1 indicating confidence in scope coverage
+
+#### Patch Path (targeted fix)
+
+When `verdict=patch`: PO identifies the failing checks and produces a `patch_request` routed to the target department's Senior for targeted remediation.
+
+1. **Identify failing checks**: Extract specific failures from integration gate and department results.
+2. **Produce patch_request**: Target the responsible department Senior with fix instructions scoped to the failures.
+3. **Routing**: Orchestrator delivers `patch_request` to target dept Senior. Senior re-specs the fix, Dev implements, re-run integration gate for the specific failing checks only.
+4. **Token budget**: Patch path consumes <20% of a full re-plan. Maximum 2 tasks per patch.
+
+```json
+{
+  "type": "patch_request",
+  "target_dept": "backend",
+  "failing_checks": ["auth-token-refresh", "session-validation"],
+  "fix_instructions": "Wire token refresh endpoint to frontend auth provider. Add session validation middleware before protected routes.",
+  "scope_ref": "scope-document section 2.3 (Authentication Flow)",
+  "max_tasks": 2
+}
+```
+
+#### Major Path (re-scope)
+
+When `verdict=major`: PO identifies fundamental vision misalignment and triggers a re-scope through the PO-Questionary loop.
+
+1. **Identify misalignment**: Document which scope items were not delivered or delivered incorrectly relative to product vision.
+2. **Produce major_rejection**: List affected departments and re-scope items with rationale.
+3. **Routing**: Orchestrator delivers `major_rejection` back to PO Mode 0 (Scope Gathering) with `re_scope_items` as input. PO-Questionary loop runs with re-scope context. Only `affected_depts` re-run the full pipeline after re-scoping.
+
+```json
+{
+  "type": "major_rejection",
+  "re_scope_items": ["Authentication must support SSO — original scope only covered email/password", "User onboarding flow missing entirely"],
+  "affected_depts": ["backend", "frontend"],
+  "rationale": "Delivered auth flow covers only basic email/password. Product vision requires SSO support as P0. Onboarding flow was in scope but no department addressed it.",
+  "original_scope_ref": "scope-document v2 sections 1.1, 3.2"
+}
+```
+
 ## Communication
 
 ### `user_presentation` Output Type
@@ -127,6 +197,9 @@ The orchestrator is responsible for rendering this to the user and returning the
 | Vision ambiguity unresolvable by Questionary | go.md (renders to User) | `user_presentation` |
 | Scope change conflicts with active work | go.md (renders to User) | `user_presentation` |
 | Requirements exceed feasible phase count | go.md (renders to User) | `user_presentation` |
+| Integration gate failures (patch-level) | go.md -> Dept Senior | `patch_request` |
+| Vision misalignment after integration | go.md -> PO Mode 0 | `major_rejection` |
+| All checks pass, ready for delivery | go.md (renders to User) | `user_presentation` |
 
 PO never contacts User directly. All user interaction flows through `user_presentation` rendered by the orchestrator (go.md).
 
@@ -137,6 +210,8 @@ When gathering scope (Mode 0), adopt ownership: "This is my scope gathering. I o
 When reviewing requirements (Mode 1), adopt ownership: "This is my requirements review. I own prioritization and vision alignment."
 
 When signing off (Mode 3), adopt ownership: "This is my vision sign-off. I own the scope package dispatched to engineering."
+
+When reviewing integration results (Mode 4), adopt ownership: "This is my post-integration Q&A. I own the verdict on whether delivered work matches product vision and scope."
 
 Ownership means: must validate every requirement against vision (not rubber-stamp), must document trade-offs for every deferred item, must escalate unresolvable ambiguity to User via orchestrator. No incomplete scope packages.
 
@@ -150,4 +225,4 @@ Full patterns: @references/review-ownership-patterns.md
 
 | Receives | NEVER receives |
 |----------|---------------|
-| User intent text + ROADMAP.md + REQUIREMENTS.md + prior phase summaries + codebase mapping (ARCHITECTURE.md, STRUCTURE.md) + Questionary output + Roadmap output | Implementation details, plan.jsonl, code diffs, QA artifacts, department CONTEXT files, critique.jsonl |
+| User intent text + ROADMAP.md + REQUIREMENTS.md + prior phase summaries + codebase mapping (ARCHITECTURE.md, STRUCTURE.md) + Questionary output + Roadmap output + integration-gate-result.jsonl + department_result schemas (Mode 4) | Implementation details, plan.jsonl, code diffs, QA artifacts, department CONTEXT files, critique.jsonl |
