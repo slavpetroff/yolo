@@ -176,6 +176,152 @@
         "summary": ["s", "tc", "tt"]
       },
       "budget": 2000
+    },
+    "analyze": {
+      "files": ["REQUIREMENTS.md", "codebase/ARCHITECTURE.md", "codebase/STRUCTURE.md"],
+      "artifacts": [],
+      "fields": {},
+      "budget": 2000
+    },
+    "fe-architect": {
+      "files": ["ROADMAP.md", "REQUIREMENTS.md", "codebase/*"],
+      "artifacts": ["critique", "research"],
+      "fields": {
+        "research": ["q", "finding", "conf", "ra", "rt"]
+      },
+      "budget": 5000,
+      "includes": ["architect"]
+    },
+    "fe-lead": {
+      "files": ["architecture.toon", "ROADMAP.md", "REQUIREMENTS.md", "STATE.md"],
+      "artifacts": ["decisions", "escalation", "test-results"],
+      "fields": {
+        "escalation": ["id", "agent", "sb", "tgt", "sev", "st", "res"],
+        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"],
+        "research": ["q", "finding", "conf", "ra", "rt"]
+      },
+      "budget": 3000,
+      "includes": ["lead"]
+    },
+    "fe-senior": {
+      "files": ["architecture.toon", "PATTERNS.md"],
+      "artifacts": ["plan", "summary", "test-results"],
+      "fields": {
+        "plan": ["id", "a", "f", "done", "spec", "ts"],
+        "summary": ["sg"],
+        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
+      },
+      "budget": 4000,
+      "includes": ["senior"]
+    },
+    "fe-dev": {
+      "files": [],
+      "artifacts": ["plan"],
+      "fields": {
+        "plan": ["id", "a", "f", "done", "spec"]
+      },
+      "budget": 2000,
+      "includes": ["dev"]
+    },
+    "fe-tester": {
+      "files": [],
+      "artifacts": ["plan"],
+      "fields": {
+        "plan": ["id", "a", "f", "done", "spec", "ts"]
+      },
+      "budget": 3000,
+      "includes": ["tester"]
+    },
+    "fe-qa": {
+      "files": ["success_criteria"],
+      "artifacts": ["plan", "escalation", "test-results"],
+      "fields": {
+        "plan": ["obj", "mh"],
+        "escalation": ["id", "agent", "sb", "tgt", "sev", "st", "res"],
+        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
+      },
+      "budget": 2000,
+      "includes": ["qa"]
+    },
+    "fe-qa-code": {
+      "files": [],
+      "artifacts": ["summary", "test-results"],
+      "fields": {
+        "summary": ["fm"],
+        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
+      },
+      "budget": 3000,
+      "includes": ["qa-code"]
+    },
+    "ux-architect": {
+      "files": ["ROADMAP.md", "REQUIREMENTS.md", "codebase/*"],
+      "artifacts": ["critique", "research"],
+      "fields": {
+        "research": ["q", "finding", "conf", "ra", "rt"]
+      },
+      "budget": 5000,
+      "includes": ["architect"]
+    },
+    "ux-lead": {
+      "files": ["architecture.toon", "ROADMAP.md", "REQUIREMENTS.md", "STATE.md"],
+      "artifacts": ["decisions", "escalation", "test-results"],
+      "fields": {
+        "escalation": ["id", "agent", "sb", "tgt", "sev", "st", "res"],
+        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"],
+        "research": ["q", "finding", "conf", "ra", "rt"]
+      },
+      "budget": 3000,
+      "includes": ["lead"]
+    },
+    "ux-senior": {
+      "files": ["architecture.toon", "PATTERNS.md"],
+      "artifacts": ["plan", "summary", "test-results"],
+      "fields": {
+        "plan": ["id", "a", "f", "done", "spec", "ts"],
+        "summary": ["sg"],
+        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
+      },
+      "budget": 4000,
+      "includes": ["senior"]
+    },
+    "ux-dev": {
+      "files": [],
+      "artifacts": ["plan"],
+      "fields": {
+        "plan": ["id", "a", "f", "done", "spec"]
+      },
+      "budget": 2000,
+      "includes": ["dev"]
+    },
+    "ux-tester": {
+      "files": [],
+      "artifacts": ["plan"],
+      "fields": {
+        "plan": ["id", "a", "f", "done", "spec", "ts"]
+      },
+      "budget": 3000,
+      "includes": ["tester"]
+    },
+    "ux-qa": {
+      "files": ["success_criteria"],
+      "artifacts": ["plan", "escalation", "test-results"],
+      "fields": {
+        "plan": ["obj", "mh"],
+        "escalation": ["id", "agent", "sb", "tgt", "sev", "st", "res"],
+        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
+      },
+      "budget": 2000,
+      "includes": ["qa"]
+    },
+    "ux-qa-code": {
+      "files": [],
+      "artifacts": ["summary", "test-results"],
+      "fields": {
+        "summary": ["fm"],
+        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
+      },
+      "budget": 3000,
+      "includes": ["qa-code"]
     }
   }
 }
