@@ -1,0 +1,7 @@
+{"phase":"04","result":"PASS","ts":"2026-02-18T15:58:00Z","plans":7,"tasks":34,"commits":37,"tests":40,"fixes":0,"pre_existing_failures":0}
+{"check":"review-loop","result":"PASS","detail":"8/8 tests pass — approve, changes_requested, escalation, config override, plan filtering"}
+{"check":"resolve-research-request","result":"PASS","detail":"8/8 tests pass — blocking, informational, validation, config, research.jsonl append"}
+{"check":"validate-summary-sg","result":"PASS","detail":"7/7 tests pass — valid/absent/empty sg, invalid types, backward compat"}
+{"check":"escalation-schema","result":"PASS","detail":"7/7 tests pass — required fields, valid values, ID reuse, monotonic timestamps"}
+{"check":"test-results-schema","result":"PASS","detail":"10/10 tests pass — required fields, dept/phase values, numeric invariants, tf validation"}
+{"check":"full-test-suite","result":"PASS","detail":"1231 tests pass, 0 failures, exit code 0"}

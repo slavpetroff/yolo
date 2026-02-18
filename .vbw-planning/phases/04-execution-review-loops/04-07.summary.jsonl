@@ -1,0 +1,6 @@
+{"p":"04-07","s":"complete","tc":5,"cc":5,"dev":0,"fm":["config/defaults.json","config/context-manifest.json","scripts/compile-context.sh","references/execute-protocol.md","CLAUDE.md"]}
+{"id":"T1","s":"complete","c":"b3cf7d4","f":["config/defaults.json"]}
+{"id":"T2","s":"complete","c":"6e0d199","f":["config/context-manifest.json"]}
+{"id":"T3","s":"complete","c":"17746e0","f":["scripts/compile-context.sh"]}
+{"id":"T4","s":"complete","c":"d7fdb11","f":["references/execute-protocol.md"]}
+{"id":"T5","s":"complete","c":"a184970","f":["references/execute-protocol.md","CLAUDE.md"]}
