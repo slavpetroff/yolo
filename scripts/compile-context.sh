@@ -711,6 +711,60 @@ case "$BASE_ROLE" in
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
+  integration-gate)
+    {
+      emit_header
+      echo ""
+      echo "success_criteria: $PHASE_SUCCESS"
+      echo ""
+      # Department completion status
+      echo "department_results:"
+      for dept_status in "$PHASE_DIR"/.dept-status-*.json; do
+        if [ -f "$dept_status" ]; then
+          DEPT_NAME=$(basename "$dept_status" | sed 's/.dept-status-//;s/.json//')
+          DEPT_ST=$(jq -r '.status // "unknown"' "$dept_status" 2>/dev/null || echo "unknown")
+          echo "  $DEPT_NAME: $DEPT_ST"
+        fi
+      done
+      echo ""
+      # Test results per department
+      if [ -f "$PHASE_DIR/test-results.jsonl" ]; then
+        echo "test_results:"
+        jq -r '"  \(.plan // ""): dept=\(.dept // "") phase=\(.phase // "") tc=\(.tc // 0) ps=\(.ps // 0) fl=\(.fl // 0)"' "$PHASE_DIR/test-results.jsonl" 2>/dev/null || true
+        echo ""
+      fi
+      # API contracts (cross-dept, if exists)
+      if [ -f "$PHASE_DIR/api-contracts.jsonl" ]; then
+        echo "api_contracts:"
+        jq -r '"  \(.endpoint // ""): status=\(.status // "")"' "$PHASE_DIR/api-contracts.jsonl" 2>/dev/null || true
+        echo ""
+      fi
+      # Design handoff (cross-dept, if exists)
+      if [ -f "$PHASE_DIR/design-handoff.jsonl" ]; then
+        echo "design_handoff:"
+        jq -r '"  \(.component // ""): status=\(.status // "")"' "$PHASE_DIR/design-handoff.jsonl" 2>/dev/null || true
+        echo ""
+      fi
+      # Summary fm/tst fields for implementation evidence
+      echo "summaries:"
+      for summary in "$PHASE_DIR"/*.summary.jsonl; do
+        if [ -f "$summary" ]; then
+          jq -r '"  \(.p // "")-\(.n // ""): s=\(.s // "") tst=\(.tst // "n/a") fm=\(.fm // [] | join(";"))"' "$summary" 2>/dev/null || true
+        fi
+      done
+      echo ""
+      # Handoff sentinels
+      echo "handoff_sentinels:"
+      for sentinel in "$PHASE_DIR"/.handoff-*-complete; do
+        if [ -f "$sentinel" ]; then
+          echo "  $(basename "$sentinel")"
+        fi
+      done
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
+    ;;
+
   security)
     {
       emit_header
@@ -861,56 +915,6 @@ case "$BASE_ROLE" in
         echo 'dept_conventions:'
         echo "$DEPT_CONV" | sed 's/^/  /'
       fi
-      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
-      get_tool_restrictions
-    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
-    ;;
-
-  integration-gate)
-    {
-      emit_header
-      echo ""
-      # API contracts for cross-dept validation
-      if [ -f "$PHASE_DIR/api-contracts.jsonl" ]; then
-        echo "api_contracts:"
-        jq -r '"  \(.endpoint // ""): status=\(.status // "")"' "$PHASE_DIR/api-contracts.jsonl" 2>/dev/null || true
-        echo ""
-      fi
-      # Design handoff for implementation sync check
-      if [ -f "$PHASE_DIR/design-handoff.jsonl" ]; then
-        echo "design_handoff:"
-        jq -r '"  \(.component // ""): status=\(.status // "")"' "$PHASE_DIR/design-handoff.jsonl" 2>/dev/null || true
-        echo ""
-      fi
-      # Test results per department
-      if [ -f "$PHASE_DIR/test-results.jsonl" ]; then
-        echo "test_results:"
-        jq -r '"  \(.plan // ""): dept=\(.dept // "") ps=\(.ps // 0) fl=\(.fl // 0)"' "$PHASE_DIR/test-results.jsonl" 2>/dev/null || true
-        echo ""
-      fi
-      # Summary fm fields for implementation evidence
-      echo "implementation_evidence:"
-      for summary in "$PHASE_DIR"/*.summary.jsonl; do
-        if [ -f "$summary" ]; then
-          jq -r '.fm // [] | .[]' "$summary" 2>/dev/null | while IFS= read -r f; do
-            echo "  $f"
-          done
-        fi
-      done
-      echo ""
-      # Active departments from config
-      if [ -f "${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")" && pwd)/..}/config/defaults.json" ]; then
-        echo "active_departments:"
-        jq -r '.departments | to_entries[] | select(.value == true) | "  \(.key)"' "${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")" && pwd)/..}/config/defaults.json" 2>/dev/null || true
-        echo ""
-      fi
-      # Handoff sentinels
-      echo "handoff_sentinels:"
-      for sentinel in "$PHASE_DIR"/.handoff-*-complete; do
-        if [ -f "$sentinel" ]; then
-          echo "  $(basename "$sentinel")"
-        fi
-      done
       REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
       get_tool_restrictions
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
