@@ -573,3 +573,105 @@ Owner's final phase decision after all departments complete.
   "notes": ""
 }
 ```
+
+## `po_qa_verdict` (PO -> Orchestrator)
+
+PO's post-integration Q&A verdict after validating department results against scope. Produced by PO Mode 4 after reviewing `integration-gate-result.jsonl` and all `department_result` schemas.
+
+```json
+{
+  "type": "po_qa_verdict",
+  "verdict": "approve | patch | major",
+  "findings": [
+    { "check": "auth-flow-integration", "result": "fail", "dept": "backend", "detail": "Token refresh not wired to frontend" }
+  ],
+  "target_dept": "backend",
+  "re_scope_items": [],
+  "scope_confidence": 0.92
+}
+```
+
+| Field | Type | Values |
+|-------|------|--------|
+| `type` | string | "po_qa_verdict" |
+| `verdict` | string | "approve" (all pass) \| "patch" (minor gaps) \| "major" (vision misalignment) |
+| `findings` | object[] | Array of `{check, result, dept, detail}` for failing checks |
+| `target_dept` | string | Department responsible for fixes (patch only; empty string for approve/major) |
+| `re_scope_items` | string[] | Items requiring re-scoping (major only; empty for approve/patch) |
+| `scope_confidence` | float | 0-1 confidence in scope coverage |
+
+Orchestrator routes based on `verdict`: approve -> `user_presentation` for delivery, patch -> `patch_request` to dept Senior, major -> `major_rejection` to PO Mode 0.
+
+## `patch_request` (PO -> Orchestrator -> Dept Senior)
+
+Targeted fix request when PO Q&A verdict is `patch`. Routes to the responsible department's Senior for scoped remediation. Maximum 2 tasks, <20% token budget of a full re-plan.
+
+```json
+{
+  "type": "patch_request",
+  "target_dept": "backend",
+  "failing_checks": ["auth-token-refresh", "session-validation"],
+  "fix_instructions": "Wire token refresh endpoint to frontend auth provider. Add session validation middleware before protected routes.",
+  "scope_ref": "scope-document section 2.3 (Authentication Flow)",
+  "max_tasks": 2
+}
+```
+
+| Field | Type | Values |
+|-------|------|--------|
+| `type` | string | "patch_request" |
+| `target_dept` | string | Department whose Senior receives the fix request |
+| `failing_checks` | string[] | Integration gate check names that failed |
+| `fix_instructions` | string | PO's description of what needs to be fixed (product-level, not code-level) |
+| `scope_ref` | string | Reference to the scope document section covering the failing area |
+| `max_tasks` | number | Maximum tasks allowed for the patch (hard cap: 2) |
+
+Senior re-specs the fix, Dev implements, then re-run integration gate for the specific failing checks only. If patch fails, escalate to Major path.
+
+## `major_rejection` (PO -> Orchestrator -> Questionary)
+
+Re-scope request when PO Q&A verdict is `major`. Triggers PO-Questionary loop (Mode 0) with re-scope context. Only affected departments re-run the full pipeline.
+
+```json
+{
+  "type": "major_rejection",
+  "re_scope_items": ["Authentication must support SSO — original scope only covered email/password", "User onboarding flow missing entirely"],
+  "affected_depts": ["backend", "frontend"],
+  "rationale": "Delivered auth flow covers only basic email/password. Product vision requires SSO support as P0. Onboarding flow was in scope but no department addressed it.",
+  "original_scope_ref": "scope-document v2 sections 1.1, 3.2"
+}
+```
+
+| Field | Type | Values |
+|-------|------|--------|
+| `type` | string | "major_rejection" |
+| `re_scope_items` | string[] | Scope items that need re-definition or were missed |
+| `affected_depts` | string[] | Departments that must re-run the full pipeline after re-scoping |
+| `rationale` | string | PO's explanation of why the vision misalignment requires re-scoping |
+| `original_scope_ref` | string | Reference to original scope document sections for traceability |
+
+Orchestrator routes to PO Mode 0 with `re_scope_items` as input. After re-scoping, only `affected_depts` re-enter the full 11-step workflow.
+
+## `feedback_response` (User -> Orchestrator -> PO)
+
+User feedback routed to PO after delivery presentation. Orchestrator captures user response to `user_presentation` and wraps it for PO consumption.
+
+```json
+{
+  "type": "feedback_response",
+  "response": "approve | request_changes | reject",
+  "comments": "SSO integration looks good but the error states need polish",
+  "change_requests": ["Improve error messages for SSO timeout", "Add loading state during token refresh"],
+  "scope_ref": "scope-document v2"
+}
+```
+
+| Field | Type | Values |
+|-------|------|--------|
+| `type` | string | "feedback_response" |
+| `response` | string | "approve" (ship it) \| "request_changes" (minor adjustments) \| "reject" (fundamental issues) |
+| `comments` | string | User's free-text feedback |
+| `change_requests` | string[] | Specific changes requested (empty for approve) |
+| `scope_ref` | string | Scope document version for context |
+
+PO processes `feedback_response` to determine next action: approve -> finalize delivery, request_changes -> produce `patch_request`, reject -> produce `major_rejection`.
