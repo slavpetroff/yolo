@@ -125,6 +125,7 @@
     "ARCHITECT_ESCALATION_TARGET": "Owner (or User)",
     "ARCHITECT_ESCALATION_METHOD": "`escalation`",
     "ARCHITECT_ESCALATION_EXTRA": "**FE Architect is the final technical escalation point for the Frontend department.**\n**NEVER bypass:** FE Dev, FE QA, FE Tester cannot reach FE Architect directly.",
+    "ARCHITECT_ESCALATION_EXAMPLE": "",
     "ARCHITECT_EXTRA_OUTPUTS": "",
     "ARCHITECT_OWNERSHIP_SUFFIX": " for frontend architecture",
     "ARCHITECT_EFFORT_REF": "Reference: @references/departments/frontend.toon for department protocol. Follow effort level in task description.",
