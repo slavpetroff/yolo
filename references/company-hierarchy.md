@@ -6,6 +6,7 @@ Agent hierarchy, team structure, workflow, and escalation. Referenced by all age
 
 | Agent | Role | Model | Tools | Produces | Token Budget |
 |-------|------|-------|-------|----------|-------------|
+| yolo-analyze | Complexity Classifier / Intent Detector | Opus | Read,Glob,Grep | analysis.json | 1000 |
 | yolo-critic | Brainstorm / Gap Analyst | Opus | Read,Glob,Grep,WebSearch,WebFetch | critique.jsonl | 4000 |
 | yolo-architect | VP Eng / Solutions Architect | Opus | Read,Glob,Grep,Write,WebSearch,WebFetch | architecture.toon, ROADMAP.md | 5000 |
 | yolo-lead | Tech Lead | Sonnet | Read,Glob,Grep,Write,Bash,WebFetch | plan.jsonl, orchestration | 3000 |
@@ -21,9 +22,9 @@ Agent hierarchy, team structure, workflow, and escalation. Referenced by all age
 ## Team Structure
 
 ### Planning Team
-Agents: Critic, Architect, Scout, Lead
-Active during: Critique, Scope, Research, Plan
-Handoff: critique.jsonl → Architect, architecture.toon → Lead, research.jsonl → Lead
+Agents: Analyze, Critic, Architect, Scout, Lead
+Active during: Analysis, Critique, Scope, Research, Plan
+Handoff: analysis.json → go.md routing, critique.jsonl → Architect, architecture.toon → Lead, research.jsonl → Lead
 
 ### Execution Team
 Agents: Senior, Tester, Dev (x1-3), Debugger (on-call)
@@ -169,6 +170,7 @@ Each agent has a defined area of capability. Questions or decisions outside that
 
 | Agent | CAN Decide (Area of Authority) | MUST Escalate (Out of Scope) |
 |-------|-------------------------------|------------------------------|
+| Analyze | Complexity classification (trivial/medium/high), department detection, intent classification, suggested routing path | Ambiguous intent (confidence < 0.6), scope changes, architecture decisions |
 | Dev | Implementation details within spec (variable names, loop structure, error messages), which library API to call per spec, test fixes within spec boundaries | Spec ambiguity, missing requirements, architectural choices, new file/module creation not in spec, performance tradeoffs, API design |
 | Tester | Test structure, mock strategy, assertion approach, test naming | Test scope beyond `ts` field, testing infrastructure changes, whether a feature needs tests |
 | Senior | Spec enrichment details, code review decisions (approve/request changes), implementation patterns within architecture, test spec design | Architecture changes, new dependencies, scope changes, cross-phase impacts, design pattern choices that affect architecture |
@@ -282,7 +284,8 @@ Every command enters through go.md (Owner proxy) and dispatches through the comp
 
 | Command | Entry Point | Primary Spawn | Hierarchy Chain | Escalation Path |
 |---------|-------------|---------------|-----------------|------------------|
-| /yolo:go (execute) | go.md | Critic, Architect, Lead | go.md -> Critic -> Architect -> Lead -> Senior -> Tester -> Dev -> QA -> Security -> Sign-off | Per-step escalation (see 11-Step Workflow above) |
+| /yolo:go (analyze) | go.md | Analyze | go.md -> Analyze -> routing decision (trivial/medium/high) | Ambiguous intent (confidence < 0.6) → go.md prompts user |
+| /yolo:go (execute) | go.md | Critic, Architect, Lead | go.md -> Analyze -> Critic -> Architect -> Lead -> Senior -> Tester -> Dev -> QA -> Security -> Sign-off | Per-step escalation (see 11-Step Workflow above) |
 | /yolo:debug | go.md | Lead | go.md -> Lead -> Debugger(s) | Debugger -> Lead -> Architect (if >3 files or interface change) |
 | /yolo:fix | go.md | Lead | go.md -> Lead -> {trivial: Dev, needs-spec: Senior -> Dev} | Dev -> Senior -> Lead -> go.md (scope too large -> /yolo:go) |
 | /yolo:research | go.md | Lead | go.md -> Lead -> Scout(s) | Scout -> Lead -> go.md (contradictions or architecture impact) |
