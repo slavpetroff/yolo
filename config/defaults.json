@@ -52,14 +52,30 @@
     "max_questionary_rounds": 3,
     "confidence_threshold": 0.85,
     "scope_output_format": "json",
-    "skip_on_effort": ["turbo"]
+    "skip_on_effort": ["turbo"],
+    "default_rejection": "patch"
   },
   "critique": {
     "enabled": true,
     "max_rounds": 3,
     "confidence_threshold": 85
   },
+  "integration_gate": {
+    "enabled": true,
+    "timeout_seconds": 600,
+    "checks": {
+      "api_contracts": true,
+      "design_sync": true,
+      "handoffs": true,
+      "tests": true
+    },
+    "retry_on_fail": true
+  },
   "documenter": "on_request",
+  "delivery": {
+    "mode": "auto",
+    "present_to_user": true
+  },
   "complexity_routing": {
     "enabled": true,
     "trivial_confidence_threshold": 0.85,
