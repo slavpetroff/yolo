@@ -76,6 +76,9 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | escalation.jsonl with scope_boundary (sb) field | 2026-02-18 | Agents document why issue exceeds their authority; aids resolution routing |
 | test-results.jsonl for structured GREEN phase results | 2026-02-18 | Per-dept, per-task test metrics for QA consumption; separate from summary.jsonl |
 | Dev sg field for implementation suggestions to Senior | 2026-02-18 | Bottom-up feedback channel; Senior promotes sound suggestions to decisions.jsonl |
+| Integration Gate as barrier convergence point | 2026-02-18 | All departments must pass gate checks (api_contracts, design_sync, handoffs, tests) before delivery; config-driven with retry |
+| Patch/Major rejection paths with patch default | 2026-02-18 | Patch = dept Senior fix (default); Major = re-scope only for vision misalignment; po.default_rejection config key |
+| Delivery mode in orchestrator, not separate agent | 2026-02-18 | Auto/manual config toggle; orchestrator presents results to user; avoids agent sprawl |
 
 ## Installed Skills
 
