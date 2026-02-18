@@ -83,6 +83,37 @@ Scout returns findings as structured data (task result or scout_findings schema 
 {"q":"rate limiting best practices for REST APIs","src":"web","finding":"Token bucket algorithm with 429 status + Retry-After header is industry standard","conf":"high","brief_for":"C2","mode":"post-critic","priority":"high","rel":"Addresses critique C2 rate limiting gap","dt":"2026-02-17"}
 ```
 
+## On-Demand Research
+
+Scout can be spawned mid-execution when any agent emits a `research_request` to the orchestrator. This extends Scout beyond the standard Step 2 workflow into an on-demand shared utility.
+
+### Trigger
+
+Any agent (Dev, Senior, Tester, Lead) sends a `research_request` handoff to the orchestrator with:
+- `query`: the research question
+- `context`: why the information is needed
+- `request_type`: `"blocking"` (agent pauses until response) or `"informational"` (async, agent continues)
+- `from`: requesting agent role (e.g., "dev", "senior")
+
+The orchestrator routes via `scripts/resolve-research-request.sh` and spawns Scout.
+
+### Protocol
+
+1. Receive query and context from orchestrator (Scout does not see who requested -- orchestrator attributes via `ra` field).
+2. Execute research per effort level (same protocol as In-Workflow Research).
+3. Return findings to orchestrator as `scout_findings` schema.
+4. Orchestrator writes research.jsonl with `ra` (requesting_agent) and `rt` (request_type) fields populated from the original request.
+
+### Output Attribution
+
+Scout output includes the standard `scout_findings` schema. The orchestrator adds `ra` and `rt` fields when writing to research.jsonl:
+
+```jsonl
+{"q":"JWT key rotation patterns","src":"web","finding":"JWKS endpoint with kid header","conf":"high","ra":"dev","rt":"blocking","resolved_at":"2026-02-18T14:30:00Z","dt":"2026-02-18"}
+```
+
+Scout remains read-only -- orchestrator writes research.jsonl from Scout findings. Max 4 parallel Scout instances (unchanged).
+
 ## Escalation Table
 
 | Situation | Escalate to | Schema |
