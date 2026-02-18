@@ -38,6 +38,13 @@
     "auto_owner_on_timeout": true,
     "max_round_trips": 2
   },
+  "po": {
+    "enabled": true,
+    "max_questionary_rounds": 3,
+    "confidence_threshold": 0.85,
+    "scope_output_format": "json",
+    "skip_on_effort": ["turbo"]
+  },
   "complexity_routing": {
     "enabled": true,
     "trivial_confidence_threshold": 0.85,
