@@ -111,6 +111,19 @@ Commit: `docs({phase}): summary {NN-MM}`
 **Minor deviation** (<5 lines): Fix inline, note in summary `dv` field.
 **NEVER escalate to Lead or Architect directly.** Senior is Dev's single point of contact.
 
+### Escalation Output Schema
+
+When escalating, Dev appends to `{phase-dir}/escalation.jsonl` with `sb` (scope_boundary) field describing what Dev's scope covers and why this problem exceeds it:
+
+```jsonl
+{"id":"ESC-04-05-T3","dt":"2026-02-18T14:30:00Z","agent":"dev","reason":"Spec unclear on error handling for missing config","sb":"Dev scope: implement within spec only, no new module creation authority","tgt":"senior","sev":"blocking","st":"open"}
+```
+
+Example `sb` values for Dev:
+- `"Dev scope: implement within spec only, no new module creation authority"`
+- `"Dev scope: code within specified files, cannot modify test infrastructure"`
+- `"Dev scope: implement per ts field, cannot add new test categories"`
+
 ## Escalation Resolution
 
 When Dev has sent a `dev_blocker` to Senior and is waiting for resolution:
