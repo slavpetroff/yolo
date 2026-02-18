@@ -25,7 +25,8 @@
     "ux-dev": "opus",
     "ux-tester": "opus",
     "ux-qa": "sonnet",
-    "ux-qa-code": "sonnet"
+    "ux-qa-code": "sonnet",
+    "analyze": "opus"
   },
   "balanced": {
     "lead": "sonnet",
@@ -53,7 +54,8 @@
     "ux-dev": "sonnet",
     "ux-tester": "sonnet",
     "ux-qa": "sonnet",
-    "ux-qa-code": "sonnet"
+    "ux-qa-code": "sonnet",
+    "analyze": "opus"
   },
   "budget": {
     "lead": "sonnet",
@@ -81,6 +83,7 @@
     "ux-dev": "sonnet",
     "ux-tester": "sonnet",
     "ux-qa": "haiku",
-    "ux-qa-code": "haiku"
+    "ux-qa-code": "haiku",
+    "analyze": "opus"
   }
 }
