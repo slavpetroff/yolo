@@ -74,7 +74,7 @@ MEDIUM_KEYWORDS="add feature|implement|refactor|update|extend|add support|create
 
 # --- High keywords ---
 # Cross-department, architecture, new subsystem, significant scope
-HIGH_KEYWORDS="new subsystem|new system|architecture|redesign|cross-department|multi-department|rewrite|overhaul|migrate|major refactor|breaking change|new department|new module|rebuild|rearchitect|cross-team|infrastructure"
+HIGH_KEYWORDS="new subsystem|new system|architecture|redesign|cross-department|multi-department|multi-tenant|rewrite|overhaul|migrate|major refactor|breaking change|new department|new module|rebuild|rearchitect|cross-team|infrastructure|dashboard"
 
 # --- Classification logic ---
 COMPLEXITY=""
@@ -128,7 +128,9 @@ fi
 # --- Intent detection (simplified from go.md Path 2 logic) ---
 DETECTED_INTENT="implement"
 
-if echo "$INTENT_LOWER" | grep -qEi "fix|bug|broken|crash|error|fail"; then
+if echo "$INTENT_LOWER" | grep -qEi "debug|inspect|trace|profile"; then
+  DETECTED_INTENT="debug"
+elif echo "$INTENT_LOWER" | grep -qEi "fix|bug|broken|crash|error|fail"; then
   DETECTED_INTENT="fix"
 elif echo "$INTENT_LOWER" | grep -qEi "research|investigate|explore|analyze|understand|look into"; then
   DETECTED_INTENT="research"
@@ -142,8 +144,13 @@ elif echo "$INTENT_LOWER" | grep -qEi "add|create|implement|build|new|extend|enh
   DETECTED_INTENT="implement"
 fi
 
-# --- Suggested path ---
-SUGGESTED_PATH="$COMPLEXITY"
+# --- Suggested path (per agent spec: trivial_shortcut, medium_path, full_ceremony, redirect) ---
+case "$COMPLEXITY" in
+  trivial) SUGGESTED_PATH="trivial_shortcut" ;;
+  medium)  SUGGESTED_PATH="medium_path" ;;
+  high)    SUGGESTED_PATH="full_ceremony" ;;
+  *)       SUGGESTED_PATH="full_ceremony" ;;
+esac
 
 # --- Output JSON ---
 jq -n \

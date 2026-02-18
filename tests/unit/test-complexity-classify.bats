@@ -262,7 +262,10 @@ JSON
   assert_failure
 }
 
-@test "missing --config flag exits non-zero" {
+@test "missing --config flag exits 0 with defaults" {
   run bash "$SUT" --intent "fix typo" --codebase-map false
-  assert_failure
+  assert_success
+  # Should still produce valid JSON with empty departments
+  run jq empty <<< "$output"
+  assert_success
 }

@@ -114,12 +114,12 @@ route_args() {
   done
 }
 
-@test "route-medium includes lead, senior, dev, code_review" {
+@test "route-medium includes planning, design_review, implementation, code_review, signoff" {
   run bash "$ROUTE_MEDIUM" --phase-dir "$PHASE_DIR" --intent "add endpoint" --config "$TEST_WORKDIR/config.json" --analysis-json "$TEST_WORKDIR/analysis.json"
   assert_success
   local included
   included=$(echo "$output" | jq -r '.steps_included')
-  for step in lead senior dev code_review; do
+  for step in planning design_review implementation code_review signoff; do
     local found
     found=$(echo "$included" | jq --arg s "$step" 'index($s) != null')
     [ "$found" = "true" ] || fail "Expected $step in steps_included"
