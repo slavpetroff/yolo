@@ -144,15 +144,13 @@
       "includes": ["documenter"]
     },
     "integration-gate": {
-      "files": [],
-      "artifacts": ["api-contracts", "design-handoff", "test-results", "summary"],
+      "files": ["REQUIREMENTS.md", "success_criteria"],
+      "artifacts": ["department_result", "test-results", "summary"],
       "fields": {
-        "api-contracts": ["endpoint", "method", "status"],
-        "design-handoff": ["component", "status"],
-        "test-results": ["plan", "dept", "tc", "ps", "fl"],
-        "summary": ["fm"]
+        "summary": ["fm", "tst"],
+        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl"]
       },
-      "budget": 2000
+      "budget": 3000
     },
     "po": {
       "files": ["ROADMAP.md", "REQUIREMENTS.md"],
