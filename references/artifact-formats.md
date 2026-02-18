@@ -66,6 +66,9 @@ The `td` field is optional. When present, it lists task IDs within the same plan
 | `dv` | deviations | string[] |
 | `built` | what was built | string[] |
 | `tst` | test_status | "red_green"\|"green_only"\|"no_tests" |
+| `sg` | suggestions | string[] |
+
+`sg` is an optional field -- free-form suggestions from Dev for Senior consideration during code review. Empty array or omitted when Dev has none. Added in Phase 4 (D1: Execution & Review Loops).
 
 ### Verification ({phase}.verification.jsonl)
 
