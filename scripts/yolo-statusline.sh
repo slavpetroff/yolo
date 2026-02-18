@@ -581,12 +581,32 @@ if [ "$(visible_width "$L2")" -gt "$MAX_WIDTH" ]; then
 fi
 
 L3="$USAGE_LINE"
-L4="Model: ${D}${MODEL}${X} ${D}│${X} Time: ${DUR_FMT} (API: ${API_DUR_FMT})"
-[ -n "$AGENT_LINE" ] && L4="$L4 ${D}│${X} ${AGENT_LINE}"
-if [ -n "$UPDATE_AVAIL" ]; then
-  L4="$L4 ${D}│${X} ${Y}${B}YOLO ${_VER:-?} → ${UPDATE_AVAIL}${X} ${Y}/yolo:update${X} ${D}│${X} ${D}CC ${VER}${X}"
-else
-  L4="$L4 ${D}│${X} ${D}YOLO ${_VER:-?}${X} ${D}│${X} ${D}CC ${VER}${X}"
+_build_l4() {
+  local include_update="$1" include_agents="$2" abbrev_ver="$3"
+  local line="Model: ${D}${MODEL}${X} ${D}│${X} Time: ${DUR_FMT} (API: ${API_DUR_FMT})"
+  if [ "$include_agents" = "1" ] && [ -n "$AGENT_LINE" ]; then
+    line="$line ${D}│${X} ${AGENT_LINE}"
+  fi
+  if [ "$include_update" = "1" ] && [ -n "$UPDATE_AVAIL" ]; then
+    line="$line ${D}│${X} ${Y}${B}YOLO ${_VER:-?} → ${UPDATE_AVAIL}${X} ${Y}/yolo:update${X} ${D}│${X} ${D}CC ${VER}${X}"
+  elif [ "$abbrev_ver" = "1" ]; then
+    line="$line ${D}│${X} ${D}Y${_VER:-?}${X} ${D}│${X} ${D}C${VER}${X}"
+  else
+    line="$line ${D}│${X} ${D}YOLO ${_VER:-?}${X} ${D}│${X} ${D}CC ${VER}${X}"
+  fi
+  printf '%s' "$line"
+}
+
+# Progressive degradation: full -> drop update -> drop agents -> abbreviate versions
+L4=$(_build_l4 1 1 0)
+if [ "$(visible_width "$L4")" -gt "$MAX_WIDTH" ]; then
+  L4=$(_build_l4 0 1 0)  # Drop update notification
+fi
+if [ "$(visible_width "$L4")" -gt "$MAX_WIDTH" ]; then
+  L4=$(_build_l4 0 0 0)  # Drop agents
+fi
+if [ "$(visible_width "$L4")" -gt "$MAX_WIDTH" ]; then
+  L4=$(_build_l4 0 0 1)  # Abbreviate: "YOLO" -> "Y", "CC" -> "C"
 fi
 
 # Safety-net truncation (IP4): truncate_line ensures no line exceeds MAX_WIDTH.
