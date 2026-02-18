@@ -185,6 +185,30 @@ Written by Critic agent (Step 1). Architect reads and addresses `st: "open"` fin
 
 Written by Tester agent (Step 5) after Senior enriches `ts` fields. Dev reads test files as RED targets during implementation (Step 6).
 
+### Test Results (test-results.jsonl, one line per plan)
+
+| Key | Full Name | Type |
+|-----|-----------|------|
+| `plan` | plan ID | string (e.g. "04-03") |
+| `dept` | department | "backend"\|"frontend"\|"uiux" |
+| `phase` | TDD phase | "red"\|"green" |
+| `tc` | total test cases | number |
+| `ps` | passed | number |
+| `fl` | failed | number |
+| `dt` | date | "YYYY-MM-DD" |
+| `tasks` | per-task breakdown | object[] |
+
+Each `tasks` entry:
+
+| Key | Full Name | Type |
+|-----|-----------|------|
+| `id` | task ID | string (matches plan task ID) |
+| `ps` | passed | number |
+| `fl` | failed | number |
+| `tf` | test files | string[] (paths to test files) |
+
+Written by Dev after GREEN phase confirmation. RED phase results stay in test-plan.jsonl. test-results.jsonl provides structured GREEN phase output for QA consumption. Added in Phase 4.
+
 ### State (state.json, replaces STATE.md for machines)
 
 | Key | Full Name | Type |
@@ -314,6 +338,22 @@ Each test entry:
 | `reason` | rationale | string |
 | `alts` | alternatives | string[] |
 
+### Escalation (escalation.jsonl, append-only)
+
+| Key | Full Name | Type | Example |
+|-----|-----------|------|---------|
+| `id` | escalation ID | string | "ESC-04-05-T3" |
+| `dt` | datetime | string (ISO 8601) | "2026-02-18T14:30:00Z" |
+| `agent` | who wrote this entry | string | "dev" |
+| `reason` | why escalating | string | "Spec unclear on error handling for missing config" |
+| `sb` | scope_boundary | string | "Dev scope: implement within spec only, no new module creation authority" |
+| `tgt` | target | string | "senior" |
+| `sev` | severity | string | "blocking"\|"major"\|"minor" |
+| `st` | status | string | "open"\|"escalated"\|"resolved" |
+| `res` | resolution | string | "Senior clarified: use default config fallback" |
+
+Same ID reused across entries tracks escalation chain. Dedup by checking last entry with same ID before appending. The `sb` field captures the escalating agent's defined scope limits, explaining why the issue exceeds their authority. The `res` field is only present on resolved entries. Added in Phase 4.
+
 ## Cross-Department Artifacts
 
 Used when multiple departments are active. Stored in phase directory alongside standard artifacts.
@@ -390,6 +430,7 @@ If compiled context exceeds budget:
   ├── architecture.toon        # Architect output (committed)
   ├── {NN-MM}.plan.jsonl       # Lead + Senior output (committed)
   ├── test-plan.jsonl          # Tester output (committed)
+  ├── test-results.jsonl       # Dev output, GREEN phase metrics (committed)
   ├── {NN-MM}.summary.jsonl    # Dev output (committed)
   ├── research.jsonl           # Scout output (committed)
   ├── verification.jsonl       # QA Lead output (committed)
