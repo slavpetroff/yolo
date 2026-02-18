@@ -121,8 +121,13 @@ Line 1 (verdict):
 |-----|-----------|------|
 | `plan` | plan ID | string |
 | `r` | result | "approve"\|"changes_requested" |
+| `tdd` | TDD status | "pass"\|"fail"\|"skip" |
 | `cycle` | review cycle | number (1-3) |
 | `dt` | date | "YYYY-MM-DD" |
+| `sg_reviewed` | suggestions reviewed | number |
+| `sg_promoted` | suggestions promoted | string[] |
+
+`sg_reviewed` and `sg_promoted` are optional -- present only when summary.jsonl contains `sg` field. `sg_reviewed` counts how many Dev suggestions Senior evaluated. `sg_promoted` lists suggestions promoted to next iteration or decisions.jsonl. Added in Phase 4 (D2: Execution & Review Loops).
 
 Lines 2+ (comments):
 
