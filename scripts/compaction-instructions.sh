@@ -18,13 +18,13 @@ case "$AGENT_NAME" in
     PRIORITIES="Preserve pass/fail status, gap descriptions, verification results"
     ;;
   *lead*)
-    PRIORITIES="Preserve phase status, plan structure, coordination decisions"
+    PRIORITIES="Preserve phase status, plan structure, coordination decisions. After compaction, re-read .vbw-planning/codebase/ mapping files (ARCHITECTURE.md, CONCERNS.md, STRUCTURE.md) if META.md exists"
     ;;
   *architect*)
-    PRIORITIES="Preserve requirement IDs, phase structure, success criteria, key decisions"
+    PRIORITIES="Preserve requirement IDs, phase structure, success criteria, key decisions. After compaction, re-read .vbw-planning/codebase/ mapping files (ARCHITECTURE.md, STACK.md) if META.md exists"
     ;;
   *debugger*)
-    PRIORITIES="Preserve reproduction steps, hypotheses, evidence gathered, diagnosis"
+    PRIORITIES="Preserve reproduction steps, hypotheses, evidence gathered, diagnosis. After compaction, re-read .vbw-planning/codebase/ mapping files (ARCHITECTURE.md, CONCERNS.md, PATTERNS.md, DEPENDENCIES.md) if META.md exists"
     ;;
   *)
     PRIORITIES="Preserve active command being executed, user's original request, current phase/plan context, file modification paths, any pending user decisions. Discard: tool output details, reference file contents (re-read from disk), previous command results"

@@ -586,3 +586,31 @@ STATE
   # The dev case in compaction-instructions.sh should mention codebase mapping
   sed -n '/*dev*/,/;;/p' "$PROJECT_ROOT/scripts/compaction-instructions.sh" | grep -q 'codebase'
 }
+
+# =============================================================================
+# execute-protocol.md: dev spawn prompt includes codebase bootstrap (#96)
+# =============================================================================
+
+@test "execute-protocol.md dev spawn prompt includes codebase bootstrap" {
+  grep -q '.vbw-planning/codebase/' "$PROJECT_ROOT/references/execute-protocol.md"
+}
+
+@test "execute-protocol.md dev spawn prompt gates on META.md" {
+  grep -q 'META.md' "$PROJECT_ROOT/references/execute-protocol.md"
+}
+
+# =============================================================================
+# compaction-instructions.sh: all mapping-aware roles mention codebase (#96)
+# =============================================================================
+
+@test "compaction-instructions.sh debugger priorities include codebase mapping re-read" {
+  sed -n '/*debugger*/,/;;/p' "$PROJECT_ROOT/scripts/compaction-instructions.sh" | grep -q 'codebase'
+}
+
+@test "compaction-instructions.sh lead priorities include codebase mapping re-read" {
+  sed -n '/*lead*/,/;;/p' "$PROJECT_ROOT/scripts/compaction-instructions.sh" | grep -q 'codebase'
+}
+
+@test "compaction-instructions.sh architect priorities include codebase mapping re-read" {
+  sed -n '/*architect*/,/;;/p' "$PROJECT_ROOT/scripts/compaction-instructions.sh" | grep -q 'codebase'
+}
