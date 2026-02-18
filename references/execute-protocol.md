@@ -154,11 +154,55 @@ When complexity routing is enabled (`config_complexity_routing=true` in phase-de
 
 6. **Backward compatibility:** When `config_complexity_routing=false`, this section has no effect. All steps follow existing skip conditions only.
 
+### Step 0: Product Ownership (PO Agent — optional, config-gated)
+
+**Guard:** Skip if `po.enabled=false` in config OR `--effort=turbo` OR `scope-document.json` already exists in phase dir. When skipped, the existing 11-step workflow runs unchanged (backward compatible). Skip Output per template. Commit: `chore(state): po skipped phase {N}`.
+
+**ENTRY GATE:** Verify Analyze output exists (analysis.json from Path 0) OR active milestone detected (phase-detect.sh). If neither: STOP "Step 0 requires Analyze output or active milestone."
+
+When `po.enabled=true` and guard conditions not met:
+
+1. **Spawn PO Agent:**
+   ```
+   PO_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh po .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   ```
+   Spawn yolo-po with model: "${PO_MODEL}". Pass: user intent, analysis.json, codebase mapping, REQUIREMENTS.md, ROADMAP.md, prior summaries.
+   Display: `◆ Spawning PO (${PO_MODEL}) for scope clarification...`
+
+2. **PO-Questionary loop:** PO spawns Questionary Agent for scope clarification (max 3 rounds, early exit at scope_confidence >= 0.85). Orchestrated via po-scope-loop.sh.
+   ```bash
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/po-scope-loop.sh \
+     --config .yolo-planning/config.json \
+     --phase-dir "{phase-dir}" \
+     --max-rounds 3 \
+     --confidence-threshold 0.85
+   ```
+
+3. **Roadmap Agent (full_ceremony only):** PO spawns Roadmap Agent for dependency analysis. Roadmap produces phase ordering, dependency graph, critical path, milestones. Skip if medium_path or effort=fast.
+   ```bash
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-deps.sh \
+     --graph "{phase-dir}/roadmap-plan.json" \
+     --format adjacency
+   ```
+   Validate no cycles in dependency graph.
+
+4. **user_presentation rendering:** PO may emit `user_presentation` objects during scope gathering and sign-off. For each:
+   ```bash
+   rendered=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/render-user-presentation.sh --json "$presentation_json")
+   ```
+   Orchestrator renders via AskUserQuestion. User response fed back to PO.
+
+5. **PO produces scope-document.json** in phase directory. Contains: vision, enriched scope, requirements, roadmap (if produced), assumptions, deferred items.
+
+6. **EXIT GATE:** Artifact: `scope-document.json` (valid JSON, contains `status: "PO-APPROVED"`). State: `steps.po.status = complete`. Commit: `chore(state): po complete phase {N}`.
+
+**When PO is enabled, the workflow becomes 12-step (Step 0 + Steps 1-11).** Step 1 (Critique) entry gate is unchanged — it does not require scope-document.json. The scope-document.json is passed as additional context to Critic, Architect, and Lead alongside existing inputs.
+
 ### Step 1: Critique / Brainstorm (Critic Agent)
 
 **Guard:** Skip if `--effort=turbo` OR `critique.jsonl` exists. Skip Output per template. Commit: `chore(state): critique skipped phase {N}`.
 
-**ENTRY GATE:** None (first step). Verify phase directory exists: `[ -d "{phase-dir}" ]`. If not: STOP "Phase directory missing. Run /yolo:go --plan first."
+**ENTRY GATE:** None (first step after optional Step 0). Verify phase directory exists: `[ -d "{phase-dir}" ]`. If not: STOP "Phase directory missing. Run /yolo:go --plan first."
 
 1. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} critic {phases_dir}`
 2. Spawn yolo-critic with Task tool:
@@ -255,6 +299,7 @@ Gate decision:
      "started_at": "{ISO 8601}", "step": "planning", "wave": 1, "total_waves": N,
      "plans": [{"id": "NN-MM", "title": "...", "wave": W, "status": "pending|complete"}],
      "steps": {
+       "po": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
        "critique": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
        "research": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
        "architecture": {"status": "pending", "started_at": "", "completed_at": "", "artifact": "", "reason": ""},
@@ -727,6 +772,7 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 
 | Step | state.step | Entry Artifact | Exit Artifact | Commit Format | Skip Conditions |
 |------|-----------|----------------|---------------|---------------|----------------|
+| 0. PO | `po` | Analyze output OR active milestone | `scope-document.json` (PO-APPROVED) | `chore(state): po complete phase {N}` | `po.enabled=false`, `--effort=turbo`, scope-document.json exists |
 | 1. Critique | `critique` | Phase dir exists | `critique.jsonl` | `docs({phase}): critique and gap analysis` | `--effort=turbo`, critique.jsonl exists |
 | 2. Research | `research` | `critique.jsonl` OR step 1 skipped | `research.jsonl` | `docs({phase}): research findings` | `--effort=turbo` |
 | 3. Architecture | `architecture` | `research.jsonl` OR step 2 skipped | `architecture.toon` (completeness validated per rnd-handoff-protocol.md) | `docs({phase}): architecture design` | architecture.toon exists |
