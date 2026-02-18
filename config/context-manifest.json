@@ -1,0 +1,134 @@
+{
+  "roles": {
+    "architect": {
+      "files": ["ROADMAP.md", "REQUIREMENTS.md", "codebase/*"],
+      "artifacts": ["critique", "research"],
+      "fields": {},
+      "budget": 5000
+    },
+    "lead": {
+      "files": ["architecture.toon", "ROADMAP.md", "REQUIREMENTS.md", "STATE.md"],
+      "artifacts": ["decisions"],
+      "fields": {},
+      "budget": 3000
+    },
+    "senior": {
+      "files": ["architecture.toon", "PATTERNS.md"],
+      "artifacts": ["plan"],
+      "fields": {
+        "plan": ["id", "a", "f", "done", "spec", "ts"]
+      },
+      "budget": 4000
+    },
+    "dev": {
+      "files": [],
+      "artifacts": ["plan"],
+      "fields": {
+        "plan": ["id", "a", "f", "done", "spec"]
+      },
+      "budget": 2000
+    },
+    "tester": {
+      "files": [],
+      "artifacts": ["plan"],
+      "fields": {
+        "plan": ["id", "a", "f", "done", "spec", "ts"]
+      },
+      "budget": 3000
+    },
+    "qa": {
+      "files": ["success_criteria"],
+      "artifacts": ["plan"],
+      "fields": {
+        "plan": ["obj", "mh"]
+      },
+      "budget": 2000
+    },
+    "qa-code": {
+      "files": [],
+      "artifacts": ["summary"],
+      "fields": {
+        "summary": ["fm"]
+      },
+      "budget": 3000
+    },
+    "security": {
+      "files": [],
+      "artifacts": ["summary"],
+      "fields": {
+        "summary": ["fm"]
+      },
+      "budget": 3000
+    },
+    "critic": {
+      "files": ["ROADMAP.md", "REQUIREMENTS.md", "PROJECT.md", "codebase/*"],
+      "artifacts": ["research"],
+      "fields": {},
+      "budget": 4000
+    },
+    "scout": {
+      "files": ["REQUIREMENTS.md", "codebase/INDEX.md", "codebase/ARCHITECTURE.md", "codebase/PATTERNS.md"],
+      "artifacts": ["critique"],
+      "fields": {
+        "critique": ["id", "q", "sev"]
+      },
+      "budget": 1000
+    },
+    "owner": {
+      "files": ["REQUIREMENTS.md", "success_criteria"],
+      "artifacts": ["department_result"],
+      "fields": {},
+      "budget": 3000
+    },
+    "debugger": {
+      "files": [],
+      "artifacts": ["research", "gaps"],
+      "fields": {},
+      "budget": 3000
+    },
+    "documenter": {
+      "files": [],
+      "artifacts": ["summary", "code-review"],
+      "fields": {
+        "summary": ["fm"]
+      },
+      "budget": 2000
+    },
+    "fe-security": {
+      "files": [],
+      "artifacts": ["summary"],
+      "fields": {
+        "summary": ["fm"]
+      },
+      "budget": 3000,
+      "includes": ["security"]
+    },
+    "ux-security": {
+      "files": [],
+      "artifacts": ["summary"],
+      "fields": {
+        "summary": ["fm"]
+      },
+      "budget": 2000,
+      "includes": ["security"]
+    },
+    "fe-documenter": {
+      "files": [],
+      "artifacts": ["summary", "code-review"],
+      "fields": {
+        "summary": ["fm"]
+      },
+      "budget": 2000,
+      "includes": ["documenter"]
+    },
+    "ux-documenter": {
+      "files": [],
+      "artifacts": ["summary", "code-review"],
+      "fields": {
+        "summary": ["fm"]
+      },
+      "budget": 2000,
+      "includes": ["documenter"]
+    }
+  }
+}
