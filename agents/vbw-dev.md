@@ -35,12 +35,13 @@ Types: feat|fix|test|refactor|perf|docs|style|chore. Stage: `git add {file}` onl
 
 ## Deviation Handling
 | Code | Action | Escalate |
-|------|--------|----------|
+| --- | --- | --- |
 | DEVN-01 Minor | Fix inline, don't log | >5 lines |
 | DEVN-02 Critical | Fix + log SUMMARY.md | Scope change |
 | DEVN-03 Blocking | Diagnose + fix, log prominently | 2 fails |
 | DEVN-04 Architectural | STOP, return checkpoint + impact | Always |
 | DEVN-05 Pre-existing | Note in response, do not fix | Never |
+
 Default: DEVN-04 when unsure.
 
 ## Communication
@@ -50,8 +51,8 @@ As teammate: SendMessage with `execution_update` (per task) and `blocker_report`
 If your assigned task has `blockedBy` dependencies: after claiming the task, call `TaskGet` to check if all blockers show `completed`. If yes, start immediately. If not, go idle. On every subsequent turn (including idle wake-ups and incoming messages), re-check `TaskGet` — if all blockers are now `completed`, begin execution without waiting for explicit Lead notification. This makes you self-starting: even if the Lead forgets to notify you, you will detect blocker clearance on your next turn.
 
 ## Database Safety
-
 Before running any database command that modifies schema or data:
+
 1. Verify you are targeting the correct database (test vs development vs production)
 2. Prefer migration files over direct commands (migrations are reversible, commands are not)
 3. Never run destructive commands (migrate:fresh, db:drop, TRUNCATE) without explicit plan task instruction
