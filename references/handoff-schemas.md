@@ -209,6 +209,62 @@ Research findings from a Scout investigating a specific topic.
 }
 ```
 
+## `research_request` (Any agent -> Orchestrator)
+
+On-demand research request emitted by any agent when blocked by missing external information. Orchestrator routes to Scout and manages blocking vs informational dispatch.
+
+```json
+{
+  "type": "research_request",
+  "from": "dev",
+  "task": "01-02/T3",
+  "plan_id": "01-02",
+  "query": "JWT RS256 key rotation best practices for multi-tenant systems",
+  "context": "Spec requires key rotation but no pattern guidance in codebase or architecture",
+  "request_type": "blocking",
+  "priority": "high"
+}
+```
+
+| Field | Type | Values |
+|-------|------|--------|
+| `type` | string | "research_request" |
+| `from` | string | Agent role (e.g., "dev", "senior", "tester", "lead", "architect") |
+| `task` | string | Task reference (e.g., "01-02/T3") |
+| `plan_id` | string | Plan identifier (e.g., "01-02") |
+| `query` | string | Research question |
+| `context` | string | Why the information is needed |
+| `request_type` | string | "blocking" (agent cannot proceed) or "informational" (agent continues with assumption) |
+| `priority` | string | "high", "medium", or "low" |
+
+Note: Orchestrator writes research.jsonl from Scout findings. Scout never writes directly. Blocking requests pause requesting agent until response delivered. Informational requests are async -- agent continues, findings appended when available.
+
+## `research_response` (Orchestrator -> Requesting agent)
+
+Response delivered to the agent that emitted a research_request. Contains Scout findings routed through the orchestrator.
+
+```json
+{
+  "type": "research_response",
+  "request_from": "dev",
+  "query": "JWT RS256 key rotation best practices for multi-tenant systems",
+  "findings": [
+    { "q": "JWT RS256 key rotation", "src": "web", "finding": "JWKS endpoint with kid header for seamless rotation", "conf": "high" }
+  ],
+  "request_type": "blocking",
+  "resolved_at": "2026-02-18T14:30:00Z"
+}
+```
+
+| Field | Type | Values |
+|-------|------|--------|
+| `type` | string | "research_response" |
+| `request_from` | string | Agent role that requested the research |
+| `query` | string | Original research question (for correlation) |
+| `findings` | object[] | Array of `{q, src, finding, conf}` from Scout |
+| `request_type` | string | "blocking" or "informational" (echoed from request) |
+| `resolved_at` | string | ISO 8601 timestamp when response was produced |
+
 ## `debugger_report` (Debugger -> Lead)
 
 Investigation findings from competing hypotheses mode.
