@@ -9,6 +9,8 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 GENERATE_SCRIPT="$SCRIPT_DIR/generate-agent.sh"
 AGENTS_DIR="$REPO_ROOT/agents"
 OVERLAYS_DIR="$AGENTS_DIR/overlays"
+TEMPLATES_DIR="$AGENTS_DIR/templates"
+HASH_FILE="$AGENTS_DIR/.agent-generation-hash"
 
 ROLES=(architect lead senior dev tester qa qa-code security documenter)
 DEPTS=(backend frontend uiux)
@@ -54,7 +56,33 @@ resolve_output_path() {
   echo "$AGENTS_DIR/yolo-${prefix}${role}.md"
 }
 
+# --- Compute hash of all templates + overlays (source inputs) ---
+compute_source_hash() {
+  # Concatenate all template and overlay files in deterministic order, then hash
+  local hash
+  hash=$(cat "$TEMPLATES_DIR"/*.md "$OVERLAYS_DIR"/*.json 2>/dev/null | shasum -a 256 | cut -d' ' -f1)
+  echo "$hash"
+}
+
 if $CHECK; then
+  # --- Check source hash first ---
+  current_hash=$(compute_source_hash)
+  hash_stale=false
+  if [[ -f "$HASH_FILE" ]]; then
+    stored_hash=$(cat "$HASH_FILE")
+    if [[ "$current_hash" != "$stored_hash" ]]; then
+      echo "STALE: source hash mismatch (templates/overlays changed since last regeneration)"
+      echo "  stored:  $stored_hash"
+      echo "  current: $current_hash"
+      echo ""
+      hash_stale=true
+    fi
+  else
+    echo "MISSING: $HASH_FILE (run regenerate-agents.sh to create)"
+    echo ""
+    hash_stale=true
+  fi
+
   # --- Check mode: compare dry-run output against existing files ---
   stale=0
   checked=0
@@ -81,7 +109,7 @@ if $CHECK; then
   done
 
   echo "Check complete: ${checked}/${TOTAL} checked, ${stale} stale"
-  if [[ $stale -gt 0 ]]; then
+  if [[ $stale -gt 0 ]] || $hash_stale; then
     exit 1
   fi
   exit 0
@@ -141,6 +169,13 @@ for dept in "${DEPTS[@]}"; do
     fi
   done
 done
+
+# --- Write source hash (skip if dry-run or any failures) ---
+if ! $DRY_RUN && [[ $failed -eq 0 ]]; then
+  source_hash=$(compute_source_hash)
+  echo "$source_hash" > "$HASH_FILE"
+  echo "Wrote source hash to $HASH_FILE"
+fi
 
 # --- Report ---
 echo ""
