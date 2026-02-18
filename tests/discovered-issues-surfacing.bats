@@ -118,8 +118,16 @@ load test_helper
   sed -n '/Pre-Existing Failure Handling/,/^##/p' "$PROJECT_ROOT/agents/vbw-debugger.md" | grep -qi 'do not.*fix pre-existing'
 }
 
-@test "debugger agent mentions pre_existing_issues in debugger_report" {
+@test "debugger agent mentions pre_existing_issues in blocker_report" {
   sed -n '/Pre-Existing Failure Handling/,/^##/p' "$PROJECT_ROOT/agents/vbw-debugger.md" | grep -q 'pre_existing_issues'
+}
+
+@test "debugger agent references blocker_report not debugger_report for schema" {
+  sed -n '/Pre-Existing Failure Handling/,/^##/p' "$PROJECT_ROOT/agents/vbw-debugger.md" | grep -q 'blocker_report'
+}
+
+@test "debugger agent Step 7 output includes pre-existing issues" {
+  grep '7\.' "$PROJECT_ROOT/agents/vbw-debugger.md" | grep -q 'pre-existing'
 }
 
 # =============================================================================
@@ -136,6 +144,14 @@ load test_helper
 
 @test "qa_verdict schema includes pre_existing_issues field" {
   sed -n '/qa_verdict/,/^##/p' "$PROJECT_ROOT/references/handoff-schemas.md" | grep -q 'pre_existing_issues'
+}
+
+@test "json schema blocker_report payload_optional includes pre_existing_issues" {
+  jq -r '.schemas.blocker_report.payload_optional[]' "$PROJECT_ROOT/config/schemas/message-schemas.json" | grep -q 'pre_existing_issues'
+}
+
+@test "json schema qa_verdict payload_optional includes pre_existing_issues" {
+  jq -r '.schemas.qa_verdict.payload_optional[]' "$PROJECT_ROOT/config/schemas/message-schemas.json" | grep -q 'pre_existing_issues'
 }
 
 # =============================================================================
@@ -185,6 +201,26 @@ load test_helper
 }
 
 # =============================================================================
+# Verify command: discovered issues output
+# =============================================================================
+
+@test "verify command has discovered issues output section" {
+  grep -q 'Discovered Issues' "$PROJECT_ROOT/commands/verify.md"
+}
+
+@test "verify command discovered issues uses warning bullet format" {
+  grep -q '⚠' "$PROJECT_ROOT/commands/verify.md"
+}
+
+@test "verify command discovered issues suggests /vbw:todo" {
+  grep -q '/vbw:todo' "$PROJECT_ROOT/commands/verify.md"
+}
+
+@test "verify command discovered issues is display-only" {
+  grep -q 'display-only' "$PROJECT_ROOT/commands/verify.md"
+}
+
+# =============================================================================
 # Consistency: all discovered issues blocks use the same format
 # =============================================================================
 
@@ -194,7 +230,7 @@ load test_helper
 
 @test "all discovered issues sections use display-only constraint" {
   local failed=""
-  for file in commands/fix.md commands/debug.md commands/qa.md references/execute-protocol.md; do
+  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md references/execute-protocol.md; do
     if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
       if ! grep -q 'display-only' "$PROJECT_ROOT/$file"; then
         failed="${failed} ${file}"
@@ -206,7 +242,7 @@ load test_helper
 
 @test "all discovered issues sections suggest /vbw:todo" {
   local failed=""
-  for file in commands/fix.md commands/debug.md commands/qa.md references/execute-protocol.md; do
+  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md references/execute-protocol.md; do
     if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
       if ! grep -q '/vbw:todo' "$PROJECT_ROOT/$file"; then
         failed="${failed} ${file}"

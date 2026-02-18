@@ -135,6 +135,15 @@ Issue recorded (severity: {level}). Suggest /vbw:fix after UAT.
 
 ```
 
+**Discovered Issues:** If the verification process revealed pre-existing test failures, out-of-scope bugs, or issues unrelated to this phase's work, append after the result box:
+```text
+  Discovered Issues:
+    ⚠ {issue-1}
+    ⚠ {issue-2}
+  Suggest: /vbw:todo <description> to track
+```
+This is **display-only**. Do NOT edit STATE.md, do NOT add todos, do NOT invoke /vbw:todo, and do NOT enter an interactive loop. The user decides whether to track these. If no discovered issues: omit the section entirely.
+
 - If issues found: `Suggest /vbw:fix to address recorded issues.`
 
 Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh verify {result}` and display.

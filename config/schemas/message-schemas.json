@@ -23,13 +23,13 @@
     "blocker_report": {
       "allowed_roles": ["dev", "debugger", "docs"],
       "payload_required": ["plan_id", "task_id", "blocker", "needs"],
-      "payload_optional": ["attempted", "severity"],
+      "payload_optional": ["attempted", "severity", "pre_existing_issues"],
       "description": "Escalation when agent is blocked"
     },
     "qa_verdict": {
       "allowed_roles": ["qa"],
       "payload_required": ["tier", "result", "checks"],
-      "payload_optional": ["failures", "body", "recommendations"],
+      "payload_optional": ["failures", "body", "recommendations", "pre_existing_issues"],
       "description": "Verification results from QA agent"
     },
     "approval_request": {
