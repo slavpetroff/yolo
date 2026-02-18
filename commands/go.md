@@ -442,6 +442,30 @@ This mode delegates to protocol files. Before reading:
    - All plans have `*.summary.jsonl`: cautious/standard -> WARN + confirm; confident/pure-yolo -> warn + auto-continue.
 3. **Compile context:** If `config_context_compiler=true`, compile context for each agent role as needed per the protocol steps. Include `.ctx-{role}.toon` paths in agent task descriptions.
 
+3.5. **Template mode filtering (YOLO_AGENT_MODE):** Before spawning department agents at each workflow step, set `YOLO_AGENT_MODE` env var to enable per-step token savings via template mode filtering. The SubagentStart hook (`template-generate-hook.sh`) reads this env var and passes `--mode` to `generate-agent.sh`, which strips irrelevant sections from the generated agent file.
+
+   **Step-to-mode mapping:**
+
+   | Workflow Step | YOLO_AGENT_MODE | Rationale |
+   |---|---|---|
+   | Step 3: Architecture / Planning | `plan` | Agent needs planning context only |
+   | Step 5: Design Review | `review` | Agent needs review context only |
+   | Step 6: Test Authoring (RED) | `test` | Agent needs test context only |
+   | Step 7: Implementation | `implement` | Agent needs implementation context only |
+   | Step 8: Code Review | `review` | Agent needs review context only |
+   | Step 9: QA | `qa` | Agent needs QA context only |
+   | Steps 1-2, 10-11 | (unset) | Shared agents (critic, scout, security) are not template-generated |
+
+   Set the env var before each step's agent spawn:
+   ```bash
+   export YOLO_AGENT_MODE="implement"  # or plan, review, test, qa
+   ```
+   Unset after the step completes to avoid leaking into subsequent steps:
+   ```bash
+   unset YOLO_AGENT_MODE
+   ```
+   When `YOLO_AGENT_MODE` is unset, template-generate-hook.sh generates the full (unfiltered) agent file.
+
 4. **Fallback notice:** If `fallback_notice=true` from resolve-team-mode.sh, display: `[notice] Teammate API requested but unavailable. Using Task tool spawn instead.` Informational only.
 
 5. **MANDATORY SPAWN STRATEGY GATE (read before ANY agent spawning):**
