@@ -512,7 +512,7 @@ Owner-first principle still applies — go.md is the user proxy throughout.
     ```
     Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh execute`.
 
-This mode reuses execute-protocol.md steps 4-8 and 11 but skips steps 1-3, 9, and 10. Owner-first principle applies.
+This mode reuses execute-protocol.md steps 4-8 and 11 but skips steps 1-3, 6 (test authoring), 9, and 10. Owner-first principle applies. Test authoring is skipped for medium-path tasks because the abbreviated scope does not warrant a formal RED phase; the post-plan QA gate provides sufficient automated verification.
 
 ### Mode: Add Phase
 
