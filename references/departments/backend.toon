@@ -10,6 +10,8 @@ roster:
   yolo-dev|Junior Developer|Sonnet|All|source code, summary.jsonl|2000
   yolo-qa|QA Lead|Sonnet|Read,Glob,Grep (read-only)|verification.jsonl|2000
   yolo-qa-code|QA Engineer|Sonnet|Read,Glob,Grep,Bash|qa-code.jsonl|3000
+  yolo-security|Backend Security Engineer|Sonnet|Read,Glob,Grep,Bash,SendMessage|security-audit.jsonl|3000
+  yolo-documenter|Backend Documenter|Haiku|Read,Glob,Grep,Write,Bash|docs.jsonl|2000
   note: Models are quality profile defaults. Actual via resolve-agent-model.sh from config/model-profiles.json.
 
 structure:
@@ -25,8 +27,8 @@ conventions:
   artifacts: JSONL with abbreviated keys (see references/artifact-formats.md)
 
 workflow:
-  steps: 11-step standard from references/execute-protocol.md (no modifications)
-  order: Critique(Critic) > Research(Scout) > Architecture(Architect) > Planning(Lead) > Design Review(Senior) > Test RED(Tester) > Implementation(Dev) > Code Review(Senior) > QA(QA Lead+QA Code) > Security(Security) > Sign-off(Lead/Owner)
+  steps: 11-step standard from references/execute-protocol.md
+  order: Critique(Critic) > Research(Scout) > Architecture(Architect) > Planning(Lead) > Design Review(Senior) > Test RED(Tester) > Implementation(Dev) > Code Review(Senior) > Documentation(Documenter, config-gated) > QA(QA Lead+QA Code) > Security(Backend Security) > Sign-off(Lead/Owner)
 
 cross_dept:
   Lead sends department_result to Owner at phase completion

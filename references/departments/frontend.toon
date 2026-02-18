@@ -10,6 +10,8 @@ roster:
   yolo-fe-dev|FE Developer|Sonnet|All|source code, summary.jsonl|2000
   yolo-fe-qa|FE QA Lead|Sonnet|Read,Glob,Grep (read-only)|verification.jsonl|2000
   yolo-fe-qa-code|FE QA Engineer|Sonnet|Read,Glob,Grep,Bash|qa-code.jsonl|3000
+  yolo-fe-security|FE Security Reviewer|Sonnet|Read,Grep,Glob,Bash,SendMessage|security-audit.jsonl|3000
+  yolo-fe-documenter|FE Documenter|Haiku|Read,Glob,Grep,Write|docs.jsonl|2000
   note: Models are quality profile defaults. Actual via resolve-agent-model.sh from config/model-profiles.json.
 
 structure:
@@ -36,8 +38,9 @@ workflow:
   6: FE Tester, component + interaction + E2E tests
   7: FE Dev, components + styles + state + API
   8: FE Senior, a11y + perf + design compliance review
+  8.5: FE Documenter (config-gated), documentation
   9: FE QA Lead + Code, design + UX + a11y + bundle
-  10: Security (shared), XSS + CSP + auth tokens
+  10: FE Security, XSS + CSP + auth tokens
   11: FE Lead/Owner, dept result
 
 cross_dept:

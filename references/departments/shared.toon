@@ -7,8 +7,8 @@ roster:
   yolo-critic|Brainstorm / Gap Analyst|Opus|Read,Glob,Grep,WebSearch,WebFetch|critique.jsonl|4000|Per dept
   yolo-scout|Research Analyst|Haiku|Read,Glob,Grep,WebSearch,WebFetch|research.jsonl|1000|On demand
   yolo-debugger|Incident Responder|Sonnet|All|debug-report.jsonl|3000|On incident
-  yolo-security|Security Engineer|Sonnet|Read,Glob,Grep,Bash|security-audit.jsonl|3000|Per dept
   note: Models are quality profile defaults. Actual via resolve-agent-model.sh from config/model-profiles.json.
+  note: Security is now per-department (yolo-security=Backend, yolo-fe-security=Frontend, yolo-ux-security=UI/UX). Each dept security agent is registered in its own dept TOON file. The shared yolo-security entry is removed; use dept-specific agents instead.
 
 owner_protocol:
   desc: Final internal escalation point. All dept Leads report to Owner. Only Owner escalates to User.
@@ -31,7 +31,7 @@ dispatch_rules:
   Critic|Once per dept per phase (before arch)|Findings to Lead (no Write)|Multi-dept: reviews cross-dept implications
   Scout|On demand by any Lead|scout_findings to Lead|Haiku, quick lookups not deep analysis
   Debugger|On incident by any Lead|debugger_report to Lead|Full tool access; Lead decides action
-  Security|Once per dept after QA (Step 9)|security-audit.jsonl|FAIL = hard STOP > User directly
+  Security|Once per dept after QA (Step 10), now per-dept agents|security-audit.jsonl|FAIL = hard STOP > User directly
 
 escalation_table:
   agent|escalates_to|trigger
@@ -39,7 +39,7 @@ escalation_table:
   Critic|Dept Lead|Findings advisory (Lead forwards to Architect)
   Scout|Dept Lead|Cannot find info, conflicting sources
   Debugger|Dept Lead|Investigation complete, fix recommendation
-  Security|Lead (FAIL > User)|Findings to report; FAIL = HARD STOP
+  Security (per-dept)|Dept Lead (FAIL > User)|Findings to report; FAIL = HARD STOP
   note: Owner is FINAL internal escalation point. Only Owner escalates to User. Exception: Security FAIL bypasses chain > User directly.
 
 multi_dept_workflow:
