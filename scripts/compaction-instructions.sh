@@ -12,19 +12,19 @@ case "$AGENT_NAME" in
     PRIORITIES="Preserve research findings, URLs, confidence assessments"
     ;;
   *dev*)
-    PRIORITIES="Preserve commit hashes, file paths modified, deviation decisions, current task number. After compaction, re-read .vbw-planning/codebase/ mapping files (CONVENTIONS.md, PATTERNS.md, STRUCTURE.md, DEPENDENCIES.md) if META.md exists"
+    PRIORITIES="Preserve commit hashes, file paths modified, deviation decisions, current task number. After compaction, if .vbw-planning/codebase/META.md exists, re-read CONVENTIONS.md, PATTERNS.md, STRUCTURE.md, and DEPENDENCIES.md (whichever exist) from .vbw-planning/codebase/"
     ;;
   *qa*)
-    PRIORITIES="Preserve pass/fail status, gap descriptions, verification results. After compaction, re-read .vbw-planning/codebase/ mapping files (TESTING.md, CONCERNS.md, ARCHITECTURE.md) if META.md exists"
+    PRIORITIES="Preserve pass/fail status, gap descriptions, verification results. After compaction, if .vbw-planning/codebase/META.md exists, re-read TESTING.md, CONCERNS.md, and ARCHITECTURE.md (whichever exist) from .vbw-planning/codebase/"
     ;;
   *lead*)
-    PRIORITIES="Preserve phase status, plan structure, coordination decisions. After compaction, re-read .vbw-planning/codebase/ mapping files (ARCHITECTURE.md, CONCERNS.md, STRUCTURE.md) if META.md exists"
+    PRIORITIES="Preserve phase status, plan structure, coordination decisions. After compaction, if .vbw-planning/codebase/META.md exists, re-read ARCHITECTURE.md, CONCERNS.md, and STRUCTURE.md (whichever exist) from .vbw-planning/codebase/"
     ;;
   *architect*)
-    PRIORITIES="Preserve requirement IDs, phase structure, success criteria, key decisions. After compaction, re-read .vbw-planning/codebase/ mapping files (ARCHITECTURE.md, STACK.md) if META.md exists"
+    PRIORITIES="Preserve requirement IDs, phase structure, success criteria, key decisions. After compaction, if .vbw-planning/codebase/META.md exists, re-read ARCHITECTURE.md and STACK.md (whichever exist) from .vbw-planning/codebase/"
     ;;
   *debugger*)
-    PRIORITIES="Preserve reproduction steps, hypotheses, evidence gathered, diagnosis. After compaction, re-read .vbw-planning/codebase/ mapping files (ARCHITECTURE.md, CONCERNS.md, PATTERNS.md, DEPENDENCIES.md) if META.md exists"
+    PRIORITIES="Preserve reproduction steps, hypotheses, evidence gathered, diagnosis. After compaction, if .vbw-planning/codebase/META.md exists, re-read ARCHITECTURE.md, CONCERNS.md, PATTERNS.md, and DEPENDENCIES.md (whichever exist) from .vbw-planning/codebase/"
     ;;
   *)
     PRIORITIES="Preserve active command being executed, user's original request, current phase/plan context, file modification paths, any pending user decisions. Discard: tool output details, reference file contents (re-read from disk), previous command results"

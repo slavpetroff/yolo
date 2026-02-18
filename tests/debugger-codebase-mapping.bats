@@ -697,3 +697,85 @@ STATE
     bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
   ! grep -q 'codebase' "$TEST_TEMP_DIR/compaction-output.json"
 }
+
+# =============================================================================
+# compaction-instructions.sh: output uses full META.md path and "whichever exist" (#96 QA round 4)
+# =============================================================================
+
+@test "compaction-instructions.sh dev output uses full .vbw-planning/codebase/META.md path" {
+  echo '{"agent_name":"vbw-dev","matcher":"auto"}' | \
+    bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q '.vbw-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
+}
+
+@test "compaction-instructions.sh dev output includes whichever exist qualifier" {
+  echo '{"agent_name":"vbw-dev","matcher":"auto"}' | \
+    bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q 'whichever exist' "$TEST_TEMP_DIR/compaction-output.json"
+}
+
+@test "compaction-instructions.sh qa output uses full META.md path and whichever exist" {
+  echo '{"agent_name":"vbw-qa","matcher":"auto"}' | \
+    bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q '.vbw-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q 'whichever exist' "$TEST_TEMP_DIR/compaction-output.json"
+}
+
+@test "compaction-instructions.sh debugger output uses full META.md path and whichever exist" {
+  echo '{"agent_name":"vbw-debugger","matcher":"auto"}' | \
+    bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q '.vbw-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q 'whichever exist' "$TEST_TEMP_DIR/compaction-output.json"
+}
+
+@test "compaction-instructions.sh lead output uses full META.md path and whichever exist" {
+  echo '{"agent_name":"vbw-lead","matcher":"auto"}' | \
+    bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q '.vbw-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q 'whichever exist' "$TEST_TEMP_DIR/compaction-output.json"
+}
+
+@test "compaction-instructions.sh architect output uses full META.md path and whichever exist" {
+  echo '{"agent_name":"vbw-architect","matcher":"auto"}' | \
+    bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q '.vbw-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q 'whichever exist' "$TEST_TEMP_DIR/compaction-output.json"
+}
+
+# =============================================================================
+# vibe.md: gates on META.md not directory existence (#96 QA round 4)
+# =============================================================================
+
+@test "vibe.md bootstrap codebase constraint gates on META.md" {
+  grep -q 'META.md' "$PROJECT_ROOT/commands/vibe.md"
+}
+
+@test "vibe.md does not gate codebase reads on bare directory existence" {
+  # Every line referencing .vbw-planning/codebase/ should also mention META.md
+  while IFS= read -r line; do
+    echo "$line" | grep -q 'META.md' || {
+      # Allow "from .vbw-planning/codebase/" (trailing path in read instructions)
+      echo "$line" | grep -q 'from.*\.vbw-planning/codebase/' && continue
+      echo "FAIL: line missing META.md gate: $line"
+      return 1
+    }
+  done < <(grep '.vbw-planning/codebase/' "$PROJECT_ROOT/commands/vibe.md")
+}
+
+# =============================================================================
+# compile-context.sh: docs role excluded from codebase mapping (#96 QA round 4)
+# =============================================================================
+
+@test "compile-context.sh docs role is not a valid role (no codebase mapping possible)" {
+  setup_debugger_context
+  cd "$TEST_TEMP_DIR"
+
+  mkdir -p .vbw-planning/codebase
+  echo "# Meta" > .vbw-planning/codebase/META.md
+  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
+  echo "# Concerns" > .vbw-planning/codebase/CONCERNS.md
+
+  # docs is not a valid compile-context.sh role — it should exit non-zero
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "docs" ".vbw-planning/phases"
+  [ "$status" -ne 0 ]
+}
