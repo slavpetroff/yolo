@@ -210,8 +210,61 @@ get_requirements() {
   fi
 }
 
+# --- Helper: get manifest config for a role (data-driven context scoping) ---
+# Reads config/context-manifest.json when present and returns role entry via jq.
+# Returns empty (triggers fallback to hardcoded case blocks) when manifest absent.
+MANIFEST_PATH="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")" && pwd)/..}/config/context-manifest.json"
+MANIFEST_AVAILABLE=false
+if [ -f "$MANIFEST_PATH" ] && command -v jq &>/dev/null; then
+  MANIFEST_AVAILABLE=true
+fi
+
+get_manifest_config() {
+  local role="$1"
+  local field="$2"  # files, artifacts, fields, budget, includes
+  if [ "$MANIFEST_AVAILABLE" = true ]; then
+    jq -r --arg r "$role" --arg f "$field" '.roles[$r][$f] // empty' "$MANIFEST_PATH" 2>/dev/null || true
+  fi
+}
+
+get_manifest_budget() {
+  local role="$1"
+  if [ "$MANIFEST_AVAILABLE" = true ]; then
+    local budget
+    budget=$(jq -r --arg r "$role" '.roles[$r].budget // empty' "$MANIFEST_PATH" 2>/dev/null) || true
+    if [ -n "$budget" ] && [ "$budget" != "null" ]; then
+      echo "$budget"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+get_manifest_artifacts() {
+  local role="$1"
+  if [ "$MANIFEST_AVAILABLE" = true ]; then
+    jq -r --arg r "$role" '.roles[$r].artifacts // [] | .[]' "$MANIFEST_PATH" 2>/dev/null || true
+  fi
+}
+
+get_manifest_files() {
+  local role="$1"
+  if [ "$MANIFEST_AVAILABLE" = true ]; then
+    jq -r --arg r "$role" '.roles[$r].files // [] | .[]' "$MANIFEST_PATH" 2>/dev/null || true
+  fi
+}
+
+get_manifest_field_filter() {
+  local role="$1"
+  local artifact_type="$2"
+  if [ "$MANIFEST_AVAILABLE" = true ]; then
+    jq -r --arg r "$role" --arg t "$artifact_type" '.roles[$r].fields[$t] // [] | .[]' "$MANIFEST_PATH" 2>/dev/null || true
+  fi
+}
+
 # --- Token budget per role (chars/4 ≈ tokens) ---
 # Uses BASE_ROLE for department agents (fe-dev → dev budget, ux-architect → architect budget)
+# Reads from manifest when available, falls through to hardcoded case block otherwise.
 get_budget() {
   case "$1" in
     architect|fe-architect|ux-architect)  echo 5000 ;;
