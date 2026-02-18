@@ -18,7 +18,12 @@ Agent hierarchy, team structure, workflow, and escalation. Referenced by all age
 | yolo-dev | Junior Developer | Sonnet | All | source code, summary.jsonl | 2000 |
 | yolo-qa | QA Lead | Sonnet | Read,Glob,Grep (read-only) | verification.jsonl | 2000 |
 | yolo-qa-code | QA Engineer | Sonnet | Read,Glob,Grep,Bash | qa-code.jsonl | 3000 |
-| yolo-security | Security Engineer | Sonnet | Read,Glob,Grep,Bash | security-audit.jsonl | 3000 |
+| yolo-security | Backend Security Engineer | Sonnet | Read,Glob,Grep,Bash,SendMessage | security-audit.jsonl | 3000 |
+| yolo-fe-security | FE Security Reviewer | Sonnet | Read,Grep,Glob,Bash,SendMessage | security-audit.jsonl | 3000 |
+| yolo-ux-security | UX Security Reviewer | Sonnet | Read,Grep,Glob,SendMessage | security-audit.jsonl | 2000 |
+| yolo-documenter | Backend Documenter | Haiku | Read,Glob,Grep,Write,Bash | docs.jsonl | 2000 |
+| yolo-fe-documenter | FE Documenter | Haiku | Read,Glob,Grep,Write | docs.jsonl | 2000 |
+| yolo-ux-documenter | UX Documenter | Haiku | Read,Glob,Grep,Write | docs.jsonl | 2000 |
 | yolo-scout | Research Analyst | Haiku | Read,Glob,Grep,WebSearch,WebFetch | research.jsonl | 1000 |
 | yolo-debugger | Incident Responder | Sonnet | All | debug-report.jsonl | 3000 |
 
@@ -36,9 +41,9 @@ Active during: Design Review, Test Authoring (RED), Implementation
 Handoff: enriched plan.jsonl (spec+ts) → Tester → Dev, code commits → Senior
 
 ### Quality Team
-Agents: QA Lead, QA Code, Senior (escalation)
+Agents: QA Lead, QA Code, Senior (escalation), Security Reviewers (per-dept: Security, FE Security, UX Security)
 Active during: Code Review, QA, Security
-Handoff: code-review.jsonl → Lead, verification.jsonl → Lead
+Handoff: code-review.jsonl → Lead, verification.jsonl → Lead, security-audit.jsonl → Lead
 
 ### R&D Pipeline
 Agents: PO, Questionary, Roadmap, Critic, Scout, Architect
@@ -60,6 +65,7 @@ Each phase follows this cadence. Full protocol with entry/exit gates: see @refer
 | 6 | Tester | enriched plan (ts fields) | test files + test-plan.jsonl | `test({phase}): RED phase tests` | turbo, no ts |
 | 7 | Dev | enriched plan + test files | code + summary.jsonl | `{type}({phase}-{plan}): {task}` | -- |
 | 8 | Senior | git diff + plan + tests | code-review.jsonl | `docs({phase}): code review {NN-MM}` | -- |
+| 8.5 | Documenter | code + plan + architecture | docs.jsonl | `docs({phase}): documentation` | config-gated |
 | 9 | QA Lead + Code | plan + summary + artifacts | verification + qa-code.jsonl | `docs({phase}): verification results` | --skip-qa, turbo |
 | 10 | Security | commits + deps | security-audit.jsonl | `docs({phase}): security audit` | --skip-security |
 | 11 | Lead | all artifacts | state.json + ROADMAP.md | `chore(state): phase {N} complete` | -- |
@@ -84,7 +90,8 @@ Dept Dev → Dept Senior → Dept Lead → Dept Architect → Owner → User  (m
 | Tester | Senior | `ts` field unclear, tests pass unexpectedly | Via Senior, NOT Lead |
 | QA Lead | Lead | Verification findings, FAIL result | Lead assigns remediation |
 | QA Code | Lead | Critical/major findings, FAIL result | Lead routes to Senior → Dev |
-| Security | Lead (FAIL → User) | Findings to report | FAIL = HARD STOP → User only |
+| Security | Lead (FAIL → User) | Findings to report | FAIL = HARD STOP → User only (per-dept: Security→Lead, FE Security→FE Lead, UX Security→UX Lead) |
+| Documenter | Lead | Findings only | Per-dept: Documenter→Lead, FE Documenter→FE Lead, UX Documenter→UX Lead |
 | Scout | Lead | Cannot find information, conflicting sources | Advisory only |
 | Debugger | Lead | Investigation complete, fix recommendation | Lead decides action |
 | Critic | Lead | Findings are advisory | Lead forwards to Architect |
@@ -189,6 +196,7 @@ Each agent has a defined area of capability. Questions or decisions outside that
 | Critic | Gap identification, risk assessment, alternative suggestions | All findings are advisory — Lead decides what to act on |
 | Scout | Research methodology, source selection, information synthesis | All findings are advisory — Lead decides relevance |
 | Debugger | Investigation methodology, evidence gathering, root cause diagnosis, fix recommendation | Whether to apply fix (→ Lead decides), scope of fix (→ Senior if architectural) |
+| Documenter | Doc structure, content selection, formatting, inline doc generation | Scope changes, architecture docs, API contract docs (→ Lead) |
 | Owner | Cross-department priority, conflict resolution, ship/hold decisions, department dispatch order | Scope changes, new features, budget decisions (→ User) |
 
 **Rule: If a question doesn't fit your "CAN Decide" column, escalate immediately. Include the question, your context, and a recommendation. Never guess or make out-of-scope decisions.**
@@ -243,6 +251,7 @@ Every persistent artifact gets committed immediately after creation:
 | Test Authoring | Tester | test files + test-plan.jsonl |
 | Implementation | Dev | source code per task + summary.jsonl |
 | Code Review | Senior | code-review.jsonl |
+| Documentation | Documenter (config-gated) | docs.jsonl |
 | QA | QA Lead + QA Code | verification.jsonl + qa-code.jsonl |
 | Security | Security | security-audit.jsonl |
 | Sign-off | Lead | state.json + ROADMAP.md |
@@ -255,12 +264,12 @@ When `departments.frontend` or `departments.uiux` is true in config, YOLO operat
 
 | Department | Agents | Protocol File |
 |------------|--------|---------------|
-| Backend | architect, lead, senior, dev, tester, qa, qa-code (7) | `references/departments/backend.toon` |
-| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code (7) | `references/departments/frontend.toon` |
-| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code (7) | `references/departments/uiux.toon` |
-| Shared | owner, critic, scout, debugger, security (5) | `references/departments/shared.toon` |
+| Backend | architect, lead, senior, dev, tester, qa, qa-code, security, documenter (9) | `references/departments/backend.toon` |
+| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code, fe-security, fe-documenter (9) | `references/departments/frontend.toon` |
+| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code, ux-security, ux-documenter (9) | `references/departments/uiux.toon` |
+| Shared | owner, critic, scout, debugger (4) | `references/departments/shared.toon` |
 
-**Total: 26 agents across 4 groups.**
+**Total: ~31 agents across 4 groups.**
 
 Each department runs the same 11-step workflow independently. Cross-department coordination follows `references/cross-team-protocol.md`. Full multi-department orchestration: `references/multi-dept-protocol.md`.
 
