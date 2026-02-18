@@ -45,6 +45,12 @@ Team mode (via resolve-team-mode.sh):
 !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-team-mode.sh .yolo-planning/config.json 2>/dev/null || echo "team_mode=task"`
 ```
 
+Complexity routing (via complexity-classify.sh — only invoked when Path 0 is active):
+
+```
+!`bash ${CLAUDE_PLUGIN_ROOT}/scripts/complexity-classify.sh --intent "$ARGUMENTS" --config .yolo-planning/config.json --codebase-map "$has_codebase_map" 2>/dev/null || echo '{"complexity":"high","confidence":0,"suggested_path":"high"}'`
+```
+
 Key variables from above (MANDATORY — read these before any mode):
 
 - `multi_dept`: true = multi-department orchestration active, false = single backend lead only
@@ -55,6 +61,10 @@ Key variables from above (MANDATORY — read these before any mode):
 - `fe_active` / `ux_active`: individual department flags
 - `team_mode`: task = spawn agents via Task tool (default), teammate = spawn agents via Teammate API (experimental), auto = detect based on CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS env var (teammate if set + agent_teams=true, otherwise falls back to task)
 - `fallback_notice`: true if team_mode was downgraded from teammate to task (display notice to user)
+- `config_complexity_routing`: true = complexity-aware routing enabled (Path 0 active), false = skip Path 0
+- `config_trivial_threshold`: minimum confidence for trivial path (default 0.85)
+- `config_medium_threshold`: minimum confidence for medium path (default 0.7)
+- `config_fallback_path`: default path when confidence is too low (default "high")
 
 ## Input Parsing
 
