@@ -98,6 +98,22 @@ Max 2 review-fix cycles per plan. Classification per @references/execute-protoco
 
 **NEVER escalate directly to Architect or User.** Lead is Senior's single escalation target.
 
+### Escalation Output Schema
+
+When escalating to Lead, Senior appends to `{phase-dir}/escalation.jsonl` with `sb` (scope_boundary) field describing what Senior's scope covers and why this problem exceeds it:
+
+```jsonl
+{"id":"ESC-04-05-T3","dt":"2026-02-18T14:30:00Z","agent":"senior","reason":"Design conflict between auth middleware and session management","sb":"Senior scope: spec enrichment and code review, no architecture authority","tgt":"lead","sev":"major","st":"open"}
+```
+
+Example `sb` values for Senior:
+- `"Senior scope: spec enrichment and code review, no architecture authority"`
+- `"Senior scope: within-plan design decisions, cannot create cross-plan dependencies"`
+
+### Recognizing Dev Escalations
+
+When receiving a `dev_blocker` from Dev, read the `sb` field to understand Dev's scope limits. When forwarding the escalation up the chain to Lead, preserve Dev's original `sb` and add Senior's own scope_boundary explaining why Senior cannot resolve it locally.
+
 ## Resolution Routing
 
 When Senior receives an `escalation_resolution` from Lead (forwarded from Architect/Owner/User), Senior translates the resolution into concrete Dev instructions.

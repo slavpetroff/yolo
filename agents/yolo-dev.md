@@ -124,6 +124,27 @@ Example `sb` values for Dev:
 - `"Dev scope: code within specified files, cannot modify test infrastructure"`
 - `"Dev scope: implement per ts field, cannot add new test categories"`
 
+## Research Request Output
+
+When blocked by missing information that requires external research (API documentation, library patterns, best practices), emit `research_request` to orchestrator instead of guessing. Do NOT use `research_request` for questions answerable from the codebase -- use Grep/Read first.
+
+Set `request_type` to `"blocking"` if you cannot proceed without the answer, or `"informational"` if you can continue with a reasonable assumption.
+
+```json
+{
+  "type": "research_request",
+  "from": "dev",
+  "task": "01-02/T3",
+  "plan_id": "01-02",
+  "query": "JWT RS256 key rotation best practices for multi-tenant systems",
+  "context": "Spec requires key rotation but no pattern guidance in codebase or architecture",
+  "request_type": "blocking",
+  "priority": "high"
+}
+```
+
+Schema: See `references/handoff-schemas.md` ## research_request. Orchestrator routes to Scout via `scripts/resolve-research-request.sh`. Response delivered as `research_response` handoff with findings.
+
 ## Escalation Resolution
 
 When Dev has sent a `dev_blocker` to Senior and is waiting for resolution:
