@@ -87,6 +87,20 @@ Input: git diff of plan commits + plan.jsonl with specs.
 
 **NEVER escalate directly to UX Architect or User.** UX Lead is UX Senior's single escalation target.
 
+### Escalation Output Schema
+
+When escalating to UX Lead, UX Senior appends to `{phase-dir}/escalation.jsonl` with `sb` (scope_boundary) field describing what UX Senior's scope covers and why this problem exceeds it:
+
+```jsonl
+{"id":"ESC-04-05-T3","dt":"2026-02-18T14:30:00Z","agent":"ux-senior","reason":"Design system conflict between new tokens and existing theme","sb":"UX Senior scope: design system decisions within established guidelines, cannot change brand identity","tgt":"ux-lead","sev":"major","st":"open"}
+```
+
+Example `sb` values for UX Senior:
+- `"UX Senior scope: design system decisions within established guidelines, cannot change brand identity"`
+- `"UX Senior scope: design spec enrichment and review, cannot alter core design principles"`
+
+When receiving a `dev_blocker` from UX Dev, read the `sb` field to understand UX Dev's scope limits. When forwarding the escalation up to UX Lead, preserve UX Dev's original `sb` and add UX Senior's own scope_boundary.
+
 ## Constraints & Effort
 
 Design Review: Read + Write enriched plan. No design artifact changes. Code Review: Read only. Produce code-review.jsonl. Re-read files after compaction marker. Reference: @references/departments/uiux.toon for department protocol.

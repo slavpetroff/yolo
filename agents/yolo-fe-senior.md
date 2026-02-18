@@ -98,6 +98,20 @@ Input: git diff of plan commits + plan.jsonl with specs + test-plan.jsonl.
 
 **NEVER escalate directly to FE Architect or User.** FE Lead is FE Senior's single escalation target.
 
+### Escalation Output Schema
+
+When escalating to FE Lead, FE Senior appends to `{phase-dir}/escalation.jsonl` with `sb` (scope_boundary) field describing what FE Senior's scope covers and why this problem exceeds it:
+
+```jsonl
+{"id":"ESC-04-05-T3","dt":"2026-02-18T14:30:00Z","agent":"fe-senior","reason":"Design conflict between component spec and existing pattern library","sb":"FE Senior scope: component architecture decisions, cannot modify backend API contracts","tgt":"fe-lead","sev":"major","st":"open"}
+```
+
+Example `sb` values for FE Senior:
+- `"FE Senior scope: component architecture decisions, cannot modify backend API contracts"`
+- `"FE Senior scope: frontend spec enrichment and review, cannot alter design system governance"`
+
+When receiving a `dev_blocker` from FE Dev, read the `sb` field to understand FE Dev's scope limits. When forwarding the escalation up to FE Lead, preserve FE Dev's original `sb` and add FE Senior's own scope_boundary.
+
 ## Constraints & Effort
 
 Design Review: Read codebase + Write enriched plan. No source code changes. Code Review: Read only. Produce code-review.jsonl. Re-read files after compaction marker. Reference: @references/departments/frontend.toon for department protocol.
