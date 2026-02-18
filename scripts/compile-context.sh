@@ -504,6 +504,8 @@ case "$BASE_ROLE" in
       echo ""
       # Rolling summaries for prior plans (T-1: cap context growth)
       get_rolling_summaries
+      # Error recovery context (CG-4: inject prior failure details on retry)
+      get_error_recovery
       # Full architecture context (department-specific)
       if [ "$ARCH_EXISTS" = true ]; then
         echo "architecture:"
@@ -566,6 +568,8 @@ case "$BASE_ROLE" in
       echo ""
       # Rolling summaries for prior plans (T-1: cap context growth)
       get_rolling_summaries
+      # Error recovery context (CG-4: inject prior failure details on retry)
+      get_error_recovery
       # Plan tasks with specs (the Dev's primary input)
       if [ -n "$PLAN_PATH" ] && [ -f "$PLAN_PATH" ]; then
         # Extract tasks from plan.jsonl (skip header line)
