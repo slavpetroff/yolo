@@ -13,7 +13,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Department Architecture
 
-26 agents across 4 departments. Enable/disable via `config/defaults.json` `departments` key.
+29 agents across 4 departments + PO layer. Enable/disable departments via `config/defaults.json` `departments` key. PO layer (yolo-po, yolo-questionary, yolo-roadmap) gated by `po.enabled` config key.
 
 | Department | Agents | Prefix | Protocol File |
 |-----------|--------|--------|---------------|
@@ -48,7 +48,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Single go.md (~300 lines) with inline mode logic | 2026-02-11 | One file = one truth; execute-protocol.md is the only extraction |
 | Company hierarchy: Architect → Lead → Senior → Dev | 2026-02-13 | Mirrors real engineering org, each level distills scope |
 | JSONL abbreviated keys for agent artifacts | 2026-02-13 | 85-93% token savings vs Markdown, jq-parseable |
-| 11-step workflow per phase | 2026-02-13 | Critique → Research → Architecture → Plan → Design Review → Test Authoring → Implement → Code Review → QA → Security → Sign-off |
+| 11-step workflow per phase (12-step when PO enabled) | 2026-02-13 | PO (Step 0, optional) → Critique → Research → Architecture → Plan → Design Review → Test Authoring → Implement → Code Review → QA → Security → Sign-off |
 | 4 departments (Backend, Frontend, UI/UX, Shared) | 2026-02-13 | Mirrors real company org, config-driven enable/disable |
 | EnterPlanMode strictly prohibited | 2026-02-14 | Bypasses YOLO workflow; all planning through /yolo:go |
 | Never bypass /yolo:go invocations | 2026-02-14 | Claude dismissed go.md as "not a workflow" and went ad-hoc; explicit rule prevents this |
@@ -63,6 +63,9 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Scout as shared on-demand utility | 2026-02-18 | Any agent can request research; only spawned when needed |
 | Delivery as orchestrator mode, not separate agent | 2026-02-18 | PO generates questions, orchestrator renders to user |
 | PO Q&A Patch vs Major rejection paths | 2026-02-18 | Patch (dept Senior fix) is default; Major (re-scope) only for vision misalignment |
+| PO layer replaces Owner Mode 0 for scope gathering | 2026-02-18 | Structured PO-Questionary loop replaces ad-hoc Owner context gathering; Owner retains Modes 1-4 |
+| PO-Questionary loop capped at 3 rounds with 0.85 confidence | 2026-02-18 | Hard cap prevents infinite loops; 0.85 threshold enables early exit when scope is clear |
+| PO layer config-gated (po.enabled) | 2026-02-18 | Backward compatible; existing workflow unchanged when po.enabled=false |
 
 ## Installed Skills
 
