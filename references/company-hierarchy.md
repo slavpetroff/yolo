@@ -52,6 +52,13 @@ Active during: Product Ownership (after Analyze), Scope Clarification, Roadmap P
 Handoff: analysis.json -> PO(scope-document.json) -> Critic, critique.jsonl (critical/major) -> Scout research directives -> research.jsonl -> Architect
 Stage-gate: Architect->Lead handoff uses Go/Recycle/Kill model. See @references/rnd-handoff-protocol.md.
 
+### Integration Pipeline
+Agents: Integration Gate, PO (Mode 4 QA), Owner (Delivery)
+Active during: Post-Security (Step 11.5), Final Delivery (Step 12)
+Handoff: integration-gate-result.jsonl → Lead/Owner. PO QA verdict (po-qa-verdict.jsonl) → Owner. Owner Delivery mode presents final results to user.
+Flow: After Security (Step 10) passes → Integration Gate validates cross-dept convergence (API contracts, design sync, handoffs, test results) → PO QA verifies scope alignment against scope-document.json → Owner Delivery presents to user.
+Multi-dept only: Integration Gate is skipped in single-department mode. PO QA requires po.enabled=true.
+
 ## 11-Step Workflow
 
 Each phase follows this cadence. Full protocol with entry/exit gates: see @references/execute-protocol.md.
