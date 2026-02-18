@@ -630,20 +630,30 @@ Note: NO `--scope` flag -- post-plan runs full test suite per architecture D4.
    > ```
    > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-senior.toon). See D4 in architecture for soft enforcement details.
 
-3. Senior reviews code, produces code-review.jsonl.
-4. Senior checks TDD compliance: test files exist, tests pass, `tdd` field in verdict.
-5. If `r: "changes_requested"`:
+3. **Review-loop orchestration:** Orchestrator calls `review-loop.sh` to manage cycle tracking:
+   ```bash
+   result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/review-loop.sh \
+     --phase-dir "{phase-dir}" --plan-id "{plan-id}" --config config/defaults.json)
+   cycle_status=$(echo "$result" | jq -r '.status')
+   ```
+   The script returns JSON with cycle status (`reviewing`, `changes_requested`, `approved`, `escalated`). On `changes_requested`: route Senior findings to Dev, Dev fixes, recommit, re-review. On `escalated` (max cycles exceeded per `review_loop.max_cycles`, default 2): Lead decides accept-with-issues or escalate to Architect.
+
+4. **Suggestions consumption:** Senior reads `sg` field from summary.jsonl during code review. Senior evaluates each Dev suggestion against current architecture and codebase patterns. Suggestions are counted as `sg_reviewed`. Sound out-of-scope suggestions are promoted to `sg_promoted[]` and appended to `decisions.jsonl` with `agent: "senior"` and `reason: "promoted from dev suggestion"`. This provides a feedback channel from implementation to architecture without bypassing the hierarchy.
+
+5. Senior reviews code, produces code-review.jsonl.
+6. Senior checks TDD compliance: test files exist, tests pass, `tdd` field in verdict.
+7. If `r: "changes_requested"`:
    - Senior sends exact fix instructions to Dev via `code_review_changes` schema.
    - Dev fixes per Senior's instructions exactly — no creative interpretation.
    - Dev recommits, Senior re-reviews (cycle 2).
    - After cycle 2 still failing → Senior escalates to Lead.
    - Lead decides: accept with known issues OR escalate to Architect for design change.
-6. If `r: "approve"`:
+8. If `r: "approve"`:
    - If `config.approval_gates.code_review` is true → pause, display review summary, AskUserQuestion "Proceed to QA?" Options: "Proceed" / "Review changes".
    - Otherwise → proceed to Step 9.
-7. Senior commits: `docs({phase}): code review {NN-MM}`
-8. Verify: code-review.jsonl exists with `r: "approve"`.
-9. **EXIT GATE:** Artifact: `code-review.jsonl` per plan (r: "approve"). When team_mode=teammate: Lead waits for code_review_result messages from all dispatched Seniors in the current wave. After all received, Lead verifies each plan has code-review.jsonl with `r: "approve"` in line 1 (via `jq -r .r` equals "approve"). If any plan has changes_requested after cycle 2, Senior escalates to Lead per existing protocol. When team_mode=task: sequential verification unchanged (each plan checked after its Senior completes). State: `steps.code_review = complete`. Commit: `chore(state): code_review complete phase {N}`.
+9. Senior commits: `docs({phase}): code review {NN-MM}`
+10. Verify: code-review.jsonl exists with `r: "approve"`.
+11. **EXIT GATE:** Artifact: `code-review.jsonl` per plan (r: "approve"). When team_mode=teammate: Lead waits for code_review_result messages from all dispatched Seniors in the current wave. After all received, Lead verifies each plan has code-review.jsonl with `r: "approve"` in line 1 (via `jq -r .r` equals "approve"). If any plan has changes_requested after cycle 2, Senior escalates to Lead per existing protocol. When team_mode=task: sequential verification unchanged (each plan checked after its Senior completes). State: `steps.code_review = complete`. Commit: `chore(state): code_review complete phase {N}`.
 
 ### Step 9: QA (QA Lead + QA Code)
 

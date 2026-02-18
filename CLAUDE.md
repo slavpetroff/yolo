@@ -71,6 +71,11 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Confidence-gated Critique Loop (3 rounds, 85 threshold) | 2026-02-18 | Prevents runaway critique while ensuring quality; early exit on high confidence |
 | Lead absorbs Solution Q&A responsibilities | 2026-02-18 | Reduces agent count; Lead already owns delivery sign-off |
 | Context manifests for token-budgeted context packages | 2026-02-18 | Data-driven context scoping via config/context-manifest.json vs hardcoded budgets |
+| review-loop.sh enforces max 2 Senior-Dev review cycles | 2026-02-18 | Prevents infinite review ping-pong; cycle 2 failure escalates to Lead |
+| Scout on-demand via research_request from any agent | 2026-02-18 | Blocking/informational dispatch; 120s timeout auto-downgrades to async |
+| escalation.jsonl with scope_boundary (sb) field | 2026-02-18 | Agents document why issue exceeds their authority; aids resolution routing |
+| test-results.jsonl for structured GREEN phase results | 2026-02-18 | Per-dept, per-task test metrics for QA consumption; separate from summary.jsonl |
+| Dev sg field for implementation suggestions to Senior | 2026-02-18 | Bottom-up feedback channel; Senior promotes sound suggestions to decisions.jsonl |
 
 ## Installed Skills
 
