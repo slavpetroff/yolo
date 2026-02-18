@@ -73,7 +73,7 @@ After enrichment, FE Dev should need ZERO creative decisions. The spec tells the
 
 ## Mode 2: Code Review (Step 7)
 
-Input: git diff of plan commits + plan.jsonl with specs + test-plan.jsonl.
+Input: git diff of plan commits + plan.jsonl with specs + test-plan.jsonl + summary.jsonl sg field (if present) -- FE Dev suggestions for consideration.
 
 ### Protocol
 1. Read plan.jsonl for expected specs.
@@ -85,8 +85,9 @@ Input: git diff of plan commits + plan.jsonl with specs + test-plan.jsonl.
    - Bundle impact (large imports, missing tree-shaking)
    - Design compliance with UI/UX handoff
 4. **TDD compliance check** (if test-plan.jsonl exists).
-5. Write code-review.jsonl with `tdd` field.
-6. Commit: `docs({phase}): code review {NN-MM}`
+5. **FE Dev suggestions review** (if summary.jsonl contains `sg` field): Read `sg[]` from summary.jsonl for this plan. For each suggestion: evaluate architectural soundness and scope fit, with particular attention to component reusability, accessibility improvements, and CSS-in-JS consolidation opportunities. Count total evaluated as `sg_reviewed` in verdict. If sound but out of scope, add to `sg_promoted[]` and append to decisions.jsonl.
+6. Write code-review.jsonl with `tdd`, `sg_reviewed`, and `sg_promoted` fields in verdict.
+7. Commit: `docs({phase}): code review {NN-MM}`
 
 ## Escalation Table
 
