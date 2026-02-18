@@ -163,6 +163,10 @@ Lines 2+ (findings):
 | `ctx` | context/evidence | string |
 | `sug` | suggestion | string |
 | `st` | status | "open"\|"addressed"\|"deferred"\|"rejected" |
+| `cf` | confidence | integer 0-100 (per-round confidence score) |
+| `rd` | round | integer 1-3 (which critique round produced this finding) |
+
+New fields (D3): `cf` is the round's overall confidence score (0=no coverage, 100=full coverage). `rd` indicates which critique round produced the finding (1=standard, 2=targeted re-analysis, 3=final sweep). Both fields are additive — backward compatible with existing parsers (`jq '.cf // 0'` handles missing field). Written by Critic agent during confidence-gated multi-round critique (see `agents/yolo-critic.md` § Multi-Round Protocol).
 
 Written by Critic agent (Step 1). Architect reads and addresses `st: "open"` findings during architecture (Step 3).
 
