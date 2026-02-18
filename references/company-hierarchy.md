@@ -77,6 +77,8 @@ Each phase follows this cadence. Full protocol with entry/exit gates: see @refer
 | 9 | QA Lead + Code | plan + summary + artifacts | verification + qa-code.jsonl | `docs({phase}): verification results` | --skip-qa, turbo |
 | 10 | Security | commits + deps | security-audit.jsonl | `docs({phase}): security audit` | --skip-security |
 | 11 | Lead | all artifacts | state.json + ROADMAP.md | `chore(state): phase {N} complete` | -- |
+| 11.5 | Integration Gate | dept artifacts + contracts | integration-gate-result.jsonl | `docs({phase}): integration gate` | single-dept, turbo |
+| 12 | PO (QA) + Owner (Delivery) | scope-document + artifacts | po-qa-verdict.jsonl | `docs({phase}): PO QA verdict` | po.enabled=false |
 
 ## Escalation Chain (STRICT — NO LEVEL SKIPPING)
 
