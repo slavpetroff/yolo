@@ -491,20 +491,63 @@ This mode delegates to protocol files. Before reading:
 **Routing (based on `multi_dept` from resolve-departments.sh above):**
 
 - **Single department (`multi_dept=false`):**
-  Read `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` and follow its 11-step company workflow (Critique → Research → Architecture → Planning → Design Review → Test Authoring RED → Implementation → Code Review → QA → Security → Sign-off). See `references/company-hierarchy.md` for agent hierarchy. Pass `team_mode` to execute-protocol.md — it contains teammate-specific instructions at each step.
+  Read `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` and follow its workflow (Critique → Research → Architecture → Planning → Design Review → Test Authoring RED → Implementation → Code Review → Documentation (optional) → QA → Security → Sign-off). See `references/company-hierarchy.md` for agent hierarchy. Pass `team_mode` to execute-protocol.md — it contains teammate-specific instructions at each step.
+
+  **Phase 3 orchestration wiring:**
+
+  - **Critique step (Step 1):** Replace direct Critic spawn with critique-loop.sh call:
+    ```bash
+    CRITIQUE_RESULT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/critique-loop.sh \
+      --phase-dir "{phase-dir}" \
+      --config .yolo-planning/config.json \
+      --role critic)
+    ```
+    Log confidence and rounds in status display: `✓ Critique complete (cf:{final_confidence}, rounds:{rounds_used})`. See execute-protocol.md Step 1 for full multi-round protocol.
+
+  - **Documentation step (Step 8.5):** After code review, resolve documenter gate:
+    ```bash
+    GATE_RESULT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-documenter-gate.sh \
+      --config .yolo-planning/config.json \
+      --defaults ${CLAUDE_PLUGIN_ROOT}/config/defaults.json)
+    DOC_SPAWN=$(echo "$GATE_RESULT" | jq -r '.spawn')
+    ```
+    If `spawn=true`: spawn yolo-documenter. Non-blocking — proceed to QA immediately.
+
+  - **Security step (Step 10):** Spawn yolo-security (BE-scoped). Single-dept mode always uses backend security reviewer only.
 
 - **Multi-department (`multi_dept=true`):**
-  Read `execute-protocol.md` + `multi-dept-protocol.md` + `cross-team-protocol.md`. Follow `multi-dept-protocol.md` dispatch flow. Each department runs its 11-step with dept-prefixed agents (fe-*, ux-*).
+  Read `execute-protocol.md` + `multi-dept-protocol.md` + `cross-team-protocol.md`. Follow `multi-dept-protocol.md` dispatch flow. Each department runs its workflow with dept-prefixed agents (fe-*, ux-*).
 
-  Workflow: Owner Context Gathering + Splitting (same reuse/refresh gate as Plan Mode 6a) → Owner Critique → UX 11-step (if ux_active) → Handoff Gate → FE+BE parallel 11-step → Integration QA → Security → Owner Sign-off.
+  Workflow: Owner Context Gathering + Splitting (same reuse/refresh gate as Plan Mode 6a) → Owner Critique → UX workflow (if ux_active) → Handoff Gate → FE+BE parallel workflow → Integration QA → Security → Owner Sign-off.
 
   Context isolation: Lead gets dept CONTEXT + ROADMAP + REQUIREMENTS; Architect gets plan structure + dept CONTEXT; Senior gets architecture.toon + tasks; Dev gets enriched `spec` only. Escalation flows UP chain (Dev→Senior→Lead→Architect→Owner→User), never skipping levels.
 
   Resolve all dept agent models via `resolve-agent-model.sh` with dept-prefixed names. Compile context per dept via `compile-context.sh`.
 
+  **Phase 3 multi-dept orchestration wiring:**
+
+  - **Critique step (Step 1):** Each department runs its own confidence-gated critique loop with dept-specific role:
+    ```bash
+    # Backend
+    bash ${CLAUDE_PLUGIN_ROOT}/scripts/critique-loop.sh --phase-dir "{phase-dir}" --config .yolo-planning/config.json --role critic
+    # Frontend (if fe_active)
+    bash ${CLAUDE_PLUGIN_ROOT}/scripts/critique-loop.sh --phase-dir "{phase-dir}" --config .yolo-planning/config.json --role fe-critic
+    # UI/UX (if ux_active)
+    bash ${CLAUDE_PLUGIN_ROOT}/scripts/critique-loop.sh --phase-dir "{phase-dir}" --config .yolo-planning/config.json --role ux-critic
+    ```
+    Display per-dept confidence: `✓ BE Critique (cf:88, 2 rounds) | FE Critique (cf:91, 1 round) | UX Critique (cf:85, 3 rounds)`
+
+  - **Documentation step (Step 8.5):** Per-department documenter dispatch gated by resolve-documenter-gate.sh. Spawn yolo-documenter (BE), yolo-fe-documenter (FE), yolo-ux-documenter (UX) based on active departments. Non-blocking.
+
+  - **Security step (Step 10):** Per-department security reviewers. Check departments config: for each active dept, spawn corresponding security reviewer:
+    - Backend: yolo-security (BE-scoped)
+    - Frontend: yolo-fe-security (FE-scoped)
+    - UI/UX: yolo-ux-security (UX-scoped)
+    Spawn in parallel when multiple depts active. FAIL from ANY dept = hard STOP.
+
   **Department Lead spawning (OBEY the spawn strategy gate above):**
 
-  When `team_mode=teammate`: For each department, spawn the Lead via Task tool with `team_mode=teammate` in the prompt. The Lead creates its own team via TeamCreate (name: `yolo-{dept}`, description: `{Dept} engineering team for phase {N}: {phase-name}`). The orchestrator does NOT call TeamCreate directly (Claude Code API: one team per leader). The Lead registers core specialists (architect, senior, dev) as teammates at creation, then registers additional specialists on-demand: tester at step 6, qa + qa-code at step 9, security at step 10 (backend only). Leads coordinate with specialists via SendMessage. Gate satisfaction shifts from file polling to SendMessage-based status reporting. Shutdown: Lead sends shutdown_request to all teammates, waits for shutdown_response.
+  When `team_mode=teammate`: For each department, spawn the Lead via Task tool with `team_mode=teammate` in the prompt. The Lead creates its own team via TeamCreate (name: `yolo-{dept}`, description: `{Dept} engineering team for phase {N}: {phase-name}`). The orchestrator does NOT call TeamCreate directly (Claude Code API: one team per leader). The Lead registers core specialists (architect, senior, dev) as teammates at creation, then registers additional specialists on-demand: tester at step 6, documenter at step 8.5 (if gated), qa + qa-code at step 9, security at step 10. Leads coordinate with specialists via SendMessage. Gate satisfaction shifts from file polling to SendMessage-based status reporting. Shutdown: Lead sends shutdown_request to all teammates, waits for shutdown_response.
 
   When `team_mode=task`: Spawn department Leads as background Task subagents (`run_in_background=true`). File-based coordination via dept-gate.sh, dept-status.sh, and handoff sentinels. This is the current documented behavior.
 
