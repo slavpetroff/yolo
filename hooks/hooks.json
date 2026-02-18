@@ -200,6 +200,15 @@
         ]
       },
       {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c '[ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" ] && exec bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-wrapper.sh\" template-staleness-check.sh; exit 0'",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "compact",
         "hooks": [
           {
