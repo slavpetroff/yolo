@@ -154,6 +154,38 @@ load test_helper
   jq -r '.schemas.qa_verdict.payload_optional[]' "$PROJECT_ROOT/config/schemas/message-schemas.json" | grep -q 'pre_existing_issues'
 }
 
+@test "json schema execution_update payload_optional includes pre_existing_issues" {
+  jq -r '.schemas.execution_update.payload_optional[]' "$PROJECT_ROOT/config/schemas/message-schemas.json" | grep -q 'pre_existing_issues'
+}
+
+@test "handoff schema execution_update example includes pre_existing_issues" {
+  sed -n '/execution_update/,/^##/p' "$PROJECT_ROOT/references/handoff-schemas.md" | grep -q 'pre_existing_issues'
+}
+
+# =============================================================================
+# Dev agent: structured protocol for pre_existing_issues
+# =============================================================================
+
+@test "dev agent Communication section references pre_existing_issues in execution_update" {
+  sed -n '/## Communication/,/^##/p' "$PROJECT_ROOT/agents/vbw-dev.md" | grep -q 'pre_existing_issues'
+}
+
+@test "dev agent Communication section references execution_update payload" {
+  sed -n '/## Communication/,/^##/p' "$PROJECT_ROOT/agents/vbw-dev.md" | grep -q 'execution_update'
+}
+
+# =============================================================================
+# Dev agent: DEVN-05 test vs build distinction
+# =============================================================================
+
+@test "dev agent DEVN-05 specifies test failures not build errors" {
+  sed -n '/Pre-existing failures (DEVN-05)/,/^$/p' "$PROJECT_ROOT/agents/vbw-dev.md" | grep -q 'test.*failure'
+}
+
+@test "dev agent DEVN-05 excludes compile/lint/build errors" {
+  sed -n '/Pre-existing failures (DEVN-05)/,/^$/p' "$PROJECT_ROOT/agents/vbw-dev.md" | grep -qi 'compile.*lint.*build'
+}
+
 # =============================================================================
 # QA agent: pre-existing failure baseline awareness
 # =============================================================================
@@ -172,6 +204,58 @@ load test_helper
 
 @test "qa agent requires Pre-existing Issues heading in response" {
   sed -n '/Pre-Existing Failure Handling/,/^##/p' "$PROJECT_ROOT/agents/vbw-qa.md" | grep -q 'Pre-existing Issues'
+}
+
+@test "qa agent mentions pre_existing_issues in qa_verdict payload" {
+  sed -n '/Pre-Existing Failure Handling/,/^##/p' "$PROJECT_ROOT/agents/vbw-qa.md" | grep -q 'pre_existing_issues'
+}
+
+# =============================================================================
+# Lead agent: pre-existing issue aggregation
+# =============================================================================
+
+@test "lead agent has pre-existing issue aggregation section" {
+  grep -q 'Pre-Existing Issue Aggregation' "$PROJECT_ROOT/agents/vbw-lead.md"
+}
+
+@test "lead agent aggregation mentions execution_update" {
+  sed -n '/Pre-Existing Issue Aggregation/,/^##/p' "$PROJECT_ROOT/agents/vbw-lead.md" | grep -q 'execution_update'
+}
+
+@test "lead agent aggregation mentions qa_verdict" {
+  sed -n '/Pre-Existing Issue Aggregation/,/^##/p' "$PROJECT_ROOT/agents/vbw-lead.md" | grep -q 'qa_verdict'
+}
+
+@test "lead agent aggregation mentions de-duplicate" {
+  sed -n '/Pre-Existing Issue Aggregation/,/^##/p' "$PROJECT_ROOT/agents/vbw-lead.md" | grep -qi 'de-duplicate'
+}
+
+# =============================================================================
+# Debug command: schema naming consistency
+# =============================================================================
+
+@test "debug command Path A uses blocker_report not debugger_report" {
+  sed -n '/Path A/,/Path B/p' "$PROJECT_ROOT/commands/debug.md" | grep -q 'blocker_report'
+}
+
+@test "debug command Path A does not reference debugger_report schema" {
+  ! sed -n '/Path A/,/Path B/p' "$PROJECT_ROOT/commands/debug.md" | grep -q 'debugger_report'
+}
+
+# =============================================================================
+# VERIFICATION.md format: pre-existing issues section
+# =============================================================================
+
+@test "qa agent VERIFICATION.md format includes Pre-existing Issues section" {
+  grep -q 'Pre-existing Issues' "$PROJECT_ROOT/agents/vbw-qa.md"
+}
+
+@test "verification template has Pre-existing Issues section" {
+  grep -q 'Pre-existing Issues' "$PROJECT_ROOT/templates/VERIFICATION.md"
+}
+
+@test "verification template Pre-existing Issues has Test/File/Error columns" {
+  sed -n '/Pre-existing Issues/,/^##/p' "$PROJECT_ROOT/templates/VERIFICATION.md" | grep -q 'Test.*File.*Error'
 }
 
 # =============================================================================

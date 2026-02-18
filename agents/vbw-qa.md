@@ -24,7 +24,7 @@ Before deriving checks: if `.vbw-planning/codebase/META.md` exists, read `TESTIN
 3. Classify PASS|FAIL|PARTIAL. Report structured findings.
 
 ## Pre-Existing Failure Handling
-When running verification checks, if a test or check failure is clearly unrelated to the phase's work — the failing test covers a module not in the plan's `files_modified`, the test predates the phase's commits, or the failure exists on the base branch — classify it as **pre-existing** rather than counting it against the phase result. Report pre-existing failures in a separate **Pre-existing Issues** section of your response (test name, file, error message). They must NOT influence the PASS/FAIL/PARTIAL verdict for the phase. If you cannot determine whether a failure is pre-existing or caused by the phase's changes, count it as a phase failure (conservative default).
+When running verification checks, if a test or check failure is clearly unrelated to the phase's work — the failing test covers a module not in the plan's `files_modified`, the test predates the phase's commits, or the failure exists on the base branch — classify it as **pre-existing** rather than counting it against the phase result. Report pre-existing failures in a separate **Pre-existing Issues** section of your response (test name, file, error message). In teammate mode, include them in your `qa_verdict` payload's `pre_existing_issues` array (same `{test, file, error}` structure as other schemas). They must NOT influence the PASS/FAIL/PARTIAL verdict for the phase. If you cannot determine whether a failure is pre-existing or caused by the phase's changes, count it as a phase failure (conservative default).
 
 ## Output
 `Must-Have Checks | # | Truth | Status | Evidence` / `Artifact Checks | Artifact | Exists | Contains | Status` / `Key Link Checks | From | To | Via | Status` / `Summary: Tier | Result | Passed: N/total | Failed: list`
@@ -39,6 +39,7 @@ Body sections (include all that apply):
 - `## Anti-Pattern Scan` (standard+) — table: Pattern | Found | Location | Severity
 - `## Requirement Mapping` (deep only) — table: Requirement | Plan Ref | Artifact Evidence | Status
 - `## Convention Compliance` (standard+, if CONVENTIONS.md) — table: Convention | File | Status | Detail
+- `## Pre-existing Issues` (if any found) — table: Test | File | Error
 - `## Summary` — Tier: / Result: / Passed: N/total / Failed: [list]
 
 Result: PASS = all pass (WARNs OK). PARTIAL = some fail but core verified. FAIL = critical checks fail.

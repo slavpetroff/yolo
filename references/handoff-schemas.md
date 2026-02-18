@@ -111,7 +111,10 @@ Task progress or completion update from Dev or Docs.
     "commit": "abc1234",
     "files_modified": ["src/feature.js"],
     "concerns": ["Interface changed — downstream plans may need update"],
-    "evidence": "All tests pass"
+    "evidence": "All tests pass",
+    "pre_existing_issues": [
+      {"test": "testName", "file": "path/to/file", "error": "failure message"}
+    ]
   }
 }
 ```

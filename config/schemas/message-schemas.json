@@ -17,7 +17,7 @@
     "execution_update": {
       "allowed_roles": ["dev", "docs"],
       "payload_required": ["plan_id", "task_id", "status", "commit"],
-      "payload_optional": ["files_modified", "concerns", "evidence"],
+      "payload_optional": ["files_modified", "concerns", "evidence", "pre_existing_issues"],
       "description": "Task progress/completion update from Dev"
     },
     "blocker_report": {

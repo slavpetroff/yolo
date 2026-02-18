@@ -22,6 +22,14 @@ failures: ["{failure-description}"]
 |----------|----------|--------|
 | {file-path} | {required-content} | {pass/fail} |
 
+## Pre-existing Issues
+
+| Test        | File        | Error             |
+|-------------|-------------|-------------------|
+| {test-name} | {file-path} | {error-message}   |
+
+_Omit this section if no pre-existing issues were found._
+
 ## Result
 
 **Status:** {PASS|FAIL|PARTIAL}

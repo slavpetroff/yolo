@@ -50,6 +50,10 @@ When planning tasks that involve database changes, always specify:
 - Migration approach (file-based, not direct commands)
 - Verify steps should use read-only queries, never destructive commands
 
+## Pre-Existing Issue Aggregation
+
+When receiving `execution_update` or `qa_verdict` messages from teammates that include a `pre_existing_issues` array, collect and de-duplicate them (by test name and file). Forward the aggregated list in your final output so the orchestrator can surface them as Discovered Issues. Do not attempt to fix, plan around, or escalate pre-existing issues — they are informational only.
+
 ## Constraints
 - No subagents. Write PLAN.md to disk immediately (compaction resilience). Re-read after compaction.
 - Bash for research only (git log, dir listing, patterns). WebFetch for external docs only.
