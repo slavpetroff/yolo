@@ -103,7 +103,8 @@ When `config_complexity_routing=true` AND $ARGUMENTS present AND no mode flags d
        --config .yolo-planning/config.json --analysis-json /tmp/yolo-analysis.json)
      ```
      Then dispatch to **Mode: Medium Path** below.
-   - `full_ceremony`: Call `bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-high.sh` (if exists), then proceed with existing Plan+Execute flow (full ceremony).
+   - `full_ceremony`: Call `bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-high.sh` (if exists), then proceed to **PO Layer** (if enabled) before existing Plan+Execute flow (full ceremony).
+   - `medium_path` with PO: If `po.enabled=true`, run abbreviated PO (single-round Questionary, skip Roadmap Agent) before medium path dispatch.
    - `redirect`: Map Analyze intent to existing redirects:
      - debug → Redirect to `/yolo:debug` with $ARGUMENTS
      - fix → Redirect to `/yolo:fix` with $ARGUMENTS
@@ -176,6 +177,68 @@ Every mode triggers confirmation via AskUserQuestion before executing, with cont
 ## Modes
 
 **Model resolution pattern** (used in Scope, Plan, Execute): `ROLE_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh {role} .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)`. Check $?; non-zero = abort with stderr.
+
+### PO Layer (Product Owner — optional, config-gated)
+
+**Guard:** Skip PO layer entirely if ANY of:
+- `po.enabled=false` in config (backward compat — existing Critic→Architect→Lead flow unchanged)
+- `--effort=turbo` (PO skipped at turbo)
+- Path 0 result is `trivial_shortcut` (PO skipped for trivial tasks)
+
+**When `po.enabled=true` AND guard conditions not met:**
+
+PO layer runs AFTER Analyze routing and BEFORE Critic→Architect→Lead dispatch. It replaces Owner Mode 0 (context gathering) with structured scope clarification.
+
+1. **Resolve PO model:**
+   ```
+   PO_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh po .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   ```
+
+2. **Spawn yolo-po** via Task tool with model: "${PO_MODEL}". Pass:
+   - User intent text: $ARGUMENTS
+   - analysis.json from Analyze step (complexity, departments, intent)
+   - Codebase mapping: ARCHITECTURE.md, STRUCTURE.md (if `.yolo-planning/codebase/` exists)
+   - Existing REQUIREMENTS.md and ROADMAP.md
+   - Prior phase summaries (summary.jsonl from completed phases)
+   - Display: `◆ Spawning PO (${PO_MODEL}) for scope clarification...`
+
+3. **PO-Questionary loop** (orchestrated via po-scope-loop.sh):
+   PO may emit `user_presentation` objects during scope gathering. For each:
+   ```bash
+   rendered=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/render-user-presentation.sh --json "$user_presentation_json")
+   ```
+   Present rendered content via AskUserQuestion with options from the user_presentation object. Feed user's response back to PO.
+
+   The PO-Questionary loop runs via:
+   ```bash
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/po-scope-loop.sh \
+     --config .yolo-planning/config.json \
+     --phase-dir "{phase-dir}" \
+     --max-rounds 3 \
+     --confidence-threshold 0.85
+   ```
+   - `full_ceremony`: Full PO-Questionary loop (up to 3 rounds) + Roadmap Agent
+   - `medium_path`: Single-round Questionary, skip Roadmap Agent
+   - `fast` effort: Single-round Questionary, skip Roadmap Agent
+
+4. **Roadmap Agent** (full_ceremony only, skip if medium_path or effort=fast):
+   ```
+   ROADMAP_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh roadmap .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   ```
+   Spawn yolo-roadmap with enriched scope from PO-Questionary output. Roadmap produces dependency graph:
+   ```bash
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-deps.sh \
+     --graph "{phase-dir}/roadmap-plan.json" \
+     --format adjacency
+   ```
+   Validate no cycles in dependency graph. Display: `◆ Spawning Roadmap (${ROADMAP_MODEL})...` → `✓ Roadmap complete — {N} phases, critical path: {path}`
+
+5. **PO writes scope-document.json** to phase directory. Contains: vision, enriched scope, requirements, roadmap (if produced), assumptions, deferred items.
+
+6. **Vision sign-off** (PO Mode 3): PO emits final `user_presentation` for scope confirmation. Orchestrator renders via AskUserQuestion. On approval: PO marks scope as PO-APPROVED.
+   Display: `✓ PO scope approved — dispatching to engineering`
+
+7. **Dispatch to existing Critic→Architect→Lead flow** with enriched scope from PO. The scope-document.json is available to all downstream agents as additional context.
 
 ### Mode: Init Redirect
 
