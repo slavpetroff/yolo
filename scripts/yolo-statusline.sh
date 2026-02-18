@@ -342,18 +342,95 @@ if [ "$FETCH_OK" = "ok" ]; then
   FIVE_REM=$(countdown "$FIVE_EPOCH")
   WEEK_REM=$(countdown "$WEEK_EPOCH")
 
-  USAGE_LINE="Session: $(progress_bar "${FIVE_PCT:-0}" 20) ${FIVE_PCT:-0}%"
-  [ -n "$FIVE_REM" ] && USAGE_LINE="$USAGE_LINE $FIVE_REM"
-  USAGE_LINE="$USAGE_LINE ${D}│${X} Weekly: $(progress_bar "${WEEK_PCT:-0}" 20) ${WEEK_PCT:-0}%"
-  [ -n "$WEEK_REM" ] && USAGE_LINE="$USAGE_LINE $WEEK_REM"
-  if [ "${SONNET_PCT:--1}" -ge 0 ] 2>/dev/null; then
-    USAGE_LINE="$USAGE_LINE ${D}│${X} Sonnet: $(progress_bar "${SONNET_PCT}" 20) ${SONNET_PCT}%"
-  fi
+  # --- Two-pass L3 construction (TD4) ---
+  # Segments: session (always), weekly (always), sonnet (conditional), extra (conditional)
+  # Pass 1: Build skeleton with [BAR] placeholders to measure non-bar overhead
+  # Pass 2: Compute bar widths from remaining budget, rebuild with real bars
+
+  # Compute extra dollar amounts once (used in skeleton and rebuild)
+  EXTRA_USED_D=""; EXTRA_LIMIT_D=""
   if [ "${EXTRA_ENABLED:-0}" = "1" ] && [ "${EXTRA_PCT:--1}" -ge 0 ] 2>/dev/null; then
     EXTRA_USED_D="$((EXTRA_USED_C / 100)).$( printf '%02d' $((EXTRA_USED_C % 100)) )"
     EXTRA_LIMIT_D="$((EXTRA_LIMIT_C / 100)).$( printf '%02d' $((EXTRA_LIMIT_C % 100)) )"
-    USAGE_LINE="$USAGE_LINE ${D}│${X} Extra: $(progress_bar "${EXTRA_PCT}" 20) ${EXTRA_PCT}% \$${EXTRA_USED_D}/\$${EXTRA_LIMIT_D}"
   fi
+
+  # Determine which segments are active
+  L3_SEGMENTS=("session" "weekly")
+  [ "${SONNET_PCT:--1}" -ge 0 ] 2>/dev/null && L3_SEGMENTS+=("sonnet")
+  [ "${EXTRA_ENABLED:-0}" = "1" ] && [ "${EXTRA_PCT:--1}" -ge 0 ] 2>/dev/null && L3_SEGMENTS+=("extra")
+
+  # Build skeleton function (placeholder = "[BAR]" = 5 visible chars)
+  _build_l3_skeleton() {
+    local segments=("$@")
+    local skel="Session: [BAR] ${FIVE_PCT:-0}%"
+    [ -n "$FIVE_REM" ] && skel="$skel $FIVE_REM"
+    skel="$skel ${D}│${X} Weekly: [BAR] ${WEEK_PCT:-0}%"
+    [ -n "$WEEK_REM" ] && skel="$skel $WEEK_REM"
+    local has_sonnet=0 has_extra=0
+    local s; for s in "${segments[@]}"; do
+      [ "$s" = "sonnet" ] && has_sonnet=1
+      [ "$s" = "extra" ] && has_extra=1
+    done
+    if [ "$has_sonnet" = "1" ]; then
+      skel="$skel ${D}│${X} Sonnet: [BAR] ${SONNET_PCT}%"
+    fi
+    if [ "$has_extra" = "1" ]; then
+      skel="$skel ${D}│${X} Extra: [BAR] ${EXTRA_PCT}% \$${EXTRA_USED_D}/\$${EXTRA_LIMIT_D}"
+    fi
+    printf '%s' "$skel"
+  }
+
+  # Pass 1+2: Measure skeleton, compute bar width, rebuild with real bars
+  _l3_rebuild() {
+    local segments=("$@")
+    local num_bars=${#segments[@]}
+    local skeleton
+    skeleton=$(_build_l3_skeleton "${segments[@]}")
+    local skel_width
+    skel_width=$(visible_width "$skeleton")
+    # Add back placeholder widths (each [BAR] = 5 visible chars)
+    local available=$(( MAX_WIDTH - skel_width + (num_bars * 5) ))
+    local bar_w
+    bar_w=$(compute_bar_width "$available" "$num_bars")
+
+    # If bar_w = 0, drop rightmost segment and retry
+    if [ "$bar_w" -eq 0 ]; then
+      return 1  # Signal caller to drop a segment
+    fi
+
+    # Pass 2: Build real line with computed bar widths
+    local line="Session: $(progress_bar "${FIVE_PCT:-0}" "$bar_w") ${FIVE_PCT:-0}%"
+    [ -n "$FIVE_REM" ] && line="$line $FIVE_REM"
+    line="$line ${D}│${X} Weekly: $(progress_bar "${WEEK_PCT:-0}" "$bar_w") ${WEEK_PCT:-0}%"
+    [ -n "$WEEK_REM" ] && line="$line $WEEK_REM"
+    local has_sonnet=0 has_extra=0
+    local s; for s in "${segments[@]}"; do
+      [ "$s" = "sonnet" ] && has_sonnet=1
+      [ "$s" = "extra" ] && has_extra=1
+    done
+    if [ "$has_sonnet" = "1" ]; then
+      line="$line ${D}│${X} Sonnet: $(progress_bar "${SONNET_PCT}" "$bar_w") ${SONNET_PCT}%"
+    fi
+    if [ "$has_extra" = "1" ]; then
+      line="$line ${D}│${X} Extra: $(progress_bar "${EXTRA_PCT}" "$bar_w") ${EXTRA_PCT}% \$${EXTRA_USED_D}/\$${EXTRA_LIMIT_D}"
+    fi
+    printf '%s' "$line"
+  }
+
+  # Iterative segment dropping: try with all segments, drop rightmost on failure
+  USAGE_LINE=""
+  _l3_segs=("${L3_SEGMENTS[@]}")
+  while [ ${#_l3_segs[@]} -gt 0 ]; do
+    USAGE_LINE=$(_l3_rebuild "${_l3_segs[@]}")
+    if [ $? -eq 0 ] && [ -n "$USAGE_LINE" ]; then
+      break
+    fi
+    # Drop rightmost segment
+    unset '_l3_segs[${#_l3_segs[@]}-1]'
+    _l3_segs=("${_l3_segs[@]}")
+  done
+  # Fallback: if all segments dropped, show minimal
+  [ -z "$USAGE_LINE" ] && USAGE_LINE="Session: ${FIVE_PCT:-0}% ${D}│${X} Weekly: ${WEEK_PCT:-0}%"
 elif [ "$FETCH_OK" = "auth" ]; then
   USAGE_LINE="${D}Limits: auth expired (run /login)${X}"
 elif [ "$FETCH_OK" = "fail" ]; then
