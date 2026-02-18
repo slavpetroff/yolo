@@ -34,6 +34,10 @@ print_defaults() {
   echo "config_approval_qa_fail=false"
   echo "config_approval_security_warn=false"
   echo "config_team_mode=auto"
+  echo "config_complexity_routing=true"
+  echo "config_trivial_threshold=0.85"
+  echo "config_medium_threshold=0.7"
+  echo "config_fallback_path=high"
   echo "has_codebase_map=false"
   echo "brownfield=false"
   echo "execution_state=none"
@@ -197,6 +201,29 @@ echo "config_security_audit=$CFG_SECURITY_AUDIT"
 echo "config_approval_qa_fail=$CFG_APPROVAL_QA_FAIL"
 echo "config_approval_security_warn=$CFG_APPROVAL_SECURITY_WARN"
 echo "config_team_mode=$CFG_TEAM_MODE"
+
+# --- Complexity routing config ---
+CFG_COMPLEXITY_ROUTING="true"
+CFG_TRIVIAL_THRESHOLD="0.85"
+CFG_MEDIUM_THRESHOLD="0.7"
+CFG_FALLBACK_PATH="high"
+
+if [ "$JQ_AVAILABLE" = true ] && [ -f "$CONFIG_FILE" ]; then
+  if jq -e 'has("complexity_routing")' "$CONFIG_FILE" >/dev/null 2>&1; then
+    IFS='|' read -r CFG_COMPLEXITY_ROUTING CFG_TRIVIAL_THRESHOLD CFG_MEDIUM_THRESHOLD CFG_FALLBACK_PATH <<< \
+      "$(jq -r '[
+        (.complexity_routing.enabled // true | tostring),
+        (.complexity_routing.trivial_confidence_threshold // 0.85 | tostring),
+        (.complexity_routing.medium_confidence_threshold // 0.7 | tostring),
+        (.complexity_routing.fallback_path // "high")
+      ] | join("|")' "$CONFIG_FILE" 2>/dev/null)"
+  fi
+fi
+
+echo "config_complexity_routing=$CFG_COMPLEXITY_ROUTING"
+echo "config_trivial_threshold=$CFG_TRIVIAL_THRESHOLD"
+echo "config_medium_threshold=$CFG_MEDIUM_THRESHOLD"
+echo "config_fallback_path=$CFG_FALLBACK_PATH"
 
 # --- Codebase map status ---
 if [ -f "$PLANNING_DIR/codebase/META.md" ]; then
