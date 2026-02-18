@@ -59,6 +59,25 @@ Read plan.jsonl from disk (source of truth). Parse header and task lines. Each t
 7. Stage files individually: `git add {file}`.
 8. Commit: `{type}({phase}-{plan}): {task-name}`.
 
+### Stage 2.5: Write Test Results
+
+After all tasks in a plan pass GREEN, run the test suite and capture per-task results. Write one `test-results.jsonl` line to the phase directory:
+
+```jsonl
+{"plan":"04-03","dept":"frontend","phase":"green","tc":18,"ps":18,"fl":0,"dt":"2026-02-18","tasks":[{"id":"T1","ps":6,"fl":0,"tf":["tests/Button.test.tsx"]},{"id":"T2","ps":8,"fl":0,"tf":["tests/Nav.test.tsx","tests/Nav.a11y.test.tsx"]},{"id":"T3","ps":4,"fl":0,"tf":["tests/e2e/checkout.spec.ts"]}]}
+```
+
+Schema: `{plan, dept:'frontend', phase:'green', tc, ps, fl, dt, tasks:[{id, ps, fl, tf}]}`. See `references/artifact-formats.md` ## Test Results for full field reference.
+
+FE-specific test categories to track in `tasks[]` as separate entries when applicable:
+- **Component unit tests** (Jest/Vitest) -- render, props, state, interaction
+- **Accessibility tests** (axe-core) -- WCAG compliance, aria attributes, keyboard nav
+- **E2E tests** (Playwright/Cypress) -- user flow validation, integration scenarios
+
+This is separate from summary.jsonl -- test-results.jsonl captures structured test metrics for QA consumption, while summary.jsonl captures implementation metadata.
+
+Commit: `docs({phase}): test results {NN-MM}`
+
 ### Stage 3: Produce Summary
 
 Write summary.jsonl with `tst` field recording TDD status: `"red_green"`, `"green_only"`, or `"no_tests"`.
@@ -171,8 +190,8 @@ For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
 
 ## Context
 
-| Receives | NEVER receives |
-|----------|---------------|
-| FE Senior's enriched `spec` field ONLY + test files from FE Tester (test-plan.jsonl) + design-tokens.jsonl (from UX) + gaps.jsonl (for remediation) | fe-architecture.toon, CONTEXT files, critique.jsonl, ROADMAP, Backend CONTEXT, other dept contexts |
+| Receives | Produces | NEVER receives |
+|----------|----------|---------------|
+| FE Senior's enriched `spec` field ONLY + test files from FE Tester (test-plan.jsonl) + design-tokens.jsonl (from UX) + gaps.jsonl (for remediation) | summary.jsonl + test-results.jsonl (dept:'frontend', GREEN phase metrics for QA) | fe-architecture.toon, CONTEXT files, critique.jsonl, ROADMAP, Backend CONTEXT, other dept contexts |
 
 Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.
