@@ -8,6 +8,20 @@ input=$(cat)
 C='\033[36m' G='\033[32m' Y='\033[33m' R='\033[31m'
 D='\033[2m' B='\033[1m' X='\033[0m'
 
+# --- Width-limiting utilities (TD5) ---
+source "$(dirname "$0")/statusline-utils.sh"
+
+# DEGRADATION ORDER (C8 — per-line segment drop priority, rightmost = first to drop):
+# L1 (project): [YOLO] Phase Plans Effort Model QA Branch Files Commits Diff
+#   -> drop: Diff -> Commits -> Files -> QA -> Model -> Effort -> Plans
+#   -> OSC 8 link degrades to plain text before any segment drops
+# L2 (context): Context: [BAR] PCT% tokens | Tokens: in out | Cache: hit% wr rd
+#   -> Shrink bar (20->12->8) -> abbreviate labels (write->wr, read->rd)
+# L3 (usage): Session: [BAR] % | Weekly: [BAR] % | Sonnet: [BAR] % | Extra: [BAR] % $/$
+#   -> Shrink all bars (20->12->8->3) -> drop Extra -> drop Sonnet
+# L4 (model): Model: name | Time: dur (API: dur) | agents | YOLO ver -> ver | CC ver
+#   -> Drop update text -> drop agent line -> abbreviate versions
+
 # --- Cached platform info ---
 _UID=$(id -u)
 _OS=$(uname)
@@ -419,9 +433,14 @@ else
   L4="$L4 ${D}│${X} ${D}YOLO ${_VER:-?}${X} ${D}│${X} ${D}CC ${VER}${X}"
 fi
 
-printf '%b\n' "$L1"
-printf '%b\n' "$L2"
-printf '%b\n' "$L3"
-printf '%b\n' "$L4"
+# Safety-net truncation (IP4): truncate_line ensures no line exceeds MAX_WIDTH.
+# Lines that already went through budget construction (L1, L2, L3 in plan 01-02)
+# will pass the fast path (visible_width check) and skip awk.
+# Uses %s (not %b) because truncate_line already interprets \033 to real ESC bytes.
+# Using %b would double-interpret backslashes (e.g., ESC\ ST becomes ESC + \t = TAB).
+printf '%s\n' "$(truncate_line "$L1")"
+printf '%s\n' "$(truncate_line "$L2")"
+printf '%s\n' "$(truncate_line "$L3")"
+printf '%s\n' "$(truncate_line "$L4")"
 
 exit 0
