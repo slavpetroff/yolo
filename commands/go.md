@@ -585,13 +585,19 @@ This mode delegates to protocol files. Before reading:
    - model: "${DEV_MODEL}"
    - Provide: enriched plan.jsonl (spec field)
    - Display: `◆ Spawning Dev (${DEV_MODEL}) for trivial path...`
-8. Run post-task QA gate:
+8. Run trivial lint on changed files (QR-4: lightweight automated check):
+   ```bash
+   lint_result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/trivial-lint.sh \
+     --files "{changed-files}" --phase-dir "{phase-dir}")
+   ```
+   If lint fails: display issues and halt. If lint passes: continue.
+9. Run post-task QA gate:
    ```bash
    result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate-post-task.sh \
      --phase-dir "{phase-dir}" --plan "{plan-id}" --task "T1" --scope)
    ```
-9. Skip QA agents and security audit.
-10. Commit and display completion:
+10. Skip QA agents and security audit.
+11. Commit and display completion:
     ```
     ✓ Trivial path complete — {1} task, {1} commit
     ```
