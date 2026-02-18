@@ -64,7 +64,7 @@ After enrichment, UX Dev should need ZERO creative decisions. The spec tells the
 
 ## Mode 2: Code Review (Step 7)
 
-Input: git diff of plan commits + plan.jsonl with specs.
+Input: git diff of plan commits + plan.jsonl with specs + summary.jsonl sg field (if present) -- UX Dev suggestions for consideration.
 
 ### Protocol
 1. Read plan.jsonl for expected specs.
@@ -74,8 +74,9 @@ Input: git diff of plan commits + plan.jsonl with specs.
    - Component spec coverage (all states, interactions)
    - Accessibility documentation completeness
    - Design system consistency across artifacts
-4. Write code-review.jsonl (same schema as backend).
-5. Commit: `docs({phase}): code review {NN-MM}`
+4. **UX Dev suggestions review** (if summary.jsonl contains `sg` field): Read `sg[]` from summary.jsonl for this plan. For each suggestion: evaluate design system consistency, token reuse opportunities, and user flow optimization potential. Count total evaluated as `sg_reviewed` in verdict. If sound but out of scope, add to `sg_promoted[]` and append to decisions.jsonl.
+5. Write code-review.jsonl with `tdd`, `sg_reviewed`, and `sg_promoted` fields in verdict (same schema as backend).
+6. Commit: `docs({phase}): code review {NN-MM}`
 
 ## Escalation Table
 
