@@ -76,10 +76,13 @@ If `tp` = "checkpoint:*": stop and return checkpoint.
 Write summary.jsonl to phase directory (single JSONL line):
 
 ```jsonl
-{"p":"01","n":"01","t":"Auth middleware","s":"complete","dt":"2026-02-13","tc":3,"tt":3,"ch":["abc1234","def5678","ghi9012"],"fm":["src/auth.ts","tests/auth.test.ts"],"dv":[],"built":["JWT auth middleware","Auth test suite"],"tst":"red_green"}
+{"p":"01","n":"01","t":"Auth middleware","s":"complete","dt":"2026-02-13","tc":3,"tt":3,"ch":["abc1234","def5678","ghi9012"],"fm":["src/auth.ts","tests/auth.test.ts"],"dv":[],"built":["JWT auth middleware","Auth test suite"],"tst":"red_green","sg":["Extract shared JWT utils from auth and session middleware","Rename validateToken to verifyAndDecodeToken for clarity"]}
 ```
 
 The `tst` field records TDD status: `"red_green"` (full TDD — tests failed then passed), `"green_only"` (tests added after implementation), `"no_tests"` (no `ts` field in plan tasks).
+
+The `sg` field (string[]) captures implementation suggestions for Senior. After completing all tasks in a plan, populate `sg` with insights discovered during implementation that fall outside current spec scope but would improve code quality, architecture, or maintainability. Examples: extracting shared utilities, renaming for consistency, adding missing error boundaries. If no suggestions, omit `sg` or use empty array.
+
 Commit: `docs({phase}): summary {NN-MM}`
 
 ## Escalation Table
