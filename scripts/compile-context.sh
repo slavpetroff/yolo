@@ -427,6 +427,12 @@ case "$BASE_ROLE" in
         fi
         echo ""
       fi
+      # Test results summary (GREEN phase metrics)
+      if [ -f "$PHASE_DIR/test-results.jsonl" ]; then
+        echo ""
+        echo "test_results:"
+        jq -r '"  \(.plan // ""): ps=\(.ps // 0) fl=\(.fl // 0) dept=\(.dept // "")"' "$PHASE_DIR/test-results.jsonl" 2>/dev/null || true
+      fi
       echo "success_criteria: $PHASE_SUCCESS"
       REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
       get_tool_restrictions
@@ -460,6 +466,20 @@ case "$BASE_ROLE" in
         fi
         echo ""
       fi
+      # Dev suggestions from summary.jsonl (for code review consumption)
+      for summary in "$PHASE_DIR"/*.summary.jsonl; do
+        if [ -f "$summary" ]; then
+          SG=$(jq -r 'select(.sg != null and (.sg | length) > 0) | .sg[]' "$summary" 2>/dev/null || true)
+          if [ -n "$SG" ]; then
+            echo ""
+            echo "suggestions:"
+            echo "$SG" | while IFS= read -r sg_item; do
+              echo "  - $sg_item"
+            done
+          fi
+        fi
+      done
+      echo ""
       # Conventions for code review
       CONVENTIONS=$(get_conventions)
       if [ -n "$CONVENTIONS" ]; then
@@ -571,6 +591,13 @@ case "$BASE_ROLE" in
         CONV_COUNT=$(echo "$CONVENTIONS" | wc -l | tr -d ' ')
         echo "conventions[${CONV_COUNT}]{category,rule}:"
         echo "$CONVENTIONS"
+      fi
+      # Escalation summary (open/resolved counts)
+      if [ -f "$PHASE_DIR/escalation.jsonl" ]; then
+        ESC_OPEN=$(jq -r 'select(.st == "open") | .id' "$PHASE_DIR/escalation.jsonl" 2>/dev/null | wc -l | tr -d ' ')
+        ESC_RESOLVED=$(jq -r 'select(.st == "resolved") | .id' "$PHASE_DIR/escalation.jsonl" 2>/dev/null | wc -l | tr -d ' ')
+        echo ""
+        echo "escalations: open=$ESC_OPEN resolved=$ESC_RESOLVED"
       fi
       REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
       get_tool_restrictions
@@ -784,6 +811,15 @@ case "$BASE_ROLE" in
             echo "  @$PLANNING_DIR/codebase/${base}.md"
           fi
         done
+      fi
+      # On-demand research request context (ra = requesting agent)
+      if [ -f "$PHASE_DIR/research.jsonl" ]; then
+        RA_CONTEXT=$(jq -r 'select(.ra != null and .ra != "") | "  \(.ra): \(.q // "")"' "$PHASE_DIR/research.jsonl" 2>/dev/null || true)
+        if [ -n "$RA_CONTEXT" ]; then
+          echo ""
+          echo "requesting_agents:"
+          echo "$RA_CONTEXT"
+        fi
       fi
       REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
       get_tool_restrictions
