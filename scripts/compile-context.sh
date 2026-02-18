@@ -488,6 +488,8 @@ case "$BASE_ROLE" in
     {
       emit_header
       echo ""
+      # Rolling summaries for prior plans (T-1: cap context growth)
+      get_rolling_summaries
       # Full architecture context (department-specific)
       if [ "$ARCH_EXISTS" = true ]; then
         echo "architecture:"
