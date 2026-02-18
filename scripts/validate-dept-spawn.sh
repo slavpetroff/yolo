@@ -21,7 +21,13 @@ if [ -z "$AGENT_NAME" ]; then
   AGENT_NAME="$(echo "$INPUT" | jq -r '.agent_name // .tool_input.name // empty' 2>/dev/null || true)"
 fi
 
-# Only validate yolo- agents
+# Shared/PO agents — always allowed, no department check needed
+case "$AGENT_NAME" in
+  yolo-analyze|yolo-po|yolo-questionary|yolo-roadmap|yolo-integration-gate)
+    exit 0 ;;
+esac
+
+# Only validate department-scoped agents
 case "$AGENT_NAME" in
   yolo-fe-*|yolo-ux-*|yolo-owner) ;;
   *) exit 0 ;;  # Not a department agent, allow
