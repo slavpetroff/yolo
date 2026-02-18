@@ -1,0 +1,5 @@
+{"p":"02","n":"03","status":"done","tasks":4,"commits":4}
+{"id":"T1","status":"done","commit":"de5c981","f":["config/defaults.json"],"note":"Added po config object: enabled, max_questionary_rounds (3), confidence_threshold (0.85), scope_output_format (json), skip_on_effort ([turbo])"}
+{"id":"T2","status":"done","commit":"d5d7ead","f":["scripts/po-scope-loop.sh"],"note":"PO-Questionary dialogue loop orchestrator. Reads po config via jq, enforces round cap, checks confidence threshold, writes scope-document.json, outputs JSON summary."}
+{"id":"T3","status":"done","commit":"7edf47e","f":["scripts/render-user-presentation.sh"],"note":"Renders PO user_presentation JSON to formatted markdown for AskUserQuestion. Maps type/content/options/context fields. Enforces Owner-first proxy pattern."}
+{"id":"T4","status":"done","commit":"395269e","f":["scripts/validate-deps.sh"],"note":"Dependency graph validator using Kahn's algorithm (jq-based topological sort). Detects cycles, missing refs, orphan phases, disconnected critical paths. Bash 3.2 compatible."}
