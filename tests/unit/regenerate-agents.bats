@@ -124,3 +124,133 @@ teardown() {
   assert_success
   assert_output --partial "Regenerated 27/27"
 }
+
+# --- T4: Staleness detection tests ---
+
+@test "hash file is created after --force regeneration" {
+  rm -f "$HASH_FILE"
+  bash "$REGENERATE" --force >/dev/null 2>&1
+  [ -f "$HASH_FILE" ]
+  # Hash should be a 64-char hex string (sha256)
+  local hash
+  hash=$(cat "$HASH_FILE")
+  [[ ${#hash} -eq 64 ]]
+}
+
+@test "hash file content is deterministic (same inputs = same hash)" {
+  bash "$REGENERATE" --force >/dev/null 2>&1
+  local hash1
+  hash1=$(cat "$HASH_FILE")
+
+  bash "$REGENERATE" --force >/dev/null 2>&1
+  local hash2
+  hash2=$(cat "$HASH_FILE")
+
+  [ "$hash1" = "$hash2" ]
+}
+
+@test "hash changes when template content changes" {
+  # Regenerate to get baseline hash
+  bash "$REGENERATE" --force >/dev/null 2>&1
+  local hash_before
+  hash_before=$(cat "$HASH_FILE")
+
+  # Append to a template
+  local template="$PROJECT_ROOT/agents/templates/dev.md"
+  local original
+  original=$(cat "$template")
+  echo "<!-- test modification -->" >> "$template"
+
+  # Regenerate and check hash changed
+  bash "$REGENERATE" --force >/dev/null 2>&1
+  local hash_after
+  hash_after=$(cat "$HASH_FILE")
+
+  # Restore original template
+  printf '%s' "$original" > "$template"
+  # Regenerate again to restore agents
+  bash "$REGENERATE" --force >/dev/null 2>&1
+
+  [ "$hash_before" != "$hash_after" ]
+}
+
+@test "hash changes when overlay content changes" {
+  # Regenerate to get baseline hash
+  bash "$REGENERATE" --force >/dev/null 2>&1
+  local hash_before
+  hash_before=$(cat "$HASH_FILE")
+
+  # Modify overlay (append a comment key)
+  local overlay="$PROJECT_ROOT/agents/overlays/backend.json"
+  local original
+  original=$(cat "$overlay")
+  local modified
+  modified=$(jq '. + {"_test_key": "test_value"}' "$overlay")
+  printf '%s\n' "$modified" > "$overlay"
+
+  # Regenerate and check hash changed
+  bash "$REGENERATE" --force >/dev/null 2>&1
+  local hash_after
+  hash_after=$(cat "$HASH_FILE")
+
+  # Restore original overlay
+  printf '%s' "$original" > "$overlay"
+  # Regenerate again to restore agents
+  bash "$REGENERATE" --force >/dev/null 2>&1
+
+  [ "$hash_before" != "$hash_after" ]
+}
+
+@test "--check detects stale hash after template modification" {
+  # Regenerate to get clean state
+  bash "$REGENERATE" --force >/dev/null 2>&1
+
+  # Verify clean state
+  run bash "$REGENERATE" --check
+  assert_success
+
+  # Modify a template (but don't regenerate)
+  local template="$PROJECT_ROOT/agents/templates/dev.md"
+  local original
+  original=$(cat "$template")
+  echo "<!-- staleness test -->" >> "$template"
+
+  # Check should detect hash mismatch
+  run bash "$REGENERATE" --check
+  assert_failure
+  assert_output --partial "STALE"
+
+  # Restore original template
+  printf '%s' "$original" > "$template"
+}
+
+@test "--check detects stale hash after overlay modification" {
+  # Regenerate to get clean state
+  bash "$REGENERATE" --force >/dev/null 2>&1
+
+  # Modify overlay
+  local overlay="$PROJECT_ROOT/agents/overlays/backend.json"
+  local original
+  original=$(cat "$overlay")
+  local modified
+  modified=$(jq '. + {"_test_key": "test_value"}' "$overlay")
+  printf '%s\n' "$modified" > "$overlay"
+
+  # Check should detect hash mismatch
+  run bash "$REGENERATE" --check
+  assert_failure
+  assert_output --partial "STALE"
+
+  # Restore original overlay
+  printf '%s' "$original" > "$overlay"
+}
+
+@test "--check reports MISSING when hash file does not exist" {
+  # Regenerate first then remove hash
+  bash "$REGENERATE" --force >/dev/null 2>&1
+  rm -f "$HASH_FILE"
+
+  run bash "$REGENERATE" --check
+  assert_failure
+  assert_output --partial "MISSING"
+}
