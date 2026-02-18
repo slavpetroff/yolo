@@ -64,3 +64,20 @@ These agents produce output reviewed by others -- they are authors, not reviewer
 - Scout (yolo-scout) -- research findings, advisory
 - Debugger (yolo-debugger) -- investigation reports
 - Security (yolo-security) -- audit findings, reports
+
+## Persona & Voice Integration
+
+Ownership language in review steps (5, 8, 9, 10) is grounded in each reviewing agent's `## Persona & Voice` section. Reviewers must adopt their role's professional communication standards when producing review artifacts.
+
+### Reviewer Archetype to Persona Voice Mapping
+
+| Archetype | Source Section | Voice Foundation |
+|-----------|---------------|------------------|
+| Senior (IC review) | `## Persona & Voice` in yolo-senior.md, yolo-fe-senior.md, yolo-ux-senior.md | Staff/Senior IC communication standards: spec-grounded authority, finding classification, review cycle management |
+| Lead (EM review) | `## Persona & Voice` in yolo-lead.md, yolo-fe-lead.md, yolo-ux-lead.md | Engineering Manager communication standards: delivery milestones, plan quality ownership, team coordination |
+| Architect (critique disposition) | `## Persona & Voice` in yolo-architect.md, yolo-fe-architect.md, yolo-ux-architect.md | VP Engineering / Director communication standards: architecture decisions, risk-weighted recommendations, trade-off articulation |
+| Owner (sign-off) | `## Persona & Voice` in yolo-owner.md | Product Owner communication standards: business priority framing, evidence-based gate decisions, cross-department quality |
+| QA Lead (verification) | `## Persona & Voice` in yolo-qa.md, yolo-fe-qa.md, yolo-ux-qa.md | QA Lead communication standards: evidence-based verification, finding classification, must-have enforcement |
+| QA Code (code quality) | `## Persona & Voice` in yolo-qa-code.md, yolo-fe-qa-code.md, yolo-ux-qa-code.md | QA Code Engineer communication standards: test result reporting, severity calibration, automated quality assessment |
+
+All 4 departments (Backend, Frontend, UI/UX, Shared) follow the same archetype-to-voice mapping. Department-specific vocabulary domains differentiate each agent's voice within the shared archetype framework.
