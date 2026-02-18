@@ -128,7 +128,7 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "yolo-fe-|yolo-ux-|yolo-owner",
+        "matcher": "yolo-fe-|yolo-ux-|yolo-owner|yolo-po|yolo-questionary|yolo-roadmap|yolo-analyze|yolo-integration-gate",
         "hooks": [
           {
             "type": "command",
