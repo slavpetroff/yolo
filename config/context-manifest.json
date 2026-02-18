@@ -142,6 +142,26 @@
       },
       "budget": 2000,
       "includes": ["documenter"]
+    },
+    "integration-gate": {
+      "files": [],
+      "artifacts": ["api-contracts", "design-handoff", "test-results", "summary"],
+      "fields": {
+        "api-contracts": ["endpoint", "method", "status"],
+        "design-handoff": ["component", "status"],
+        "test-results": ["plan", "dept", "tc", "ps", "fl"],
+        "summary": ["fm"]
+      },
+      "budget": 2000
+    },
+    "po": {
+      "files": ["ROADMAP.md", "REQUIREMENTS.md"],
+      "artifacts": ["summary", "department_result", "integration-gate-result"],
+      "fields": {
+        "summary": ["s", "tc", "tt", "fm"],
+        "integration-gate-result": ["r", "checks", "failures"]
+      },
+      "budget": 3000
     }
   }
 }
