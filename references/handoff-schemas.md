@@ -181,7 +181,10 @@ Structured verification results.
       {"check": "Link integrity", "expected": "All resolve", "actual": "broken ref", "evidence": "line 42"}
     ],
     "body": "## Must-Have Checks\n...",
-    "recommendations": ["Fix broken cross-reference before shipping"]
+    "recommendations": ["Fix broken cross-reference before shipping"],
+    "pre_existing_issues": [
+      {"test": "testName", "file": "path/to/file", "error": "failure message"}
+    ]
   }
 }
 ```

@@ -30,6 +30,11 @@ load test_helper
   sed -n '/Pre-existing failures (DEVN-05)/,/^$/p' "$PROJECT_ROOT/agents/vbw-dev.md" | grep -qi 'never.*fix pre-existing'
 }
 
+@test "dev agent DEVN-05 uncertainty fallback disambiguates from table default" {
+  # The DEVN-05 paragraph must clarify DEVN-03 fallback vs DEVN-04 table default
+  sed -n '/Pre-existing failures (DEVN-05)/,/^$/p' "$PROJECT_ROOT/agents/vbw-dev.md" | grep -q 'DEVN-04'
+}
+
 # =============================================================================
 # Fix command: discovered issues output
 # =============================================================================
@@ -93,6 +98,10 @@ load test_helper
   sed -n '/Path A/,/Path B/p' "$PROJECT_ROOT/commands/debug.md" | grep -qi 'de-duplicate'
 }
 
+@test "debug command Path A dedup key includes file" {
+  sed -n '/Path A/,/Path B/p' "$PROJECT_ROOT/commands/debug.md" | grep -qi 'test name and file'
+}
+
 # =============================================================================
 # Debugger agent: pre-existing failure handling
 # =============================================================================
@@ -123,6 +132,10 @@ load test_helper
 
 @test "handoff schema pre_existing_issues has test/file/error structure" {
   grep -A2 'pre_existing_issues' "$PROJECT_ROOT/references/handoff-schemas.md" | grep -q '"test"'
+}
+
+@test "qa_verdict schema includes pre_existing_issues field" {
+  sed -n '/qa_verdict/,/^##/p' "$PROJECT_ROOT/references/handoff-schemas.md" | grep -q 'pre_existing_issues'
 }
 
 # =============================================================================
