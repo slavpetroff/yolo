@@ -9,8 +9,6 @@
   "max_tasks_per_plan": 5,
   "agent_teams": true,
   "team_mode": "auto",
-  "branch_per_milestone": false,
-  "plain_summary": true,
   "model_profile": "balanced",
   "model_overrides": {},
   "security_audit": false,
@@ -54,6 +52,7 @@
     "confidence_threshold": 0.85,
     "scope_output_format": "json",
     "skip_on_effort": ["turbo"],
+    "skip_on_complexity": [],
     "default_rejection": "patch"
   },
   "critique": {
@@ -82,7 +81,7 @@
     "trivial_confidence_threshold": 0.85,
     "medium_confidence_threshold": 0.7,
     "fallback_path": "high",
-    "force_analyze_model": "opus",
+    "force_analyze_model": "balanced",
     "max_trivial_files": 3,
     "max_medium_tasks": 3
   }

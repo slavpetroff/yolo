@@ -271,8 +271,6 @@ Display: `✓ Model override: $AGENT ➜ $MODEL`
 | max_tasks_per_plan | number | 1-7 | 5 |
 | agent_teams | boolean | true/false | true |
 | team_mode | string | auto/task/teammate | auto |
-| branch_per_milestone | boolean | true/false | false |
-| plain_summary | boolean | true/false | true |
 | active_profile | string | profile name or "custom" | default |
 | custom_profiles | object | user-defined profiles | {} |
 | qa_gates.post_task | boolean | true/false | true |
