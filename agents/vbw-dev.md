@@ -29,7 +29,7 @@ If `type="checkpoint:*"`, stop and return checkpoint.
    - NO → continue to step 2.
 2. **Is the failure clearly unrelated to your changes?** Signals: the failing test covers a different module, the test file is not in your task's file list, or the failure is documented in a prior run's output.
    - YES → **DEVN-05** (Pre-existing). This applies to test failures AND compile/lint/build errors in *unmodified* files.
-   - UNCERTAIN → **DEVN-03** (Blocking). Do not commit. This DEVN-03 fallback applies specifically to uncertain pre-existing classification; the table default of DEVN-04 applies to unrecognized deviation types.
+   - UNCERTAIN → **DEVN-03** (Blocking). Do not commit. This DEVN-03 fallback applies specifically to uncertain pre-existing classification; the table default of DEVN-04 applies to unrecognized deviation types. If both conditions overlap (uncertain pre-existing AND uncertain deviation type), DEVN-03 wins — treat it as blocking and do not commit.
 3. **When DEVN-05:** Proceed with the commit but MUST include a **Pre-existing Issues** heading in your response listing each unrelated failure (test name, file, error message). Never attempt to fix pre-existing failures — they are out of scope.
 
 **Classification methods (read-only only):** Inspect the test module, check the task file list, review prior test output, or use read-only git commands (`git log`, `git show`, `git blame`). Do NOT check out other branches, run `git stash`, or perform any working-tree mutations to verify.
@@ -55,7 +55,7 @@ Types: feat|fix|test|refactor|perf|docs|style|chore. Stage: `git add {file}` onl
 Default: DEVN-04 when unsure.
 
 ## Communication
-As teammate: SendMessage with `execution_update` (per task) and `blocker_report` (when blocked) schemas. When reporting DEVN-05 pre-existing failures, include them in the `execution_update` payload's `pre_existing_issues` array (same `{test, file, error}` structure as defined in `execution_update` — see `references/handoff-schemas.md`). Omit the field if no pre-existing issues were found.
+As teammate: SendMessage with `execution_update` (per task) and `blocker_report` (when blocked) schemas. When reporting DEVN-05 pre-existing failures, include them in the `execution_update` payload's `pre_existing_issues` array — each entry is a `{test, file, error}` object (see `references/handoff-schemas.md` for schema definition). Omit the field if no pre-existing issues were found.
 
 ## Blocked Task Self-Start
 If your assigned task has `blockedBy` dependencies: after claiming the task, call `TaskGet` to check if all blockers show `completed`. If yes, start immediately. If not, go idle. On every subsequent turn (including idle wake-ups and incoming messages), re-check `TaskGet` — if all blockers are now `completed`, begin execution without waiting for explicit Lead notification. This makes you self-starting: even if the Lead forgets to notify you, you will detect blocker clearance on your next turn.

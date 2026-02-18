@@ -54,6 +54,10 @@ Config: Pre-injected by SessionStart hook.
 
     Committed, with discovered issues (Dev reported pre-existing failures):
 
+    De-duplicate by test name and file (keep first error message when the same
+    test+file pair has different messages). Cap the list at 20 entries; if more
+    exist, show the first 20 and append `... and {N} more`.
+
     ```text
     ✓ Fix applied
       {commit hash} {commit message}

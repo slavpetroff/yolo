@@ -97,7 +97,7 @@ Recent commits:
       Files Modified: {list}
     ```
 
-**Discovered Issues:** If the Debugger reported pre-existing failures, out-of-scope bugs, or issues unrelated to the investigated bug, append after the result box:
+**Discovered Issues:** If the Debugger reported pre-existing failures, out-of-scope bugs, or issues unrelated to the investigated bug, append after the result box. Cap the list at 20 entries; if more exist, show the first 20 and append `... and {N} more`:
 ```text
   Discovered Issues:
     ⚠ testName (path/to/file): error message

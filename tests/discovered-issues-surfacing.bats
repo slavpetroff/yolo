@@ -499,7 +499,7 @@ load test_helper
 
 @test "all discovered issues sections specify testName format" {
   local failed=""
-  for file in commands/fix.md commands/debug.md commands/qa.md references/execute-protocol.md; do
+  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md references/execute-protocol.md; do
     if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
       if ! grep -q 'testName.*path/to/file.*error' "$PROJECT_ROOT/$file"; then
         failed="${failed} ${file}"
@@ -531,4 +531,54 @@ load test_helper
 
 @test "debugger agent standalone Step 7 specifies structured pre-existing format" {
   sed -n '/Investigation Protocol/,/^##/p' "$PROJECT_ROOT/agents/vbw-debugger.md" | grep '7\.' | grep -q 'test, file, error'
+}
+
+# =============================================================================
+# QA round 2: consistency fixes
+# =============================================================================
+
+@test "execute-protocol discovered issues includes STOP after display" {
+  sed -n '/Discovered Issues/,/suggest-next/p' "$PROJECT_ROOT/references/execute-protocol.md" | grep -qi 'STOP.*Do not take further action'
+}
+
+@test "all discovered issues sections have de-duplication instruction" {
+  local failed=""
+  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md references/execute-protocol.md; do
+    if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
+      if ! grep -qi 'de-duplicate\|De-duplicate' "$PROJECT_ROOT/$file"; then
+        failed="${failed} ${file}"
+      fi
+    fi
+  done
+  [ -z "$failed" ] || { echo "Missing de-duplication in:$failed"; return 1; }
+}
+
+@test "all discovered issues sections have cap at 20" {
+  local failed=""
+  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md references/execute-protocol.md; do
+    if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
+      if ! grep -qi 'cap.*20\|Cap.*20' "$PROJECT_ROOT/$file"; then
+        failed="${failed} ${file}"
+      fi
+    fi
+  done
+  [ -z "$failed" ] || { echo "Missing cap at 20 in:$failed"; return 1; }
+}
+
+@test "verify command has best-effort extraction guidance" {
+  grep -qi 'best-effort' "$PROJECT_ROOT/commands/verify.md"
+}
+
+@test "verify command handles unknown test name or file" {
+  grep -qi 'unknown' "$PROJECT_ROOT/commands/verify.md"
+}
+
+@test "dev agent DEVN-05 has priority rule for overlapping uncertainty" {
+  sed -n '/Pre-existing failures (DEVN-05)/,/^### /p' "$PROJECT_ROOT/agents/vbw-dev.md" | grep -qi 'DEVN-03 wins'
+}
+
+@test "dev agent Communication section references handoff-schemas.md without circular self-reference" {
+  sed -n '/## Communication/,/^##/p' "$PROJECT_ROOT/agents/vbw-dev.md" | grep -q 'handoff-schemas.md'
+  # Should not contain "same structure as defined in execution_update" (circular)
+  ! sed -n '/## Communication/,/^##/p' "$PROJECT_ROOT/agents/vbw-dev.md" | grep -q 'same.*structure as defined in.*execution_update'
 }
