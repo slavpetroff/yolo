@@ -6,8 +6,8 @@ set -euo pipefail
 # Analyzes user intent, phase state, and config to determine if a task
 # should route through trivial, medium, or high (full ceremony) path.
 #
-# Usage: complexity-classify.sh --intent "text" [--phase-state "k=v ..."] [--config path] [--codebase-map true|false]
-# Output: JSON to stdout with complexity, departments, intent, confidence, reasoning, suggested_path
+# Usage: complexity-classify.sh --intent "text" [--phase-state "k=v ..."] [--config path] [--codebase-map true|false] [--medium-threshold 0.7]
+# Output: JSON to stdout with complexity, departments, intent, confidence, reasoning, suggested_path, skip_analyze
 # Exit codes: 0 = classified, 1 = usage/runtime error
 
 # --- jq dependency check ---
@@ -21,6 +21,7 @@ INTENT=""
 PHASE_STATE=""
 CONFIG_PATH=""
 CODEBASE_MAP="false"
+MEDIUM_THRESHOLD=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -40,8 +41,12 @@ while [[ $# -gt 0 ]]; do
       CODEBASE_MAP="$2"
       shift 2
       ;;
+    --medium-threshold)
+      MEDIUM_THRESHOLD="$2"
+      shift 2
+      ;;
     *)
-      echo "Usage: complexity-classify.sh --intent \"text\" [--phase-state \"k=v ...\"] [--config path] [--codebase-map true|false]" >&2
+      echo "Usage: complexity-classify.sh --intent \"text\" [--phase-state \"k=v ...\"] [--config path] [--codebase-map true|false] [--medium-threshold 0.7]" >&2
       exit 1
       ;;
   esac
@@ -62,7 +67,14 @@ DEPT_COUNT=0
 if [ -n "$CONFIG_PATH" ] && [ -f "$CONFIG_PATH" ]; then
   ACTIVE_DEPTS=$(jq -c '[.departments // {} | to_entries[] | select(.value == true) | .key]' "$CONFIG_PATH" 2>/dev/null || echo '[]')
   DEPT_COUNT=$(echo "$ACTIVE_DEPTS" | jq 'length')
+  # Read medium threshold from config if not overridden by flag
+  if [ -z "$MEDIUM_THRESHOLD" ]; then
+    MEDIUM_THRESHOLD=$(jq -r '.complexity_routing.medium_confidence_threshold // empty' "$CONFIG_PATH" 2>/dev/null || true)
+  fi
 fi
+
+# Default medium threshold if not set by flag or config
+MEDIUM_THRESHOLD="${MEDIUM_THRESHOLD:-0.7}"
 
 # --- Trivial keywords ---
 # Single-file fix, typo, config change, rename, doc-only, no cross-file impact
@@ -152,6 +164,17 @@ case "$COMPLEXITY" in
   *)       SUGGESTED_PATH="full_ceremony" ;;
 esac
 
+# --- Compute skip_analyze ---
+# skip_analyze=true when confidence >= medium_threshold AND complexity is not high
+# High complexity always requires the Analyze agent for deeper LLM analysis
+SKIP_ANALYZE="false"
+if [ "$COMPLEXITY" != "high" ]; then
+  local_check=$(echo "$CONFIDENCE >= $MEDIUM_THRESHOLD" | bc -l 2>/dev/null || echo "0")
+  if [ "$local_check" -eq 1 ]; then
+    SKIP_ANALYZE="true"
+  fi
+fi
+
 # --- Output JSON ---
 jq -n \
   --arg complexity "$COMPLEXITY" \
@@ -160,11 +183,13 @@ jq -n \
   --argjson confidence "$CONFIDENCE" \
   --arg reasoning "$REASONING" \
   --arg suggested_path "$SUGGESTED_PATH" \
+  --argjson skip_analyze "$SKIP_ANALYZE" \
   '{
     complexity: $complexity,
     departments: $departments,
     intent: $intent,
     confidence: $confidence,
     reasoning: $reasoning,
-    suggested_path: $suggested_path
+    suggested_path: $suggested_path,
+    skip_analyze: $skip_analyze
   }'
