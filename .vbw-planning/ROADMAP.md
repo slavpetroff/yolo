@@ -2,7 +2,7 @@
 
 **Goal:** YOLO — Your Own Local Orchestrator
 
-**Scope:** 6 phases
+**Scope:** 7 phases
 
 ## Progress
 | Phase | Status | Plans | Tasks | Commits |
@@ -13,6 +13,7 @@
 | 4 | Complete | 7 | 34 | 37 |
 | 5 | Complete | 6 | 23 | 24 |
 | 6 | Complete | 6 | 26 | 22 |
+| 7 | Pending | - | - | - |
 
 ---
 
@@ -23,6 +24,7 @@
 - [x] [Phase 4: Execution & Review Loops](#phase-4-execution-review-loops)
 - [x] [Phase 5: Integration & Delivery Pipeline](#phase-5-integration-delivery-pipeline)
 - [x] [Phase 6: Migration & Token Optimization](#phase-6-migration-token-optimization)
+- [ ] [Phase 7: Architecture Audit & Optimization](#phase-7-architecture-audit-optimization)
 
 ---
 
@@ -123,3 +125,22 @@
 - CLAUDE.md reflects complete new architecture
 
 **Dependencies:** Phase 5
+
+---
+
+## Phase 7: Architecture Audit & Optimization
+
+**Goal:** Comprehensive architecture audit addressing redundancy, token waste, context gaps, and communication issues identified by Scout research. Consolidate duplicate agent files via template pattern, optimize context compilation with rolling summaries and mode filtering, fix classification redundancy, improve cross-department communication, and remove dead config flags.
+
+**Requirements:** Consolidate ~85% duplicate content across 27 department agent files into template + overlay pattern (R-1), Implement mode-filtered agent prompts to eliminate unused sections per invocation (T-2), Resolve dual classification redundancy between complexity-classify.sh and Analyze agent (CI-1), Add pre-integration check at department Lead level to catch showstoppers before full Integration Gate (CH-4), Skip PO-Questionary loop for medium-path tasks (T-6), Add lightweight lint/type-check for trivial-path tasks (QR-4), Remove dead v2/v3 feature flags from config (CS-1), Implement rolling summary approach for compile-context.sh to cap context growth (T-1), Ensure all 36 agents have context-manifest.json entries (CG-3), Add structured error recovery context for task retries (CG-4)
+
+**Success Criteria:**
+- Agent file count reduced from 27 dept-specific to 9 templates + 3 dept overlays
+- Per-invocation agent prompt tokens reduced 30-50% via mode filtering
+- Single classification path (no dual classify.sh + Analyze)
+- Medium-path tasks skip PO loop, saving ~2000 tokens each
+- All context-manifest entries present for 36 agents
+- Dead feature flags removed, config simplified
+- Token audit shows 25-35% reduction per full-ceremony phase vs current baseline
+
+**Dependencies:** Phase 6
