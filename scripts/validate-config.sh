@@ -89,6 +89,85 @@ if [ "$has_qa_gates" = "true" ]; then
   fi
 fi
 
+# --- Validate integration_gate section (if present) ---
+has_integration_gate=$(jq 'has("integration_gate")' "$CONFIG_PATH")
+if [ "$has_integration_gate" = "true" ]; then
+  ig_type=$(jq -r '.integration_gate | type' "$CONFIG_PATH")
+  if [ "$ig_type" != "object" ]; then
+    ERRORS+=("integration_gate must be an object, got $ig_type")
+  else
+    # Check enabled is boolean (if present)
+    if jq -e '.integration_gate | has("enabled")' "$CONFIG_PATH" >/dev/null 2>&1; then
+      ig_enabled_type=$(jq -r '.integration_gate.enabled | type' "$CONFIG_PATH")
+      if [ "$ig_enabled_type" != "boolean" ]; then
+        ERRORS+=("integration_gate.enabled must be boolean, got $ig_enabled_type")
+      fi
+    fi
+
+    # Check timeout_seconds is number 60-3600 (if present)
+    if jq -e '.integration_gate | has("timeout_seconds")' "$CONFIG_PATH" >/dev/null 2>&1; then
+      ig_ts_valid=$(jq '.integration_gate.timeout_seconds | (type == "number") and (. >= 60) and (. <= 3600)' "$CONFIG_PATH")
+      if [ "$ig_ts_valid" != "true" ]; then
+        ERRORS+=("integration_gate.timeout_seconds must be a number between 60 and 3600")
+      fi
+    fi
+
+    # Check checks is object with boolean values (if present)
+    if jq -e '.integration_gate | has("checks")' "$CONFIG_PATH" >/dev/null 2>&1; then
+      ig_checks_type=$(jq -r '.integration_gate.checks | type' "$CONFIG_PATH")
+      if [ "$ig_checks_type" != "object" ]; then
+        ERRORS+=("integration_gate.checks must be an object, got $ig_checks_type")
+      else
+        ig_checks_valid=$(jq '[.integration_gate.checks | to_entries[] | .value | type == "boolean"] | all' "$CONFIG_PATH")
+        if [ "$ig_checks_valid" != "true" ]; then
+          ERRORS+=("integration_gate.checks values must all be booleans")
+        fi
+      fi
+    fi
+
+    # Check retry_on_fail is boolean (if present)
+    if jq -e '.integration_gate | has("retry_on_fail")' "$CONFIG_PATH" >/dev/null 2>&1; then
+      ig_retry_type=$(jq -r '.integration_gate.retry_on_fail | type' "$CONFIG_PATH")
+      if [ "$ig_retry_type" != "boolean" ]; then
+        ERRORS+=("integration_gate.retry_on_fail must be boolean, got $ig_retry_type")
+      fi
+    fi
+  fi
+fi
+
+# --- Validate po.default_rejection (if present) ---
+if jq -e '.po | has("default_rejection")' "$CONFIG_PATH" >/dev/null 2>&1; then
+  po_dr_valid=$(jq '.po.default_rejection | (type == "string") and test("^(patch|major)$")' "$CONFIG_PATH")
+  if [ "$po_dr_valid" != "true" ]; then
+    ERRORS+=("po.default_rejection must be one of: patch, major")
+  fi
+fi
+
+# --- Validate delivery section (if present) ---
+has_delivery=$(jq 'has("delivery")' "$CONFIG_PATH")
+if [ "$has_delivery" = "true" ]; then
+  del_type=$(jq -r '.delivery | type' "$CONFIG_PATH")
+  if [ "$del_type" != "object" ]; then
+    ERRORS+=("delivery must be an object, got $del_type")
+  else
+    # Check mode is valid enum (if present)
+    if jq -e '.delivery | has("mode")' "$CONFIG_PATH" >/dev/null 2>&1; then
+      del_mode_valid=$(jq '.delivery.mode | (type == "string") and test("^(auto|manual)$")' "$CONFIG_PATH")
+      if [ "$del_mode_valid" != "true" ]; then
+        ERRORS+=("delivery.mode must be one of: auto, manual")
+      fi
+    fi
+
+    # Check present_to_user is boolean (if present)
+    if jq -e '.delivery | has("present_to_user")' "$CONFIG_PATH" >/dev/null 2>&1; then
+      del_ptu_type=$(jq -r '.delivery.present_to_user | type' "$CONFIG_PATH")
+      if [ "$del_ptu_type" != "boolean" ]; then
+        ERRORS+=("delivery.present_to_user must be boolean, got $del_ptu_type")
+      fi
+    fi
+  fi
+fi
+
 # --- Validate complexity_routing section (if present) ---
 has_complexity_routing=$(jq 'has("complexity_routing")' "$CONFIG_PATH")
 if [ "$has_complexity_routing" = "true" ]; then
