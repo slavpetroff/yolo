@@ -13,14 +13,14 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Department Architecture
 
-29 agents across 4 departments + PO layer. Enable/disable departments via `config/defaults.json` `departments` key. PO layer (yolo-po, yolo-questionary, yolo-roadmap) gated by `po.enabled` config key.
+~36 agents across 4 departments + PO layer. Enable/disable departments via `config/defaults.json` `departments` key. PO layer (yolo-po, yolo-questionary, yolo-roadmap) gated by `po.enabled` config key. Documenter agents gated by `documenter` config key (on_request/always/never).
 
 | Department | Agents | Prefix | Protocol File |
 |-----------|--------|--------|---------------|
-| Backend | architect, lead, senior, dev, tester, qa, qa-code | (none) | `references/departments/backend.toon` |
-| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code | `fe-` | `references/departments/frontend.toon` |
-| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code | `ux-` | `references/departments/uiux.toon` |
-| Shared | owner, critic, scout, debugger, security | (none) | `references/departments/shared.toon` |
+| Backend | architect, lead, senior, dev, tester, qa, qa-code, security, documenter | (none) | `references/departments/backend.toon` |
+| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code, fe-security, fe-documenter | `fe-` | `references/departments/frontend.toon` |
+| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code, ux-security, ux-documenter | `ux-` | `references/departments/uiux.toon` |
+| Shared | owner, critic, scout, debugger | (none) | `references/departments/shared.toon` |
 
 **Workflow order:** UI/UX first (design) → Frontend + Backend in parallel → Integration QA → Owner Sign-off.
 **Communication:** Backend NEVER communicates with UI/UX directly. All cross-department data passes through handoff artifacts and Leads.
@@ -48,7 +48,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Single go.md (~300 lines) with inline mode logic | 2026-02-11 | One file = one truth; execute-protocol.md is the only extraction |
 | Company hierarchy: Architect → Lead → Senior → Dev | 2026-02-13 | Mirrors real engineering org, each level distills scope |
 | JSONL abbreviated keys for agent artifacts | 2026-02-13 | 85-93% token savings vs Markdown, jq-parseable |
-| 11-step workflow per phase (12-step when PO enabled) | 2026-02-13 | PO (Step 0, optional) → Critique → Research → Architecture → Plan → Design Review → Test Authoring → Implement → Code Review → QA → Security → Sign-off |
+| 11-step workflow per phase (12-step when PO enabled, optional Step 8.5 Documentation) | 2026-02-13 | PO (Step 0, optional) → Critique → Research → Architecture → Plan → Design Review → Test Authoring → Implement → Code Review → Documentation (optional) → QA → Security → Sign-off |
 | 4 departments (Backend, Frontend, UI/UX, Shared) | 2026-02-13 | Mirrors real company org, config-driven enable/disable |
 | EnterPlanMode strictly prohibited | 2026-02-14 | Bypasses YOLO workflow; all planning through /yolo:go |
 | Never bypass /yolo:go invocations | 2026-02-14 | Claude dismissed go.md as "not a workflow" and went ad-hoc; explicit rule prevents this |
@@ -66,6 +66,11 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | PO layer replaces Owner Mode 0 for scope gathering | 2026-02-18 | Structured PO-Questionary loop replaces ad-hoc Owner context gathering; Owner retains Modes 1-4 |
 | PO-Questionary loop capped at 3 rounds with 0.85 confidence | 2026-02-18 | Hard cap prevents infinite loops; 0.85 threshold enables early exit when scope is clear |
 | PO layer config-gated (po.enabled) | 2026-02-18 | Backward compatible; existing workflow unchanged when po.enabled=false |
+| Per-department Security Reviewers with dept-scoped checks | 2026-02-18 | Each dept has unique threat model (BE: auth/data, FE: XSS/CSP, UX: a11y/PII) |
+| Config-gated Documenter (on_request/always/never) | 2026-02-18 | Documentation is valuable but not always needed; non-blocking Step 8.5 |
+| Confidence-gated Critique Loop (3 rounds, 85 threshold) | 2026-02-18 | Prevents runaway critique while ensuring quality; early exit on high confidence |
+| Lead absorbs Solution Q&A responsibilities | 2026-02-18 | Reduces agent count; Lead already owns delivery sign-off |
+| Context manifests for token-budgeted context packages | 2026-02-18 | Data-driven context scoping via config/context-manifest.json vs hardcoded budgets |
 
 ## Installed Skills
 
