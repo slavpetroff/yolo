@@ -303,6 +303,20 @@ get_error_recovery() {
   fi
 }
 
+# --- Helper: emit all plan summaries (for QA/QA-code phase-wide review) ---
+# Unlike get_rolling_summaries which skips the current plan, this includes all.
+get_all_plan_summaries() {
+  local has_summaries=false
+  for summary in "$PHASE_DIR"/*.summary.jsonl; do
+    [ -f "$summary" ] || continue
+    if [ "$has_summaries" = false ]; then
+      echo "plan_summaries:"
+      has_summaries=true
+    fi
+    jq -r '"  \(.p // "")-\(.n // ""): s=\(.s // "") fm=\(.fm // [] | join(";"))"' "$summary" 2>/dev/null || true
+  done
+}
+
 # --- Token budget per role (chars/4 ≈ tokens) ---
 # Uses BASE_ROLE for department agents (fe-dev → dev budget, ux-architect → architect budget)
 # Reads from manifest when available, falls through to hardcoded case block otherwise.
@@ -608,8 +622,16 @@ case "$BASE_ROLE" in
     {
       emit_header
       echo ""
+      # Rolling summaries for all plans (QA reviews phase-wide)
+      get_all_plan_summaries
       echo "success_criteria: $PHASE_SUCCESS"
       echo ""
+      # Test results as primary QA input
+      if [ -f "$PHASE_DIR/test-results.jsonl" ]; then
+        echo "test_results:"
+        jq -r '"  \(.plan // ""): ps=\(.ps // 0) fl=\(.fl // 0) dept=\(.dept // "")"' "$PHASE_DIR/test-results.jsonl" 2>/dev/null || true
+        echo ""
+      fi
       # Plan header context (must-haves and objective)
       if [ -n "$PLAN_PATH" ] && [ -f "$PLAN_PATH" ]; then
         echo "plan_context:"
@@ -657,6 +679,8 @@ case "$BASE_ROLE" in
     {
       emit_header
       echo ""
+      # Rolling summaries for all plans (QA-code reviews phase-wide)
+      get_all_plan_summaries
       # Files modified (from summary.jsonl files in phase dir)
       echo "files_to_check:"
       for summary in "$PHASE_DIR"/*.summary.jsonl; do
