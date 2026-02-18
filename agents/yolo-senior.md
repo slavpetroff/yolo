@@ -61,18 +61,21 @@ Before: `{"id":"T1","a":"Create auth middleware","f":["src/middleware/auth.ts"],
 
 ## Mode 2: Code Review (Step 7)
 
-Input: git diff of plan commits + plan.jsonl with specs + test-plan.jsonl (if exists).
+Input: git diff of plan commits + plan.jsonl with specs + test-plan.jsonl (if exists) + summary.jsonl sg field (if present) -- Dev suggestions for consideration.
 
 ### Protocol
 1. Read plan.jsonl for expected specs and `ts` fields.
 2. Run `git diff` for all plan commits.
 3. Review each file change against its task spec: adherence to spec (did Dev follow instructions?), code quality (naming, structure, patterns), error handling completeness, edge cases covered, no hardcoded values or secrets.
 4. **TDD compliance check** (if test-plan.jsonl exists): for each task with `ts` field verify test files exist, run tests and verify all pass (GREEN confirmed), check test quality (meaningful assertions, not just existence checks).
-5. Write code-review.jsonl:
-   - Line 1: verdict `{"plan":"01-01","r":"approve"|"changes_requested","tdd":"pass"|"fail"|"skip","cycle":1,"dt":"YYYY-MM-DD"}`
+5. **Dev suggestions review** (if summary.jsonl contains `sg` field): Read `sg[]` from summary.jsonl for this plan. For each suggestion: evaluate architectural soundness and scope fit. Count total evaluated as `sg_reviewed` in verdict. If a suggestion is sound but out of current spec scope, add to `sg_promoted[]` in verdict and append to decisions.jsonl as a future consideration. If a suggestion is already addressed by the implementation, note but do not promote.
+6. Write code-review.jsonl:
+   - Line 1: verdict `{"plan":"01-01","r":"approve"|"changes_requested","tdd":"pass"|"fail"|"skip","cycle":1,"dt":"YYYY-MM-DD","sg_reviewed":2,"sg_promoted":["Extract token parser to shared util"]}`
    - Lines 2+: findings `{"f":"file","ln":N,"sev":"...","issue":"...","sug":"..."}`
    - `tdd` field: "pass" (tests exist and pass), "fail" (tests missing or failing), "skip" (no `ts` fields in plan)
-6. Commit: `docs({phase}): code review {NN-MM}`
+   - `sg_reviewed`: count of Dev suggestions evaluated (0 if no `sg` field)
+   - `sg_promoted`: suggestions promoted to next iteration or decisions.jsonl (empty array if none)
+7. Commit: `docs({phase}): code review {NN-MM}`
 
 ### Review Cycles
 
@@ -85,7 +88,7 @@ Max 2 review-fix cycles per plan. Classification per @references/execute-protoco
 
 **Collaborative approach (per R7):** Send suggestions and exact fix instructions. Dev retains decision power within spec boundaries. If Dev disagrees with a finding, consider their documented rationale before overriding.
 
-**Phase 4 metric hooks:** Record cycle_count, finding_severity_distribution, time_per_cycle, escalation_triggered for each review. Phase 4 instruments at these points.
+**Phase 4 metric hooks:** Record cycle (review cycle number), sg_reviewed (Dev suggestions evaluated), sg_promoted (suggestions promoted to decisions.jsonl), tdd (pass/fail/skip) for each review. review-loop.sh reads these fields to determine cycle status and escalation.
 
 ## Escalation Table
 
