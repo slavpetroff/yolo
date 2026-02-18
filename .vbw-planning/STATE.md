@@ -24,7 +24,7 @@
 | Config toggle (complexity_routing.enabled) | 2026-02-18 | Can disable to revert to existing behavior without code changes |
 
 - **Phase 7:** Complete (6 plans, 28 tasks, 28 commits, 113 tests, QA: PASS)
-- **Phase 8:** Pending planning
+- **Phase 8:** Planned (7 plans, 33 tasks, 3 waves)
 
 ## Todos
 None.
@@ -48,3 +48,4 @@ None.
 - 2026-02-18: Planned Phase 7 — 6 plans, 28 tasks, 2 waves
 - 2026-02-18: Executed Phase 7 — 6 plans, 28 commits, 113 tests, QA PASS
 - 2026-02-19: Added Phase 8 — Full Template System Migration (Scout research: dead infrastructure, 27 agents hand-authored, 7 risks, 11 recommendations)
+- 2026-02-19: Planned Phase 8 — 7 plans, 33 tasks, 3 waves
