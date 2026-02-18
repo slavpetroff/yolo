@@ -58,7 +58,48 @@ Key variables from above (MANDATORY — read these before any mode):
 
 ## Input Parsing
 
-Three input paths, evaluated in order:
+Four input paths, evaluated in order:
+
+### Path 0: Complexity-Aware Routing
+
+**Guard:** Skip if `config_complexity_routing=false` from phase-detect output. Skip if mode flags detected (--plan, --execute, --discuss, etc.). Skip if no $ARGUMENTS present.
+
+When `config_complexity_routing=true` AND $ARGUMENTS present AND no mode flags detected:
+
+1. **Spawn Analyze agent:**
+   ```
+   ANALYZE_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh analyze .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   ```
+   Spawn yolo-analyze via Task tool with model: "${ANALYZE_MODEL}". Pass:
+   - User intent text: $ARGUMENTS
+   - Phase-detect output summary (phase state, brownfield, codebase map status)
+   - Config path: `.yolo-planning/config.json`
+   - Codebase map status: `has_codebase_map` value
+
+2. **Receive analysis JSON** from Analyze agent with fields: complexity, departments, intent, confidence, reasoning, suggested_path.
+
+3. **Route based on suggested_path:**
+   - `trivial` (confidence >= `config_trivial_threshold`):
+     ```bash
+     result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-trivial.sh \
+       --phase-dir "{phase-dir}" --intent "$ARGUMENTS" \
+       --config .yolo-planning/config.json --analysis-json /tmp/yolo-analysis.json)
+     ```
+     Then dispatch to **Mode: Trivial Shortcut** below.
+   - `medium` (confidence >= `config_medium_threshold`):
+     ```bash
+     result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-medium.sh \
+       --phase-dir "{phase-dir}" --intent "$ARGUMENTS" \
+       --config .yolo-planning/config.json --analysis-json /tmp/yolo-analysis.json)
+     ```
+     Then dispatch to **Mode: Medium Path** below.
+   - `high`: Call `bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-high.sh` (if exists), then proceed with existing Plan+Execute flow (full ceremony).
+   - `redirect`: Map Analyze intent to existing redirects:
+     - debug → Redirect to `/yolo:debug` with $ARGUMENTS
+     - fix → Redirect to `/yolo:fix` with $ARGUMENTS
+     - research → Redirect to `/yolo:research` with $ARGUMENTS
+
+4. **Confidence fallback:** If confidence < `config_medium_threshold`: fall through to Path 2 (natural language intent) as fallback. Display: `○ Analyze confidence too low ({confidence}) — falling back to intent detection`.
 
 ### Path 1: Flag detection
 
