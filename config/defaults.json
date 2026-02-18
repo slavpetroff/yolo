@@ -50,6 +50,7 @@
     "max_rounds": 3,
     "confidence_threshold": 85
   },
+  "documenter": "on_request",
   "complexity_routing": {
     "enabled": true,
     "trivial_confidence_threshold": 0.85,
