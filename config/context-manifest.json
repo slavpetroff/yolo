@@ -3,20 +3,28 @@
     "architect": {
       "files": ["ROADMAP.md", "REQUIREMENTS.md", "codebase/*"],
       "artifacts": ["critique", "research"],
-      "fields": {},
+      "fields": {
+        "research": ["q", "finding", "conf", "ra", "rt"]
+      },
       "budget": 5000
     },
     "lead": {
       "files": ["architecture.toon", "ROADMAP.md", "REQUIREMENTS.md", "STATE.md"],
-      "artifacts": ["decisions"],
-      "fields": {},
+      "artifacts": ["decisions", "escalation", "test-results"],
+      "fields": {
+        "escalation": ["id", "agent", "sb", "tgt", "sev", "st", "res"],
+        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"],
+        "research": ["q", "finding", "conf", "ra", "rt"]
+      },
       "budget": 3000
     },
     "senior": {
       "files": ["architecture.toon", "PATTERNS.md"],
-      "artifacts": ["plan"],
+      "artifacts": ["plan", "summary", "test-results"],
       "fields": {
-        "plan": ["id", "a", "f", "done", "spec", "ts"]
+        "plan": ["id", "a", "f", "done", "spec", "ts"],
+        "summary": ["sg"],
+        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
       },
       "budget": 4000
     },
@@ -38,17 +46,20 @@
     },
     "qa": {
       "files": ["success_criteria"],
-      "artifacts": ["plan"],
+      "artifacts": ["plan", "escalation", "test-results"],
       "fields": {
-        "plan": ["obj", "mh"]
+        "plan": ["obj", "mh"],
+        "escalation": ["id", "agent", "sb", "tgt", "sev", "st", "res"],
+        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
       },
       "budget": 2000
     },
     "qa-code": {
       "files": [],
-      "artifacts": ["summary"],
+      "artifacts": ["summary", "test-results"],
       "fields": {
-        "summary": ["fm"]
+        "summary": ["fm"],
+        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
       },
       "budget": 3000
     },
@@ -76,8 +87,10 @@
     },
     "owner": {
       "files": ["REQUIREMENTS.md", "success_criteria"],
-      "artifacts": ["department_result"],
-      "fields": {},
+      "artifacts": ["department_result", "escalation"],
+      "fields": {
+        "escalation": ["id", "agent", "sb", "tgt", "sev", "st", "res"]
+      },
       "budget": 3000
     },
     "debugger": {
