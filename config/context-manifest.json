@@ -162,6 +162,22 @@
         "integration-gate-result": ["r", "checks", "failures"]
       },
       "budget": 3000
+    },
+    "questionary": {
+      "files": ["ROADMAP.md", "REQUIREMENTS.md", "codebase/ARCHITECTURE.md", "codebase/STRUCTURE.md"],
+      "artifacts": ["summary"],
+      "fields": {
+        "summary": ["s", "tc", "tt"]
+      },
+      "budget": 2000
+    },
+    "roadmap": {
+      "files": ["ROADMAP.md", "REQUIREMENTS.md", "codebase/ARCHITECTURE.md", "codebase/STRUCTURE.md", "codebase/DEPENDENCIES.md", "codebase/PATTERNS.md"],
+      "artifacts": ["summary"],
+      "fields": {
+        "summary": ["s", "tc", "tt"]
+      },
+      "budget": 2000
     }
   }
 }
