@@ -48,7 +48,7 @@ Team mode (via resolve-team-mode.sh):
 Complexity routing (via complexity-classify.sh — only invoked when Path 0 is active):
 
 ```
-!`bash ${CLAUDE_PLUGIN_ROOT}/scripts/complexity-classify.sh --intent "$ARGUMENTS" --config .yolo-planning/config.json --codebase-map "$has_codebase_map" 2>/dev/null || echo '{"complexity":"high","confidence":0,"suggested_path":"high"}'`
+!`bash ${CLAUDE_PLUGIN_ROOT}/scripts/complexity-classify.sh --intent "$ARGUMENTS" --config .yolo-planning/config.json --codebase-map "$has_codebase_map" 2>/dev/null || echo '{"complexity":"high","confidence":0,"suggested_path":"full_ceremony"}'`
 ```
 
 Key variables from above (MANDATORY — read these before any mode):
@@ -89,21 +89,21 @@ When `config_complexity_routing=true` AND $ARGUMENTS present AND no mode flags d
 2. **Receive analysis JSON** from Analyze agent with fields: complexity, departments, intent, confidence, reasoning, suggested_path.
 
 3. **Route based on suggested_path:**
-   - `trivial` (confidence >= `config_trivial_threshold`):
+   - `trivial_shortcut` (confidence >= `config_trivial_threshold`):
      ```bash
      result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-trivial.sh \
        --phase-dir "{phase-dir}" --intent "$ARGUMENTS" \
        --config .yolo-planning/config.json --analysis-json /tmp/yolo-analysis.json)
      ```
      Then dispatch to **Mode: Trivial Shortcut** below.
-   - `medium` (confidence >= `config_medium_threshold`):
+   - `medium_path` (confidence >= `config_medium_threshold`):
      ```bash
      result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-medium.sh \
        --phase-dir "{phase-dir}" --intent "$ARGUMENTS" \
        --config .yolo-planning/config.json --analysis-json /tmp/yolo-analysis.json)
      ```
      Then dispatch to **Mode: Medium Path** below.
-   - `high`: Call `bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-high.sh` (if exists), then proceed with existing Plan+Execute flow (full ceremony).
+   - `full_ceremony`: Call `bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-high.sh` (if exists), then proceed with existing Plan+Execute flow (full ceremony).
    - `redirect`: Map Analyze intent to existing redirects:
      - debug → Redirect to `/yolo:debug` with $ARGUMENTS
      - fix → Redirect to `/yolo:fix` with $ARGUMENTS
@@ -447,7 +447,7 @@ This mode delegates to protocol files. Before reading:
 
 ### Mode: Trivial Shortcut
 
-**Guard:** Only entered via Path 0 complexity-aware routing when suggested_path=trivial and confidence >= config_trivial_threshold. Never entered directly by flags or natural language.
+**Guard:** Only entered via Path 0 complexity-aware routing when suggested_path=trivial_shortcut and confidence >= config_trivial_threshold. Never entered directly by flags or natural language.
 
 **Steps:**
 
@@ -489,7 +489,7 @@ Owner-first principle still applies — go.md is the user proxy throughout.
 
 ### Mode: Medium Path
 
-**Guard:** Only entered via Path 0 complexity-aware routing when suggested_path=medium and confidence >= config_medium_threshold. Never entered directly by flags or natural language.
+**Guard:** Only entered via Path 0 complexity-aware routing when suggested_path=medium_path and confidence >= config_medium_threshold. Never entered directly by flags or natural language.
 
 **Steps:**
 
