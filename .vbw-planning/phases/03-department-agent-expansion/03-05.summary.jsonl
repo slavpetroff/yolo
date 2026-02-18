@@ -1,0 +1,6 @@
+{"p":"03-05","s":"complete","tc":5,"cc":5,"dev":0,"fm":["config/model-profiles.json","references/company-hierarchy.md","scripts/resolve-agent-model.sh","references/departments/backend.toon","references/departments/frontend.toon","references/departments/uiux.toon","references/departments/shared.toon","agents/yolo-lead.md"]}
+{"id":"T1","s":"complete","c":"e667fd4","f":["config/model-profiles.json"]}
+{"id":"T2","s":"complete","c":"1e94a7a","f":["references/company-hierarchy.md"]}
+{"id":"T3","s":"complete","c":"c9d9967","f":["scripts/resolve-agent-model.sh"]}
+{"id":"T4","s":"complete","c":"0a92bd4","f":["references/departments/backend.toon","references/departments/frontend.toon","references/departments/uiux.toon","references/departments/shared.toon"]}
+{"id":"T5","s":"complete","c":"20b8ca1","f":["agents/yolo-lead.md"]}
