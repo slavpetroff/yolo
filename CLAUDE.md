@@ -6,10 +6,10 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** No active milestone
+**Work:** Agent Voice & Statusline Resilience — 3 phases (statusline fix, agent persona voice, handoff chain-of-custody)
 **Last shipped:** Workflow Hardening, Org Alignment & Optimization — 5 phases, 25 plans, 104 tasks, 107 commits, 203 tests
 **Previous:** Teammate API Integration — 4 phases, 19 plans, 84 tasks, 76 commits, 876 tests
-**Next action:** Run /yolo:go to start a new milestone, or /yolo:status to review progress
+**Next action:** Run /yolo:go to plan Phase 1 (statusline-resilience)
 
 ## Department Architecture
 
