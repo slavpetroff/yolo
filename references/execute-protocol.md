@@ -877,6 +877,58 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 
 5. **EXIT GATE:** Artifact: `.execution-state.json` updated with `steps.integration_gate.status` = `"complete"` and `steps.integration_gate.artifact` = gate result path. Commit: `chore(state): integration_gate complete phase {N}`.
 
+### Step 12: PO Q&A + Delivery (optional — config-gated)
+
+**Guard:** Skip if `po.enabled=false` in config. When PO layer is disabled, delivery is implicit after Sign-off (Step 11). Skip Output per template. Commit: `chore(state): delivery skipped phase {N}`.
+
+**ENTRY GATE:** Verify `steps.integration_gate.status` is `"complete"` OR `"skipped"` in `.execution-state.json`. If neither: STOP "Step 11.5 not complete — integration gate has not run. Run step 11.5 first."
+
+1. Update execution state: `"step": "delivery"`
+2. **Spawn PO in Mode 4 (Delivery Review):**
+   ```bash
+   PO_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh po .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   ```
+   Spawn yolo-po with model: "${PO_MODEL}". Mode: `delivery_review` (Mode 4). Pass:
+   - `scope-document.json` (original PO-approved scope from Step 0)
+   - Integration gate results (from Step 11.5, if ran)
+   - Phase summary: plans completed, QA results, security results, deviations
+   - `.execution-state.json` (full phase state)
+
+   Display: `◆ Spawning PO (${PO_MODEL}) for delivery review...`
+
+3. **PO evaluates delivery against scope.** PO produces a verdict:
+   - `verdict: "approve"` — Scope fully met. Proceed to user delivery.
+   - `verdict: "patch"` — Minor gaps detected. PO specifies patch tasks (max `po.max_patch_tasks`, default 3). Route to department Senior for re-spec, Dev implements, Senior reviews. Max 2 patch cycles. After cycle 2 still incomplete: PO escalates to user with remaining gaps.
+   - `verdict: "major"` — Significant scope deviation. PO packages a structured re-scope proposal with: what was delivered, what was missed, recommended next steps. Max 1 major cycle (re-scope triggers new planning, not patch). Route to user for decision.
+
+4. **Patch cycle protocol (verdict=patch):**
+   - PO emits `patch_tasks[]` array: each entry has `desc`, `dept`, `severity`, `files`.
+   - Orchestrator routes each patch task to the appropriate department Senior.
+   - Senior re-specs, Dev implements, Senior reviews (mini code-review, no full Step 8 ceremony).
+   - After all patches: re-run integration gate (Step 11.5) if `integration_gate.enabled=true`.
+   - PO re-evaluates. If approve: proceed. If still patch after cycle 2: escalate to user.
+   - Display per cycle: `◆ Patch cycle {N}/2 — {M} tasks remaining`
+
+5. **Major cycle protocol (verdict=major):**
+   - PO emits `rescope_proposal` object: `{delivered, missed, impact, recommendation, options[]}`.
+   - Orchestrator renders proposal to user via AskUserQuestion.
+   - User chooses: Accept as-is (PO approves current delivery), Re-scope (triggers new /yolo:go --plan cycle), or Reject (phase marked incomplete).
+   - Max 1 major cycle — no recursive re-scoping.
+
+6. **Delivery to user (verdict=approve or user accepts):**
+   PO produces `delivery_summary` for user presentation:
+   ```bash
+   rendered=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/render-user-presentation.sh \
+     --json "$delivery_json" --template delivery)
+   ```
+   Orchestrator renders via AskUserQuestion with delivery summary:
+   - What was built (scope coverage)
+   - Key metrics (plans, tests, review cycles, deviations)
+   - Known limitations (accepted risks from code review, deferred items)
+   - Suggested next steps
+
+7. **EXIT GATE:** Artifact: `.execution-state.json` updated with `steps.delivery.status` = `"complete"` and `steps.delivery.verdict` = `"{approve|patch|major}"`. Commit: `chore(state): delivery complete phase {N}`.
+
 ## Execution State Transitions (Enforcement Contract)
 
 **This table is the enforcement contract.** go.md MUST verify the Entry Artifact column before running each step and verify the Exit Artifact column after each step completes. No exceptions.
