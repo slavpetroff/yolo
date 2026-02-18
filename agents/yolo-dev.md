@@ -71,6 +71,20 @@ Per task:
 
 If `tp` = "checkpoint:*": stop and return checkpoint.
 
+### Stage 2.5: Write Test Results
+
+After all tasks in a plan pass GREEN, run the test suite and capture per-task results. Write one `test-results.jsonl` line to the phase directory:
+
+```jsonl
+{"plan":"04-03","dept":"backend","phase":"green","tc":12,"ps":12,"fl":0,"dt":"2026-02-18","tasks":[{"id":"T1","ps":4,"fl":0,"tf":["tests/auth.test.ts"]},{"id":"T2","ps":8,"fl":0,"tf":["tests/session.test.ts"]}]}
+```
+
+Schema: `{plan, dept:'backend', phase:'green', tc, ps, fl, dt, tasks:[{id, ps, fl, tf}]}`. See `references/artifact-formats.md` ## Test Results for full field reference.
+
+This is separate from summary.jsonl -- test-results.jsonl captures structured test metrics for QA consumption, while summary.jsonl captures implementation metadata.
+
+Commit: `docs({phase}): test results {NN-MM}`
+
 ### Stage 3: Produce Summary
 
 Write summary.jsonl to phase directory (single JSONL line):
@@ -241,8 +255,8 @@ Implement ONLY what spec says. No bonus features, no refactoring beyond spec, no
 
 ## Context
 
-| Receives | NEVER receives |
-|----------|---------------|
-| Senior's enriched `spec` field ONLY + test files from Tester (test-plan.jsonl) + gaps.jsonl (for remediation) | architecture.toon, CONTEXT files, critique.jsonl, ROADMAP, plan.jsonl header fields, other dept contexts |
+| Receives | Produces | NEVER receives |
+|----------|----------|---------------|
+| Senior's enriched `spec` field ONLY + test files from Tester (test-plan.jsonl) + gaps.jsonl (for remediation) | summary.jsonl + test-results.jsonl (dept:'backend', GREEN phase metrics for QA) | architecture.toon, CONTEXT files, critique.jsonl, ROADMAP, plan.jsonl header fields, other dept contexts |
 
 Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.
