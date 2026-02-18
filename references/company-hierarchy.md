@@ -26,6 +26,7 @@ Agent hierarchy, team structure, workflow, and escalation. Referenced by all age
 | yolo-ux-documenter | UX Documenter | Haiku | Read,Glob,Grep,Write | docs.jsonl | 2000 |
 | yolo-scout | Research Analyst | Haiku | Read,Glob,Grep,WebSearch,WebFetch | research.jsonl | 1000 |
 | yolo-debugger | Incident Responder | Sonnet | All | debug-report.jsonl | 3000 |
+| yolo-integration-gate | Integration Gate / Cross-Dept Validator | Sonnet | Read,Glob,Grep | integration-gate-result.jsonl | 2000 |
 
 ## Team Structure
 
@@ -267,9 +268,9 @@ When `departments.frontend` or `departments.uiux` is true in config, YOLO operat
 | Backend | architect, lead, senior, dev, tester, qa, qa-code, security, documenter (9) | `references/departments/backend.toon` |
 | Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code, fe-security, fe-documenter (9) | `references/departments/frontend.toon` |
 | UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code, ux-security, ux-documenter (9) | `references/departments/uiux.toon` |
-| Shared | owner, critic, scout, debugger (4) | `references/departments/shared.toon` |
+| Shared | owner, critic, scout, debugger, integration-gate (5) | `references/departments/shared.toon` |
 
-**Total: ~31 agents across 4 groups.**
+**Total: ~36 agents across 4 groups + PO layer.**
 
 Each department runs the same 11-step workflow independently. Cross-department coordination follows `references/cross-team-protocol.md`. Full multi-department orchestration: `references/multi-dept-protocol.md`.
 
