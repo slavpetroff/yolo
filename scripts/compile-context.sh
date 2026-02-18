@@ -3,7 +3,7 @@ set -euo pipefail
 
 # compile-context.sh <phase-number> <role> [phases-dir] [plan-path]
 # Produces .ctx-{role}.toon in the phase directory with role-specific context.
-# Roles: architect, lead, senior, dev, qa, qa-code, security, debugger, critic, tester, owner, integration-gate
+# Roles: architect, lead, senior, dev, qa, qa-code, security, debugger, critic, tester, owner, integration-gate, analyze, po, questionary, roadmap
 # Department roles: fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code
 #                   ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code
 # Exit 0 on success, exit 1 when phase directory not found.
@@ -32,7 +32,7 @@ PLAN_PATH="${4:-}"
 case "$ROLE" in
   fe-*) DEPT="fe"; BASE_ROLE="${ROLE#fe-}" ;;
   ux-*) DEPT="ux"; BASE_ROLE="${ROLE#ux-}" ;;
-  owner) DEPT="shared"; BASE_ROLE="owner" ;;
+  owner|analyze|po|questionary|roadmap) DEPT="shared"; BASE_ROLE="$ROLE" ;;
   *) DEPT="backend"; BASE_ROLE="$ROLE" ;;
 esac
 
@@ -286,6 +286,10 @@ get_budget() {
     tester|fe-tester|ux-tester)           echo 3000 ;;
     owner)                                echo 3000 ;;
     documenter|fe-documenter|ux-documenter) echo 2000 ;;
+    analyze)                              echo 2000 ;;
+    po)                                   echo 3000 ;;
+    questionary)                          echo 2000 ;;
+    roadmap)                              echo 3000 ;;
     *)                                    echo 3000 ;;
   esac
 }
@@ -920,8 +924,26 @@ case "$BASE_ROLE" in
     } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
     ;;
 
+  analyze)
+    {
+      emit_header
+      echo ""
+      # Codebase mapping for complexity classification
+      if [ "$HAS_CODEBASE" = true ]; then
+        echo "codebase:"
+        for base in ARCHITECTURE INDEX; do
+          if [ -f "$PLANNING_DIR/codebase/${base}.md" ]; then
+            echo "  @$PLANNING_DIR/codebase/${base}.md"
+          fi
+        done
+      fi
+      REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
+      get_tool_restrictions
+    } > "${PHASE_DIR}/.ctx-${ROLE}.toon"
+    ;;
+
   *)
-    echo "Unknown role: $ROLE (base: $BASE_ROLE). Valid base roles: architect, lead, senior, dev, qa, qa-code, security, debugger, critic, tester, owner, scout, documenter, integration-gate" >&2
+    echo "Unknown role: $ROLE (base: $BASE_ROLE). Valid base roles: architect, lead, senior, dev, qa, qa-code, security, debugger, critic, tester, owner, scout, documenter, integration-gate, analyze, po, questionary, roadmap" >&2
     exit 1
     ;;
 esac
