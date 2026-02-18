@@ -614,3 +614,48 @@ STATE
 @test "compaction-instructions.sh architect priorities include codebase mapping re-read" {
   sed -n '/*architect*/,/;;/p' "$PROJECT_ROOT/scripts/compaction-instructions.sh" | grep -q 'codebase'
 }
+
+@test "compaction-instructions.sh qa priorities include codebase mapping re-read" {
+  sed -n '/*qa*/,/;;/p' "$PROJECT_ROOT/scripts/compaction-instructions.sh" | grep -q 'codebase'
+}
+
+# =============================================================================
+# debug.md command: gates on META.md, includes "whichever exist" qualifier (#96)
+# =============================================================================
+
+@test "debug.md Path A gates on META.md not just directory existence" {
+  grep -A5 'Create.*tasks via TaskCreate' "$PROJECT_ROOT/commands/debug.md" | grep -q 'META.md'
+}
+
+@test "debug.md Path B gates on META.md not just directory existence" {
+  grep -A20 'Path B.*Standard' "$PROJECT_ROOT/commands/debug.md" | grep -q 'META.md'
+}
+
+@test "debug.md includes whichever exist qualifier in spawn prompts" {
+  grep -q 'whichever exist' "$PROJECT_ROOT/commands/debug.md"
+}
+
+# =============================================================================
+# qa.md command: spawn prompt includes full codebase bootstrap (#96)
+# =============================================================================
+
+@test "qa.md spawn prompt includes codebase bootstrap instruction" {
+  grep -q 'META.md' "$PROJECT_ROOT/commands/qa.md"
+}
+
+@test "qa.md spawn prompt references TESTING.md and CONCERNS.md" {
+  grep -q 'TESTING.md' "$PROJECT_ROOT/commands/qa.md" &&
+  grep -q 'CONCERNS.md' "$PROJECT_ROOT/commands/qa.md"
+}
+
+# =============================================================================
+# execute-protocol.md: QA spawn prompts include codebase bootstrap (#96)
+# =============================================================================
+
+@test "execute-protocol.md per-wave QA prompt includes codebase bootstrap" {
+  grep -A5 'Per-wave QA' "$PROJECT_ROOT/references/execute-protocol.md" | grep -q 'META.md'
+}
+
+@test "execute-protocol.md post-build QA prompt includes codebase bootstrap" {
+  grep -A5 'Post-build QA' "$PROJECT_ROOT/references/execute-protocol.md" | grep -q 'META.md'
+}

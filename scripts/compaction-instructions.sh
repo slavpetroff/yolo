@@ -15,7 +15,7 @@ case "$AGENT_NAME" in
     PRIORITIES="Preserve commit hashes, file paths modified, deviation decisions, current task number. After compaction, re-read .vbw-planning/codebase/ mapping files (CONVENTIONS.md, PATTERNS.md, STRUCTURE.md, DEPENDENCIES.md) if META.md exists"
     ;;
   *qa*)
-    PRIORITIES="Preserve pass/fail status, gap descriptions, verification results"
+    PRIORITIES="Preserve pass/fail status, gap descriptions, verification results. After compaction, re-read .vbw-planning/codebase/ mapping files (TESTING.md, CONCERNS.md, ARCHITECTURE.md) if META.md exists"
     ;;
   *lead*)
     PRIORITIES="Preserve phase status, plan structure, coordination decisions. After compaction, re-read .vbw-planning/codebase/ mapping files (ARCHITECTURE.md, CONCERNS.md, STRUCTURE.md) if META.md exists"
