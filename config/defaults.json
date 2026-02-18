@@ -52,7 +52,7 @@
     "confidence_threshold": 0.85,
     "scope_output_format": "json",
     "skip_on_effort": ["turbo"],
-    "skip_on_complexity": [],
+    "skip_on_complexity": ["medium", "trivial"],
     "default_rejection": "patch"
   },
   "critique": {
