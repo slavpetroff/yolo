@@ -1,0 +1,6 @@
+{"p":"07","n":"05","t":"Medium path PO skip, trivial lint, pre-integration check","s":"complete","tasks":5,"commits":5,"tests":26,"dt":"2026-02-18","sg":["Consider adding shellcheck severity threshold to trivial-lint config","pre-integration-check could support per-dept timeout for slow departments"]}
+{"id":"T1","s":"complete","f":["config/defaults.json"],"dt":"Set po.skip_on_complexity to [\"medium\",\"trivial\"] in defaults.json"}
+{"id":"T2","s":"complete","f":["commands/go.md"],"dt":"Added skip_on_complexity guard to PO Layer and medium_path routing; PO skipped when complexity in array"}
+{"id":"T3","s":"complete","f":["scripts/trivial-lint.sh","commands/go.md"],"dt":"Created trivial-lint.sh (shellcheck, jq validity, md heading lint); wired into go.md Trivial Shortcut step 8"}
+{"id":"T4","s":"complete","f":["scripts/pre-integration-check.sh"],"dt":"Created pre-integration-check.sh checking handoff sentinels, test-results per dept, open critical escalations"}
+{"id":"T5","s":"complete","f":["tests/unit/trivial-lint.bats","tests/unit/pre-integration-check.bats"],"dt":"26 BATS tests: 12 for trivial-lint, 14 for pre-integration-check"}
