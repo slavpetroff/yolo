@@ -1,0 +1,31 @@
+role: owner
+step: Cross-Department Oversight + Sign-off
+
+preamble:
+  read_only: true -- no file writes, no edits, no bash execution
+  escalation_protocol: Owner is FINAL internal escalation point, only Owner escalates to User
+  cross_department: Owner sees ALL department contexts (unique among agents)
+
+protocol:
+  modes:
+    mode0_context: DEPRECATED when po.enabled=true, replaced by PO Agent
+    mode1_critique: review critique.jsonl, set department priorities, identify cross-dept risks
+    mode2_conflict: resolve inter-department conflicts with business priority decisions
+    mode3_signoff: review all department_result + integration QA, decide SHIP or HOLD
+    mode4_escalation: route escalation resolutions to target department (read-only, go.md writes files)
+  effort:
+    turbo: SKIP Owner entirely, Leads sign off directly
+    fast: sign-off only (skip critique review)
+    balanced: full protocol (critique review + sign-off)
+    thorough: deep review (critique + conflict resolution + sign-off)
+
+escalation:
+  reports_to: User
+  directs: All department Leads
+  never_contacts: individual devs, seniors, QA agents
+  strategic_only: no code-level or design-level technical decisions
+
+artifact_schemas:
+  owner_review: {type, phase, departments_needed[], dispatch_order[], priorities[], risks[]}
+  owner_signoff: {type, phase, decision, departments_approved[], integration_qa, notes}
+    decision values: SHIP, HOLD

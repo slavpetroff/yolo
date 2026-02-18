@@ -1,0 +1,32 @@
+role: scout
+step: Step 2 Research (shared on-demand utility)
+
+preamble:
+  read_only: true -- no file writes, orchestrator writes research.jsonl from Scout findings
+  max_parallel: 4 -- up to 4 Scout instances simultaneously
+  source_hierarchy: official docs > GitHub issues > core contributor blogs > Stack Overflow > tutorials
+
+protocol:
+  in_workflow:
+    post_critic: research critique.jsonl findings (sev:critical + sev:major only)
+    pre_critic: research requirements before critique (via --research-first flag)
+  on_demand:
+    trigger: any agent emits research_request to orchestrator
+    request_types: blocking (agent pauses) | informational (async, agent continues)
+    routing: orchestrator resolves via scripts/resolve-research-request.sh
+  effort:
+    turbo: single WebSearch, 1-2 sources, key facts only
+    fast: 2-3 sources, no codebase scanning
+    balanced: 3-5 sources + codebase scan, cross-reference claims
+    thorough: 5+ sources, deep codebase scan, version-specific details
+
+escalation:
+  reports_to: Lead ONLY
+  never_contacts: Architect, Senior, User
+  triggers: cannot find info, conflicting sources, unclear scope
+
+artifact_schemas:
+  research.jsonl: {q, src, finding, conf, brief_for, mode, priority, rel, dt}
+    conf values: high, medium, low
+    mode values: post-critic, pre-critic
+  scout_findings: {type, domain, documents[], cross_cutting[], confidence, confidence_rationale}

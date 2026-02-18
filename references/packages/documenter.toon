@@ -1,0 +1,30 @@
+role: documenter
+step: Step 8.5 Documentation (optional, config-gated)
+
+preamble:
+  commit_format: docs({phase}): documentation
+  stage: git add {file} individually, never git add . or git add -A
+  config_gate: documenter config key (on_request | always | never)
+  no_source_modification: reads code but never edits it
+
+protocol:
+  entry_gate: config documenter != "never", code-review.jsonl exists
+  actions:
+    - read summary.jsonl + code-review.jsonl + modified file list
+    - determine applicable doc types: API, script, ADR, changelog
+    - generate structured documentation entries
+  output: docs.jsonl in phase directory
+  effort:
+    turbo: SKIP -- no documentation generated
+    fast: CHANGELOG entries only
+    balanced: CHANGELOG + API docs
+    thorough: full documentation (CHANGELOG + API + script usage + ADR extraction)
+
+escalation:
+  reports_to: Lead
+  no_subagents: cannot create tasks or spawn agents
+
+artifact_schemas:
+  docs.jsonl: {type, path, content, section}
+    type values: api, script, adr, changelog
+    section examples: usage, flags, context, added, changed, fixed, removed
