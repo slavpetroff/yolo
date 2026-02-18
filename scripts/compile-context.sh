@@ -266,6 +266,11 @@ get_manifest_field_filter() {
 # Uses BASE_ROLE for department agents (fe-dev → dev budget, ux-architect → architect budget)
 # Reads from manifest when available, falls through to hardcoded case block otherwise.
 get_budget() {
+  # Manifest-first: use manifest budget when available
+  if get_manifest_budget "$1" 2>/dev/null; then
+    return 0
+  fi
+  # Fallback: hardcoded case statement
   case "$1" in
     architect|fe-architect|ux-architect)  echo 5000 ;;
     lead|fe-lead|ux-lead)                 echo 3000 ;;
@@ -273,12 +278,14 @@ get_budget() {
     dev|fe-dev|ux-dev)                    echo 2000 ;;
     qa|fe-qa|ux-qa)                       echo 2000 ;;
     qa-code|fe-qa-code|ux-qa-code)        echo 3000 ;;
-    security)                             echo 3000 ;;
+    security|fe-security)                 echo 3000 ;;
+    ux-security)                          echo 2000 ;;
     scout)                                echo 1000 ;;
     debugger)                             echo 3000 ;;
     critic)                               echo 4000 ;;
     tester|fe-tester|ux-tester)           echo 3000 ;;
     owner)                                echo 3000 ;;
+    documenter|fe-documenter|ux-documenter) echo 2000 ;;
     *)                                    echo 3000 ;;
   esac
 }
