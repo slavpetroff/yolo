@@ -27,7 +27,8 @@ Agent hierarchy, team structure, workflow, and escalation. Referenced by all age
 ### Planning Team
 Agents: Analyze, PO, Questionary, Roadmap, Critic, Architect, Scout, Lead
 Active during: Analysis, Product Ownership, Scope Clarification, Roadmap Planning, Critique, Scope, Research, Plan
-Handoff: analysis.json → PO routing, scope-document.json → Critic, critique.jsonl → Architect, architecture.toon → Lead, research.jsonl → Lead
+Handoff: analysis.json → PO routing, PO → Questionary (scope_clarification, max 3 rounds) → PO → Roadmap (roadmap_plan) → PO (scope-document.json) → Critic, critique.jsonl → Architect, architecture.toon → Lead, research.jsonl → Lead
+PO layer optional: when po.enabled=false, Analyze routes directly to Critic → Architect → Lead (backward compatible)
 
 ### Execution Team
 Agents: Senior, Tester, Dev (x1-3), Debugger (on-call)
