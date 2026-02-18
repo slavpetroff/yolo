@@ -36,6 +36,7 @@ Only spawned when config `documenter` != `never`.
 
 Gate resolution: `scripts/resolve-documenter-gate.sh --config <path> --trigger <phase|on_request>`.
 
+<!-- mode:implement -->
 ## Documentation Protocol
 
 1. **Read inputs**: summary.jsonl + code-review.jsonl + list of modified files from the current phase.
@@ -60,6 +61,7 @@ Gate resolution: `scripts/resolve-documenter-gate.sh --config <path> --trigger <
 ## {{DEPT_LABEL}} Scope
 
 {{DOCUMENTER_SCOPE_ITEMS}}
+<!-- /mode -->
 
 ## Effort-Based Behavior
 

@@ -27,6 +27,7 @@ memory: project
 
 Reports to: {{LEAD}} (via verification.jsonl). Works alongside: QA Code Engineer (code-level). Does not direct Dev — findings route through {{LEAD}}.
 
+<!-- mode:qa -->
 ## Verification Protocol
 
 Three tiers (tier provided in task):
@@ -45,9 +46,13 @@ Three tiers (tier provided in task):
 4. Execute checks, collect evidence.
 5. Classify result: PASS|FAIL|PARTIAL.
 
+<!-- /mode -->
+
+<!-- mode:qa,implement -->
 ## Output Format
 
 Write verification.jsonl. Line 1: summary `{"tier":"...","r":"PASS|FAIL|PARTIAL","ps":N,"fl":N,"tt":N,"dt":"..."}`. Lines 2+: checks `{"c":"description","r":"pass|fail","ev":"evidence","cat":"category"}`. Result: PASS (all pass), PARTIAL (some fail, core verified), FAIL (critical must_have fails).
+<!-- /mode -->
 
 ## Escalation Table
 
@@ -59,6 +64,7 @@ Write verification.jsonl. Line 1: summary `{"tier":"...","r":"PASS|FAIL|PARTIAL"
 
 **NEVER escalate directly to Senior, {{ARCHITECT}}, or User.** {{LEAD}} is QA Lead's single escalation target.
 
+<!-- mode:qa -->
 ## Continuous QA (Gate-Aware Verification)
 
 When invoked at Step 9, QA Lead has access to prior gate results from the continuous QA system. Gate results are stored in {phase-dir}/.qa-gate-results.jsonl (one JSONL line per gate invocation). Use these to accelerate and focus verification.
@@ -78,7 +84,9 @@ QA Lead may confirm or override a gate FAIL. If gate result is r=FAIL but QA Lea
 ### Gate Result JSON Schema
 
 Post-plan gate result fields: gl (gate_level: post-plan), r (result: PASS|FAIL|PARTIAL), plan (plan_id), tst (tests: {ps:N,fl:N}), mh (must_haves: {tr:N,ar:N,kl:N}), dur (duration_ms), dt (date). See references/qa-gate-integration.md for full documentation.
+<!-- /mode -->
 
+<!-- mode:implement -->
 ## Teammate API (when team_mode=teammate)
 
 > This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely. Use Task tool result returns and file-based artifacts instead.
@@ -127,7 +135,9 @@ Replace Task tool result returns with direct SendMessage to {{LEAD}}'s teammate 
 ### Shutdown Response
 
 For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+<!-- /mode -->
 
+<!-- mode:review -->
 ## Review Ownership
 
 When verifying team output (QA step), adopt ownership: "This is my team's output. I own verification thoroughness."
@@ -135,6 +145,7 @@ When verifying team output (QA step), adopt ownership: "This is my team's output
 Ownership means: must analyze every must_have thoroughly (not skim), must document reasoning for pass/fail decisions with evidence, must escalate unresolvable findings to {{LEAD}}. No rubber-stamp PASS results.
 
 Full patterns: @references/review-ownership-patterns.md
+<!-- /mode -->
 
 ## Constraints & Effort
 

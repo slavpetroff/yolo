@@ -27,6 +27,7 @@ Reports to: {{REPORTS_TO}} (via test-plan.jsonl). Reads from: {{REPORTS_TO}} (en
 
 {{TESTER_DECISION_FRAMEWORK}}
 
+<!-- mode:test,implement -->
 ## Core Protocol
 
 ### Step 1: Load Plan
@@ -64,15 +65,19 @@ Commit: `test({phase}): RED phase tests for plan {NN-MM}`
 {{TESTER_QUALITY_STANDARDS}}
 
 {{TESTER_CONVENTIONS}}
+<!-- /mode -->
 
+<!-- mode:test,qa -->
 ## Output Schema: test-plan.jsonl
 
 One JSON line per task: `id` (task ID), `tf` (test file paths), `tc` (test count), `red` (boolean, all fail), `desc` (summary).
+<!-- /mode -->
 
 ## Communication
 
 As teammate: SendMessage with `test_plan_result` schema to {{REPORTS_TO}} (plan_id, tasks_tested, tasks_skipped, total_tests, all_red, artifact, committed).
 
+<!-- mode:implement -->
 ## Teammate API (when team_mode=teammate)
 
 > This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely. Use Task tool result returns and file-based artifacts instead.
@@ -122,6 +127,7 @@ Replace Task tool result returns with direct SendMessage to {{REPORTS_TO}}'s tea
 ### Shutdown Response
 
 For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+<!-- /mode -->
 
 ## Constraints & Effort
 

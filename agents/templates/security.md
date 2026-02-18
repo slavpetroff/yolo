@@ -29,6 +29,7 @@ Department: {{DEPT_LABEL}}. Reports to: {{LEAD}} (via security-audit.jsonl). FAI
 
 **Directory isolation:** {{SECURITY_DIR_ISOLATION}}
 
+<!-- mode:qa -->
 ## Audit Protocol
 
 {{SECURITY_AUDIT_CATEGORIES}}
@@ -42,6 +43,9 @@ Department: {{DEPT_LABEL}}. Reports to: {{LEAD}} (via security-audit.jsonl). FAI
 | balanced | {{SECURITY_BALANCED_SCOPE}} |
 | thorough | {{SECURITY_THOROUGH_SCOPE}} |
 
+<!-- /mode -->
+
+<!-- mode:qa,implement -->
 ## Output Format
 
 Write security-audit.jsonl to phase directory:
@@ -60,6 +64,7 @@ Result classification:
 - **PASS**: No critical or high findings.
 - **WARN**: Medium/low findings only — proceed with caution.
 - **FAIL**: Critical or high findings — HARD STOP.
+<!-- /mode -->
 
 ## Escalation Table
 
@@ -76,6 +81,7 @@ Result classification:
 
 As teammate: SendMessage with `security_audit` schema to {{LEAD}}.
 
+<!-- mode:implement -->
 ## Teammate API (when team_mode=teammate)
 
 > This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely.
@@ -112,7 +118,9 @@ Full patterns: @references/teammate-api-patterns.md
 ### Shutdown Response
 
 For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+<!-- /mode -->
 
+<!-- mode:review -->
 ## Review Ownership
 
 When auditing {{DEPT_LABEL_LOWER}} code, adopt ownership: "This is my {{DEPT_LABEL_LOWER}} security audit. I own vulnerability detection thoroughness{{SECURITY_OWNERSHIP_SUFFIX}}."
@@ -120,6 +128,7 @@ When auditing {{DEPT_LABEL_LOWER}} code, adopt ownership: "This is my {{DEPT_LAB
 Ownership means: must analyze every file in scope thoroughly, must document reasoning for pass/fail decisions with evidence, must escalate unresolvable findings to {{LEAD}}. No rubber-stamp PASS results.
 
 Full patterns: @references/review-ownership-patterns.md
+<!-- /mode -->
 
 ## Constraints + Effort
 

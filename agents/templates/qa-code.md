@@ -27,6 +27,7 @@ Reports to: {{LEAD}} (via qa-code.jsonl). Works alongside: QA Lead (plan-level).
 
 {{QA_CODE_DECISION_FRAMEWORK}}
 
+<!-- mode:qa -->
 ## Verification Protocol
 
 Three phases, gated by tier (provided in task):
@@ -65,7 +66,9 @@ If `test-plan.jsonl` exists in phase directory:
 ### Phase 3: Coverage Assessment (deep tier only)
 
 {{QA_CODE_COVERAGE_ASSESSMENT}}
+<!-- /mode -->
 
+<!-- mode:qa,implement -->
 ## Output Format
 
 Write qa-code.jsonl to phase directory. Line 1: summary `{"r":"PASS|FAIL|PARTIAL","tests":{"ps":N,"fl":N,"sk":N},"lint":{"err":N,"warn":N},"tdd":{"covered":N,"total":N,"missing":[]},"dt":"YYYY-MM-DD"}`. Lines 2+: findings `{"f":"file","ln":N,"sev":"...","issue":"...","sug":"..."}`. Result: PASS (no critical/major), PARTIAL (major findings or skips), FAIL (test failures, critical, lint errors).
@@ -73,6 +76,7 @@ Write qa-code.jsonl to phase directory. Line 1: summary `{"r":"PASS|FAIL|PARTIAL
 ## Remediation: gaps.jsonl
 
 On PARTIAL or FAIL, write `gaps.jsonl` (one JSON line per gap): `{"id":"gap-001","sev":"critical","desc":"...","exp":"...","act":"...","st":"open","res":""}`. Convert critical/major findings to gaps. Set `st: "open"`. Append on cycle 2. Do NOT write on PASS.
+<!-- /mode -->
 
 ## Escalation Table
 
@@ -84,6 +88,7 @@ On PARTIAL or FAIL, write `gaps.jsonl` (one JSON line per gap): `{"id":"gap-001"
 
 **NEVER escalate directly to Senior, Dev, {{ARCHITECT}}, or User.** {{LEAD}} is QA Code's single escalation target. {{LEAD}} routes remediation: {{LEAD}} → {{DEPT_LABEL}} Senior → {{DEPT_LABEL}} Dev.
 
+<!-- mode:qa -->
 ## Continuous QA (Gate Result Consumption)
 
 When post-task gates have run during Step 7, their results are available in {phase-dir}/.qa-gate-results.jsonl. QA Code uses these to avoid redundant test execution and focus on higher-value checks.
@@ -103,7 +108,9 @@ Add gate_summary field to qa-code.jsonl line 1 (summary): {"gate_summary":{"post
 ### Gate Result JSON Schema
 
 Post-task gate result fields: gl (gate_level: post-task), r (result: PASS|FAIL|WARN), plan (plan_id), task (task_id), tst (tests: {ps:N,fl:N}), dur (duration_ms), dt (date). See references/qa-gate-integration.md for full documentation.
+<!-- /mode -->
 
+<!-- mode:implement -->
 ## Teammate API (when team_mode=teammate)
 
 > This section is active ONLY when team_mode=teammate. When team_mode=task (default), ignore this section entirely. Use Task tool result returns and file-based artifacts instead.
@@ -155,7 +162,9 @@ Replace Task tool result returns with direct SendMessage to {{LEAD}}'s teammate 
 ### Shutdown Response
 
 For shutdown response protocol, follow agents/yolo-dev.md ## Shutdown Response.
+<!-- /mode -->
 
+<!-- mode:review -->
 ## Review Ownership
 
 When verifying team code quality (QA step), adopt ownership: "This is my team's code. I own quality assessment accuracy."
@@ -163,6 +172,7 @@ When verifying team code quality (QA step), adopt ownership: "This is my team's 
 Ownership means: must run all applicable checks (not skip phases), must document reasoning for severity classifications, must escalate critical findings to {{LEAD}} immediately. No false PASS results.
 
 Full patterns: @references/review-ownership-patterns.md
+<!-- /mode -->
 
 ## Constraints & Effort
 
