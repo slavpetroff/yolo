@@ -352,7 +352,7 @@ _mk_slow_cache_with_update() {
 
 @test "T25: L3 fits within 80 visible chars when YOLO_MAX_WIDTH=80" {
   _mk_slow_cache_all_segments
-  run bash -c "cd '$TEST_WORKDIR' && PATH='$TEST_WORKDIR/bin:$PATH' YOLO_MAX_WIDTH=80 printf '%s' '$STATUS_INPUT' | bash '$SUT'"
+  run bash -c "cd '$TEST_WORKDIR' && export YOLO_MAX_WIDTH=80 && PATH='$TEST_WORKDIR/bin:$PATH' printf '%s' '$STATUS_INPUT' | bash '$SUT'"
   assert_success
   local width
   width=$(_measure_line_width "$output" 3)
@@ -437,7 +437,7 @@ _mk_slow_cache_with_update() {
 
 @test "T30: L4 fits within 70 visible chars when YOLO_MAX_WIDTH=70" {
   _mk_slow_cache_with_update "9.9.9"
-  run bash -c "cd '$TEST_WORKDIR' && PATH='$TEST_WORKDIR/bin:$PATH' YOLO_MAX_WIDTH=70 printf '%s' '$STATUS_INPUT' | bash '$SUT'"
+  run bash -c "cd '$TEST_WORKDIR' && export YOLO_MAX_WIDTH=70 && PATH='$TEST_WORKDIR/bin:$PATH' printf '%s' '$STATUS_INPUT' | bash '$SUT'"
   assert_success
   local width
   width=$(_measure_line_width "$output" 4)
