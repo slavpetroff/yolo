@@ -262,6 +262,47 @@ get_manifest_field_filter() {
   fi
 }
 
+# --- Helper: emit rolling summaries for prior plans ---
+# When compiling context for plan NN-MM, includes only summary.jsonl for plans < NN-MM.
+# This caps context growth as phase plan count increases.
+get_rolling_summaries() {
+  if [ -z "$PLAN_PATH" ] || [ ! -f "$PLAN_PATH" ]; then
+    return 0
+  fi
+  local current_plan
+  current_plan=$(basename "$PLAN_PATH" .plan.jsonl)
+  local has_prior=false
+  for summary in "$PHASE_DIR"/*.summary.jsonl; do
+    [ -f "$summary" ] || continue
+    local summary_plan
+    summary_plan=$(basename "$summary" .summary.jsonl)
+    # Include only summaries for plans earlier than current
+    if [[ "$summary_plan" < "$current_plan" ]]; then
+      if [ "$has_prior" = false ]; then
+        echo "prior_plans:"
+        has_prior=true
+      fi
+      jq -r '"  \(.p // "")-\(.n // ""): s=\(.s // "") fm=\(.fm // [] | join(";"))"' "$summary" 2>/dev/null || true
+    fi
+  done
+}
+
+# --- Helper: emit error recovery context from gaps.jsonl ---
+# When gaps.jsonl has open entries with retry_context, includes error details
+# so the retry agent knows what failed and why.
+get_error_recovery() {
+  local gaps_file="$PHASE_DIR/gaps.jsonl"
+  if [ ! -f "$gaps_file" ]; then
+    return 0
+  fi
+  local recovery
+  recovery=$(jq -r 'select(.st == "open" and .retry_context != null and .retry_context != "") | "  \(.id // ""): \(.retry_context)"' "$gaps_file" 2>/dev/null || true)
+  if [ -n "$recovery" ]; then
+    echo "error_recovery:"
+    echo "$recovery"
+  fi
+}
+
 # --- Token budget per role (chars/4 ≈ tokens) ---
 # Uses BASE_ROLE for department agents (fe-dev → dev budget, ux-architect → architect budget)
 # Reads from manifest when available, falls through to hardcoded case block otherwise.
@@ -507,6 +548,8 @@ case "$BASE_ROLE" in
     {
       emit_header
       echo ""
+      # Rolling summaries for prior plans (T-1: cap context growth)
+      get_rolling_summaries
       # Plan tasks with specs (the Dev's primary input)
       if [ -n "$PLAN_PATH" ] && [ -f "$PLAN_PATH" ]; then
         # Extract tasks from plan.jsonl (skip header line)
