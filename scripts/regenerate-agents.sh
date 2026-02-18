@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # regenerate-agents.sh — Regenerate all 27 department agents from templates + overlays
-# Usage: regenerate-agents.sh [--check] [--help]
+# Usage: regenerate-agents.sh [--check] [--force] [--dry-run] [--help]
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -15,16 +15,20 @@ DEPTS=(backend frontend uiux)
 TOTAL=$(( ${#ROLES[@]} * ${#DEPTS[@]} ))
 
 CHECK=false
+FORCE=false
+DRY_RUN=false
 
 usage() {
   cat <<'USAGE'
-Usage: regenerate-agents.sh [--check] [--help]
+Usage: regenerate-agents.sh [--check] [--force] [--dry-run] [--help]
 
 Regenerate all 27 department agents (9 roles x 3 depts) from templates + overlays.
 
 Options:
-  --check   Check if generated files match current agent files (exit 1 if stale)
-  --help    Show this help message
+  --check     Check if generated files match current agent files (exit 1 if stale)
+  --force     Overwrite all agent files without prompting
+  --dry-run   Pass --dry-run to generate-agent.sh (print output, don't write)
+  --help      Show this help message
 
 Roles: architect, lead, senior, dev, tester, qa, qa-code, security, documenter
 Depts: backend, frontend, uiux
@@ -34,9 +38,11 @@ USAGE
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --check) CHECK=true; shift ;;
-    --help)  usage 0 ;;
-    *)       echo "Error: unknown argument: $1" >&2; usage 1 ;;
+    --check)   CHECK=true; shift ;;
+    --force)   FORCE=true; shift ;;
+    --dry-run) DRY_RUN=true; shift ;;
+    --help)    usage 0 ;;
+    *)         echo "Error: unknown argument: $1" >&2; usage 1 ;;
   esac
 done
 
@@ -81,15 +87,54 @@ if $CHECK; then
   exit 0
 fi
 
+# --- Build generate-agent.sh flags ---
+GEN_FLAGS=()
+if $DRY_RUN; then
+  GEN_FLAGS+=(--dry-run)
+fi
+
+# --- Prompt unless --force or --dry-run ---
+if ! $FORCE && ! $DRY_RUN; then
+  echo "This will regenerate ${TOTAL} agent files in ${AGENTS_DIR}/"
+  printf "Continue? [y/N] "
+  read -r answer
+  if [[ "$answer" != "y" && "$answer" != "Y" ]]; then
+    echo "Aborted."
+    exit 0
+  fi
+fi
+
 # --- Regenerate all combinations ---
 success=0
 failed=0
+updated=0
+unchanged=0
 failures=()
 
 for dept in "${DEPTS[@]}"; do
   for role in "${ROLES[@]}"; do
-    if bash "$GENERATE_SCRIPT" --role "$role" --dept "$dept"; then
+    output_path=$(resolve_output_path "$dept" "$role")
+
+    # Capture before-hash for change detection (skip if dry-run or file missing)
+    before_hash=""
+    if ! $DRY_RUN && [[ -f "$output_path" ]]; then
+      before_hash=$(shasum -a 256 "$output_path" | cut -d' ' -f1)
+    fi
+
+    if bash "$GENERATE_SCRIPT" --role "$role" --dept "$dept" ${GEN_FLAGS[@]+"${GEN_FLAGS[@]}"}; then
       success=$(( success + 1 ))
+
+      # Detect if file actually changed
+      if ! $DRY_RUN && [[ -n "$before_hash" && -f "$output_path" ]]; then
+        after_hash=$(shasum -a 256 "$output_path" | cut -d' ' -f1)
+        if [[ "$before_hash" == "$after_hash" ]]; then
+          unchanged=$(( unchanged + 1 ))
+        else
+          updated=$(( updated + 1 ))
+        fi
+      else
+        updated=$(( updated + 1 ))
+      fi
     else
       failed=$(( failed + 1 ))
       failures+=("${dept}/${role}")
@@ -99,10 +144,10 @@ done
 
 # --- Report ---
 echo ""
-echo "Regeneration complete: ${success}/${TOTAL} succeeded, ${failed} failed"
+echo "Regenerated ${success}/${TOTAL} agents (${unchanged} unchanged, ${updated} updated)"
 
 if [[ ${#failures[@]} -gt 0 ]]; then
-  echo "Failed combinations:"
+  echo "Failed (${failed}):"
   for f in "${failures[@]}"; do
     echo "  - $f"
   done
