@@ -23,12 +23,13 @@ esac
 MISSING=""
 
 if [ "$IS_JSONL" = true ]; then
-  # JSONL validation: batch 3 field checks into single jq call
+  # JSONL validation: batch field checks into single jq call
   if command -v jq >/dev/null 2>&1; then
     MISSING=$(jq -r '[
       (if has("p") then empty else "Missing '\''p'\'' (phase) field. " end),
       (if has("s") then empty else "Missing '\''s'\'' (status) field. " end),
-      (if has("fm") then empty else "Missing '\''fm'\'' (files_modified) field. " end)
+      (if has("fm") then empty else "Missing '\''fm'\'' (files_modified) field. " end),
+      (if has("sg") then (if (.sg | type == "array" and all(type == "string" and length > 0)) then empty else "Field '\''sg'\'' must be an array of non-empty strings. " end) else empty end)
     ] | join("")' "$FILE_PATH" 2>/dev/null)
   fi
 else
