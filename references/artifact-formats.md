@@ -160,6 +160,60 @@ Lines 2+ (findings):
 | `issue` | issue | string |
 | `fix` | remediation | string |
 
+### Integration Gate Result (integration-gate-result.jsonl)
+
+Single line per gate invocation:
+
+| Key | Full Name | Type |
+|-----|-----------|------|
+| `r` | result | "PASS"\|"FAIL"\|"PARTIAL" |
+| `checks` | check results | object |
+| `failures` | failure details | object[] |
+| `dt` | date | "YYYY-MM-DD" |
+
+The `checks` object:
+
+| Key | Full Name | Type |
+|-----|-----------|------|
+| `api` | API contract check | "pass"\|"fail"\|"skip" |
+| `design` | design sync check | "pass"\|"fail"\|"skip" |
+| `handoffs` | handoff sentinel check | "pass"\|"fail"\|"skip" |
+| `tests` | test results check | "pass"\|"fail"\|"skip" |
+
+Each `failures` entry:
+
+| Key | Full Name | Type |
+|-----|-----------|------|
+| `check` | which check failed | "api"\|"design"\|"handoffs"\|"tests" |
+| `detail` | failure description | string |
+| `file` | source artifact path | string |
+
+Written by Integration Gate agent (Step 11.5) or `scripts/integration-gate.sh`. Owner reads for Mode 3 sign-off. Added in Phase 5.
+
+### PO Q&A Verdict (po-qa-verdict.jsonl)
+
+Single line per PO review:
+
+| Key | Full Name | Type |
+|-----|-----------|------|
+| `r` | result | "accept"\|"patch"\|"major" |
+| `phase` | phase ID | string |
+| `scope_match` | scope alignment | "full"\|"partial"\|"misaligned" |
+| `findings` | PO findings | object[] |
+| `action` | next action | string |
+| `dt` | date | "YYYY-MM-DD" |
+
+Each `findings` entry:
+
+| Key | Full Name | Type |
+|-----|-----------|------|
+| `cat` | category | "scope"\|"quality"\|"ux"\|"integration" |
+| `sev` | severity | "critical"\|"major"\|"minor" |
+| `desc` | description | string |
+| `fix` | suggested fix | string |
+
+Result routing: `accept` -> proceed to delivery, `patch` -> department Senior fixes (targeted), `major` -> re-scope via PO-Questionary loop. Written by PO agent after reviewing department results. Added in Phase 5.
+
 ### Critique (critique.jsonl, one line per finding)
 
 | Key | Full Name | Type |
@@ -452,6 +506,8 @@ If compiled context exceeds budget:
   ├── decisions.jsonl          # All agents append (committed)
   ├── escalation.jsonl         # Escalation log (append-only, committed)
   ├── security-audit.jsonl     # Security output (committed, if enabled)
+  ├── integration-gate-result.jsonl # Integration Gate output (committed)
+  ├── po-qa-verdict.jsonl      # PO Q&A verdict (committed, if po.enabled)
   ├── .ctx-critic.toon         # Compiled (NOT committed, regenerated)
   ├── .ctx-architect.toon      # Compiled (NOT committed, regenerated)
   ├── .ctx-lead.toon           # Compiled (NOT committed)
