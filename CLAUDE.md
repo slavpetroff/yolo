@@ -20,7 +20,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 | Backend | architect, lead, senior, dev, tester, qa, qa-code, security, documenter | (none) | `references/departments/backend.toon` |
 | Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code, fe-security, fe-documenter | `fe-` | `references/departments/frontend.toon` |
 | UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code, ux-security, ux-documenter | `ux-` | `references/departments/uiux.toon` |
-| Shared | owner, critic, scout, debugger | (none) | `references/departments/shared.toon` |
+| Shared | owner, critic, scout, debugger, integration-gate | (none) | `references/departments/shared.toon` |
 
 **Workflow order:** UI/UX first (design) → Frontend + Backend in parallel → Integration QA → Owner Sign-off.
 **Communication:** Backend NEVER communicates with UI/UX directly. All cross-department data passes through handoff artifacts and Leads.
