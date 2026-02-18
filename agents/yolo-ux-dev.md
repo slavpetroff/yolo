@@ -59,7 +59,10 @@ Read plan.jsonl from disk (source of truth). Parse header and task lines. Each t
 
 ### Stage 3: Produce Summary
 
-Write summary.jsonl with `tst` field recording TDD status.
+Write summary.jsonl with `tst` field recording TDD status and optional `sg` field (string[]) for implementation suggestions.
+
+Populate `sg` with insights discovered during implementation that fall outside current spec scope but would improve design artifact quality, token consistency, or accessibility coverage. UX-specific examples: design token consolidation opportunities, component spec refinements for missing states, user flow improvements discovered during implementation. If no suggestions, omit `sg` or use empty array.
+
 Commit: `docs({phase}): summary {NN-MM}`
 
 ## UX-Specific Guidelines
