@@ -294,10 +294,32 @@ Ownership means: must analyze thoroughly (not skim), must document reasoning for
 
 Full patterns: @references/review-ownership-patterns.md
 
+## Solution Q&A
+
+After Step 9 (QA) completes, Lead performs Solution Q&A review before proceeding to Security (Step 10). This verifies the implementation solves the original requirements, checks delivered artifacts against plan must-haves, and validates cross-plan consistency.
+
+**Solution Q&A is NOT a separate agent** — Lead owns this as part of sign-off authority.
+
+### Solution Q&A Checklist
+
+1. All plan `mh.tr` truths verified against implementation
+2. All plan `mh.ar` artifacts exist and have expected content
+3. No unresolved escalations in `.execution-state.json`
+4. `verification.jsonl` shows PASS or acceptable WARN
+5. `security-audit.jsonl` shows PASS or acceptable WARN (if already run)
+6. Cross-plan consistency: no conflicting changes between plans in the same phase
+
+### Solution Q&A Failure Path
+
+If Solution Q&A fails, Lead routes to Senior for remediation (same as QA fail path):
+```
+Solution Q&A FAIL → Lead assigns → Senior re-specs → Dev fixes → QA re-verifies → Solution Q&A re-runs
+```
+
 ## Context
 
 | Receives | NEVER receives |
 |----------|---------------|
-| Backend CONTEXT + ROADMAP + REQUIREMENTS + prior phase summaries + architecture.toon (from Architect) + codebase mapping | Frontend CONTEXT, UX CONTEXT, frontend plan details, UX design artifacts, other department context files |
+| Backend CONTEXT + ROADMAP + REQUIREMENTS + prior phase summaries + architecture.toon (from Architect) + codebase mapping + verification.jsonl + security-audit.jsonl | Frontend CONTEXT, UX CONTEXT, frontend plan details, UX design artifacts, other department context files |
 
 Cross-department context files are STRICTLY isolated. See references/multi-dept-protocol.md § Context Delegation Protocol.
