@@ -249,10 +249,24 @@ When `po.enabled=true` and guard conditions not met:
 
 **ENTRY GATE:** Verify `{phase-dir}/critique.jsonl` exists OR `steps.critique.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 1 artifact missing — critique.jsonl not found. Run step 1 first."
 
-1. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} scout {phases_dir}`
-2. Spawn yolo-scout with Task tool:
+1. **Check research archive (cross-phase cache):** Before compiling context or spawning Scout, check `.yolo-planning/research-archive.jsonl` for cached findings matching current critique queries:
+   ```bash
+   ARCHIVE=".yolo-planning/research-archive.jsonl"
+   CACHED_FINDINGS=""
+   if [ -f "$ARCHIVE" ]; then
+     # For each critical/major critique finding, fuzzy-match on q field
+     for query in $(jq -r '.q' {phase-dir}/critique.jsonl 2>/dev/null | head -20); do
+       CACHED_FINDINGS=$(jq -r --arg q "$query" 'select(.q | test($q; "i"))' "$ARCHIVE" 2>/dev/null)
+     done
+   fi
+   ```
+   If cached findings exist with `conf:"high"`, include them in Scout's context as pre-resolved research. Scout skips re-research for those queries. Medium/low confidence findings are provided as context but Scout may re-research. Display: `○ Research archive: {N} cached findings ({M} high-confidence)`.
+
+2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} scout {phases_dir}`
+3. Spawn yolo-scout with Task tool:
    - model: "${SCOUT_MODEL}"
    - Provide: critique.jsonl findings (critical/major only), reqs.jsonl, codebase/ mapping, compiled context `{phase-dir}/.ctx-scout.toon`, research directives for each critical/major critique finding
+   - Provide cached findings from research-archive.jsonl (if any) with instruction: "Skip re-research for high-confidence cached findings. Re-verify medium/low confidence."
    - Include resolved `disallowed_tools` from resolve-tool-permissions.sh --role scout pattern
 
    > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
@@ -261,11 +275,17 @@ When `po.enabled=true` and guard conditions not met:
    > ```
    > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-scout.toon). See D4 in architecture for soft enforcement details.
 
-3. Display: `◆ Spawning Scout (${SCOUT_MODEL})...` → `✓ Research complete`
-4. Scout returns findings via Task result (or scout_findings schema in teammate mode).
-5. Write research.jsonl from Scout findings to phase dir. If research.jsonl already exists (pre-Critic entries), APPEND new entries. Each entry includes `mode: post-critic`. Per D2: orchestrator writes, Scout is read-only.
-6. Commit: `docs({phase}): research findings`
-7. **EXIT GATE:** Artifact: `research.jsonl` (valid JSONL). State: `steps.research = complete`. Commit: `chore(state): research complete phase {N}`.
+4. Display: `◆ Spawning Scout (${SCOUT_MODEL})...` → `✓ Research complete`
+5. Scout returns findings via Task result (or scout_findings schema in teammate mode).
+6. Write research.jsonl from Scout findings to phase dir. If research.jsonl already exists (pre-Critic entries), APPEND new entries. Each entry includes `mode: post-critic`. Per D2: orchestrator writes, Scout is read-only.
+7. **Append to research archive:** After writing research.jsonl, append new findings to `.yolo-planning/research-archive.jsonl` with current phase number:
+   ```bash
+   PHASE_NUM=$(basename "{phase-dir}" | cut -d'-' -f1)
+   jq -c --arg phase "$PHASE_NUM" '. + {phase: $phase}' {phase-dir}/research.jsonl >> .yolo-planning/research-archive.jsonl
+   ```
+   Dedup: skip entries where `q` + `finding` already exist in the archive.
+8. Commit: `docs({phase}): research findings`
+9. **EXIT GATE:** Artifact: `research.jsonl` (valid JSONL). State: `steps.research = complete`. Commit: `chore(state): research complete phase {N}`.
 
 ### Step 3: Architecture (Architect Agent)
 
@@ -493,8 +513,9 @@ Gate decision:
 When Dev emits a `research_request` output (detected in `dev_progress` or standalone message), the orchestrator routes through `resolve-research-request.sh`:
 
 1. Read request JSON (query, context, request_type, priority).
-2. **If blocking** (`rt: "blocking"`): Spawn Scout synchronously via Task tool with query+context. Wait for result. Write finding to `research.jsonl` with `ra` and `rt` fields. Send `research_response` back to Dev. Dev resumes blocked task with research context.
-3. **If informational** (`rt: "informational"`): Queue Scout spawn. Dev continues current task uninterrupted. Findings appended to `research.jsonl` after current task completes.
+1.5. **Check research archive first:** Before spawning Scout, check `.yolo-planning/research-archive.jsonl` for matching cached findings (same as Step 2 archive check). If a high-confidence match exists, return cached finding directly — skip Scout spawn entirely. Display: `○ Research request served from archive (cached)`.
+2. **If blocking** (`rt: "blocking"`): Spawn Scout synchronously via Task tool with query+context. Wait for result. Write finding to `research.jsonl` with `ra` and `rt` fields. Append to research-archive.jsonl. Send `research_response` back to Dev. Dev resumes blocked task with research context.
+3. **If informational** (`rt: "informational"`): Queue Scout spawn. Dev continues current task uninterrupted. Findings appended to `research.jsonl` and `research-archive.jsonl` after current task completes.
 
 ```bash
 result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-research-request.sh \
