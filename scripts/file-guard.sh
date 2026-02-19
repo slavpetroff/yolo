@@ -61,9 +61,37 @@ normalize_path() {
 
 NORM_TARGET=$(normalize_path "$FILE_PATH")
 
+# --- Worktree boundary enforcement ---
+CONFIG_PATH="$PROJECT_ROOT/.vbw-planning/config.json"
+WORKTREE_ISOLATION="off"
+if command -v jq >/dev/null 2>&1 && [ -f "$CONFIG_PATH" ]; then
+  WORKTREE_ISOLATION=$(jq -r '.worktree_isolation // "off"' "$CONFIG_PATH" 2>/dev/null) || WORKTREE_ISOLATION="off"
+fi
+if [ "$WORKTREE_ISOLATION" != "off" ] && [ -n "${VBW_AGENT_ROLE:-}" ]; then
+  case "${VBW_AGENT_ROLE:-}" in
+    dev|debugger)
+      AGENT_NAME_SHORT=$(echo "${VBW_AGENT_NAME:-}" | sed 's/.*vbw-//')
+      WORKTREE_MAP_FILE="$PROJECT_ROOT/.vbw-planning/.agent-worktrees/${AGENT_NAME_SHORT}.json"
+      if [ -f "$WORKTREE_MAP_FILE" ]; then
+        WORKTREE_PATH=$(jq -r '.worktree_path // ""' "$WORKTREE_MAP_FILE" 2>/dev/null) || WORKTREE_PATH=""
+        if [ -n "$WORKTREE_PATH" ]; then
+          case "$FILE_PATH" in
+            "$WORKTREE_PATH"/*|"$WORKTREE_PATH")
+              : # inside worktree — allowed
+              ;;
+            *)
+              echo "Blocked: write outside worktree boundary (expected prefix: $WORKTREE_PATH)" >&2
+              exit 2
+              ;;
+          esac
+        fi
+      fi
+      ;;
+  esac
+fi
+
 # --- V2 forbidden_paths check from active contract ---
 # v2_hard_contracts is now always enabled (graduated)
-CONFIG_PATH="$PROJECT_ROOT/.vbw-planning/config.json"
 
 # Contract enforcement is now unconditional
 if true; then
