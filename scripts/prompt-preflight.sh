@@ -51,11 +51,11 @@ case "$LOWER_PROMPT" in
     fi
 
     if [ -n "$CURRENT_PHASE" ]; then
-      PHASE_DIR="$PLANNING_DIR/phases/$CURRENT_PHASE"
       PLAN_COUNT=0
-      for f in "$PHASE_DIR"/*.plan.jsonl "$PHASE_DIR"/*-PLAN.md; do
-        [ -f "$f" ] && PLAN_COUNT=$((PLAN_COUNT+1))
-      done
+      _PF_DB="$PLANNING_DIR/yolo.db"
+      if [ -f "$_PF_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+        PLAN_COUNT=$(sqlite3 "$_PF_DB" "SELECT count(*) FROM plans WHERE phase='$CURRENT_PHASE';" 2>/dev/null || echo 0)
+      fi
       if [ "$PLAN_COUNT" -eq 0 ]; then
         WARNING="No plans for phase $CURRENT_PHASE. Run /yolo:go to plan first."
       fi

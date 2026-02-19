@@ -75,7 +75,25 @@ if [ -d "$PLANNING_DIR" ]; then
     [ -n "$e" ] && [ "$e" != "null" ] && effort="$e"
   fi
 
-  # Scan phases
+  # DB availability (DB is single source of truth for plan/summary counts)
+  DB_PATH="$PLANNING_DIR/yolo.db"
+  DB_AVAILABLE=false
+  if [ -f "$DB_PATH" ] && command -v sqlite3 >/dev/null 2>&1; then
+    DB_AVAILABLE=true
+  fi
+
+  # Helper: query plan/summary counts from DB
+  db_counts() {
+    local ph="$1"
+    _DB_PLANS=0
+    _DB_SUMMARIES=0
+    if [ "$DB_AVAILABLE" = true ]; then
+      _DB_PLANS=$(sqlite3 "$DB_PATH" "SELECT count(*) FROM plans WHERE phase='$ph';" 2>/dev/null || echo 0)
+      _DB_SUMMARIES=$(sqlite3 "$DB_PATH" "SELECT count(*) FROM summaries s JOIN plans p ON s.plan_id=p.rowid WHERE p.phase='$ph';" 2>/dev/null || echo 0)
+    fi
+  }
+
+  # Scan phases (dirs for structure, DB for counts)
   if [ -d "$PHASES_DIR" ]; then
     for dir in "$PHASES_DIR"/*/; do
       [ -d "$dir" ] || continue
@@ -83,8 +101,10 @@ if [ -d "$PLANNING_DIR" ]; then
       phase_num=$(basename "$dir" | sed 's/[^0-9].*//')
       phase_slug=$(basename "$dir" | sed 's/^[0-9]*-//')
 
-      plans=$(find "$dir" -maxdepth 1 \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
-      summaries=$(find "$dir" -maxdepth 1 \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
+      # DB-only plan/summary counting
+      db_counts "$phase_num"
+      plans=$_DB_PLANS
+      summaries=$_DB_SUMMARIES
 
       if [ "$plans" -eq 0 ] && [ -z "$next_unplanned" ]; then
         next_unplanned="$phase_num"
@@ -120,52 +140,23 @@ if [ -d "$PLANNING_DIR" ]; then
       all_done=true
     fi
 
-    # Find most recent QA result (JSONL or legacy MD)
-    for dir in "$PHASES_DIR"/*/; do
-      [ -d "$dir" ] || continue
-      # Check JSONL verification
-      if [ -f "$dir/verification.jsonl" ] && command -v jq >/dev/null 2>&1; then
-        r=$(head -1 "$dir/verification.jsonl" | jq -r '.r // empty' 2>/dev/null | tr '[:upper:]' '[:lower:]' || true)
-        [ -n "$r" ] && last_qa_result="$r"
+    # Find most recent QA result from DB
+    if [ "$DB_AVAILABLE" = true ]; then
+      _qa_result=$(sqlite3 "$DB_PATH" "SELECT result FROM verification ORDER BY rowid DESC LIMIT 1;" 2>/dev/null || true)
+      if [ -n "$_qa_result" ]; then
+        last_qa_result=$(echo "$_qa_result" | tr '[:upper:]' '[:lower:]')
       fi
-      # Check legacy VERIFICATION.md
-      for vf in "$dir"/*-VERIFICATION.md; do
-        [ -f "$vf" ] || continue
-        r=$(grep -m1 '^result:' "$vf" 2>/dev/null | sed 's/result:[[:space:]]*//' | tr '[:upper:]' '[:lower:]' || true)
-        [ -n "$r" ] && last_qa_result="$r"
-      done
-    done
+    fi
 
-    # Count deviations and find failing plans in active phase
-    if [ -n "$active_phase_dir" ] && [ -d "$active_phase_dir" ]; then
-      # Check JSONL summaries
-      for sf in "$active_phase_dir"/*.summary.jsonl; do
-        [ -f "$sf" ] || continue
-        if command -v jq >/dev/null 2>&1; then
-          d=$(jq -r '.dv // [] | length' "$sf" 2>/dev/null || echo 0)
-          deviation_count=$((deviation_count + d))
-          s=$(jq -r '.s // "complete"' "$sf" 2>/dev/null | tr '[:upper:]' '[:lower:]' || true)
-          if [ "$s" = "failed" ] || [ "$s" = "partial" ]; then
-            plan_id=$(basename "$sf" | sed 's/\.summary\.jsonl//')
-            failing_plan_ids="${failing_plan_ids:+$failing_plan_ids }$plan_id"
-          fi
-        fi
-      done
-      # Check legacy SUMMARY.md files
-      for sf in "$active_phase_dir"/*-SUMMARY.md; do
-        [ -f "$sf" ] || continue
-        d=$(grep -m1 '^deviations:' "$sf" 2>/dev/null | sed 's/deviations:[[:space:]]*//' || true)
-        case "$d" in
-          0|"[]"|"") ;;
-          [0-9]*) deviation_count=$((deviation_count + d)) ;;
-          *) deviation_count=$((deviation_count + 1)) ;;
-        esac
-        s=$(grep -m1 '^status:' "$sf" 2>/dev/null | sed 's/status:[[:space:]]*//' | tr '[:upper:]' '[:lower:]' || true)
-        if [ "$s" = "failed" ] || [ "$s" = "partial" ]; then
-          plan_id=$(basename "$sf" | sed 's/-SUMMARY.md//')
-          failing_plan_ids="${failing_plan_ids:+$failing_plan_ids }$plan_id"
-        fi
-      done
+    # Count deviations and find failing plans from DB
+    if [ -n "$active_phase_num" ] && [ "$DB_AVAILABLE" = true ]; then
+      _dev_count=$(sqlite3 "$DB_PATH" "SELECT COALESCE(SUM(json_array_length(deviations)),0) FROM summaries s JOIN plans p ON s.plan_id=p.rowid WHERE p.phase='$active_phase_num' AND deviations IS NOT NULL AND deviations != '' AND deviations != 'null';" 2>/dev/null || echo 0)
+      deviation_count=${_dev_count:-0}
+
+      _fail_plans=$(sqlite3 "$DB_PATH" "SELECT p.phase || '-' || p.plan_num FROM summaries s JOIN plans p ON s.plan_id=p.rowid WHERE p.phase='$active_phase_num' AND (LOWER(s.status)='failed' OR LOWER(s.status)='partial');" 2>/dev/null || true)
+      if [ -n "$_fail_plans" ]; then
+        failing_plan_ids=$(echo "$_fail_plans" | tr '\n' ' ' | sed 's/ $//')
+      fi
     fi
   fi
 

@@ -87,6 +87,11 @@ case "$ROLE" in
   ux-critic)  critique_file="$PHASE_DIR/ux-critique.jsonl" ;;
 esac
 
+# Resolve DB path and phase number (DB is single source of truth)
+PLANNING_DIR="$(cd "$PHASE_DIR/../.." 2>/dev/null && pwd)"
+DB_PATH="$PLANNING_DIR/yolo.db"
+PHASE_NUM=$(basename "$(dirname "$PHASE_DIR")" | sed 's/-.*//')
+
 # Track per-round findings
 findings_per_round=()
 final_confidence=0
@@ -100,12 +105,12 @@ for round in $(seq 1 "$max_rounds"); do
   round_findings=0
   round_confidence=0
 
-  if [[ -f "$critique_file" ]]; then
-    # Count findings for this specific round
-    round_findings=$(jq -s "[.[] | select(.rd == $round)] | length" "$critique_file")
-
-    # Get confidence for this round (use the cf from any entry in this round, they should all match)
-    round_confidence=$(jq -s "[.[] | select(.rd == $round) | .cf] | max // 0" "$critique_file")
+  # DB-only query (DB is single source of truth)
+  if [[ -f "$DB_PATH" ]] && command -v sqlite3 &>/dev/null; then
+    _db_findings=$(sqlite3 "$DB_PATH" "SELECT count(*) FROM critique WHERE phase='$PHASE_NUM' AND round=$round;" 2>/dev/null || echo 0)
+    _db_conf=$(sqlite3 "$DB_PATH" "SELECT COALESCE(max(confidence),0) FROM critique WHERE phase='$PHASE_NUM' AND round=$round;" 2>/dev/null || echo 0)
+    round_findings=${_db_findings:-0}
+    round_confidence=${_db_conf:-0}
   fi
 
   findings_per_round+=("$round_findings")
@@ -120,8 +125,9 @@ done
 
 # Calculate total findings
 findings_total=0
-if [[ -f "$critique_file" ]]; then
-  findings_total=$(jq -s 'length' "$critique_file")
+# DB-only total count (DB is single source of truth)
+if [[ -f "$DB_PATH" ]] && command -v sqlite3 &>/dev/null; then
+  findings_total=$(sqlite3 "$DB_PATH" "SELECT count(*) FROM critique WHERE phase='$PHASE_NUM';" 2>/dev/null || echo 0)
 fi
 
 # Build findings_per_round JSON array

@@ -96,28 +96,33 @@ fi
 # --- All departments complete: run cross-dept checks ---
 CROSS_CHECKS="{}"
 
-# Check 1: API contract consistency
+# DB path resolution (DB is single source of truth)
+_IG_PLANNING="$(cd "$PHASE_DIR/../.." 2>/dev/null && pwd)"
+_IG_DB="$_IG_PLANNING/yolo.db"
+_IG_PHASE=$(basename "$(dirname "$PHASE_DIR")" 2>/dev/null | sed 's/-.*//')
+
+# Check 1: API contract consistency (from DB)
 API_CHECK="skip"
-API_FILE="$PHASE_DIR/api-contracts.jsonl"
-if [ -f "$API_FILE" ] && [ "$SINGLE_DEPT" = "false" ]; then
-  DISPUTED=$(jq -s '[.[] | select(.status == "proposed" or .status == "disputed")] | length' "$API_FILE" 2>/dev/null || echo "0")
-  if [ "$DISPUTED" -gt 0 ]; then
-    API_CHECK="fail"
-  else
-    API_CHECK="pass"
+if [ "$SINGLE_DEPT" = "false" ] && [ -f "$_IG_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+  DISPUTED=$(sqlite3 "$_IG_DB" "SELECT count(*) FROM api_contracts WHERE phase='$_IG_PHASE' AND (status='proposed' OR status='disputed');" 2>/dev/null || echo 0)
+  _AC_TOTAL=$(sqlite3 "$_IG_DB" "SELECT count(*) FROM api_contracts WHERE phase='$_IG_PHASE';" 2>/dev/null || echo 0)
+  if [ "${_AC_TOTAL:-0}" -gt 0 ]; then
+    if [ "${DISPUTED:-0}" -gt 0 ]; then
+      API_CHECK="fail"
+    else
+      API_CHECK="pass"
+    fi
   fi
 fi
 CROSS_CHECKS=$(echo "$CROSS_CHECKS" | jq --arg v "$API_CHECK" '.api = $v')
 
-# Check 2: Design sync (only when UX department active)
+# Check 2: Design sync (only when UX department active, from DB)
 DESIGN_CHECK="skip"
-HANDOFF_FILE="$PHASE_DIR/design-handoff.jsonl"
-if [ -f "$HANDOFF_FILE" ] && [ "$UX_ENABLED" = "true" ]; then
-  # Count ready components
-  READY_COUNT=$(jq -s '[.[] | select(.status == "ready")] | length' "$HANDOFF_FILE" 2>/dev/null || echo "0")
+if [ "$UX_ENABLED" = "true" ] && [ -f "$_IG_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+  # Count ready components from DB
+  READY_COUNT=$(sqlite3 "$_IG_DB" "SELECT count(*) FROM design_handoff WHERE phase='$_IG_PHASE' AND status='ready';" 2>/dev/null || echo 0)
   if [ "$READY_COUNT" -gt 0 ]; then
-    # Check if any summary.jsonl files exist with fm fields
-    SUMMARY_COUNT=$(find "$PHASE_DIR" -name "*.summary.jsonl" -type f 2>/dev/null | wc -l | tr -d ' ')
+    SUMMARY_COUNT=$(sqlite3 "$_IG_DB" "SELECT count(*) FROM summaries s JOIN plans p ON s.plan_id=p.rowid WHERE p.phase='$_IG_PHASE';" 2>/dev/null || echo 0)
     if [ "$SUMMARY_COUNT" -gt 0 ]; then
       DESIGN_CHECK="pass"
     else

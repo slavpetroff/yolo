@@ -89,13 +89,14 @@ sql_toon() {
   done
 }
 
-# --- Extract phase metadata (SQL-only) ---
+# --- Extract phase metadata (SQL with phases table fallback) ---
 ROADMAP="$PLANNING_DIR/ROADMAP.md"
 
 PHASE_GOAL="Not available"
 PHASE_REQS="Not available"
 PHASE_SUCCESS="Not available"
 
+# Primary: plans table (available after planning)
 _db_goal=$(sql "SELECT objective FROM plans WHERE phase='$PHASE' LIMIT 1;" 2>/dev/null || true)
 _db_reqs=$(sql "SELECT must_haves FROM plans WHERE phase='$PHASE' LIMIT 1;" 2>/dev/null || true)
 if [ -n "$_db_goal" ] && [ "$_db_goal" != "" ]; then
@@ -104,6 +105,20 @@ if [ -n "$_db_goal" ] && [ "$_db_goal" != "" ]; then
     _reqs_parsed=$(echo "$_db_reqs" | jq -r '.tr // [] | join(", ")' 2>/dev/null || true)
     [ -n "$_reqs_parsed" ] && PHASE_REQS="$_reqs_parsed"
   fi
+fi
+
+# Fallback: phases table (available after ROADMAP.md import, even before planning)
+if [ "$PHASE_GOAL" = "Not available" ]; then
+  _phase_goal=$(sql "SELECT goal FROM phases WHERE phase_num='$PHASE';" 2>/dev/null || true)
+  [ -n "$_phase_goal" ] && PHASE_GOAL="$_phase_goal"
+fi
+if [ "$PHASE_REQS" = "Not available" ]; then
+  _phase_reqs=$(sql "SELECT reqs FROM phases WHERE phase_num='$PHASE';" 2>/dev/null || true)
+  [ -n "$_phase_reqs" ] && PHASE_REQS="$_phase_reqs"
+fi
+if [ "$PHASE_SUCCESS" = "Not available" ]; then
+  _phase_sc=$(sql "SELECT success_criteria FROM phases WHERE phase_num='$PHASE';" 2>/dev/null || true)
+  [ -n "$_phase_sc" ] && PHASE_SUCCESS="$_phase_sc"
 fi
 
 # --- Build REQ grep pattern from comma-separated REQ IDs ---
@@ -790,19 +805,25 @@ case "$BASE_ROLE" in
       get_requirements
       echo "success_criteria: $PHASE_SUCCESS"
       echo ""
-      # Department results if available
+      # Department results from DB
       echo "departments:"
-      for dept_result in "$PHASE_DIR"/*department-result*.jsonl; do
-        if [ -f "$dept_result" ]; then
-          jq -r '"  \(.dept // ""): \(.r // "")"' "$dept_result" 2>/dev/null || true
-        fi
-      done
-      # Cross-department overview
-      if [ -f "$PHASE_DIR/design-handoff.jsonl" ]; then
-        echo "design_handoff: @$PHASE_DIR/design-handoff.jsonl"
+      sql "SELECT dept, status FROM design_handoff WHERE phase='$PHASE' GROUP BY dept;" 2>/dev/null | while IFS=',' read -r _dept _st; do
+        echo "  $_dept: $_st"
+      done || true
+      # Cross-department overview from DB
+      _dh_count=$(sql "SELECT count(*) FROM design_handoff WHERE phase='$PHASE';" 2>/dev/null || echo 0)
+      if [ "${_dh_count:-0}" -gt 0 ]; then
+        echo "design_handoff:"
+        sql "SELECT component, status FROM design_handoff WHERE phase='$PHASE';" 2>/dev/null | while IFS=',' read -r _comp _st; do
+          echo "  $_comp: status=$_st"
+        done || true
       fi
-      if [ -f "$PHASE_DIR/api-contracts.jsonl" ]; then
-        echo "api_contracts: @$PHASE_DIR/api-contracts.jsonl"
+      _ac_count=$(sql "SELECT count(*) FROM api_contracts WHERE phase='$PHASE';" 2>/dev/null || echo 0)
+      if [ "${_ac_count:-0}" -gt 0 ]; then
+        echo "api_contracts:"
+        sql "SELECT endpoint, status FROM api_contracts WHERE phase='$PHASE';" 2>/dev/null | while IFS=',' read -r _ep _st; do
+          echo "  $_ep: status=$_st"
+        done || true
       fi
       REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
       get_tool_restrictions
@@ -834,16 +855,22 @@ case "$BASE_ROLE" in
         done
         echo ""
       fi
-      # API contracts (cross-dept, if exists)
-      if [ -f "$PHASE_DIR/api-contracts.jsonl" ]; then
+      # API contracts from DB
+      _ig_ac_count=$(sql "SELECT count(*) FROM api_contracts WHERE phase='$PHASE';" 2>/dev/null || echo 0)
+      if [ "${_ig_ac_count:-0}" -gt 0 ]; then
         echo "api_contracts:"
-        jq -r '"  \(.endpoint // ""): status=\(.status // "")"' "$PHASE_DIR/api-contracts.jsonl" 2>/dev/null || true
+        sql "SELECT endpoint, status FROM api_contracts WHERE phase='$PHASE';" 2>/dev/null | while IFS=',' read -r _ep _st; do
+          echo "  $_ep: status=$_st"
+        done || true
         echo ""
       fi
-      # Design handoff (cross-dept, if exists)
-      if [ -f "$PHASE_DIR/design-handoff.jsonl" ]; then
+      # Design handoff from DB
+      _ig_dh_count=$(sql "SELECT count(*) FROM design_handoff WHERE phase='$PHASE';" 2>/dev/null || echo 0)
+      if [ "${_ig_dh_count:-0}" -gt 0 ]; then
         echo "design_handoff:"
-        jq -r '"  \(.component // ""): status=\(.status // "")"' "$PHASE_DIR/design-handoff.jsonl" 2>/dev/null || true
+        sql "SELECT component, status FROM design_handoff WHERE phase='$PHASE';" 2>/dev/null | while IFS=',' read -r _comp _st; do
+          echo "  $_comp: status=$_st"
+        done || true
         echo ""
       fi
       # Summary fm/tst fields for implementation evidence
@@ -962,14 +989,14 @@ case "$BASE_ROLE" in
           fi
         done
       fi
-      # On-demand research request context (ra = requesting agent)
-      if [ -f "$PHASE_DIR/research.jsonl" ]; then
-        RA_CONTEXT=$(jq -r 'select(.ra != null and .ra != "") | "  \(.ra): \(.q // "")"' "$PHASE_DIR/research.jsonl" 2>/dev/null || true)
-        if [ -n "$RA_CONTEXT" ]; then
-          echo ""
-          echo "requesting_agents:"
-          echo "$RA_CONTEXT"
-        fi
+      # On-demand research request context (ra = requesting agent) from DB
+      _ra_rows=$(sql "SELECT requesting_agent, query FROM research WHERE phase='$PHASE' AND requesting_agent IS NOT NULL AND requesting_agent != '';" 2>/dev/null || true)
+      if [ -n "$_ra_rows" ]; then
+        echo ""
+        echo "requesting_agents:"
+        echo "$_ra_rows" | while IFS=',' read -r _ra _q; do
+          echo "  $_ra: $_q"
+        done
       fi
       REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
       get_tool_restrictions
@@ -980,21 +1007,21 @@ case "$BASE_ROLE" in
     {
       emit_header
       echo ""
-      # Files documented (from summary.jsonl fm field)
+      # Files documented (from DB summaries fm field)
       echo "files_to_document:"
-      for summary in "$PHASE_DIR"/*.summary.jsonl; do
-        if [ -f "$summary" ]; then
-          # Use inline jq directly (filter-agent-context.sh may not know documenter yet)
-          jq -r '.fm // [] | .[]' "$summary" 2>/dev/null | while IFS= read -r f; do
-            echo "  $f"
-          done
-        fi
-      done
+      sql "SELECT s.fm FROM summaries s JOIN plans p ON s.plan_id = p.rowid WHERE p.phase='$PHASE' AND s.fm IS NOT NULL AND s.fm != '' AND s.fm != 'null';" 2>/dev/null | while IFS= read -r _fm_json; do
+        echo "$_fm_json" | jq -r '.[]' 2>/dev/null | while IFS= read -r f; do
+          echo "  $f"
+        done
+      done || true
       echo ""
-      # Code review highlights
-      if [ -f "$PHASE_DIR/code-review.jsonl" ]; then
+      # Code review highlights from DB
+      _cr_count=$(sql "SELECT count(*) FROM code_review WHERE phase='$PHASE';" 2>/dev/null || echo 0)
+      if [ "${_cr_count:-0}" -gt 0 ]; then
         echo "code_review_highlights:"
-        jq -r 'select((.sev // "") == "critical" or (.sev // "") == "major") | "  \(.file // ""): \(.issue // "")"' "$PHASE_DIR/code-review.jsonl" 2>/dev/null || true
+        sql "SELECT plan, r, tdd FROM code_review WHERE phase='$PHASE' ORDER BY rowid DESC;" 2>/dev/null | while IFS=',' read -r _plan _r _tdd; do
+          echo "  plan=$_plan: r=$_r tdd=$_tdd"
+        done || true
         echo ""
       fi
       # Conventions for documentation standards
@@ -1049,13 +1076,11 @@ case "$BASE_ROLE" in
         echo "roadmap: @$ROADMAP"
       fi
       echo ""
-      # Prior phase summaries for scope context
+      # Prior phase summaries for scope context (from DB)
       echo "prior_summaries:"
-      for summary in "$PHASE_DIR"/*.summary.jsonl; do
-        if [ -f "$summary" ]; then
-          jq -r '"  \(.p // "")-\(.n // ""): s=\(.s // "")"' "$summary" 2>/dev/null || true
-        fi
-      done
+      sql "SELECT p.phase || '-' || p.plan_num, s.status FROM summaries s JOIN plans p ON s.plan_id = p.rowid WHERE p.phase='$PHASE' ORDER BY p.plan_num;" 2>/dev/null | while IFS=',' read -r _pn _st; do
+        echo "  $_pn: s=$_st"
+      done || true
       echo ""
       # Codebase mapping for completeness checks
       if [ "$HAS_CODEBASE" = true ]; then

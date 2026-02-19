@@ -204,9 +204,13 @@ if [ -f "$EXEC_STATE" ]; then
       PHASE_DIR=$(command ls -d "$PLANNING_DIR/phases/${PHASE_NUM}-"* 2>/dev/null | head -1)
     fi
     if [ -n "$PHASE_DIR" ] && [ -d "$PHASE_DIR" ]; then
-      # OPTIMIZATION 8: Bash glob replacing find for summary counting
+      # DB-only summary counting (DB is single source of truth)
       SUMMARY_COUNT=0
-      for f in "$PHASE_DIR"/*.summary.jsonl "$PHASE_DIR"/*-SUMMARY.md; do [ -f "$f" ] && SUMMARY_COUNT=$((SUMMARY_COUNT+1)); done
+      _SS_DB="$PLANNING_DIR/yolo.db"
+      if [ -f "$_SS_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+        _ph_fmt=$(printf '%02d' "$PHASE_NUM" 2>/dev/null || echo "$PHASE_NUM")
+        SUMMARY_COUNT=$(sqlite3 "$_SS_DB" "SELECT count(*) FROM summaries s JOIN plans p ON s.plan_id=p.rowid WHERE p.phase='$_ph_fmt';" 2>/dev/null || echo 0)
+      fi
       if [ "${SUMMARY_COUNT:-0}" -ge "${PLAN_COUNT:-1}" ] && [ "${PLAN_COUNT:-0}" -gt 0 ]; then
         # All plans have summaries — build finished after crash
         jq '.status = "complete"' "$EXEC_STATE" > "$PLANNING_DIR/.execution-state.json.tmp" && mv "$PLANNING_DIR/.execution-state.json.tmp" "$EXEC_STATE"
@@ -365,29 +369,27 @@ else
   if [ "$exec_running" = true ]; then
     NEXT_ACTION="/yolo:go (build interrupted, will resume)"
   else
-    # OPTIMIZATION 8: Bash glob replacing find for plan/summary counting
+    # DB-only plan/summary counting (DB is single source of truth)
     all_done=true
     next_phase=""
-    for pdir in $(command ls -d "$PHASES_DIR"/*/ 2>/dev/null | sort); do
-      pname=$(basename "$pdir")
-      plan_count=0
-      for f in "$pdir"/*.plan.jsonl "$pdir"/*-PLAN.md; do [ -f "$f" ] && plan_count=$((plan_count+1)); done
-      summary_count=0
-      for f in "$pdir"/*.summary.jsonl "$pdir"/*-SUMMARY.md; do [ -f "$f" ] && summary_count=$((summary_count+1)); done
-      if [ "${plan_count:-0}" -eq 0 ]; then
-        # Phase has no plans yet — needs planning
+    _SS_DB2="$PLANNING_DIR/yolo.db"
+    if [ -f "$_SS_DB2" ] && command -v sqlite3 >/dev/null 2>&1; then
+      for pdir in $(command ls -d "$PHASES_DIR"/*/ 2>/dev/null | sort); do
+        pname=$(basename "$pdir")
         pnum=${pname%%-*}
-        NEXT_ACTION="/yolo:go (Phase $pnum needs planning)"
-        all_done=false
-        break
-      elif [ "${summary_count:-0}" -lt "${plan_count:-0}" ]; then
-        # Phase has plans but not all executed
-        pnum=${pname%%-*}
-        NEXT_ACTION="/yolo:go (Phase $pnum planned, needs execution)"
-        all_done=false
-        break
-      fi
-    done
+        plan_count=$(sqlite3 "$_SS_DB2" "SELECT count(*) FROM plans WHERE phase='$pnum';" 2>/dev/null || echo 0)
+        summary_count=$(sqlite3 "$_SS_DB2" "SELECT count(*) FROM summaries s JOIN plans p ON s.plan_id=p.rowid WHERE p.phase='$pnum';" 2>/dev/null || echo 0)
+        if [ "${plan_count:-0}" -eq 0 ]; then
+          NEXT_ACTION="/yolo:go (Phase $pnum needs planning)"
+          all_done=false
+          break
+        elif [ "${summary_count:-0}" -lt "${plan_count:-0}" ]; then
+          NEXT_ACTION="/yolo:go (Phase $pnum planned, needs execution)"
+          all_done=false
+          break
+        fi
+      done
+    fi
     if [ "$all_done" = true ]; then
       NEXT_ACTION="/yolo:go --archive"
     fi

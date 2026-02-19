@@ -91,6 +91,25 @@ NEXT_PHASE_STATE="no_phases"
 NEXT_PHASE_PLANS=0
 NEXT_PHASE_SUMMARIES=0
 
+# --- DB availability for phase scanning ---
+DB_PATH="$PLANNING_DIR/yolo.db"
+DB_AVAILABLE=false
+if [ -f "$DB_PATH" ] && command -v sqlite3 &>/dev/null; then
+  DB_AVAILABLE=true
+fi
+
+# Helper: query plan/summary counts from DB for a phase number
+# Usage: db_phase_counts "01" → sets DB_P_COUNT and DB_S_COUNT
+db_phase_counts() {
+  local ph="$1"
+  DB_P_COUNT=0
+  DB_S_COUNT=0
+  if [ "$DB_AVAILABLE" = true ]; then
+    DB_P_COUNT=$(sqlite3 "$DB_PATH" "SELECT count(*) FROM plans WHERE phase='$ph';" 2>/dev/null || echo 0)
+    DB_S_COUNT=$(sqlite3 "$DB_PATH" "SELECT count(*) FROM summaries s JOIN plans p ON s.plan_id=p.rowid WHERE p.phase='$ph';" 2>/dev/null || echo 0)
+  fi
+}
+
 # OPTIMIZATION 1 (continued): Early exit if phases dir missing or empty
 if [ -d "$PHASES_DIR" ]; then
   # OPTIMIZATION 6: Bash array instead of mktemp for phase listing
@@ -109,11 +128,10 @@ if [ -d "$PHASES_DIR" ]; then
       # OPTIMIZATION 3: Parameter expansion instead of sed for phase number
       NUM=${DIRNAME%%-*}
 
-      # OPTIMIZATION 2: Bash glob counting instead of find+wc+tr
-      P_COUNT=0
-      for f in "$DIR"/*.plan.jsonl "$DIR"/*-PLAN.md; do [ -f "$f" ] && P_COUNT=$((P_COUNT+1)); done
-      S_COUNT=0
-      for f in "$DIR"/*.summary.jsonl "$DIR"/*-SUMMARY.md; do [ -f "$f" ] && S_COUNT=$((S_COUNT+1)); done
+      # DB-only plan/summary counting (DB is single source of truth)
+      db_phase_counts "$NUM"
+      P_COUNT=$DB_P_COUNT
+      S_COUNT=$DB_S_COUNT
 
       if [ "$P_COUNT" -eq 0 ]; then
         # Needs plan and execute

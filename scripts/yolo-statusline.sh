@@ -175,13 +175,15 @@ if ! cache_fresh "$FAST_CF" 5; then
     GIT_MODIFIED=$(git diff --numstat 2>/dev/null | wc -l | tr -d ' ')
     GIT_AHEAD=$(git rev-list --count @{u}..HEAD 2>/dev/null || echo 0)
   fi
-  if [ -d ".yolo-planning/phases" ]; then
-    PT=$(find .yolo-planning/phases \( -name '*.plan.jsonl' -o -name '*-PLAN.md' \) 2>/dev/null | wc -l | tr -d ' ')
-    PD=$(find .yolo-planning/phases \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
+  if [ -f ".yolo-planning/yolo.db" ] && command -v sqlite3 >/dev/null 2>&1; then
+    _SL_DB=".yolo-planning/yolo.db"
+    PT=$(sqlite3 "$_SL_DB" "SELECT count(*) FROM plans;" 2>/dev/null || echo 0)
+    PD=$(sqlite3 "$_SL_DB" "SELECT count(*) FROM summaries;" 2>/dev/null || echo 0)
     if [ -n "$PH" ] && [ "$PH" != "0" ]; then
-      PDIR=$(find .yolo-planning/phases -maxdepth 1 -type d -name "$(printf '%02d' "$PH")-*" 2>/dev/null | head -1)
-      [ -n "$PDIR" ] && PPD=$(find "$PDIR" \( -name '*.summary.jsonl' -o -name '*-SUMMARY.md' \) 2>/dev/null | wc -l | tr -d ' ')
-      [ -n "$PDIR" ] && [ -n "$(find "$PDIR" \( -name 'verification.jsonl' -o -name '*VERIFICATION.md' \) 2>/dev/null | head -1)" ] && QA="pass"
+      _ph_fmt=$(printf '%02d' "$PH" 2>/dev/null || echo "$PH")
+      PPD=$(sqlite3 "$_SL_DB" "SELECT count(*) FROM summaries s JOIN plans p ON s.plan_id=p.rowid WHERE p.phase='$_ph_fmt';" 2>/dev/null || echo 0)
+      _qa_count=$(sqlite3 "$_SL_DB" "SELECT count(*) FROM verification WHERE phase='$_ph_fmt';" 2>/dev/null || echo 0)
+      [ "${_qa_count:-0}" -gt 0 ] && QA="pass"
     fi
   fi
 

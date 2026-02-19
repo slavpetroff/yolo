@@ -53,7 +53,16 @@ INFERRED_COUNT=$(jq '.inferred | length' "$DISCOVERY_JSON")
     REQ_NUM=1
     for i in $(seq 0 $((INFERRED_COUNT - 1))); do
       REQ_ID=$(printf "REQ-%02d" "$REQ_NUM")
-      REQ_TEXT=$(jq -r ".inferred[$i].text // .inferred[$i]" "$DISCOVERY_JSON")
+      # Handle both string items and object items ({field, value} or {text, priority})
+      REQ_TEXT=$(jq -r "
+        .inferred[$i] |
+        if type == \"string\" then .
+        elif .text then .text
+        elif .field then
+          .field + \": \" + (.value | if type == \"array\" then join(\", \") else tostring end)
+        else tostring
+        end
+      " "$DISCOVERY_JSON")
       REQ_PRIORITY=$(jq -r ".inferred[$i].priority // \"Must-have\"" "$DISCOVERY_JSON")
       echo "### ${REQ_ID}: ${REQ_TEXT}"
       echo "**${REQ_PRIORITY}**"
@@ -69,5 +78,13 @@ INFERRED_COUNT=$(jq '.inferred | length' "$DISCOVERY_JSON")
   echo ""
   echo "_(To be defined)_"
 } > "$OUTPUT_PATH"
+
+# Import into DB if it exists (bootstrap may run before or after init-db.sh)
+PLANNING_DIR="$(dirname "$OUTPUT_PATH")"
+DB_PATH="$PLANNING_DIR/yolo.db"
+IMPORT_SCRIPT="$(cd "$(dirname "$0")/../db" && pwd)/import-requirements.sh"
+if [[ -f "$DB_PATH" ]] && [[ -f "$IMPORT_SCRIPT" ]]; then
+  bash "$IMPORT_SCRIPT" --file "$OUTPUT_PATH" --db "$DB_PATH" >/dev/null 2>&1 || true
+fi
 
 exit 0

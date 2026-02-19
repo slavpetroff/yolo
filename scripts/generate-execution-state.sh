@@ -60,47 +60,31 @@ fi
 # --- Extract phase name from directory basename ---
 PHASE_NAME=$(basename "$PHASE_DIR" | sed 's/^[0-9]*-//')
 
-# --- Scan plan files ---
-PLAN_FILES=$(ls "$PHASE_DIR"/*.plan.jsonl 2>/dev/null) || true
-if [ -z "$PLAN_FILES" ]; then
-  echo "No plan.jsonl files found in $PHASE_DIR" >&2
+# --- DB path resolution (DB is single source of truth) ---
+PLANNING_DIR="$(cd "$PHASE_DIR/../.." 2>/dev/null && pwd)"
+DB_PATH="$PLANNING_DIR/yolo.db"
+
+if [ ! -f "$DB_PATH" ] || ! command -v sqlite3 &>/dev/null; then
+  echo "Error: Database not found at $DB_PATH. Run init-db.sh first." >&2
   exit 1
 fi
 
-# --- Build plans array ---
-PLANS_JSON='[]'
-while IFS= read -r plan_file; do
-  [ -z "$plan_file" ] && continue
-  [ ! -f "$plan_file" ] && continue
+# --- Query plans from DB ---
+PLANS_JSON=$(sqlite3 -json "$DB_PATH" "
+  SELECT p.phase || '-' || p.plan_num AS id,
+         p.title,
+         p.wave,
+         CASE WHEN s.status = 'complete' THEN 'complete' ELSE 'pending' END AS status
+  FROM plans p
+  LEFT JOIN summaries s ON s.plan_id = p.rowid
+  WHERE p.phase = '$PHASE'
+  ORDER BY p.plan_num;
+" 2>/dev/null) || PLANS_JSON='[]'
 
-  local_header=$(head -1 "$plan_file") || continue
-
-  # Extract fields
-  local_p=$(echo "$local_header" | jq -r '.p // ""' 2>/dev/null) || continue
-  local_n=$(echo "$local_header" | jq -r '.n // ""' 2>/dev/null) || continue
-  local_title=$(echo "$local_header" | jq -r '.t // ""' 2>/dev/null) || continue
-  local_wave=$(echo "$local_header" | jq -r '.w // 1' 2>/dev/null) || continue
-
-  local_id="${local_p}-${local_n}"
-
-  # Determine status: check for completed summary
-  local_status="pending"
-  local_summary_file="$PHASE_DIR/${local_id}.summary.jsonl"
-  if [ -f "$local_summary_file" ]; then
-    local_summary_status=$(head -1 "$local_summary_file" | jq -r '.s // ""' 2>/dev/null) || true
-    if [ "$local_summary_status" = "complete" ]; then
-      local_status="complete"
-    fi
-  fi
-
-  PLANS_JSON=$(echo "$PLANS_JSON" | jq \
-    --arg id "$local_id" \
-    --arg title "$local_title" \
-    --argjson wave "$local_wave" \
-    --arg status "$local_status" \
-    '. + [{id:$id,title:$title,wave:$wave,status:$status}]')
-
-done <<< "$PLAN_FILES"
+if [ "$PLANS_JSON" = "[]" ] || [ -z "$PLANS_JSON" ]; then
+  echo "No plans found in DB for phase $PHASE" >&2
+  exit 1
+fi
 
 # --- Compute waves ---
 TOTAL_WAVES=$(echo "$PLANS_JSON" | jq '[.[].wave] | max')
@@ -115,11 +99,14 @@ for step_name in $STEP_NAMES; do
     '. + {($s): {status:"pending",started_at:"",completed_at:"",artifact:"",reason:""}}')
 done
 
-# Detect completed steps from existing artifacts
-if [ -f "$PHASE_DIR/critique.jsonl" ] && [ -s "$PHASE_DIR/critique.jsonl" ]; then
+# Detect completed steps from DB
+_critique_count=$(sqlite3 "$DB_PATH" "SELECT count(*) FROM critique WHERE phase='$PHASE';" 2>/dev/null || echo 0)
+if [ "${_critique_count:-0}" -gt 0 ]; then
   STEPS_JSON=$(echo "$STEPS_JSON" | jq '.critique.status = "complete"')
 fi
 
+# Architecture check: .toon file is a generated context artifact, not a DB record.
+# Check if plans exist (architecture step produces plan decomposition).
 if [ -f "$PHASE_DIR/architecture.toon" ] && [ -s "$PHASE_DIR/architecture.toon" ]; then
   STEPS_JSON=$(echo "$STEPS_JSON" | jq '.architecture.status = "complete"')
 fi

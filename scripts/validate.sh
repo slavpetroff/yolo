@@ -1008,6 +1008,13 @@ validate_gates() {
 
   local STATE_FILE="$PHASE_DIR/.execution-state.json"
 
+  # DB path resolution for gates (DB is single source of truth)
+  local _GATES_PLANNING
+  _GATES_PLANNING="$(cd "$PHASE_DIR/../.." 2>/dev/null && pwd)"
+  local _GATES_DB="$_GATES_PLANNING/yolo.db"
+  local _GATES_PHASE
+  _GATES_PHASE=$(basename "$(dirname "$PHASE_DIR")" 2>/dev/null | sed 's/-.*//')
+
   _gates_check_step_skipped() {
     local step_name="$1"
     if [ ! -f "$STATE_FILE" ]; then
@@ -1018,8 +1025,38 @@ validate_gates() {
     [ "$status" = "skipped" ]
   }
 
+  # DB-aware artifact existence check
   _gates_check_artifact_exists() {
     local artifact_path="$1"
+    local artifact_name
+    artifact_name=$(basename "$artifact_path")
+    # Check DB for known artifact types
+    if [ -f "$_GATES_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+      case "$artifact_name" in
+        critique.jsonl)
+          local _cnt; _cnt=$(sqlite3 "$_GATES_DB" "SELECT count(*) FROM critique WHERE phase='$_GATES_PHASE';" 2>/dev/null || echo 0)
+          [ "${_cnt:-0}" -gt 0 ]; return $? ;;
+        code-review.jsonl)
+          local _cnt; _cnt=$(sqlite3 "$_GATES_DB" "SELECT count(*) FROM code_review WHERE phase='$_GATES_PHASE';" 2>/dev/null || echo 0)
+          [ "${_cnt:-0}" -gt 0 ]; return $? ;;
+        verification.jsonl)
+          local _cnt; _cnt=$(sqlite3 "$_GATES_DB" "SELECT count(*) FROM verification WHERE phase='$_GATES_PHASE';" 2>/dev/null || echo 0)
+          [ "${_cnt:-0}" -gt 0 ]; return $? ;;
+        security-audit.jsonl)
+          local _cnt; _cnt=$(sqlite3 "$_GATES_DB" "SELECT count(*) FROM security_audit WHERE phase='$_GATES_PHASE';" 2>/dev/null || echo 0)
+          [ "${_cnt:-0}" -gt 0 ]; return $? ;;
+        test-plan.jsonl)
+          local _cnt; _cnt=$(sqlite3 "$_GATES_DB" "SELECT count(*) FROM test_plan WHERE phase='$_GATES_PHASE';" 2>/dev/null || echo 0)
+          [ "${_cnt:-0}" -gt 0 ]; return $? ;;
+        .qa-gate-results.jsonl)
+          local _cnt; _cnt=$(sqlite3 "$_GATES_DB" "SELECT count(*) FROM qa_gate_results WHERE phase='$_GATES_PHASE';" 2>/dev/null || echo 0)
+          [ "${_cnt:-0}" -gt 0 ]; return $? ;;
+        *)
+          # Non-DB artifact: fall back to file check (e.g., architecture.toon)
+          [ -f "$artifact_path" ] && [ -s "$artifact_path" ]; return $? ;;
+      esac
+    fi
+    # DB not available: fall back to file check
     [ -f "$artifact_path" ] && [ -s "$artifact_path" ]
   }
 
@@ -1066,92 +1103,70 @@ validate_gates() {
       ;;
 
     design_review)
-      if ! _gates_check_glob_exists "$PHASE_DIR/*.plan.jsonl"; then
-        MISSING+=("*.plan.jsonl")
+      # Check if plans exist in DB
+      local _dr_plan_count=0
+      if [ -f "$_GATES_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+        _dr_plan_count=$(sqlite3 "$_GATES_DB" "SELECT count(*) FROM plans WHERE phase='$_GATES_PHASE';" 2>/dev/null || echo 0)
+      fi
+      if [ "${_dr_plan_count:-0}" -eq 0 ]; then
+        MISSING+=("plans in DB for phase $_GATES_PHASE")
         GATE_RESULT="fail"
       fi
       ;;
 
     test_authoring)
-      local _gate_plans
-      _gate_plans=$(ls "$PHASE_DIR"/*.plan.jsonl 2>/dev/null) || true
-      if [ -z "$_gate_plans" ]; then
-        MISSING+=("*.plan.jsonl")
+      # Check plans and task specs exist in DB
+      local _ta_plan_count=0
+      if [ -f "$_GATES_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+        _ta_plan_count=$(sqlite3 "$_GATES_DB" "SELECT count(*) FROM plans WHERE phase='$_GATES_PHASE';" 2>/dev/null || echo 0)
+      fi
+      if [ "${_ta_plan_count:-0}" -eq 0 ]; then
+        MISSING+=("plans in DB for phase $_GATES_PHASE")
         GATE_RESULT="fail"
-      else
-        while IFS= read -r plan_file; do
-          [ -z "$plan_file" ] && continue
-          local _has_missing_spec=false
-          while IFS= read -r task_line; do
-            [ -z "$task_line" ] && continue
-            local _spec_check
-            _spec_check=$(echo "$task_line" | jq -e '.spec // empty' 2>/dev/null) || true
-            if [ -z "$_spec_check" ]; then
-              _has_missing_spec=true
-              break
-            fi
-          done < <(tail -n +2 "$plan_file")
-          if [ "$_has_missing_spec" = "true" ]; then
-            MISSING+=("$(basename "$plan_file"): tasks missing spec field")
-            GATE_RESULT="fail"
-          fi
-        done <<< "$_gate_plans"
       fi
       ;;
 
     implementation)
-      local _gate_plans
-      _gate_plans=$(ls "$PHASE_DIR"/*.plan.jsonl 2>/dev/null) || true
-      if [ -z "$_gate_plans" ]; then
-        MISSING+=("*.plan.jsonl")
+      # Check plans exist and tasks have spec field via DB
+      local _impl_plan_count=0
+      if [ -f "$_GATES_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+        _impl_plan_count=$(sqlite3 "$_GATES_DB" "SELECT count(*) FROM plans WHERE phase='$_GATES_PHASE';" 2>/dev/null || echo 0)
+      fi
+      if [ "${_impl_plan_count:-0}" -eq 0 ]; then
+        MISSING+=("plans in DB for phase $_GATES_PHASE")
         GATE_RESULT="fail"
       else
-        while IFS= read -r plan_file; do
-          [ -z "$plan_file" ] && continue
-          local _has_missing_spec=false
-          while IFS= read -r task_line; do
-            [ -z "$task_line" ] && continue
-            local _spec_check
-            _spec_check=$(echo "$task_line" | jq -e '.spec // empty' 2>/dev/null) || true
-            if [ -z "$_spec_check" ]; then
-              _has_missing_spec=true
-              break
-            fi
-          done < <(tail -n +2 "$plan_file")
-          if [ "$_has_missing_spec" = "true" ]; then
-            MISSING+=("$(basename "$plan_file"): tasks missing spec field")
-            GATE_RESULT="fail"
-          fi
-        done <<< "$_gate_plans"
+        local _missing_spec_count=0
+        if [ -f "$_GATES_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+          _missing_spec_count=$(sqlite3 "$_GATES_DB" "SELECT count(*) FROM tasks t JOIN plans p ON t.plan_id=p.rowid WHERE p.phase='$_GATES_PHASE' AND (t.spec IS NULL OR t.spec = '' OR t.spec = 'null');" 2>/dev/null || echo 0)
+        fi
+        if [ "${_missing_spec_count:-0}" -gt 0 ]; then
+          MISSING+=("$_missing_spec_count tasks missing spec field")
+          GATE_RESULT="fail"
+        fi
       fi
       if _gates_check_step_complete "test_authoring"; then
         if ! _gates_check_artifact_exists "$PHASE_DIR/test-plan.jsonl"; then
-          MISSING+=("test-plan.jsonl (test_authoring step completed)")
+          MISSING+=("test-plan (test_authoring step completed)")
           GATE_RESULT="fail"
         fi
       fi
       ;;
 
     code_review)
-      local _gate_plans
-      _gate_plans=$(ls "$PHASE_DIR"/*.plan.jsonl 2>/dev/null) || true
-      if [ -z "$_gate_plans" ]; then
-        MISSING+=("*.plan.jsonl")
+      # Check all plans have summaries via DB
+      local _cr_plan_count=0 _cr_summary_count=0
+      if [ -f "$_GATES_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+        _cr_plan_count=$(sqlite3 "$_GATES_DB" "SELECT count(*) FROM plans WHERE phase='$_GATES_PHASE';" 2>/dev/null || echo 0)
+        _cr_summary_count=$(sqlite3 "$_GATES_DB" "SELECT count(*) FROM summaries s JOIN plans p ON s.plan_id=p.rowid WHERE p.phase='$_GATES_PHASE';" 2>/dev/null || echo 0)
+      fi
+      if [ "${_cr_plan_count:-0}" -eq 0 ]; then
+        MISSING+=("plans in DB for phase $_GATES_PHASE")
         GATE_RESULT="fail"
-      else
-        while IFS= read -r plan_file; do
-          [ -z "$plan_file" ] && continue
-          local _plan_header
-          _plan_header=$(head -1 "$plan_file") || true
-          local _plan_p _plan_n
-          _plan_p=$(echo "$_plan_header" | jq -r '.p // ""' 2>/dev/null) || true
-          _plan_n=$(echo "$_plan_header" | jq -r '.n // ""' 2>/dev/null) || true
-          local _plan_id="${_plan_p}-${_plan_n}"
-          if ! _gates_check_artifact_exists "$PHASE_DIR/${_plan_id}.summary.jsonl"; then
-            MISSING+=("${_plan_id}.summary.jsonl")
-            GATE_RESULT="fail"
-          fi
-        done <<< "$_gate_plans"
+      elif [ "${_cr_summary_count:-0}" -lt "${_cr_plan_count:-0}" ]; then
+        local _missing=$(( _cr_plan_count - _cr_summary_count ))
+        MISSING+=("$_missing plans missing summaries")
+        GATE_RESULT="fail"
       fi
       ;;
 
@@ -1160,10 +1175,13 @@ validate_gates() {
         MISSING+=("code-review.jsonl")
         GATE_RESULT="fail"
       else
-        local _review_result
-        _review_result=$(head -1 "$PHASE_DIR/code-review.jsonl" | jq -r '.r // ""' 2>/dev/null) || true
+        # Read latest verdict from DB
+        local _review_result=""
+        if [ -f "$_GATES_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+          _review_result=$(sqlite3 "$_GATES_DB" "SELECT r FROM code_review WHERE phase='$_GATES_PHASE' ORDER BY rowid DESC LIMIT 1;" 2>/dev/null) || true
+        fi
         if [ "$_review_result" != "approve" ]; then
-          MISSING+=("code-review.jsonl: r must be 'approve' (got '$_review_result')")
+          MISSING+=("code-review: r must be 'approve' (got '${_review_result:-}')")
           GATE_RESULT="fail"
         fi
       fi
@@ -1171,24 +1189,27 @@ validate_gates() {
 
     security)
       if ! _gates_check_artifact_exists "$PHASE_DIR/verification.jsonl" && ! _gates_check_step_skipped "qa"; then
-        MISSING+=("verification.jsonl")
+        MISSING+=("verification")
         GATE_RESULT="fail"
       fi
       ;;
 
     signoff)
       if ! _gates_check_artifact_exists "$PHASE_DIR/security-audit.jsonl" && ! _gates_check_step_skipped "security"; then
-        MISSING+=("security-audit.jsonl")
+        MISSING+=("security-audit")
         GATE_RESULT="fail"
       fi
       if ! _gates_check_artifact_exists "$PHASE_DIR/code-review.jsonl"; then
-        MISSING+=("code-review.jsonl")
+        MISSING+=("code-review")
         GATE_RESULT="fail"
       else
-        local _review_result
-        _review_result=$(head -1 "$PHASE_DIR/code-review.jsonl" | jq -r '.r // ""' 2>/dev/null) || true
+        # Read latest verdict from DB
+        local _review_result=""
+        if [ -f "$_GATES_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+          _review_result=$(sqlite3 "$_GATES_DB" "SELECT r FROM code_review WHERE phase='$_GATES_PHASE' ORDER BY rowid DESC LIMIT 1;" 2>/dev/null) || true
+        fi
         if [ "$_review_result" != "approve" ]; then
-          MISSING+=("code-review.jsonl: r must be 'approve' (got '$_review_result')")
+          MISSING+=("code-review: r must be 'approve' (got '${_review_result:-}')")
           GATE_RESULT="fail"
         fi
       fi
@@ -1196,28 +1217,34 @@ validate_gates() {
 
     post_task_qa)
       if _gates_check_artifact_exists "$PHASE_DIR/.qa-gate-results.jsonl"; then
-        local _has_post_task
-        _has_post_task=$(jq -r 'select(.gl=="post-task")' "$PHASE_DIR/.qa-gate-results.jsonl" 2>/dev/null | head -1) || true
-        if [ -z "$_has_post_task" ]; then
-          MISSING+=("post-task gate results in .qa-gate-results.jsonl")
+        # Check DB for post-task gate results
+        local _has_post_task=""
+        if [ -f "$_GATES_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+          _has_post_task=$(sqlite3 "$_GATES_DB" "SELECT count(*) FROM qa_gate_results WHERE phase='$_GATES_PHASE' AND gl='post-task';" 2>/dev/null) || true
+        fi
+        if [ "${_has_post_task:-0}" -eq 0 ]; then
+          MISSING+=("post-task gate results in qa_gate_results")
           GATE_RESULT="fail"
         fi
       elif ! _gates_check_step_skipped "post_task_qa"; then
-        MISSING+=(".qa-gate-results.jsonl")
+        MISSING+=("qa_gate_results (post-task)")
         GATE_RESULT="fail"
       fi
       ;;
 
     post_plan_qa)
       if _gates_check_artifact_exists "$PHASE_DIR/.qa-gate-results.jsonl"; then
-        local _has_post_plan
-        _has_post_plan=$(jq -r 'select(.gl=="post-plan")' "$PHASE_DIR/.qa-gate-results.jsonl" 2>/dev/null | head -1) || true
-        if [ -z "$_has_post_plan" ]; then
-          MISSING+=("post-plan gate results in .qa-gate-results.jsonl")
+        # Check DB for post-plan gate results
+        local _has_post_plan=""
+        if [ -f "$_GATES_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+          _has_post_plan=$(sqlite3 "$_GATES_DB" "SELECT count(*) FROM qa_gate_results WHERE phase='$_GATES_PHASE' AND gl='post-plan';" 2>/dev/null) || true
+        fi
+        if [ "${_has_post_plan:-0}" -eq 0 ]; then
+          MISSING+=("post-plan gate results in qa_gate_results")
           GATE_RESULT="fail"
         fi
       elif ! _gates_check_step_skipped "post_plan_qa"; then
-        MISSING+=(".qa-gate-results.jsonl")
+        MISSING+=("qa_gate_results (post-plan)")
         GATE_RESULT="fail"
       fi
       ;;

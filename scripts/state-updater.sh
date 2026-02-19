@@ -3,12 +3,19 @@ set -u
 # PostToolUse: Auto-update STATE.md, state.json, ROADMAP.md + .execution-state.json on PLAN/SUMMARY writes
 # Non-blocking, fail-open (always exit 0)
 
-# --- Shared helper: count plans+summaries via bash glob (no subprocesses) ---
+# --- Shared helper: count plans+summaries from DB (single source of truth) ---
 count_plans_summaries() {
   local dir="$1"
+  local phase_num
+  phase_num=$(basename "$dir" | sed 's/-.*//')
+  local planning_dir
+  planning_dir=$(echo "$dir" | sed 's|/phases/.*||')
+  local db_path="$planning_dir/yolo.db"
   local plans=0 summaries=0
-  for f in "$dir"/*.plan.jsonl "$dir"/*-PLAN.md; do [ -f "$f" ] && plans=$((plans+1)); done
-  for f in "$dir"/*.summary.jsonl "$dir"/*-SUMMARY.md; do [ -f "$f" ] && summaries=$((summaries+1)); done
+  if [ -f "$db_path" ] && command -v sqlite3 >/dev/null 2>&1; then
+    plans=$(sqlite3 "$db_path" "SELECT count(*) FROM plans WHERE phase='$phase_num';" 2>/dev/null || echo 0)
+    summaries=$(sqlite3 "$db_path" "SELECT count(*) FROM summaries s JOIN plans p ON s.plan_id=p.rowid WHERE p.phase='$phase_num';" 2>/dev/null || echo 0)
+  fi
   echo "$plans $summaries"
 }
 

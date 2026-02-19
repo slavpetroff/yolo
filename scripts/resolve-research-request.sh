@@ -96,21 +96,24 @@ else
     '{"status":$status,"request_type":$request_type,"from":$from,"query":$query,"priority":$priority,"max_concurrent_scouts":$max_scouts}'
 fi
 
-# --- Append entry to research.jsonl ---
-RESEARCH_FILE="$PHASE_DIR/research.jsonl"
+# --- Insert directly into DB (DB is single source of truth) ---
+PLANNING_DIR="$(cd "$PHASE_DIR/../.." && pwd)"
+DB_PATH="$PLANNING_DIR/yolo.db"
+PHASE_NUM=$(basename "$(dirname "$PHASE_DIR")" | sed 's/-.*//')
 
-ENTRY=$(jq -n \
-  --arg q "$QUERY" \
-  --arg src "pending" \
-  --arg finding "" \
-  --arg conf "" \
-  --arg dt "$DT" \
-  --arg rel "$CONTEXT" \
-  --arg ra "$FROM" \
-  --arg rt "$REQUEST_TYPE" \
-  --arg priority "$PRIORITY" \
-  '{"q":$q,"src":$src,"finding":$finding,"conf":$conf,"dt":$dt,"rel":$rel,"ra":$ra,"rt":$rt,"priority":$priority}')
+if [[ ! -f "$DB_PATH" ]]; then
+  echo '{"error":"Database not found. Run init-db.sh first."}' >&2
+  exit 1
+fi
 
-echo "$ENTRY" >> "$RESEARCH_FILE"
+# Escape single quotes for SQL
+_esc() { echo "${1//\'/\'\'}"; }
+
+sqlite3 "$DB_PATH" <<SQL
+PRAGMA busy_timeout=5000;
+PRAGMA journal_mode=WAL;
+INSERT INTO research (q, src, finding, conf, dt, rel, ra, rt, priority, phase)
+VALUES ('$(_esc "$QUERY")', 'pending', '', '', '$DT', '$(_esc "$CONTEXT")', '$(_esc "$FROM")', '$REQUEST_TYPE', '$PRIORITY', '$PHASE_NUM');
+SQL
 
 exit 0

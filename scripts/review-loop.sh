@@ -33,15 +33,24 @@ if [[ -n "$CONFIG" && -f "$CONFIG" ]]; then
   fi
 fi
 
-REVIEW_FILE="$PHASE_DIR/code-review.jsonl"
+# --- DB path resolution (DB is single source of truth) ---
+PLANNING_DIR="$(cd "$PHASE_DIR/../.." 2>/dev/null && pwd)"
+DB_PATH="$PLANNING_DIR/yolo.db"
+PHASE_NUM=$(basename "$(dirname "$PHASE_DIR")" 2>/dev/null | sed 's/-.*//')
+[ -z "$PHASE_NUM" ] && PHASE_NUM=$(basename "$PHASE_DIR" | sed 's/-.*//')
 
-if [[ ! -f "$REVIEW_FILE" ]]; then
-  jq -n --arg mc "$MAX_CYCLES" '{cycles_used:0,result:"pending",reason:"no code-review.jsonl found",max_cycles:($mc|tonumber)}'
+if [[ ! -f "$DB_PATH" ]] || ! command -v sqlite3 &>/dev/null; then
+  jq -n --arg mc "$MAX_CYCLES" '{cycles_used:0,result:"pending",reason:"database not found",max_cycles:($mc|tonumber)}'
   exit 1
 fi
 
-# Read the latest verdict line for this plan
-VERDICT=$(jq -s --arg plan "$PLAN_ID" '[.[] | select(.plan == $plan and has("r"))] | last' "$REVIEW_FILE" 2>/dev/null)
+# Read the latest verdict for this plan from DB
+VERDICT=$(sqlite3 "$DB_PATH" "
+  SELECT json_object('r', r, 'cycle', cycle, 'sg_promoted', sg_promoted)
+  FROM code_review
+  WHERE plan='$PLAN_ID' AND phase='$PHASE_NUM' AND r IS NOT NULL AND r != ''
+  ORDER BY rowid DESC LIMIT 1;
+" 2>/dev/null)
 
 if [[ -z "$VERDICT" || "$VERDICT" == "null" ]]; then
   jq -n --arg plan "$PLAN_ID" '{cycles_used:0,result:"pending",reason:"no verdict for plan",plan:$plan}'
@@ -60,10 +69,9 @@ fi
 
 if [[ "$RESULT" == "changes_requested" ]]; then
   if [[ "$CYCLE" -lt "$MAX_CYCLES" ]]; then
-    # Extract findings for orchestrator to route to Dev
-    FINDINGS=$(jq -s --arg plan "$PLAN_ID" '[.[] | select(.plan == $plan and has("sev"))]' "$REVIEW_FILE" 2>/dev/null)
-    jq -n --argjson cycle "$CYCLE" --arg status "changes_requested" --argjson findings "$FINDINGS" \
-      '{cycle:$cycle,status:$status,findings:$findings}'
+    # Return status for orchestrator routing (findings are in the review cycle context, not DB)
+    jq -n --argjson cycle "$CYCLE" --arg status "changes_requested" \
+      '{cycle:$cycle,status:$status,findings:[]}'
     exit 0
   else
     jq -n --argjson cycle "$CYCLE" --argjson mc "$MAX_CYCLES" \

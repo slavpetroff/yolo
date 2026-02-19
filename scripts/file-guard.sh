@@ -54,81 +54,34 @@ esac
 PHASES_DIR="$PROJECT_ROOT/.yolo-planning/phases"
 [ ! -d "$PHASES_DIR" ] && exit 0
 
-# Find active plan: check cache first, fallback to glob on miss
-ACTIVE_PLAN=""
-ACTIVE_PLAN_FORMAT=""
-ACTIVE_PLAN_CACHE="$PROJECT_ROOT/.yolo-planning/.active-plan-cache"
-
-# Cache hit path: read cached plan path, validate it's still active
-if [ -f "$ACTIVE_PLAN_CACHE" ]; then
-  _cached=$(<"$ACTIVE_PLAN_CACHE")
-  if [ -f "$_cached" ]; then
-    SUMMARY_FILE="${_cached%.plan.jsonl}.summary.jsonl"
-    if [ ! -f "$SUMMARY_FILE" ]; then
-      ACTIVE_PLAN="$_cached"
-      ACTIVE_PLAN_FORMAT="jsonl"
-    fi
-    # If summary exists, cache is stale — fall through to glob
-  fi
-fi
-
-# Cache miss: glob through phase dirs
-if [ -z "$ACTIVE_PLAN" ]; then
-  # Check JSONL plans first
-  for PLAN_FILE in "$PHASES_DIR"/*/*.plan.jsonl; do
-    [ ! -f "$PLAN_FILE" ] && continue
-    SUMMARY_FILE="${PLAN_FILE%.plan.jsonl}.summary.jsonl"
-    if [ ! -f "$SUMMARY_FILE" ]; then
-      ACTIVE_PLAN="$PLAN_FILE"
-      ACTIVE_PLAN_FORMAT="jsonl"
-      break
-    fi
-  done
-
-  # Fall back to legacy MD plans
-  if [ -z "$ACTIVE_PLAN" ]; then
-    for PLAN_FILE in "$PHASES_DIR"/*/*-PLAN.md; do
-      [ ! -f "$PLAN_FILE" ] && continue
-      SUMMARY_FILE="${PLAN_FILE%-PLAN.md}-SUMMARY.md"
-      if [ ! -f "$SUMMARY_FILE" ]; then
-        ACTIVE_PLAN="$PLAN_FILE"
-        ACTIVE_PLAN_FORMAT="md"
-        break
-      fi
-    done
-  fi
-
-  # Write cache on successful glob (JSONL only — MD plans are legacy)
-  if [ -n "$ACTIVE_PLAN" ] && [ "$ACTIVE_PLAN_FORMAT" = "jsonl" ]; then
-    printf '%s' "$ACTIVE_PLAN" > "$ACTIVE_PLAN_CACHE" 2>/dev/null
-  fi
-fi
-
-# No active plan found — fail-open
-[ -z "$ACTIVE_PLAN" ] && exit 0
-
-# Extract files_modified from plan
+# Find active plan via DB (DB is single source of truth)
 DECLARED_FILES=""
-if [ "$ACTIVE_PLAN_FORMAT" = "jsonl" ] && command -v jq >/dev/null 2>&1; then
-  # JSONL: extract fm (files_modified) from header line
-  DECLARED_FILES=$(head -1 "$ACTIVE_PLAN" | jq -r '.fm // [] | .[]' 2>/dev/null) || exit 0
-else
-  # Legacy MD: extract files_modified from YAML frontmatter
-  DECLARED_FILES=$(awk '
-    BEGIN { in_front=0; in_files=0 }
-    /^---$/ {
-      if (in_front == 0) { in_front=1; next }
-      else { exit }
-    }
-    in_front && /^files_modified:/ { in_files=1; next }
-    in_front && in_files && /^[[:space:]]+- / {
-      sub(/^[[:space:]]+- /, "")
-      gsub(/["'"'"']/, "")
-      print
-      next
-    }
-    in_front && in_files && /^[^[:space:]]/ { in_files=0 }
-  ' "$ACTIVE_PLAN" 2>/dev/null) || exit 0
+_FG_DB="$PROJECT_ROOT/.yolo-planning/yolo.db"
+if [ -f "$_FG_DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+  # Find first plan without a completed summary
+  _fm_json=$(sqlite3 "$_FG_DB" "
+    SELECT p.fm FROM plans p
+    LEFT JOIN summaries s ON s.plan_id = p.rowid
+    WHERE s.rowid IS NULL AND p.fm IS NOT NULL AND p.fm != '' AND p.fm != 'null'
+    ORDER BY p.phase, p.plan_num
+    LIMIT 1;
+  " 2>/dev/null) || true
+
+  # Also check task-level files
+  if [ -z "$_fm_json" ]; then
+    _fm_json=$(sqlite3 "$_FG_DB" "
+      SELECT GROUP_CONCAT(t.files, ',') FROM tasks t
+      JOIN plans p ON t.plan_id = p.rowid
+      LEFT JOIN summaries s ON s.plan_id = p.rowid
+      WHERE s.rowid IS NULL AND t.files IS NOT NULL AND t.files != '' AND t.files != 'null'
+      ORDER BY p.phase, p.plan_num
+      LIMIT 1;
+    " 2>/dev/null) || true
+  fi
+
+  if [ -n "$_fm_json" ] && command -v jq >/dev/null 2>&1; then
+    DECLARED_FILES=$(echo "$_fm_json" | jq -r 'if type == "array" then .[] elif type == "string" then split(",")[] else . end' 2>/dev/null) || true
+  fi
 fi
 
 # No files_modified declared — fail-open

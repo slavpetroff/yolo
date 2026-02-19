@@ -118,6 +118,16 @@ route_trivial() {
         --arg a "$INTENT" \
         '{id: "T1", tp: $tp, a: $a, f: [], v: "Task completes without error", done: false}'
     } > "$plan_path"
+
+    # Import plan into DB (DB is single source of truth)
+    local planning_dir
+    planning_dir="$(cd "$PHASE_DIR/../.." && pwd)"
+    local db_path="$planning_dir/yolo.db"
+    local import_script
+    import_script="$(cd "$(dirname "${BASH_SOURCE[0]}")/db" && pwd)/import-jsonl.sh"
+    if [ -f "$db_path" ] && [ -f "$import_script" ]; then
+      bash "$import_script" --type plan --file "$plan_path" --phase "$phase_num" --db "$db_path" >/dev/null 2>&1 || true
+    fi
   fi
 
   local steps_skipped='["critique","research","architecture","planning","test_authoring","qa","security"]'

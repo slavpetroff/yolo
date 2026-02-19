@@ -119,4 +119,11 @@ jq -r '.[].name' "$PHASES_JSON" | {
   done
 }
 
+# Import into DB if it exists (bootstrap may run before or after init-db.sh)
+DB_PATH="$PLANNING_DIR/yolo.db"
+IMPORT_SCRIPT="$(cd "$(dirname "$0")/../db" && pwd)/import-roadmap.sh"
+if [[ -f "$DB_PATH" ]] && [[ -f "$IMPORT_SCRIPT" ]]; then
+  bash "$IMPORT_SCRIPT" --file "$OUTPUT_PATH" --db "$DB_PATH" >/dev/null 2>&1 || true
+fi
+
 exit 0
