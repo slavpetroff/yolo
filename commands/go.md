@@ -579,9 +579,10 @@ This mode delegates to protocol files. Before reading:
     ```bash
     GATE_RESULT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-documenter-gate.sh \
       --config .yolo-planning/config.json \
-      --defaults ${CLAUDE_PLUGIN_ROOT}/config/defaults.json)
+      --trigger phase)
     DOC_SPAWN=$(echo "$GATE_RESULT" | jq -r '.spawn')
     ```
+    If `spawn=false` (exit code 1): skip Step 8.5 entirely. Write skip status to .execution-state.json: `{"step":"documentation","status":"skipped","reason":"documenter config=$(jq -r '.documenter // "on_request"' .yolo-planning/config.json)"}`. Display: `○ Documentation skipped (config={value})`. Commit: `chore(state): documentation skipped phase {N}`.
     If `spawn=true`: spawn yolo-documenter. Non-blocking — proceed to QA immediately.
 
   - **Security step (Step 10):** Spawn yolo-security (BE-scoped). Single-dept mode always uses backend security reviewer only.
@@ -608,7 +609,15 @@ This mode delegates to protocol files. Before reading:
     ```
     Display per-dept confidence: `✓ BE Critique (cf:88, 2 rounds) | FE Critique (cf:91, 1 round) | UX Critique (cf:85, 3 rounds)`
 
-  - **Documentation step (Step 8.5):** Per-department documenter dispatch gated by resolve-documenter-gate.sh. Spawn yolo-documenter (BE), yolo-fe-documenter (FE), yolo-ux-documenter (UX) based on active departments. Non-blocking.
+  - **Documentation step (Step 8.5):** Before spawning, call gate:
+    ```bash
+    GATE_RESULT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-documenter-gate.sh \
+      --config .yolo-planning/config.json \
+      --trigger phase)
+    DOC_SPAWN=$(echo "$GATE_RESULT" | jq -r '.spawn')
+    ```
+    If `spawn=false`: skip Step 8.5 for all departments. Write skip status to .execution-state.json and commit: `chore(state): documentation skipped phase {N}`.
+    If `spawn=true`: per-department documenter dispatch. Spawn yolo-documenter (BE), yolo-fe-documenter (FE), yolo-ux-documenter (UX) based on active departments. Non-blocking.
 
   - **Security step (Step 10):** Per-department security reviewers. Check departments config: for each active dept, spawn corresponding security reviewer:
     - Backend: yolo-security (BE-scoped)

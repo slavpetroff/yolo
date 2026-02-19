@@ -758,10 +758,10 @@ If `config.approval_gates.manual_qa` is true AND QA step is not skipped per step
 1. **Resolve documenter gate:**
    ```bash
    GATE_RESULT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-documenter-gate.sh \
-     --config .yolo-planning/config.json --defaults ${CLAUDE_PLUGIN_ROOT}/config/defaults.json)
+     --config .yolo-planning/config.json --trigger phase)
    DOC_SPAWN=$(echo "$GATE_RESULT" | jq -r '.spawn')
    ```
-   - If `DOC_SPAWN=false` (documenter='on_request' and user did not request): skip. Display: `○ Documentation skipped (on_request, not requested)`
+   - If `DOC_SPAWN=false` (exit code 1): skip Step 8.5. Write skip status to .execution-state.json: `{"step":"documentation","status":"skipped","reason":"documenter config={value}"}`. Display: `○ Documentation skipped ({reason from gate})`. Commit: `chore(state): documentation skipped phase {N}`.
    - If `DOC_SPAWN=true` (documenter='always' or user requested): proceed.
 
 2. **Spawn per-department documenter** based on active departments:
