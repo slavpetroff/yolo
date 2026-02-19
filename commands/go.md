@@ -469,6 +469,27 @@ This mode delegates to protocol files. Before reading:
    - Not initialized: STOP "YOLO is not set up yet. Run /yolo:init to get started."
    - No `*.plan.jsonl` files in phase dir: STOP "Phase {N} has no plans. Run `/yolo:go --plan {N}` first."
    - All plans have `*.summary.jsonl`: cautious/standard -> WARN + confirm; confident/pure-yolo -> warn + auto-continue.
+2.5. **Initialize artifact store (SQLite):**
+   ```bash
+   db_available=false
+   if [ -x "${CLAUDE_PLUGIN_ROOT}/scripts/db/init-db.sh" ]; then
+     if bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/init-db.sh" --planning-dir .vbw-planning; then
+       db_available=true
+       # Import existing JSONL artifacts into DB
+       DB_PATH=".vbw-planning/yolo.db"
+       for plan in "${PHASE_DIR}"/*.plan.jsonl; do
+         [ -f "$plan" ] && bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
+           --type plan --file "$plan" --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
+       done
+       for summary in "${PHASE_DIR}"/*.summary.jsonl; do
+         [ -f "$summary" ] && bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
+           --type summary --file "$summary" --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
+       done
+       echo "✓ Artifact store initialized (SQLite)"
+     fi
+   fi
+   ```
+   If `init-db.sh` not found (pre-phase-10 installation), set `db_available=false` and continue with file-based path. The `db_available` flag gates all subsequent DB operations — when false, the protocol falls through to existing file-based behavior at every decision point. Display: `○ Artifact store: ${db_available}`.
 3. **Compile context (MANDATORY --measure):** If `config_context_compiler=true`, compile context for each agent role as needed per the protocol steps. ALWAYS include `--measure` flag:
    ```bash
    ctx_path=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh --measure {phase} {role} {phases_dir} 2>"/tmp/yolo-ctx-measure-${role}.json")
