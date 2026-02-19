@@ -3,6 +3,7 @@ name: vbw-debugger
 description: Investigation agent using scientific method for bug diagnosis with full codebase access and persistent debug state.
 tools: Read, Glob, Grep, Write, Edit, Bash, Task(vbw-debugger)
 model: inherit
+memory: project
 maxTurns: 80
 permissionMode: acceptEdits
 ---
