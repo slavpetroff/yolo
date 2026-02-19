@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # get-phase.bats — Unit tests for scripts/db/get-phase.sh
-# Phase metadata retrieval: goals, reqs, success criteria
+# Phase metadata retrieval: goals, reqs, success criteria, --reqs-detail, --all-phases
 
 setup() {
   load '../../test_helper/common'
@@ -8,29 +8,46 @@ setup() {
   mk_test_workdir
   SUT="$SCRIPTS_DIR/db/get-phase.sh"
   DB="$TEST_WORKDIR/test.db"
-  # Create phases table
-  sqlite3 "$DB" <<'SQL'
+  # Create phases table (matches import-roadmap.sh schema)
+  sqlite3 "$DB" <<'SQL' > /dev/null
+PRAGMA journal_mode=WAL;
 CREATE TABLE phases (
   phase_num TEXT PRIMARY KEY,
+  slug TEXT,
   goal TEXT,
   reqs TEXT,
   success_criteria TEXT,
-  slug TEXT
+  deps TEXT,
+  status TEXT DEFAULT 'planned'
 );
 INSERT INTO phases VALUES (
   '09',
+  'auth-system',
   'Implement authentication system',
   'REQ-01,REQ-03,REQ-07',
   'All auth tests pass, JWT tokens validated',
-  'auth-system'
+  'Phase 8',
+  'complete'
 );
 INSERT INTO phases VALUES (
   '10',
+  'sqlite-artifact-store',
   'Build SQLite artifact store',
   'REQ-12,REQ-14',
   'All query scripts return <100 tokens, WAL mode active',
-  'sqlite-artifact-store'
+  'Phase 9',
+  'planned'
 );
+CREATE TABLE requirements (
+  req_id TEXT PRIMARY KEY,
+  description TEXT,
+  priority TEXT DEFAULT 'must-have'
+);
+INSERT INTO requirements VALUES ('REQ-01', '26 specialized agents across 4 departments', 'must-have');
+INSERT INTO requirements VALUES ('REQ-03', 'Company hierarchy: Architect -> Lead -> Senior -> Dev', 'must-have');
+INSERT INTO requirements VALUES ('REQ-07', 'Teammate API integration with Task tool fallback', 'must-have');
+INSERT INTO requirements VALUES ('REQ-12', 'SQLite schema covering all artifact types', 'must-have');
+INSERT INTO requirements VALUES ('REQ-14', 'FTS5 full-text search for research and decisions', 'must-have');
 SQL
 }
 
@@ -106,4 +123,104 @@ SQL
   run bash "$SUT" 09 --db "$TEST_WORKDIR/nonexistent.db"
   assert_failure
   assert_output --partial "database not found"
+}
+
+# --reqs-detail tests
+
+@test "--reqs-detail expands REQ-IDs to descriptions" {
+  run bash "$SUT" 09 --db "$DB" --reqs-detail
+  assert_success
+  assert_output --partial "reqs: REQ-01,REQ-03,REQ-07"
+  assert_output --partial "REQ-01: 26 specialized agents across 4 departments"
+  assert_output --partial "REQ-03: Company hierarchy"
+  assert_output --partial "REQ-07: Teammate API integration"
+}
+
+@test "--reqs-detail shows details for phase 10" {
+  run bash "$SUT" 10 --db "$DB" --reqs-detail
+  assert_success
+  assert_output --partial "REQ-12: SQLite schema covering all artifact types"
+  assert_output --partial "REQ-14: FTS5 full-text search"
+}
+
+@test "--reqs-detail with no requirements table degrades gracefully" {
+  # Create DB without requirements table
+  local DB2="$TEST_WORKDIR/no-reqs.db"
+  sqlite3 "$DB2" <<'SQL' > /dev/null
+PRAGMA journal_mode=WAL;
+CREATE TABLE phases (
+  phase_num TEXT PRIMARY KEY,
+  slug TEXT,
+  goal TEXT,
+  reqs TEXT,
+  success_criteria TEXT,
+  deps TEXT,
+  status TEXT DEFAULT 'planned'
+);
+INSERT INTO phases VALUES ('01', 'test', 'Test goal', 'REQ-01,REQ-02', 'Test criteria', 'None', 'planned');
+SQL
+  run bash "$SUT" 01 --db "$DB2" --reqs-detail
+  assert_success
+  assert_output --partial "reqs: REQ-01,REQ-02"
+  # No expanded lines since requirements table doesn't exist
+  refute_output --partial "REQ-01:"
+}
+
+@test "--reqs-detail indents expanded requirement lines" {
+  run bash "$SUT" 09 --db "$DB" --reqs-detail
+  assert_success
+  # Detail lines should be indented with 2 spaces
+  assert_output --partial "  REQ-01:"
+}
+
+# --all-phases tests
+
+@test "--all-phases lists all phases" {
+  run bash "$SUT" --all-phases --db "$DB"
+  assert_success
+  assert_output --partial "phase: 09"
+  assert_output --partial "phase: 10"
+}
+
+@test "--all-phases shows slug and status" {
+  run bash "$SUT" --all-phases --db "$DB"
+  assert_success
+  assert_output --partial "auth-system"
+  assert_output --partial "complete"
+  assert_output --partial "sqlite-artifact-store"
+  assert_output --partial "planned"
+}
+
+@test "--all-phases exits 1 when no phases exist" {
+  local DB2="$TEST_WORKDIR/empty.db"
+  sqlite3 "$DB2" <<'SQL' > /dev/null
+PRAGMA journal_mode=WAL;
+CREATE TABLE phases (
+  phase_num TEXT PRIMARY KEY,
+  slug TEXT,
+  goal TEXT,
+  reqs TEXT,
+  success_criteria TEXT,
+  deps TEXT,
+  status TEXT DEFAULT 'planned'
+);
+SQL
+  run bash "$SUT" --all-phases --db "$DB2"
+  assert_failure
+  assert_output --partial "no phases found"
+}
+
+@test "--all-phases pipe-delimited format" {
+  run bash "$SUT" --all-phases --db "$DB"
+  assert_success
+  # Each line should have phase: NN | slug | status format
+  assert_output --partial "09 | auth-system | complete"
+  assert_output --partial "10 | sqlite-artifact-store | planned"
+}
+
+@test "--all-phases does not require phase number argument" {
+  run bash "$SUT" --all-phases --db "$DB"
+  assert_success
+  # Should not fail with "Usage" even though no positional arg
+  refute_output --partial "Usage"
 }
