@@ -469,27 +469,26 @@ This mode delegates to protocol files. Before reading:
    - Not initialized: STOP "YOLO is not set up yet. Run /yolo:init to get started."
    - No `*.plan.jsonl` files in phase dir: STOP "Phase {N} has no plans. Run `/yolo:go --plan {N}` first."
    - All plans have `*.summary.jsonl`: cautious/standard -> WARN + confirm; confident/pure-yolo -> warn + auto-continue.
-2.5. **Initialize artifact store (SQLite):**
+2.5. **Initialize artifact store (mandatory):**
    ```bash
-   db_available=false
-   if [ -x "${CLAUDE_PLUGIN_ROOT}/scripts/db/init-db.sh" ]; then
-     if bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/init-db.sh" --planning-dir .vbw-planning; then
-       db_available=true
-       # Import existing JSONL artifacts into DB
-       DB_PATH=".vbw-planning/yolo.db"
-       for plan in "${PHASE_DIR}"/*.plan.jsonl; do
-         [ -f "$plan" ] && bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
-           --type plan --file "$plan" --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
-       done
-       for summary in "${PHASE_DIR}"/*.summary.jsonl; do
-         [ -f "$summary" ] && bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
-           --type summary --file "$summary" --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
-       done
-       echo "✓ Artifact store initialized (SQLite)"
-     fi
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/init-db.sh" --planning-dir .vbw-planning
+   if [ $? -ne 0 ]; then
+     echo "ERROR: Artifact store initialization failed. Check SQLite availability."
+     exit 1
    fi
+   DB_PATH=".vbw-planning/yolo.db"
+   # Import existing JSONL artifacts into DB
+   for plan in "${PHASE_DIR}"/*.plan.jsonl; do
+     [ -f "$plan" ] && bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
+       --type plan --file "$plan" --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
+   done
+   for summary in "${PHASE_DIR}"/*.summary.jsonl; do
+     [ -f "$summary" ] && bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
+       --type summary --file "$summary" --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
+   done
+   echo "✓ Artifact store initialized (SQLite)"
    ```
-   If `init-db.sh` not found (pre-phase-10 installation), set `db_available=false` and continue with file-based path. The `db_available` flag gates all subsequent DB operations — when false, the protocol falls through to existing file-based behavior at every decision point. Display: `○ Artifact store: ${db_available}`.
+   If `init-db.sh` fails (non-zero exit), STOP with error. The DB is mandatory for all subsequent operations.
 2.7. **Phase status check (when `db_available=true`):**
    ```bash
    if [ "$db_available" = true ]; then
