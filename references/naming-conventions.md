@@ -233,7 +233,39 @@ Department context files:
 
 `.execution-state.json` is committed on workflow step transitions. The dot-prefix indicates it is a runtime artifact, not a primary deliverable.
 
-## 9. Anti-Patterns (Real Examples)
+## 9. Script & Library Naming
+
+| Pattern | Example | Location |
+|---------|---------|----------|
+| `{verb}.sh` or `{verb}-{noun}.sh` | `route.sh`, `compile-context.sh` | `scripts/` |
+| `yolo-common.sh` | Shared functions library | `lib/` |
+
+### Consolidated Script Pattern
+
+Scripts that previously existed as `{name}-{variant}.sh` (e.g., `route-trivial.sh`, `route-medium.sh`, `route-high.sh`) are consolidated into a single `{name}.sh` with a `--path` or `--type` flag for dispatch:
+
+```
+# Old: 3 separate scripts
+scripts/route-trivial.sh
+scripts/route-medium.sh
+scripts/route-high.sh
+
+# New: single parameterized script
+scripts/route.sh --path trivial|medium|high
+```
+
+### Shared Library Sourcing
+
+Scripts that use shared functions must source `lib/yolo-common.sh`:
+
+```bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../lib/yolo-common.sh"
+```
+
+The library includes a guard variable (`_YOLO_COMMON_LOADED`) to prevent double-source.
+
+## 10. Anti-Patterns (Real Examples)
 
 Documented from naming audit across 3 prior milestones.
 
