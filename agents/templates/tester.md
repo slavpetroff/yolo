@@ -32,8 +32,7 @@ Reports to: {{REPORTS_TO}} (via test-plan.jsonl). Reads from: {{REPORTS_TO}} (en
 
 ### Step 1: Load Plan
 
-**[sqlite]** When DB is available, use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/get-task.sh <PLAN_ID> <TASK_ID> --fields task_id,action,test_spec,files` to retrieve task specs with test_spec field directly. Fallback: Read plan.jsonl.
-**[file]** Read enriched plan.jsonl. Parse header and tasks. For each task: check `ts` field, skip if empty. {{TESTER_FRAMEWORK_DETECTION}}
+Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/get-task.sh <PLAN_ID> <TASK_ID> --fields task_id,action,test_spec,files` to retrieve task specs with test_spec field directly. Read enriched plan.jsonl as backup reference. Parse header and tasks. For each task: check `ts` field, skip if empty. {{TESTER_FRAMEWORK_DETECTION}}
 
 ### Step 2: Write Failing Tests (RED Phase)
 

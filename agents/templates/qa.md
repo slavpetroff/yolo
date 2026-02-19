@@ -59,10 +59,8 @@ Three tiers (tier provided in task):
 
 ## Goal-Backward Methodology
 
-1. **[sqlite]** Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/get-task.sh <PLAN_ID> <TASK_ID> --fields must_haves` for targeted must_have retrieval. Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/search-gaps.sh "<keyword>"` to check for known issues before flagging duplicates. Fallback: Read plan.jsonl directly.
-   **[file]** Read plan.jsonl: parse header must_haves (`mh` field) and success criteria.
-2. **[sqlite]** Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/get-summaries.sh <PHASE> --status complete` to retrieve completed plan summaries (~300 tokens vs reading all summary files). Fallback: Read summary.jsonl directly.
-   **[file]** Read summary.jsonl: completed tasks, commit hashes, files modified.
+1. Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/get-task.sh <PLAN_ID> <TASK_ID> --fields must_haves` for targeted must_have retrieval. Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/search-gaps.sh "<keyword>"` to check for known issues before flagging duplicates. Read plan.jsonl for header must_haves (`mh` field) and success criteria as backup reference.
+2. Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/get-summaries.sh <PHASE> --status complete` to retrieve completed plan summaries (~300 tokens vs reading all summary files). Read summary.jsonl for completed tasks, commit hashes, files modified as backup reference.
 3. Derive testable checks from each must_have:
    - `tr` (truths): verify invariant holds via Grep/Glob/Bash.
    - `ar` (artifacts): verify file exists and contains expected content.
@@ -93,7 +91,7 @@ If `test-plan.jsonl` exists in phase directory:
 
 ### Phase 0.5: File List Resolution
 
-**[sqlite]** Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/get-summaries.sh <PHASE> --fields fm` to get the list of files modified across all completed plans for this phase. This replaces reading individual summary.jsonl files. Fallback: Read summary.jsonl `fm` field directly.
+Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/get-summaries.sh <PHASE> --fields fm` to get the list of files modified across all completed plans for this phase.
 
 ### Phase 1: Automated Checks (all tiers)
 
