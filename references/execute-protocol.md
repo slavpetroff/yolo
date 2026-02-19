@@ -240,6 +240,15 @@ When `po.enabled=true` and guard conditions not met:
 4. Critic returns findings via SendMessage (Critic has no Write tool).
 5. Write critique.jsonl from Critic's findings to phase directory. Each entry includes `cf` and `rd` fields.
 6. Commit: `docs({phase}): critique and gap analysis`
+6.5. **[sqlite] Dual-write to DB (when `db_available=true`):**
+   ```bash
+   if [ "$db_available" = "true" ]; then
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
+       --type critique --file "{phase-dir}/critique.jsonl" \
+       --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
+   fi
+   ```
+   File-based critique.jsonl remains the primary artifact. DB import is additive for query access.
 7. **User gate (balanced/thorough effort):** Display critique summary including confidence score and rounds used. If critical findings exist, AskUserQuestion "Address these before architecture?" Options: "Proceed (Architect will address)" / "Pause to discuss".
 8. **EXIT GATE:** Artifact: `critique.jsonl` (valid JSONL, entries have `cf` and `rd` fields). State: `steps.critique = complete`. Commit: `chore(state): critique complete phase {N}`.
 
@@ -285,6 +294,15 @@ When `po.enabled=true` and guard conditions not met:
    ```
    Dedup: skip entries where `q` + `finding` already exist in the archive.
 8. Commit: `docs({phase}): research findings`
+8.5. **[sqlite] Dual-write to DB (when `db_available=true`):**
+   ```bash
+   if [ "$db_available" = "true" ]; then
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
+       --type research --file "{phase-dir}/research.jsonl" \
+       --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
+   fi
+   ```
+   File-based research.jsonl remains the primary artifact. DB import enables FTS5 search via search-research.sh.
 9. **EXIT GATE:** Artifact: `research.jsonl` (valid JSONL). State: `steps.research = complete`. Commit: `chore(state): research complete phase {N}`.
 
 ### Step 3: Architecture (Architect Agent)
@@ -308,6 +326,24 @@ When `po.enabled=true` and guard conditions not met:
 3. Display: `◆ Spawning Architect (${ARCHITECT_MODEL})...` → `✓ Architecture complete`
 4. Verify: architecture.toon exists in phase directory.
 5. Architect addresses critique.jsonl findings (updates `st` field) and commits: `docs({phase}): architecture design`
+5.5. **[sqlite] Dual-write decisions to DB (when `db_available=true`):**
+   If Architect produces `decisions.jsonl`, write each decision to DB:
+   ```bash
+   if [ "$db_available" = "true" ] && [ -f "{phase-dir}/decisions.jsonl" ]; then
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
+       --type decisions --file "{phase-dir}/decisions.jsonl" \
+       --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
+   fi
+   ```
+   For individual findings during architecture, use append-finding.sh:
+   ```bash
+   if [ "$db_available" = "true" ]; then
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/append-finding.sh" \
+       --type decision --plan "${PLAN_ID}" --phase "${PHASE_NUM}" \
+       --data "$finding_json" --db "$DB_PATH" 2>/dev/null || true
+   fi
+   ```
+   File-based decisions.jsonl remains the primary artifact. DB enables cross-phase decision search.
 6. **EXIT GATE:** Artifact: `architecture.toon` (non-empty, meets completeness criteria per references/rnd-handoff-protocol.md ## Architect->Lead Stage-Gate). Completeness: tech_decisions present, components defined, integration_points specified, risks documented, critique_disposition complete. State: `steps.architecture = complete`. Commit: `chore(state): architecture complete phase {N}`.
 
 ### Step 4: Load Plans and Detect Resume State
@@ -713,6 +749,15 @@ Note: NO `--scope` flag -- post-plan runs full test suite per architecture D4.
    - If `config.approval_gates.code_review` is true → pause, display review summary, AskUserQuestion "Proceed to QA?" Options: "Proceed" / "Review changes".
    - Otherwise → proceed to Step 9.
 9. Senior commits: `docs({phase}): code review {NN-MM}`
+9.5. **[sqlite] Dual-write to DB (when `db_available=true`):**
+   ```bash
+   if [ "$db_available" = "true" ]; then
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/append-finding.sh" \
+       --type code-review --plan "${PLAN_ID}" --phase "${PHASE_NUM}" \
+       --data "$(jq -c '.' {phase-dir}/code-review.jsonl)" --db "$DB_PATH" 2>/dev/null || true
+   fi
+   ```
+   File-based code-review.jsonl remains the primary artifact. DB enables cross-plan review search.
 10. Verify: code-review.jsonl exists with `r: "approve"`.
 11. **EXIT GATE:** Artifact: `code-review.jsonl` per plan (r: "approve"). When team_mode=teammate: Lead waits for code_review_result messages from all dispatched Seniors in the current wave. After all received, Lead verifies each plan has code-review.jsonl with `r: "approve"` in line 1 (via `jq -r .r` equals "approve"). If any plan has changes_requested after cycle 2, Senior escalates to Lead per existing protocol. When team_mode=task: sequential verification unchanged (each plan checked after its Senior completes). State: `steps.code_review = complete`. Commit: `chore(state): code_review complete phase {N}`.
 
@@ -756,6 +801,14 @@ Post-phase gate result is available to QA agent via `{phase-dir}/.qa-gate-result
    > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-qa.toon). See D4 in architecture for soft enforcement details.
 
 5. QA (plan mode) produces verification.jsonl. Commits: `docs({phase}): verification results`
+5.5. **[sqlite] Dual-write verification to DB (when `db_available=true`):**
+   ```bash
+   if [ "$db_available" = "true" ]; then
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
+       --type verification --file "{phase-dir}/verification.jsonl" \
+       --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
+   fi
+   ```
 
 **QA code mode (code-level verification):**
 6. Spawn yolo-qa with `--mode code`:
@@ -770,6 +823,15 @@ Post-phase gate result is available to QA agent via `{phase-dir}/.qa-gate-result
    > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-qa.toon). See D4 in architecture for soft enforcement details.
 
 7. QA (code mode) runs TDD compliance (Phase 0), tests, lint, patterns. For shell/bats projects: `bash scripts/test-summary.sh` (single invocation, outputs `PASS (N tests)` or `FAIL (F/N failed)` with details — never invoke bats directly). Produces qa-code.jsonl. Commits: `docs({phase}): code quality review`
+7.5. **[sqlite] Dual-write qa-code to DB (when `db_available=true`):**
+   ```bash
+   if [ "$db_available" = "true" ]; then
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/append-finding.sh" \
+       --type qa-code --plan "${PLAN_ID}" --phase "${PHASE_NUM}" \
+       --data "$(jq -c '.' {phase-dir}/qa-code.jsonl)" --db "$DB_PATH" 2>/dev/null || true
+   fi
+   ```
+   File-based qa-code.jsonl remains the primary artifact. DB enables cross-phase QA trend analysis.
 
 **Result handling:**
 - Both PASS → Manual QA (if enabled) → Step 10 (or Step 11 if security disabled)
@@ -864,6 +926,18 @@ If `config.approval_gates.manual_qa` is true AND QA step is not skipped per step
    > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-security.toon). See D4 in architecture for soft enforcement details.
 
 4. Each Security Reviewer produces security-audit.jsonl (dept-prefixed when multi-dept: fe-security-audit.jsonl, ux-security-audit.jsonl). Commits: `docs({phase}): security audit`
+4.5. **[sqlite] Dual-write security findings to DB (when `db_available=true`):**
+   ```bash
+   if [ "$db_available" = "true" ]; then
+     for audit in {phase-dir}/*security-audit.jsonl; do
+       [ -f "$audit" ] || continue
+       bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/append-finding.sh" \
+         --type security --plan "${PLAN_ID}" --phase "${PHASE_NUM}" \
+         --data "$(jq -c '.' "$audit")" --db "$DB_PATH" 2>/dev/null || true
+     done
+   fi
+   ```
+   File-based security-audit.jsonl remains the primary artifact. DB enables cross-phase security trend tracking.
 5. If `r: "FAIL"` from ANY department: **HARD STOP**. Display findings from failing department. Only user `--force` overrides.
 6. If `r: "WARN"`:
    - Display warnings.
