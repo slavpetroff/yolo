@@ -144,7 +144,7 @@ When complexity routing is enabled (`config_complexity_routing=true` in phase-de
 
 **Rules:**
 
-1. **Trivial path:** Only Senior (design review), Dev (implementation), and the post-task QA gate run. Senior receives the inline plan directly from route-trivial.sh. No formal planning, no code review cycle, no QA agents, no security audit.
+1. **Trivial path:** Only Senior (design review), Dev (implementation), and the post-task QA gate run. Senior receives the inline plan directly from route.sh --path trivial. No formal planning, no code review cycle, no QA agents, no security audit.
 
 2. **Medium path:** Lead performs abbreviated planning (single plan, max `complexity_routing.max_medium_tasks` tasks). Senior enriches, Dev implements, Senior reviews code. Post-plan QA gate runs but full QA agents (qa, qa-code) are skipped. Security audit is skipped.
 
@@ -508,7 +508,7 @@ Blocking requests respect `research_requests.blocking_timeout_seconds` from conf
 After each Dev task commit (and TDD GREEN verification if applicable), run the post-task QA gate as a fast automated check before proceeding to the next task:
 
 ```bash
-result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate-post-task.sh \
+result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate.sh --tier task \
   --phase-dir "{phase-dir}" --plan "{plan-id}" --task "{task-id}" --scope)
 gate_status=$(echo "$result" | jq -r '.gate')
 ```
@@ -583,7 +583,7 @@ When team_mode=task: Dev-written summary.jsonl is verified (unchanged behavior):
 After all tasks in a plan complete and summary.jsonl is written and verified, run the post-plan QA gate before proceeding to the next plan:
 
 ```bash
-result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate-post-plan.sh \
+result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate.sh --tier plan \
   --phase-dir "{phase-dir}" --plan "{plan-id}")
 gate_status=$(echo "$result" | jq -r '.gate')
 ```
@@ -670,7 +670,7 @@ Note: NO `--scope` flag -- post-plan runs full test suite per architecture D4.
 Before spawning QA agents (LLM-powered, expensive), run the post-phase gate as a fast automated pre-check (script-only, <60s). This catches obvious failures before committing LLM cost.
 
 ```bash
-result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate-post-phase.sh \
+result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate.sh --tier phase \
   --phase-dir "{phase-dir}")
 gate_status=$(echo "$result" | jq -r '.gate')
 ```
