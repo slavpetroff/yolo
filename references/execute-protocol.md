@@ -289,7 +289,6 @@ All metrics calls should be `2>/dev/null || true` — never block execution.
   1. `contract_compliance` gate: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/hard-gate.sh contract_compliance {phase} {plan} {task} {contract_path}`
   2. **Lease acquisition** (V2 control plane): acquire exclusive file lease before protected_file check:
      - If `v3_lease_locks=true`: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh acquire {task_id} --ttl=300 {claimed_files...}`
-     - Else if `v3_lock_lite=true`: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lock-lite.sh acquire {task_id} {claimed_files...}`
      - Lease conflict → auto-repair attempt (wait + re-acquire), then escalate blocker if unresolved.
   3. `protected_file` gate: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/hard-gate.sh protected_file {phase} {plan} {task} {contract_path}`
   - If any gate fails (exit 2): attempt auto-repair:
@@ -301,7 +300,6 @@ All metrics calls should be `2>/dev/null || true` — never block execution.
   2. `commit_hygiene` gate: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/hard-gate.sh commit_hygiene {phase} {plan} {task} {contract_path}`
   3. **Lease release**: release file lease after task completes:
      - If `v3_lease_locks=true`: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh release {task_id}`
-     - Else if `v3_lock_lite=true`: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lock-lite.sh release {task_id}`
   - Gate failures trigger auto-repair with same flow as pre-task.
 - **Post-plan gate (after all tasks complete, before marking plan done):**
   1. `artifact_persistence` gate: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/hard-gate.sh artifact_persistence {phase} {plan} {task} {contract_path}`
@@ -310,23 +308,13 @@ All metrics calls should be `2>/dev/null || true` — never block execution.
 - **YOLO mode:** Hard gates ALWAYS fire regardless of autonomy level. YOLO only skips confirmation prompts.
 - **Fallback:** If hard-gate.sh or auto-repair.sh errors (not a gate fail, but a script error), log to metrics and continue (fail-open on script errors, hard-stop only on gate verdicts).
 
-**V3 Lock-Lite (REQ-11):** If `v3_lock_lite=true` in config:
-- **Before each task:** Acquire lock with claimed files:
-  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lock-lite.sh acquire {task_id} {claimed_files...} 2>/dev/null || true`
-  Where `{task_id}` is `{phase}-{plan}-T{N}` and `{claimed_files}` from the task's **Files:** list.
-- **After each task (or on failure):** Release lock:
-  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lock-lite.sh release {task_id} 2>/dev/null || true`
-- Conflicts are advisory only (logged to metrics, not blocking).
-- Lock cleanup: at phase end, `rm -f .vbw-planning/.locks/*.lock 2>/dev/null || true`.
-
 **V3 Lease Locks (REQ-17):** If `v3_lease_locks=true` in config:
-- Use `lease-lock.sh` instead of `lock-lite.sh` for all lock operations above:
+- Use `lease-lock.sh` for all lock operations:
   - Acquire: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh acquire {task_id} --ttl=300 {claimed_files...} 2>/dev/null || true`
   - Release: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh release {task_id} 2>/dev/null || true`
 - **During long-running tasks** (>2 minutes estimated): renew lease periodically:
   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh renew {task_id} 2>/dev/null || true`
 - Check for expired leases before acquiring: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh check {task_id} {claimed_files...} 2>/dev/null || true`
-- If both `v3_lease_locks` and `v3_lock_lite` are true, lease-lock takes precedence.
 
 ### Step 3b: V2 Two-Phase Completion (REQ-09)
 
