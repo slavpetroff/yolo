@@ -243,9 +243,186 @@ _run_tests_full() {
 # Tier: task — gate_post_task()
 # ============================================================
 gate_post_task() {
-  # Placeholder — migrated in T2
-  echo '{"error":"gate_post_task not yet implemented"}' >&2
-  exit 1
+  local PHASE_DIR="" PLAN_ID="" TASK_ID="" SCOPE_MODE=false FILES_LIST="" TIMEOUT=30
+  local TESTS_DIR="${TESTS_DIR:-$_SCRIPT_DIR/../tests}"
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --phase-dir) PHASE_DIR="$2"; shift 2 ;;
+      --plan) PLAN_ID="$2"; shift 2 ;;
+      --task) TASK_ID="$2"; shift 2 ;;
+      --scope) SCOPE_MODE=true; shift ;;
+      --files) FILES_LIST="$2"; shift 2 ;;
+      --timeout) TIMEOUT="$2"; shift 2 ;;
+      *) echo "Unknown flag: $1" >&2; shift ;;
+    esac
+  done
+
+  if [ -z "$PHASE_DIR" ]; then
+    echo '{"error":"--phase-dir is required"}' >&2
+    exit 1
+  fi
+
+  # Config toggle check
+  local enabled
+  enabled=$(_load_qa_config "$PHASE_DIR" "post_task")
+  if [ "$enabled" = "false" ]; then
+    local RESULT_JSON
+    RESULT_JSON=$(jq -n \
+      --arg gate "skipped" \
+      --arg gl "post-task" \
+      --arg r "SKIPPED" \
+      --arg plan "$PLAN_ID" \
+      --arg task "$TASK_ID" \
+      --arg dt "$(date +%Y-%m-%d)" \
+      '{gate:$gate,gl:$gl,r:$r,plan:$plan,task:$task,tst:{ps:0,fl:0},dur:0,dt:$dt}')
+    echo "$RESULT_JSON"
+    exit 0
+  fi
+
+  TIMEOUT=$(_config_timeout "$TIMEOUT")
+
+  # Team mode detection
+  local TEAM_MODE
+  TEAM_MODE=$(_detect_team_mode "$PHASE_DIR")
+
+  # Helper: output JSON result and persist
+  _task_output_result() {
+    local gate="$1" r="$2" pass_count="$3" fail_count="$4" duration="${5:-0}"
+    local RESULT_JSON
+    RESULT_JSON=$(jq -n \
+      --arg gate "$gate" \
+      --arg gl "post-task" \
+      --arg r "$r" \
+      --arg plan "$PLAN_ID" \
+      --arg task "$TASK_ID" \
+      --argjson ps "$pass_count" \
+      --argjson fl "$fail_count" \
+      --argjson dur "$duration" \
+      --arg dt "$(date +%Y-%m-%d)" \
+      --arg tm "$TEAM_MODE" \
+      '{gate:$gate,gl:$gl,r:$r,plan:$plan,task:$task,tst:{ps:$ps,fl:$fl},dur:$dur,dt:$dt,tm:$tm}')
+    echo "$RESULT_JSON"
+    _persist_result "$RESULT_JSON" "$PHASE_DIR"
+  }
+
+  # Resolve test-summary.sh path (PATH-based)
+  local TEST_SUMMARY_PATH
+  TEST_SUMMARY_PATH=$(command -v test-summary.sh 2>/dev/null) || TEST_SUMMARY_PATH=""
+
+  # Fail-open checks
+  if ! command -v bats >/dev/null 2>&1; then
+    _task_output_result "warn" "WARN" 0 0 0
+    exit 0
+  fi
+
+  if [ -z "$TEST_SUMMARY_PATH" ] || ! [ -x "$TEST_SUMMARY_PATH" ]; then
+    _task_output_result "warn" "WARN" 0 0 0
+    exit 0
+  fi
+
+  # Scoped test execution (--scope flag)
+  if [ "$SCOPE_MODE" = true ]; then
+    local FILES_ARRAY=()
+    if [ -n "$FILES_LIST" ]; then
+      IFS=',' read -ra FILES_ARRAY <<< "$FILES_LIST"
+    elif [ -n "$PLAN_ID" ] && [ -n "$TASK_ID" ]; then
+      local PLAN_FILE="$PHASE_DIR/${PLAN_ID}.plan.jsonl"
+      if [ -f "$PLAN_FILE" ]; then
+        while IFS= read -r line; do
+          [ -z "$line" ] && continue
+          local task_id
+          task_id=$(echo "$line" | jq -r '.id // empty' 2>/dev/null) || continue
+          if [ "$task_id" = "$TASK_ID" ]; then
+            while IFS= read -r f; do
+              [ -n "$f" ] && FILES_ARRAY+=("$f")
+            done < <(echo "$line" | jq -r '.f[]' 2>/dev/null)
+            break
+          fi
+        done < <(tail -n +2 "$PLAN_FILE")
+      fi
+    fi
+
+    # Map source files to test files
+    local SCOPED_TESTS=()
+    for src_file in "${FILES_ARRAY[@]}"; do
+      local base_name test_file
+      base_name=$(basename "$src_file" .sh)
+      test_file=$(find "$TESTS_DIR" -name "${base_name}.bats" 2>/dev/null | head -1) || true
+      if [ -n "$test_file" ]; then
+        SCOPED_TESTS+=("$test_file")
+      fi
+    done
+
+    if [ ${#SCOPED_TESTS[@]} -eq 0 ]; then
+      _task_output_result "pass" "PASS" 0 0 0
+      exit 0
+    fi
+
+    local START_TIME END_TIME DURATION TAP_EXIT TAP_OUTPUT
+    START_TIME=$(date +%s)
+    local _tmpout
+    _tmpout=$(mktemp)
+    _run_with_timeout "$TIMEOUT" bats --tap "${SCOPED_TESTS[@]}" > "$_tmpout" 2>&1
+    TAP_EXIT=$?
+    TAP_OUTPUT=$(cat "$_tmpout")
+    rm -f "$_tmpout"
+    END_TIME=$(date +%s)
+    DURATION=$((END_TIME - START_TIME))
+
+    if [ "$TAP_EXIT" -eq 124 ]; then
+      _task_output_result "warn" "WARN" 0 0 "$DURATION"
+      exit 0
+    fi
+
+    local PASS_COUNT FAIL_COUNT
+    PASS_COUNT=$(echo "$TAP_OUTPUT" | grep -c '^ok [0-9]' || true)
+    FAIL_COUNT=$(echo "$TAP_OUTPUT" | grep -c '^not ok ' || true)
+
+    if [ "$FAIL_COUNT" -gt 0 ]; then
+      _task_output_result "fail" "FAIL" "$PASS_COUNT" "$FAIL_COUNT" "$DURATION"
+      exit 1
+    else
+      _task_output_result "pass" "PASS" "$PASS_COUNT" "$FAIL_COUNT" "$DURATION"
+      exit 0
+    fi
+  fi
+
+  # Full test execution (no --scope)
+  local START_TIME END_TIME DURATION
+  START_TIME=$(date +%s)
+  local _tmpout
+  _tmpout=$(mktemp)
+  _run_with_timeout "$TIMEOUT" bash "$TEST_SUMMARY_PATH" > "$_tmpout" 2>&1
+  local TEST_EXIT=$?
+  local TEST_OUTPUT
+  TEST_OUTPUT=$(cat "$_tmpout")
+  rm -f "$_tmpout"
+  END_TIME=$(date +%s)
+  DURATION=$((END_TIME - START_TIME))
+
+  if [ "$TEST_EXIT" -eq 124 ]; then
+    _task_output_result "warn" "WARN" 0 0 "$DURATION"
+    exit 0
+  fi
+
+  local PASS_COUNT=0 FAIL_COUNT=0
+
+  if echo "$TEST_OUTPUT" | grep -q '^PASS'; then
+    PASS_COUNT=$(echo "$TEST_OUTPUT" | grep '^PASS' | sed 's/PASS (\([0-9]*\) tests)/\1/' | head -1) || PASS_COUNT=0
+    _task_output_result "pass" "PASS" "$PASS_COUNT" 0 "$DURATION"
+    exit 0
+  elif echo "$TEST_OUTPUT" | grep -q '^FAIL'; then
+    FAIL_COUNT=$(echo "$TEST_OUTPUT" | grep '^FAIL' | sed 's/FAIL (\([0-9]*\)\/\([0-9]*\) failed).*/\1/' | head -1) || FAIL_COUNT=0
+    local TOTAL
+    TOTAL=$(echo "$TEST_OUTPUT" | grep '^FAIL' | sed 's/FAIL (\([0-9]*\)\/\([0-9]*\) failed).*/\2/' | head -1) || TOTAL=0
+    PASS_COUNT=$((TOTAL - FAIL_COUNT))
+    _task_output_result "fail" "FAIL" "$PASS_COUNT" "$FAIL_COUNT" "$DURATION"
+    exit 1
+  else
+    _task_output_result "warn" "WARN" 0 0 "$DURATION"
+    exit 0
+  fi
 }
 
 # ============================================================
