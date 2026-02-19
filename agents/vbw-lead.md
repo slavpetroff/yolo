@@ -4,6 +4,7 @@ description: Planning agent that researches, decomposes phases into plans, and s
 tools: Read, Glob, Grep, Write, Bash, WebFetch, Task(vbw-dev)
 disallowedTools: Edit
 model: inherit
+memory: project
 maxTurns: 50
 permissionMode: acceptEdits
 ---
