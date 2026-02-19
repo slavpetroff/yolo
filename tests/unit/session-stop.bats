@@ -77,3 +77,26 @@ run_session_stop() {
   run bash -c "cd '$TEST_WORKDIR' && echo 'not-json' | bash '$SUT'"
   assert_success
 }
+
+# --- 7. WAL checkpoint on session end ---
+
+@test "runs WAL checkpoint when yolo.db exists" {
+  # Create a real DB with WAL mode
+  sqlite3 "$TEST_WORKDIR/.yolo-planning/yolo.db" < "$SCRIPTS_DIR/db/schema.sql"
+  sqlite3 "$TEST_WORKDIR/.yolo-planning/yolo.db" "PRAGMA journal_mode=WAL;" >/dev/null
+  # Insert some data to create WAL entries
+  sqlite3 "$TEST_WORKDIR/.yolo-planning/yolo.db" "INSERT INTO research (q, finding, conf, phase) VALUES ('test','finding','high','01');"
+
+  run_session_stop '{"cost_usd":0.10}'
+  assert_success
+
+  # DB should still exist and be valid
+  result=$(sqlite3 "$TEST_WORKDIR/.yolo-planning/yolo.db" "SELECT count(*) FROM research;")
+  [ "$result" -eq 1 ]
+}
+
+@test "exits 0 when yolo.db does not exist" {
+  # No DB — should not crash
+  run_session_stop '{"cost_usd":0.10}'
+  assert_success
+}

@@ -11,9 +11,13 @@
 set -euo pipefail
 
 KEEP_LATEST=false
-if [[ "${1:-}" == "--keep-latest" ]]; then
-  KEEP_LATEST=true
-fi
+KEEP_DB=false
+for arg in "$@"; do
+  case "$arg" in
+    --keep-latest) KEEP_LATEST=true ;;
+    --keep-db)     KEEP_DB=true ;;
+  esac
+done
 
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 PLUGIN_CACHE_DIR="$CLAUDE_DIR/plugins/cache/yolo-marketplace/yolo"
@@ -56,7 +60,25 @@ if [[ -n "$TEMP_FILES" ]]; then
   wiped_temp_caches=true
 fi
 
+# --- 4. SQLite DB files (yolo.db, WAL, SHM) ---
+wiped_db=false
+for planning_dir in .yolo-planning .vbw-planning; do
+  if [[ -d "$planning_dir" ]]; then
+    for db_ext in "" "-wal" "-shm"; do
+      db_file="$planning_dir/yolo.db${db_ext}"
+      if [[ -f "$db_file" ]]; then
+        if [[ "$KEEP_DB" == true ]]; then
+          : # preserve DB files
+        else
+          rm -f "$db_file" 2>/dev/null
+          wiped_db=true
+        fi
+      fi
+    done
+  fi
+done
+
 # --- JSON summary ---
 cat <<EOF
-{"wiped":{"plugin_cache":${wiped_plugin_cache},"global_commands":${wiped_global_commands},"temp_caches":${wiped_temp_caches},"versions_removed":${versions_removed}}}
+{"wiped":{"plugin_cache":${wiped_plugin_cache},"global_commands":${wiped_global_commands},"temp_caches":${wiped_temp_caches},"db":${wiped_db},"versions_removed":${versions_removed}}}
 EOF

@@ -53,4 +53,16 @@ fi
 # Clean up GSD isolation session marker (if it exists)
 rm -f "$PLANNING_DIR/.yolo-session" 2>/dev/null
 
+# WAL checkpoint on session end (flush pending writes to main DB file)
+DB_FILE="$PLANNING_DIR/yolo.db"
+if [ -f "$DB_FILE" ]; then
+  CHECKPOINT_SCRIPT="$(dirname "${BASH_SOURCE[0]}")/db/checkpoint-db.sh"
+  if [ -f "$CHECKPOINT_SCRIPT" ]; then
+    bash "$CHECKPOINT_SCRIPT" --db "$DB_FILE" --mode passive >/dev/null 2>&1 || true
+  else
+    # Fallback: direct PRAGMA if checkpoint script not available
+    sqlite3 "$DB_FILE" "PRAGMA wal_checkpoint(PASSIVE);" >/dev/null 2>&1 || true
+  fi
+fi
+
 exit 0

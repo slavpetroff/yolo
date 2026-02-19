@@ -78,3 +78,41 @@ setup() {
   assert_success
   echo "$output" | jq -e '.wiped.versions_removed == 3' >/dev/null
 }
+
+# --- 7. DB file cleanup ---
+
+@test "cleans up yolo.db files by default" {
+  mkdir -p "$TEST_WORKDIR/.yolo-planning"
+  sqlite3 "$TEST_WORKDIR/.yolo-planning/yolo.db" "PRAGMA journal_mode=WAL; CREATE TABLE t(x);"
+  # Create WAL/SHM files
+  touch "$TEST_WORKDIR/.yolo-planning/yolo.db-wal"
+  touch "$TEST_WORKDIR/.yolo-planning/yolo.db-shm"
+
+  run bash -c "cd '$TEST_WORKDIR' && CLAUDE_CONFIG_DIR='$CLAUDE_CONFIG_DIR' bash '$SUT'"
+  assert_success
+  [ ! -f "$TEST_WORKDIR/.yolo-planning/yolo.db" ]
+  [ ! -f "$TEST_WORKDIR/.yolo-planning/yolo.db-wal" ]
+  [ ! -f "$TEST_WORKDIR/.yolo-planning/yolo.db-shm" ]
+  echo "$output" | jq -e '.wiped.db == true' >/dev/null
+}
+
+@test "--keep-db preserves yolo.db files" {
+  mkdir -p "$TEST_WORKDIR/.yolo-planning"
+  sqlite3 "$TEST_WORKDIR/.yolo-planning/yolo.db" "PRAGMA journal_mode=WAL; CREATE TABLE t(x);"
+  touch "$TEST_WORKDIR/.yolo-planning/yolo.db-wal"
+
+  run bash -c "cd '$TEST_WORKDIR' && CLAUDE_CONFIG_DIR='$CLAUDE_CONFIG_DIR' bash '$SUT' --keep-db"
+  assert_success
+  [ -f "$TEST_WORKDIR/.yolo-planning/yolo.db" ]
+  [ -f "$TEST_WORKDIR/.yolo-planning/yolo.db-wal" ]
+  echo "$output" | jq -e '.wiped.db == false' >/dev/null
+}
+
+@test "cleans vbw-planning yolo.db too" {
+  mkdir -p "$TEST_WORKDIR/.vbw-planning"
+  sqlite3 "$TEST_WORKDIR/.vbw-planning/yolo.db" "PRAGMA journal_mode=WAL; CREATE TABLE t(x);"
+
+  run bash -c "cd '$TEST_WORKDIR' && CLAUDE_CONFIG_DIR='$CLAUDE_CONFIG_DIR' bash '$SUT'"
+  assert_success
+  [ ! -f "$TEST_WORKDIR/.vbw-planning/yolo.db" ]
+}
