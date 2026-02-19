@@ -342,6 +342,17 @@ PHASE_DIR_BASE=$(basename "$PHASE_DIR")
 CACHED_PHASE_NUM=${PHASE_DIR_BASE%%-*}
 CACHED_PHASE_NUM=$(( 10#$CACHED_PHASE_NUM )) 2>/dev/null || CACHED_PHASE_NUM=""
 
+# --- Dual-write: detect DB for SQLite sync ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DB_IMPORT_SCRIPT="$SCRIPT_DIR/db/import-jsonl.sh"
+# Derive planning dir from phase dir (phases/ is one level up)
+_PLANNING_DIR=""
+_DB_FILE=""
+if echo "$PHASE_DIR" | grep -q '/phases/'; then
+  _PLANNING_DIR=$(echo "$PHASE_DIR" | sed 's|/phases/.*||')
+  _DB_FILE="$_PLANNING_DIR/yolo.db"
+fi
+
 # Plan trigger: update plan count + activate status (JSONL or legacy MD)
 if echo "$FILE_PATH" | grep -qE 'phases/[^/]+/[0-9]+-[0-9]+\.plan\.jsonl$' || echo "$FILE_PATH" | grep -qE 'phases/[^/]+/[0-9]+-[0-9]+-PLAN\.md$'; then
   update_state_md "$PHASE_DIR"
@@ -354,6 +365,10 @@ if echo "$FILE_PATH" | grep -qE 'phases/[^/]+/[0-9]+-[0-9]+\.plan\.jsonl$' || ec
     _tmp="${_sm}.tmp.$$"
     sed 's/^Status: ready/Status: active/' "$_sm" > "$_tmp" 2>/dev/null && \
       mv "$_tmp" "$_sm" 2>/dev/null || rm -f "$_tmp" 2>/dev/null
+  fi
+  # Dual-write: import plan into DB if it exists
+  if [ -n "${_DB_FILE:-}" ] && [ -f "${_DB_FILE:-}" ] && [ -f "${DB_IMPORT_SCRIPT:-}" ]; then
+    bash "$DB_IMPORT_SCRIPT" --type plan --file "$FILE_PATH" --phase "$(printf '%02d' "$CACHED_PHASE_NUM")" --db "$_DB_FILE" >/dev/null 2>&1 || true
   fi
   # Also stage+commit the plan file itself alongside state artifacts
   git add "$FILE_PATH" 2>/dev/null || true
@@ -430,6 +445,11 @@ update_state_json "$PHASE_DIR" "$CACHED_PHASE_NUM"
 update_model_profile
 advance_phase "$PHASE_DIR"
 update_phase_orchestration "$PHASE_DIR" "$FILE_PATH"
+
+# Dual-write: import summary into DB if it exists
+if [ -n "${_DB_FILE:-}" ] && [ -f "${_DB_FILE:-}" ] && [ -f "${DB_IMPORT_SCRIPT:-}" ]; then
+  bash "$DB_IMPORT_SCRIPT" --type summary --file "$FILE_PATH" --phase "$(printf '%02d' "$CACHED_PHASE_NUM")" --db "$_DB_FILE" >/dev/null 2>&1 || true
+fi
 
 # Stage summary + commit all state artifacts
 git add "$FILE_PATH" 2>/dev/null || true

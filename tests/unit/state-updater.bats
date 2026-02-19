@@ -317,6 +317,66 @@ mk_phase_orchestration() {
   assert_file_not_exists "$dir/.phase-orchestration.json"
 }
 
+# --- Dual-write: DB sync when yolo.db exists ---
+
+# Helper: create yolo.db in the planning dir
+mk_yolo_db() {
+  sqlite3 "$TEST_WORKDIR/.yolo-planning/yolo.db" < "$SCRIPTS_DIR/db/schema.sql"
+  sqlite3 "$TEST_WORKDIR/.yolo-planning/yolo.db" "PRAGMA journal_mode=WAL;" >/dev/null
+}
+
+@test "dual-write: plan write imports to DB when yolo.db exists" {
+  mk_state_md 1 2
+  mk_yolo_db
+
+  local dir
+  dir=$(mk_phase_plans_only 1 setup 1)
+
+  local plan_file="$dir/01-01.plan.jsonl"
+  run_updater "$plan_file"
+  assert_success
+
+  # Verify plan was imported to DB
+  plan_count=$(sqlite3 "$TEST_WORKDIR/.yolo-planning/yolo.db" "SELECT count(*) FROM plans;")
+  [ "$plan_count" -ge 1 ]
+}
+
+@test "dual-write: summary write imports to DB when yolo.db exists" {
+  mk_state_md 1 2
+  mk_state_json 1 2 "executing"
+  mk_execution_state "01" "01-01"
+  mk_yolo_db
+
+  local dir
+  dir=$(mk_phase_plans_only 1 setup 1)
+
+  # First import the plan so the summary can reference it (plan uses n:"01-01")
+  bash "$SCRIPTS_DIR/db/import-jsonl.sh" --type plan --file "$dir/01-01.plan.jsonl" --phase 01 --db "$TEST_WORKDIR/.yolo-planning/yolo.db" >/dev/null 2>&1 || true
+
+  local summary_file="$dir/01-01.summary.jsonl"
+  # Use n:"01-01" to match the plan's plan_num
+  echo '{"p":"01","n":"01-01","s":"complete","dt":"2026-02-19","tc":2,"tt":2}' > "$summary_file"
+
+  run_updater "$summary_file"
+  assert_success
+
+  # Verify summary was imported to DB
+  summary_count=$(sqlite3 "$TEST_WORKDIR/.yolo-planning/yolo.db" "SELECT count(*) FROM summaries;")
+  [ "$summary_count" -ge 1 ]
+}
+
+@test "dual-write: works without DB (backward compatible)" {
+  mk_state_md 1 2
+
+  local dir
+  dir=$(mk_phase_plans_only 1 setup 1)
+
+  # No yolo.db created — should still work
+  local plan_file="$dir/01-01.plan.jsonl"
+  run_updater "$plan_file"
+  assert_success
+}
+
 @test "existing .execution-state.json update still works with orchestration" {
   mk_state_md 1 2
   mk_state_json 1 2 "executing"
