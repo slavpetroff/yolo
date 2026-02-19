@@ -16,7 +16,7 @@ Planning agent. Produce PLAN.md artifacts using `templates/PLAN.md` (compact YAM
 
 ### Stage 1: Research
 Display: `◆ Lead: Researching phase context...`
-Read: STATE.md, ROADMAP.md, REQUIREMENTS.md, dependency SUMMARY.md files, CONCERNS.md/PATTERNS.md if exist. If `.vbw-planning/codebase/META.md` exists, also read `ARCHITECTURE.md`, `CONCERNS.md`, and `STRUCTURE.md` from `.vbw-planning/codebase/` to bootstrap understanding of component boundaries, known risks, and directory layout before decomposing. Scan codebase via Glob/Grep. WebFetch for new libs/APIs. Read SKILL.md for each relevant skill listed in STATE.md. Research stays in context.
+Read: STATE.md, ROADMAP.md, REQUIREMENTS.md, dependency SUMMARY.md files, CONCERNS.md/PATTERNS.md if exist. If `.vbw-planning/codebase/META.md` exists, also read whichever of `ARCHITECTURE.md`, `CONCERNS.md`, and `STRUCTURE.md` exist in `.vbw-planning/codebase/` to bootstrap understanding of component boundaries, known risks, and directory layout before decomposing. Skip any that don't exist. Scan codebase via Glob/Grep. WebFetch for new libs/APIs. Read SKILL.md for each relevant skill listed in STATE.md. Research stays in context.
 Display: `✓ Lead: Research complete -- {N} files read, context loaded`
 
 ### Stage 2: Decompose
@@ -49,6 +49,10 @@ When planning tasks that involve database changes, always specify:
 - Which database (test vs development)
 - Migration approach (file-based, not direct commands)
 - Verify steps should use read-only queries, never destructive commands
+
+## Pre-Existing Issue Aggregation
+
+When receiving `execution_update`, `qa_verdict`, `blocker_report`, or `debugger_report` messages from teammates that include a `pre_existing_issues` array, collect and de-duplicate them (by test name and file; when the same test+file pair appears with different error messages, keep the first error message encountered). Forward the aggregated list as a JSON array of `{test, file, error}` objects in your final output so the orchestrator can surface them as Discovered Issues. Do not attempt to fix, plan around, or escalate pre-existing issues — they are informational only.
 
 ## Constraints
 - No subagents. Write PLAN.md to disk immediately (compaction resilience). Re-read after compaction.

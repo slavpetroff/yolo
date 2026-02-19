@@ -25,7 +25,8 @@ V2 inter-agent messages use strict JSON schemas. Every message includes a mandat
 | scout_findings | scout | lead, architect |
 | plan_contract | lead, architect | dev, qa, scout |
 | execution_update | dev, docs | lead |
-| blocker_report | dev, debugger, docs | lead |
+| blocker_report | dev, docs | lead |
+| debugger_report | debugger | lead |
 | qa_verdict | qa | lead |
 | approval_request | dev, lead | lead, architect |
 | approval_response | lead, architect | dev, lead |
@@ -111,12 +112,15 @@ Task progress or completion update from Dev or Docs.
     "commit": "abc1234",
     "files_modified": ["src/feature.js"],
     "concerns": ["Interface changed — downstream plans may need update"],
-    "evidence": "All tests pass"
+    "evidence": "All tests pass",
+    "pre_existing_issues": [
+      {"test": "testName", "file": "path/to/file", "error": "failure message"}
+    ]
   }
 }
 ```
 
-## `blocker_report` (Dev/Debugger/Docs -> Lead)
+## `blocker_report` (Dev/Docs -> Lead)
 
 Escalation when agent is blocked and cannot proceed.
 
@@ -136,10 +140,42 @@ Escalation when agent is blocked and cannot proceed.
     "blocker": "Dependency module from plan 1-1 not yet committed",
     "needs": "Plan 1-1 to complete first",
     "attempted": ["Checked git log for 1-1 commits — none found"],
-    "severity": "blocking|degraded|informational"
+    "severity": "blocking|degraded|informational",
+    "pre_existing_issues": [
+      {"test": "testName", "file": "path/to/file", "error": "failure message"}
+    ]
   }
 }
 ```
+If no pre-existing issues were found, omit the field or pass an empty array.
+
+## `debugger_report` (Debugger -> Lead)
+
+Diagnostic investigation report from the Debugger agent. Used in Teammate Mode when the Debugger is assigned a single hypothesis to investigate. Distinct from `blocker_report` — the Debugger's payload uses diagnostic fields, not escalation fields.
+
+```json
+{
+  "id": "debug-456",
+  "type": "debugger_report",
+  "phase": 1,
+  "task": "debug-hyp-1",
+  "author_role": "debugger",
+  "timestamp": "2026-02-12T10:12:00Z",
+  "schema_version": "2.0",
+  "confidence": "high",
+  "payload": {
+    "hypothesis": "Race condition in sync handler causes intermittent auth failure",
+    "evidence_for": ["Thread dump shows concurrent access at auth.js:42", "Failure rate correlates with load"],
+    "evidence_against": ["Single-threaded test passes consistently"],
+    "confidence": "high",
+    "recommended_fix": "Add mutex lock around credential refresh in auth.js:40-50",
+    "pre_existing_issues": [
+      {"test": "testName", "file": "path/to/file", "error": "failure message"}
+    ]
+  }
+}
+```
+If no pre-existing issues were found, omit the field or pass an empty array.
 
 ## `qa_verdict` (QA -> Lead)
 
@@ -163,7 +199,10 @@ Structured verification results.
       {"check": "Link integrity", "expected": "All resolve", "actual": "broken ref", "evidence": "line 42"}
     ],
     "body": "## Must-Have Checks\n...",
-    "recommendations": ["Fix broken cross-reference before shipping"]
+    "recommendations": ["Fix broken cross-reference before shipping"],
+    "pre_existing_issues": [
+      {"test": "testName", "file": "path/to/file", "error": "failure message"}
+    ]
   }
 }
 ```
