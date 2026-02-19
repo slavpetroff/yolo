@@ -4,6 +4,7 @@ description: Requirements-to-roadmap agent for project scoping, phase decomposit
 tools: Read, Glob, Grep, Write
 disallowedTools: Edit, WebFetch, Bash, Task
 model: inherit
+memory: project
 maxTurns: 30
 permissionMode: acceptEdits
 ---
