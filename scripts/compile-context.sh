@@ -150,43 +150,25 @@ get_conventions() {
 
 # --- Helper: get research findings if available ---
 get_research() {
-  if [ "$DB_AVAILABLE" = true ]; then
-    local _rows
-    _rows=$(sql "SELECT q, finding FROM research WHERE phase='$PHASE' AND q != '' AND finding != '';" 2>/dev/null || true)
-    if [ -n "$_rows" ]; then
-      echo "research:"
-      echo "$_rows" | while IFS=',' read -r _q _finding; do
-        echo "  - $_q: $_finding"
-      done
-      return 0
-    fi
-  fi
-  # File fallback
-  local research_file="$PHASE_DIR/research.jsonl"
-  if [ -f "$research_file" ]; then
+  local _rows
+  _rows=$(sql "SELECT q, finding FROM research WHERE phase='$PHASE' AND q != '' AND finding != '';" 2>/dev/null || true)
+  if [ -n "$_rows" ]; then
     echo "research:"
-    jq -r 'select((.q // .query // empty) != "" and (.finding // empty) != "") | "  - \(.q // .query): \(.finding)"' "$research_file" 2>/dev/null || true
+    echo "$_rows" | while IFS=',' read -r _q _finding; do
+      echo "  - $_q: $_finding"
+    done
   fi
 }
 
 # --- Helper: get decisions from decisions.jsonl ---
 get_decisions() {
-  if [ "$DB_AVAILABLE" = true ]; then
-    local _rows
-    _rows=$(sql "SELECT agent, dec, reason FROM decisions WHERE phase='$PHASE' AND dec != '';" 2>/dev/null || true)
-    if [ -n "$_rows" ]; then
-      echo "decisions:"
-      echo "$_rows" | while IFS=',' read -r _agent _dec _reason; do
-        echo "  $_agent: $_dec ($_reason)"
-      done
-      return 0
-    fi
-  fi
-  # File fallback
-  local decisions_file="$PHASE_DIR/decisions.jsonl"
-  if [ -f "$decisions_file" ]; then
+  local _rows
+  _rows=$(sql "SELECT agent, dec, reason FROM decisions WHERE phase='$PHASE' AND dec != '';" 2>/dev/null || true)
+  if [ -n "$_rows" ]; then
     echo "decisions:"
-    jq -r 'select((.dec // empty) != "") | "  \(.agent // ""): \(.dec) (\(.reason // ""))"' "$decisions_file" 2>/dev/null || true
+    echo "$_rows" | while IFS=',' read -r _agent _dec _reason; do
+      echo "  $_agent: $_dec ($_reason)"
+    done
   fi
 }
 
@@ -264,33 +246,17 @@ get_architecture() {
 }
 
 # --- Helper: get requirements ---
-# OPTIMIZATION 4: Batch requirements jq (single jq call instead of N*2 per-line calls)
 get_requirements() {
   if [ -n "$REQ_PATTERN" ]; then
-    # SQL path: query plans table must_haves for requirement refs
-    if [ "$DB_AVAILABLE" = true ]; then
-      local _mh
-      _mh=$(sql "SELECT must_haves FROM plans WHERE phase='$PHASE' LIMIT 1;" 2>/dev/null || true)
-      if [ -n "$_mh" ] && command -v jq &>/dev/null; then
-        local _reqs
-        _reqs=$(echo "$_mh" | jq -r '.tr // [] | .[] | "  \(.)"' 2>/dev/null || true)
-        if [ -n "$_reqs" ]; then
-          echo "reqs:"
-          echo "$_reqs"
-          return 0
-        fi
+    local _mh
+    _mh=$(sql "SELECT must_haves FROM plans WHERE phase='$PHASE' LIMIT 1;" 2>/dev/null || true)
+    if [ -n "$_mh" ] && command -v jq &>/dev/null; then
+      local _reqs
+      _reqs=$(echo "$_mh" | jq -r '.tr // [] | .[] | "  \(.)"' 2>/dev/null || true)
+      if [ -n "$_reqs" ]; then
+        echo "reqs:"
+        echo "$_reqs"
       fi
-    fi
-    # File fallback
-    if [ -f "$PLANNING_DIR/reqs.jsonl" ]; then
-      echo "reqs:"
-      grep -E "($REQ_PATTERN)" "$PLANNING_DIR/reqs.jsonl" 2>/dev/null | \
-        jq -r 'select((.id // empty) != "") | "  \(.id),\(.t // .title // "")"' 2>/dev/null || true
-    elif [ -f "$PLANNING_DIR/REQUIREMENTS.md" ]; then
-      echo "reqs:"
-      grep -E "($REQ_PATTERN)" "$PLANNING_DIR/REQUIREMENTS.md" 2>/dev/null | head -10 | while IFS= read -r line; do
-        echo "  $line"
-      done
     fi
   fi
 }
@@ -381,96 +347,48 @@ get_rolling_summaries() {
   local current_plan
   current_plan=$(basename "$PLAN_PATH" .plan.jsonl)
 
-  if [ "$DB_AVAILABLE" = true ]; then
-    # SQL path: query summaries joined with plans for phase, filter by plan_num < current
-    local _current_num="${current_plan##*-}"  # e.g. "01-03" -> "03"
-    local _rows
-    _rows=$(sql "SELECT p.plan_num, s.status, s.fm
-      FROM summaries s JOIN plans p ON s.plan_id = p.rowid
-      WHERE p.phase='$PHASE' AND p.plan_num < '$_current_num'
-      ORDER BY p.plan_num;" 2>/dev/null || true)
-    if [ -n "$_rows" ]; then
-      echo "prior_plans:"
-      echo "$_rows" | while IFS=',' read -r _pn _st _fm; do
-        echo "  $PHASE-$_pn: s=$_st fm=$_fm"
-      done
-      return 0
-    fi
+  local _current_num="${current_plan##*-}"  # e.g. "01-03" -> "03"
+  local _rows
+  _rows=$(sql "SELECT p.plan_num, s.status, s.fm
+    FROM summaries s JOIN plans p ON s.plan_id = p.rowid
+    WHERE p.phase='$PHASE' AND p.plan_num < '$_current_num'
+    ORDER BY p.plan_num;" 2>/dev/null || true)
+  if [ -n "$_rows" ]; then
+    echo "prior_plans:"
+    echo "$_rows" | while IFS=',' read -r _pn _st _fm; do
+      echo "  $PHASE-$_pn: s=$_st fm=$_fm"
+    done
   fi
-
-  # File fallback
-  local has_prior=false
-  for summary in "$PHASE_DIR"/*.summary.jsonl; do
-    [ -f "$summary" ] || continue
-    local summary_plan
-    summary_plan=$(basename "$summary" .summary.jsonl)
-    # Include only summaries for plans earlier than current
-    if [[ "$summary_plan" < "$current_plan" ]]; then
-      if [ "$has_prior" = false ]; then
-        echo "prior_plans:"
-        has_prior=true
-      fi
-      jq -r '"  \(.p // "")-\(.n // ""): s=\(.s // "") fm=\(.fm // [] | join(";"))"' "$summary" 2>/dev/null || true
-    fi
-  done
 }
 
 # --- Helper: emit error recovery context from gaps.jsonl ---
 # When gaps.jsonl has open entries with retry_context, includes error details
 # so the retry agent knows what failed and why.
 get_error_recovery() {
-  if [ "$DB_AVAILABLE" = true ]; then
-    local _rows
-    _rows=$(sql "SELECT id, res FROM gaps WHERE phase='$PHASE' AND st='open' AND res != '' AND res IS NOT NULL;" 2>/dev/null || true)
-    if [ -n "$_rows" ]; then
-      echo "error_recovery:"
-      echo "$_rows" | while IFS=',' read -r _id _ctx; do
-        echo "  $_id: $_ctx"
-      done
-      return 0
-    fi
-    return 0
-  fi
-  # File fallback
-  local gaps_file="$PHASE_DIR/gaps.jsonl"
-  if [ ! -f "$gaps_file" ]; then
-    return 0
-  fi
-  local recovery
-  recovery=$(jq -r 'select(.st == "open" and .retry_context != null and .retry_context != "") | "  \(.id // ""): \(.retry_context)"' "$gaps_file" 2>/dev/null || true)
-  if [ -n "$recovery" ]; then
+  local _rows
+  _rows=$(sql "SELECT id, res FROM gaps WHERE phase='$PHASE' AND st='open' AND res != '' AND res IS NOT NULL;" 2>/dev/null || true)
+  if [ -n "$_rows" ]; then
     echo "error_recovery:"
-    echo "$recovery"
+    echo "$_rows" | while IFS=',' read -r _id _ctx; do
+      echo "  $_id: $_ctx"
+    done
   fi
 }
 
 # --- Helper: emit all plan summaries (for QA/QA-code phase-wide review) ---
 # Unlike get_rolling_summaries which skips the current plan, this includes all.
 get_all_plan_summaries() {
-  if [ "$DB_AVAILABLE" = true ]; then
-    local _rows
-    _rows=$(sql "SELECT p.plan_num, s.status, s.fm
-      FROM summaries s JOIN plans p ON s.plan_id = p.rowid
-      WHERE p.phase='$PHASE'
-      ORDER BY p.plan_num;" 2>/dev/null || true)
-    if [ -n "$_rows" ]; then
-      echo "plan_summaries:"
-      echo "$_rows" | while IFS=',' read -r _pn _st _fm; do
-        echo "  $PHASE-$_pn: s=$_st fm=$_fm"
-      done
-      return 0
-    fi
+  local _rows
+  _rows=$(sql "SELECT p.plan_num, s.status, s.fm
+    FROM summaries s JOIN plans p ON s.plan_id = p.rowid
+    WHERE p.phase='$PHASE'
+    ORDER BY p.plan_num;" 2>/dev/null || true)
+  if [ -n "$_rows" ]; then
+    echo "plan_summaries:"
+    echo "$_rows" | while IFS=',' read -r _pn _st _fm; do
+      echo "  $PHASE-$_pn: s=$_st fm=$_fm"
+    done
   fi
-  # File fallback
-  local has_summaries=false
-  for summary in "$PHASE_DIR"/*.summary.jsonl; do
-    [ -f "$summary" ] || continue
-    if [ "$has_summaries" = false ]; then
-      echo "plan_summaries:"
-      has_summaries=true
-    fi
-    jq -r '"  \(.p // "")-\(.n // ""): s=\(.s // "") fm=\(.fm // [] | join(";"))"' "$summary" 2>/dev/null || true
-  done
 }
 
 # --- Token budget per role (chars/4 ≈ tokens) ---
