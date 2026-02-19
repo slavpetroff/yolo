@@ -6,10 +6,10 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** Architecture Redesign v2 — Phase 6 executing (migration & token optimization)
-**Last shipped:** Workflow Hardening, Org Alignment & Optimization — 5 phases, 25 plans, 104 tasks, 107 commits, 203 tests
-**Previous:** Teammate API Integration — 4 phases, 19 plans, 84 tasks, 76 commits, 876 tests
-**Next action:** Complete Phase 6 plans, verify milestone
+**Work:** Architecture Redesign v2 — Phase 9 executing (workflow redundancy audit & token optimization)
+**Last shipped:** Phase 8 — Full Template System Migration (7 plans, 33 tasks, 39 commits, 66 tests)
+**Previous:** Phase 7 — Architecture Audit & Optimization (6 plans, 28 tasks, 28 commits, 113 tests)
+**Next action:** Complete Phase 9 plans (wave 4 — Mermaid diagrams + reference docs audit)
 
 ## Architecture Diagrams
 
@@ -17,13 +17,13 @@ See `docs/ARCHITECTURE.md` for 4 Mermaid diagrams: Agent Hierarchy, Workflow Ste
 
 ## Department Architecture
 
-~36 agents across 4 departments + PO layer. Enable/disable departments via `config/defaults.json` `departments` key. PO layer (yolo-po, yolo-questionary, yolo-roadmap) gated by `po.enabled` config key. Documenter agents gated by `documenter` config key (on_request/always/never).
+~33 agents across 4 departments + PO layer. Enable/disable departments via `config/defaults.json` `departments` key. PO layer (yolo-po, yolo-questionary, yolo-roadmap) gated by `po.enabled` config key. Documenter agents gated by `documenter` config key (on_request/always/never).
 
 | Department | Agents | Prefix | Protocol File |
 |-----------|--------|--------|---------------|
-| Backend | architect, lead, senior, dev, tester, qa, qa-code, security, documenter | (none) | `references/departments/backend.toon` |
-| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code, fe-security, fe-documenter | `fe-` | `references/departments/frontend.toon` |
-| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code, ux-security, ux-documenter | `ux-` | `references/departments/uiux.toon` |
+| Backend | architect, lead, senior, dev, tester, qa (--mode plan\|code), security, documenter | (none) | `references/departments/backend.toon` |
+| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-security, fe-documenter | `fe-` | `references/departments/frontend.toon` |
+| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-security, ux-documenter | `ux-` | `references/departments/uiux.toon` |
 | Shared | owner, critic, scout, debugger, integration-gate | (none) | `references/departments/shared.toon` |
 
 **Workflow order:** UI/UX first (design) → Frontend + Backend in parallel → Integration QA → Owner Sign-off.
@@ -88,6 +88,14 @@ See `docs/ARCHITECTURE.md` for 4 Mermaid diagrams: Agent Hierarchy, Workflow Ste
 | Token audit verifies trivial <30%, medium <60% of high path | 2026-02-18 | Measured: trivial_ratio=0.2105 (<0.30 PASS), medium_ratio=0.2632 (<0.60 PASS) |
 | Integration Gate read-only with 4-check protocol | 2026-02-18 | API contracts, design sync, handoffs, tests; PASS/FAIL/PARTIAL; config-driven skip per effort level |
 | Template-based agent generation (9 templates x 3 overlays) | 2026-02-19 | Single source of truth per role; dept overlays for specialization; GENERATED marker prevents manual edits; staleness detection via hash + content diff |
+| QA/QA-Code merged into single QA agent with --mode plan\|code | 2026-02-19 | Eliminates redundancy; qa-code secret scanning moved to security agent; single agent handles plan-level and code-level verification |
+| Step-skip effort cascading (not per-agent degradation) | 2026-02-19 | Effort level controls which steps execute, not agent quality; all agents run at full quality regardless of effort; orchestrator handles skipping |
+| Script consolidation via lib/yolo-common.sh + parameterized scripts | 2026-02-19 | route.sh --path, validate.sh --type, qa-gate.sh --tier replace 12+ individual scripts; shared lib prevents duplication |
+| YOLO_AGENT_MODE enforcement (mandatory export/unset) | 2026-02-19 | go.md exports YOLO_AGENT_MODE before agent spawn, unsets after; templates filter sections per mode for 30% context reduction |
+| Context budget enforcement via compile-context.sh --measure | 2026-02-19 | Invoked per agent spawn; trim-to-budget when over limit; prevents context bloat in long-running phases |
+| Mermaid architecture diagrams in docs/ARCHITECTURE.md | 2026-02-19 | 4 diagrams (agent hierarchy, workflow, complexity routing, hooks/scripts) for ongoing audit capability |
+| Cross-phase research persistence via research-archive.jsonl | 2026-02-19 | Cached findings prevent redundant Scout invocations; high-confidence cache hits skip Scout entirely |
+| Escalation state persistence in .execution-state.json | 2026-02-19 | Pause/resume support; escalation entries tracked with level, round-trips, resolution; committed on receipt |
 
 ## Installed Skills
 
@@ -122,7 +130,7 @@ Run /yolo:help for all available commands.
 ## VBW State
 - Planning directory: `.vbw-planning/`
 - Milestone: Architecture Redesign v2 (6 phases)
-- Status: Phase 6 executing
+- Status: Phase 9 executing
 
 ## VBW Rules
 - **Always use VBW commands** for project work. Do not manually edit files in `.vbw-planning/`.
