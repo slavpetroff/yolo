@@ -2,6 +2,27 @@
 
 All notable changes to VBW will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **`crash-recovery`** -- Agent crash recovery via `last_assistant_message` from CC 2.1.47 SubagentStop hook. `agent-stop.sh` captures agent final output to `.agent-last-words/` when SUMMARY.md missing. `validate-summary.sh` uses crash recovery files as fallback (60s freshness window). `session-start.sh` auto-cleans stale files (7-day TTL). Event log tracks `agent_shutdown` events with `last_message_length` metric.
+- **`bash-classifier-tests`** -- 55 new BATS tests validating all 26 VBW hook bash patterns against CC 2.1.47 stricter permission classifier. Tests cover hook-wrapper.sh resolution, individual script invocations, bash-guard.sh pattern matching, and end-to-end integration. All patterns confirmed classifier-safe with zero changes needed to hooks.json.
+- **`agent-memory`** -- Native `memory` frontmatter added to all 7 agents. Core agents (lead, dev, qa, debugger, architect) use `memory: project` for cross-session learning. Ephemeral agents (scout, docs) use `memory: local`.
+- **`agent-restrictions`** -- Native `Task(agent_type)` spawn restrictions added to all 7 agents. Lead can only spawn Dev. Debugger can only spawn Debugger (competing hypotheses). Dev, architect, docs cannot spawn agents. Scout and QA already lacked Task capability.
+
+### Changed
+
+- **`feature-flags`** -- Graduated 20 always-true feature flags (6 v2_*, 14 v3_*). Removed dead else-branches from 18+ scripts. Consolidated duplicate flags (`v3_lock_lite` → `v3_lease_locks`, `v3_contract_lite` → `v2_hard_contracts`). Graduated v3 observability flags (metrics, schema_validation, smart_routing, monorepo_routing, validation_gates, delta_context).
+- **`config`** -- `v2_token_budgets` now defaults to `false` in config/defaults.json. CC manages context natively.
+- **`compaction`** -- Plan mode compaction workaround removed (CC 2.1.47 handles natively). Instructions updated to clarify CC-native vs VBW-specific behavior.
+- **`update`** -- `/vbw:update` no longer displays restart requirement. Changes active immediately (CC 2.1.45+).
+- **`token-budgets`** -- Added inline documentation to config/token-budgets.json explaining budget sizing rationale (1-4% of agent context windows) and per-task complexity scaling (0.6x-1.6x multipliers).
+
+### Deprecated
+
+- **`file-guard`** -- `scripts/file-guard.sh` marked as worktree-deprecation candidate with header comment.
+
 ## [1.21.31] - 2026-02-19
 
 ### Added
