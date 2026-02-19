@@ -2,7 +2,7 @@
 
 **Goal:** YOLO — Your Own Local Orchestrator
 
-**Scope:** 10 phases
+**Scope:** 11 phases
 
 ## Progress
 | Phase | Status | Plans | Tasks | Commits |
@@ -17,6 +17,7 @@
 | 8 | Complete | 7 | 33 | 39 |
 | 9 | Complete | 10 | 50 | 50 |
 | 10 | Complete | 12 | 60 | 55 |
+| 11 | Pending | 0 | 0 | 0 |
 
 ---
 
@@ -31,6 +32,7 @@
 - [x] [Phase 8: Full Template System Migration](#phase-8-full-template-system-migration)
 - [x] [Phase 9: Workflow Redundancy Audit & Token Optimization](#phase-9-workflow-redundancy-audit-token-optimization)
 - [x] [Phase 10: SQLite-Backed Artifact Store & Context Engine](#phase-10-sqlite-backed-artifact-store-context-engine)
+- [ ] [Phase 11: DB-Only Default Mode](#phase-11-db-only-default-mode)
 
 ---
 
@@ -239,3 +241,31 @@
 - All existing workflow functionality preserved (plan, execute, verify, archive)
 
 **Dependencies:** Phase 9
+
+---
+
+## Phase 11: DB-Only Default Mode
+
+**Goal:** Remove all backward compatibility code from Phase 10, making SQLite DB the sole artifact store with zero file fallbacks. Eliminate db_available flags, [sqlite]/[file] conditional blocks, and dual-write patterns. Make DB initialization mandatory and automatic — wired into bootstrap and execute flows. Create a dedicated DB init command. No flags needed: DB is always on.
+
+**Requirements:**
+- Remove all 20 DB_AVAILABLE conditional blocks from compile-context.sh (keep only SQL queries, error if DB unavailable)
+- Remove [sqlite]/[file] instruction blocks from all 7 agent templates (keep only DB path)
+- Remove dual-write guards from state-updater.sh (make DB writes unconditional)
+- Make DB init mandatory in go.md Execute mode (fail fast if unavailable, not optional fallback)
+- Wire init-db.sh into VBW bootstrap flow (auto-create DB on project init)
+- Create dedicated /yolo:db-init command for manual DB initialization
+- Regenerate all 24 department agents from cleaned templates
+- Fix planning dir mismatch (.yolo-planning vs .vbw-planning in compile-context.sh)
+- Update tests: remove file-fallback assertions, add DB-mandatory assertions
+- Create migration script for existing projects without yolo.db
+
+**Success Criteria:**
+- Zero db_available/DB_AVAILABLE references in codebase (grep returns 0)
+- Zero [sqlite]/[file] blocks in agent templates or generated agents
+- compile-context.sh fails fast if DB unavailable (no silent file fallback)
+- DB initialized automatically on project bootstrap and execute
+- All 458+ existing DB tests pass
+- No file-based artifact reads by any agent or script
+
+**Dependencies:** Phase 10

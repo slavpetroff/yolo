@@ -58,3 +58,4 @@ None.
 - 2026-02-19: Added Phase 10 — SQLite-Backed Artifact Store & Context Engine (Scout research: 112K+ tokens wasted across 6 phases, 3x file read duplication, lossy budget truncation, 80-95% savings projected)
 - 2026-02-19: Planned Phase 10 — 12 plans, 60 tasks, 4 waves
 - 2026-02-19: Executed Phase 10 — 12 plans, 55 commits, 458 tests, QA PASS
+- 2026-02-19: Added Phase 11 — DB-Only Default Mode (Scout research: 20 DB_AVAILABLE blocks, 12 template blocks, 3 dual-write guards, planning dir mismatch)
