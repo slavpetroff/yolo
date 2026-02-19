@@ -240,15 +240,12 @@ When `po.enabled=true` and guard conditions not met:
 4. Critic returns findings via SendMessage (Critic has no Write tool).
 5. Write critique.jsonl from Critic's findings to phase directory. Each entry includes `cf` and `rd` fields.
 6. Commit: `docs({phase}): critique and gap analysis`
-6.5. **[sqlite] Dual-write to DB (when `db_available=true`):**
+6.5. **Write to DB:**
    ```bash
-   if [ "$db_available" = "true" ]; then
-     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
-       --type critique --file "{phase-dir}/critique.jsonl" \
-       --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
-   fi
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
+     --type critique --file "{phase-dir}/critique.jsonl" \
+     --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
    ```
-   File-based critique.jsonl remains the primary artifact. DB import is additive for query access.
 7. **User gate (balanced/thorough effort):** Display critique summary including confidence score and rounds used. If critical findings exist, AskUserQuestion "Address these before architecture?" Options: "Proceed (Architect will address)" / "Pause to discuss".
 8. **EXIT GATE:** Artifact: `critique.jsonl` (valid JSONL, entries have `cf` and `rd` fields). State: `steps.critique = complete`. Commit: `chore(state): critique complete phase {N}`.
 
@@ -294,15 +291,12 @@ When `po.enabled=true` and guard conditions not met:
    ```
    Dedup: skip entries where `q` + `finding` already exist in the archive.
 8. Commit: `docs({phase}): research findings`
-8.5. **[sqlite] Dual-write to DB (when `db_available=true`):**
+8.5. **Write to DB:**
    ```bash
-   if [ "$db_available" = "true" ]; then
-     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
-       --type research --file "{phase-dir}/research.jsonl" \
-       --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
-   fi
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
+     --type research --file "{phase-dir}/research.jsonl" \
+     --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
    ```
-   File-based research.jsonl remains the primary artifact. DB import enables FTS5 search via search-research.sh.
 9. **EXIT GATE:** Artifact: `research.jsonl` (valid JSONL). State: `steps.research = complete`. Commit: `chore(state): research complete phase {N}`.
 
 ### Step 3: Architecture (Architect Agent)
@@ -326,10 +320,10 @@ When `po.enabled=true` and guard conditions not met:
 3. Display: `◆ Spawning Architect (${ARCHITECT_MODEL})...` → `✓ Architecture complete`
 4. Verify: architecture.toon exists in phase directory.
 5. Architect addresses critique.jsonl findings (updates `st` field) and commits: `docs({phase}): architecture design`
-5.5. **[sqlite] Dual-write decisions to DB (when `db_available=true`):**
+5.5. **Write decisions to DB:**
    If Architect produces `decisions.jsonl`, write each decision to DB:
    ```bash
-   if [ "$db_available" = "true" ] && [ -f "{phase-dir}/decisions.jsonl" ]; then
+   if [ -f "{phase-dir}/decisions.jsonl" ]; then
      bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
        --type decisions --file "{phase-dir}/decisions.jsonl" \
        --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
@@ -337,13 +331,10 @@ When `po.enabled=true` and guard conditions not met:
    ```
    For individual findings during architecture, use append-finding.sh:
    ```bash
-   if [ "$db_available" = "true" ]; then
-     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/append-finding.sh" \
-       --type decision --plan "${PLAN_ID}" --phase "${PHASE_NUM}" \
-       --data "$finding_json" --db "$DB_PATH" 2>/dev/null || true
-   fi
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/append-finding.sh" \
+     --type decision --plan "${PLAN_ID}" --phase "${PHASE_NUM}" \
+     --data "$finding_json" --db "$DB_PATH" 2>/dev/null || true
    ```
-   File-based decisions.jsonl remains the primary artifact. DB enables cross-phase decision search.
 6. **EXIT GATE:** Artifact: `architecture.toon` (non-empty, meets completeness criteria per references/rnd-handoff-protocol.md ## Architect->Lead Stage-Gate). Completeness: tech_decisions present, components defined, integration_points specified, risks documented, critique_disposition complete. State: `steps.architecture = complete`. Commit: `chore(state): architecture complete phase {N}`.
 
 ### Step 4: Load Plans and Detect Resume State
@@ -367,27 +358,24 @@ Gate decision:
 4. Build remaining plans list. If `--plan=NN`, filter to that plan.
 5. Partially-complete plans: note resume-from task number.
 6. **Crash recovery:** If `.yolo-planning/.execution-state.json` exists with `"status": "running"`, reconcile plan statuses with summary.jsonl state.
-6.5. **[sqlite] DB-aware crash recovery (when `db_available=true`):**
-   When resuming after a crash, use the DB task queue for precise state recovery instead of file-based heuristics:
+6.5. **DB-aware crash recovery:**
+   When resuming after a crash, use the DB task queue for precise state recovery:
    ```bash
-   if [ "$db_available" = "true" ]; then
-     # Detect orphaned tasks (in_progress but agent crashed)
-     ORPHANS=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/check-phase-status.sh" \
-       --phase "${PHASE_NUM}" --db "$DB_PATH" --json 2>/dev/null \
-       | jq -r '.tasks[] | select(.status == "in_progress")')
-     # Release orphaned tasks back to pending with retry context
-     for orphan_id in $(echo "$ORPHANS" | jq -r '.task_id'); do
-       bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/release-task.sh" \
-         --task "$orphan_id" --reason "agent_crash_recovery" --db "$DB_PATH" 2>/dev/null || true
-     done
-     # Skip already-complete tasks on retry (DB state is authoritative)
-     COMPLETE_COUNT=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/check-phase-status.sh" \
-       --phase "${PHASE_NUM}" --db "$DB_PATH" --json 2>/dev/null \
-       | jq -r '.completed')
-     echo "○ DB recovery: ${COMPLETE_COUNT} tasks complete, $(echo "$ORPHANS" | jq -s 'length') orphans released"
-   fi
+   # Detect orphaned tasks (in_progress but agent crashed)
+   ORPHANS=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/check-phase-status.sh" \
+     --phase "${PHASE_NUM}" --db "$DB_PATH" --json 2>/dev/null \
+     | jq -r '.tasks[] | select(.status == "in_progress")')
+   # Release orphaned tasks back to pending with retry context
+   for orphan_id in $(echo "$ORPHANS" | jq -r '.task_id'); do
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/release-task.sh" \
+       --task "$orphan_id" --reason "agent_crash_recovery" --db "$DB_PATH" 2>/dev/null || true
+   done
+   # Skip already-complete tasks on retry (DB state is authoritative)
+   COMPLETE_COUNT=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/check-phase-status.sh" \
+     --phase "${PHASE_NUM}" --db "$DB_PATH" --json 2>/dev/null \
+     | jq -r '.completed')
+   echo "○ DB recovery: ${COMPLETE_COUNT} tasks complete, $(echo "$ORPHANS" | jq -s 'length') orphans released"
    ```
-   **[file]** When `db_available=false`, existing file-based crash recovery (steps 3+6 above) applies unchanged.
 7. **Write execution state** to `.yolo-planning/.execution-state.json`:
    ```json
    {
