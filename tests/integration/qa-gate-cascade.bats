@@ -10,9 +10,13 @@ setup() {
   PHASE_DIR="$TEST_WORKDIR/phase-test"
   mkdir -p "$PHASE_DIR"
 
-  SUT_POST_TASK="$SCRIPTS_DIR/qa-gate-post-task.sh"
-  SUT_POST_PLAN="$SCRIPTS_DIR/qa-gate-post-plan.sh"
-  SUT_POST_PHASE="$SCRIPTS_DIR/qa-gate-post-phase.sh"
+  # Consolidated dispatcher replaces individual scripts
+  SUT_POST_TASK="$SCRIPTS_DIR/qa-gate.sh"
+  SUT_POST_TASK_ARGS="--tier task"
+  SUT_POST_PLAN="$SCRIPTS_DIR/qa-gate.sh"
+  SUT_POST_PLAN_ARGS="--tier plan"
+  SUT_POST_PHASE="$SCRIPTS_DIR/qa-gate.sh"
+  SUT_POST_PHASE_ARGS="--tier phase"
 
   # Mock bin directory prepended to PATH
   MOCK_DIR="$TEST_WORKDIR/mock-bin"
@@ -65,7 +69,7 @@ JSONL
 # --- T4 Test 1: post-task gate passes with passing tests ---
 
 @test "post-task gate passes with passing tests" {
-  run bash "$SUT_POST_TASK" --phase-dir "$PHASE_DIR" --plan 04-10 --task T1
+  run bash "$SUT_POST_TASK" $SUT_POST_TASK_ARGS --phase-dir "$PHASE_DIR" --plan 04-10 --task T1
   assert_success
   # Verify .qa-gate-results.jsonl has 1 line with gl=post-task
   [ -f "$PHASE_DIR/.qa-gate-results.jsonl" ]
@@ -80,11 +84,11 @@ JSONL
 
 @test "post-plan gate passes after post-task results exist" {
   # First run post-task to create result entry
-  run bash "$SUT_POST_TASK" --phase-dir "$PHASE_DIR" --plan 04-10 --task T1
+  run bash "$SUT_POST_TASK" $SUT_POST_TASK_ARGS --phase-dir "$PHASE_DIR" --plan 04-10 --task T1
   assert_success
 
   # Now run post-plan
-  run bash "$SUT_POST_PLAN" --phase-dir "$PHASE_DIR" --plan 04-10
+  run bash "$SUT_POST_PLAN" $SUT_POST_PLAN_ARGS --phase-dir "$PHASE_DIR" --plan 04-10
   assert_success
 
   # Verify .qa-gate-results.jsonl has 2 lines (post-task + post-plan)
@@ -104,15 +108,15 @@ JSONL
 
 @test "post-phase gate passes when all plans complete and gates pass" {
   # Run post-task first
-  run bash "$SUT_POST_TASK" --phase-dir "$PHASE_DIR" --plan 04-10 --task T1
+  run bash "$SUT_POST_TASK" $SUT_POST_TASK_ARGS --phase-dir "$PHASE_DIR" --plan 04-10 --task T1
   assert_success
 
   # Run post-plan
-  run bash "$SUT_POST_PLAN" --phase-dir "$PHASE_DIR" --plan 04-10
+  run bash "$SUT_POST_PLAN" $SUT_POST_PLAN_ARGS --phase-dir "$PHASE_DIR" --plan 04-10
   assert_success
 
   # Run post-phase
-  run bash "$SUT_POST_PHASE" --phase-dir "$PHASE_DIR"
+  run bash "$SUT_POST_PHASE" $SUT_POST_PHASE_ARGS --phase-dir "$PHASE_DIR"
   assert_success
 
   # Verify .qa-gate-results.jsonl has 3 lines
@@ -132,7 +136,7 @@ exit 1
 SCRIPT
   chmod +x "$MOCK_DIR/test-summary.sh"
 
-  run bash "$SUT_POST_TASK" --phase-dir "$PHASE_DIR" --plan 04-10 --task T1
+  run bash "$SUT_POST_TASK" $SUT_POST_TASK_ARGS --phase-dir "$PHASE_DIR" --plan 04-10 --task T1
   assert_failure
 
   # Verify gate=fail in output
@@ -152,7 +156,7 @@ exit 1
 SCRIPT
   chmod +x "$MOCK_DIR/test-summary.sh"
 
-  run bash "$SUT_POST_TASK" --phase-dir "$PHASE_DIR" --plan 04-10 --task T1
+  run bash "$SUT_POST_TASK" $SUT_POST_TASK_ARGS --phase-dir "$PHASE_DIR" --plan 04-10 --task T1
   assert_failure
 
   # .qa-gate-results.jsonl should contain a FAIL entry
@@ -163,7 +167,7 @@ SCRIPT
 
   # Post-plan still runs (it's independent -- runs its own test suite)
   # But since test-summary still fails, post-plan also fails
-  run bash "$SUT_POST_PLAN" --phase-dir "$PHASE_DIR" --plan 04-10
+  run bash "$SUT_POST_PLAN" $SUT_POST_PLAN_ARGS --phase-dir "$PHASE_DIR" --plan 04-10
   assert_failure
 
   # Verify post-plan failure also recorded
@@ -182,7 +186,7 @@ echo '{"post_task":false,"post_plan":true,"post_phase":true,"timeout_seconds":30
 SCRIPT
   chmod +x "$MOCK_DIR/resolve-qa-config.sh"
 
-  run bash "$SUT_POST_TASK" --phase-dir "$PHASE_DIR" --plan 04-10 --task T1
+  run bash "$SUT_POST_TASK" $SUT_POST_TASK_ARGS --phase-dir "$PHASE_DIR" --plan 04-10 --task T1
   assert_success
 
   # Verify gate=skipped

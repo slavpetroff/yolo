@@ -429,18 +429,378 @@ gate_post_task() {
 # Tier: plan — gate_post_plan()
 # ============================================================
 gate_post_plan() {
-  # Placeholder — migrated in T3
-  echo '{"error":"gate_post_plan not yet implemented"}' >&2
-  exit 1
+  local PHASE_DIR="" PLAN_ID="" TIMEOUT=300
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --phase-dir) PHASE_DIR="$2"; shift 2 ;;
+      --plan) PLAN_ID="$2"; shift 2 ;;
+      --timeout) TIMEOUT="$2"; shift 2 ;;
+      *) echo "Unknown flag: $1" >&2; shift ;;
+    esac
+  done
+
+  if [ -z "$PHASE_DIR" ]; then
+    echo '{"error":"--phase-dir is required"}' >&2
+    exit 1
+  fi
+
+  if [ -z "$PLAN_ID" ]; then
+    echo '{"error":"--plan is required"}' >&2
+    exit 1
+  fi
+
+  # Config toggle check
+  local enabled
+  enabled=$(_load_qa_config "$PHASE_DIR" "post_plan")
+  if [ "$enabled" = "false" ]; then
+    local RESULT_JSON
+    RESULT_JSON=$(jq -n \
+      --arg gate "skipped" \
+      --arg gl "post-plan" \
+      --arg r "SKIPPED" \
+      --arg plan "$PLAN_ID" \
+      --arg dt "$(date +%Y-%m-%d)" \
+      '{gate:$gate,gl:$gl,r:$r,plan:$plan,tst:{ps:0,fl:0},mh:{tr:0,ar:0,kl:0},dur:0,dt:$dt}')
+    echo "$RESULT_JSON"
+    exit 0
+  fi
+
+  TIMEOUT=$(_config_timeout "$TIMEOUT")
+
+  # Team mode detection
+  local TEAM_MODE
+  TEAM_MODE=$(_detect_team_mode "$PHASE_DIR")
+
+  # Tracking
+  local FAILURES=()
+  local START_TIME
+  START_TIME=$(date +%s)
+
+  # Summary verification
+  local SUMMARY_FILE="$PHASE_DIR/${PLAN_ID}.summary.jsonl"
+  if [ ! -f "$SUMMARY_FILE" ]; then
+    FAILURES+=("summary.jsonl missing for plan $PLAN_ID")
+  else
+    local STATUS
+    STATUS=$(jq -r '.s // ""' "$SUMMARY_FILE" 2>/dev/null) || STATUS=""
+    if [ "$STATUS" != "complete" ]; then
+      FAILURES+=("summary status is '$STATUS', expected 'complete'")
+    fi
+  fi
+
+  # Test execution (full suite, no --scope)
+  local TEST_SUMMARY_PATH PASS_COUNT=0 FAIL_COUNT=0
+  TEST_SUMMARY_PATH=$(command -v test-summary.sh 2>/dev/null) || TEST_SUMMARY_PATH=""
+
+  if ! command -v bats >/dev/null 2>&1; then
+    PASS_COUNT=0; FAIL_COUNT=0
+  elif [ -z "$TEST_SUMMARY_PATH" ] || ! [ -x "$TEST_SUMMARY_PATH" ]; then
+    PASS_COUNT=0; FAIL_COUNT=0
+  else
+    local _tmpout TEST_EXIT TEST_OUTPUT
+    _tmpout=$(mktemp)
+    _run_with_timeout "$TIMEOUT" bash "$TEST_SUMMARY_PATH" > "$_tmpout" 2>&1
+    TEST_EXIT=$?
+    TEST_OUTPUT=$(cat "$_tmpout")
+    rm -f "$_tmpout"
+
+    if [ "$TEST_EXIT" -eq 124 ]; then
+      PASS_COUNT=0; FAIL_COUNT=0
+    elif echo "$TEST_OUTPUT" | grep -q '^PASS'; then
+      PASS_COUNT=$(echo "$TEST_OUTPUT" | grep '^PASS' | sed 's/PASS (\([0-9]*\) tests)/\1/' | head -1) || PASS_COUNT=0
+      FAIL_COUNT=0
+    elif echo "$TEST_OUTPUT" | grep -q '^FAIL'; then
+      FAIL_COUNT=$(echo "$TEST_OUTPUT" | grep '^FAIL' | sed 's/FAIL (\([0-9]*\)\/\([0-9]*\) failed).*/\1/' | head -1) || FAIL_COUNT=0
+      local TOTAL
+      TOTAL=$(echo "$TEST_OUTPUT" | grep '^FAIL' | sed 's/FAIL (\([0-9]*\)\/\([0-9]*\) failed).*/\2/' | head -1) || TOTAL=0
+      PASS_COUNT=$((TOTAL - FAIL_COUNT))
+      FAILURES+=("test suite failed: $FAIL_COUNT failures")
+    fi
+  fi
+
+  # Must-have verification
+  local TR_COUNT=0 TR_VERIFIED=0 AR_COUNT=0 AR_VERIFIED=0 KL_COUNT=0 KL_VERIFIED=0
+  local PLAN_FILE="$PHASE_DIR/${PLAN_ID}.plan.jsonl"
+
+  if [ -f "$PLAN_FILE" ]; then
+    local PLAN_HEADER
+    PLAN_HEADER=$(head -1 "$PLAN_FILE")
+
+    # Truths (tr)
+    TR_COUNT=$(echo "$PLAN_HEADER" | jq '.mh.tr | if type == "array" then length else 0 end' 2>/dev/null) || TR_COUNT=0
+    TR_VERIFIED=$TR_COUNT
+
+    # Artifacts (ar) — support strings and objects with .p field
+    local AR_TYPE
+    AR_TYPE=$(echo "$PLAN_HEADER" | jq -r '.mh.ar | if type == "array" and length > 0 then (.[0] | type) else "none" end' 2>/dev/null) || AR_TYPE="none"
+
+    if [ "$AR_TYPE" = "string" ]; then
+      AR_COUNT=$(echo "$PLAN_HEADER" | jq '.mh.ar | length' 2>/dev/null) || AR_COUNT=0
+      if [ "$AR_COUNT" -gt 0 ]; then
+        for i in $(seq 0 $((AR_COUNT - 1))); do
+          local AR_PATH
+          AR_PATH=$(echo "$PLAN_HEADER" | jq -r ".mh.ar[$i]" 2>/dev/null) || continue
+          if [ -f "$AR_PATH" ]; then
+            AR_VERIFIED=$((AR_VERIFIED + 1))
+          else
+            FAILURES+=("must_have artifact missing: $AR_PATH")
+          fi
+        done
+      fi
+    elif [ "$AR_TYPE" = "object" ]; then
+      AR_COUNT=$(echo "$PLAN_HEADER" | jq '.mh.ar | length' 2>/dev/null) || AR_COUNT=0
+      if [ "$AR_COUNT" -gt 0 ]; then
+        for i in $(seq 0 $((AR_COUNT - 1))); do
+          local AR_PATH
+          AR_PATH=$(echo "$PLAN_HEADER" | jq -r ".mh.ar[$i].p" 2>/dev/null) || continue
+          if [ -f "$AR_PATH" ]; then
+            AR_VERIFIED=$((AR_VERIFIED + 1))
+          else
+            FAILURES+=("must_have artifact missing: $AR_PATH")
+          fi
+        done
+      fi
+    fi
+
+    # Key links (kl)
+    KL_COUNT=$(echo "$PLAN_HEADER" | jq '.mh.kl | if type == "array" then length else 0 end' 2>/dev/null) || KL_COUNT=0
+    if [ "$KL_COUNT" -gt 0 ]; then
+      for i in $(seq 0 $((KL_COUNT - 1))); do
+        local KL_FROM KL_TO
+        KL_FROM=$(echo "$PLAN_HEADER" | jq -r ".mh.kl[$i].fr" 2>/dev/null) || continue
+        KL_TO=$(echo "$PLAN_HEADER" | jq -r ".mh.kl[$i].to" 2>/dev/null) || continue
+        if [ -f "$KL_FROM" ] && [ -f "$KL_TO" ]; then
+          KL_VERIFIED=$((KL_VERIFIED + 1))
+        else
+          FAILURES+=("must_have key_link unresolved: $KL_FROM -> $KL_TO")
+        fi
+      done
+    fi
+  fi
+
+  # Result computation
+  local END_TIME DURATION GATE RESULT
+  END_TIME=$(date +%s)
+  DURATION=$((END_TIME - START_TIME))
+
+  if [ ${#FAILURES[@]} -eq 0 ]; then
+    GATE="pass"; RESULT="PASS"
+  elif [ "$FAIL_COUNT" -eq 0 ] && [ -f "$SUMMARY_FILE" ]; then
+    local _summary_status
+    _summary_status=$(jq -r '.s // ""' "$SUMMARY_FILE" 2>/dev/null) || _summary_status=""
+    if [ "$_summary_status" = "complete" ]; then
+      GATE="fail"; RESULT="PARTIAL"
+    else
+      GATE="fail"; RESULT="FAIL"
+    fi
+  else
+    GATE="fail"; RESULT="FAIL"
+  fi
+
+  # JSON output
+  local RESULT_JSON
+  RESULT_JSON=$(jq -n \
+    --arg gate "$GATE" \
+    --arg gl "post-plan" \
+    --arg r "$RESULT" \
+    --arg plan "$PLAN_ID" \
+    --argjson ps "$PASS_COUNT" \
+    --argjson fl "$FAIL_COUNT" \
+    --argjson tr "$TR_VERIFIED" \
+    --argjson ar "$AR_VERIFIED" \
+    --argjson kl "$KL_VERIFIED" \
+    --argjson dur "$DURATION" \
+    --arg dt "$(date +%Y-%m-%d)" \
+    --arg tm "$TEAM_MODE" \
+    '{gate:$gate,gl:$gl,r:$r,plan:$plan,tst:{ps:$ps,fl:$fl},mh:{tr:$tr,ar:$ar,kl:$kl},dur:$dur,dt:$dt,tm:$tm}')
+  echo "$RESULT_JSON"
+
+  # Persist result
+  _persist_result "$RESULT_JSON" "$PHASE_DIR"
+
+  # Exit
+  if [ "$GATE" = "fail" ] && [ "$RESULT" = "FAIL" ]; then
+    exit 1
+  elif [ "$GATE" = "fail" ] && [ "$RESULT" = "PARTIAL" ]; then
+    exit 1
+  else
+    exit 0
+  fi
 }
 
 # ============================================================
 # Tier: phase — gate_post_phase()
 # ============================================================
 gate_post_phase() {
-  # Placeholder — migrated in T3
-  echo '{"error":"gate_post_phase not yet implemented"}' >&2
-  exit 1
+  local PHASE_DIR="" TIMEOUT=300
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --phase-dir) PHASE_DIR="$2"; shift 2 ;;
+      --timeout) TIMEOUT="$2"; shift 2 ;;
+      *) echo "Unknown flag: $1" >&2; shift ;;
+    esac
+  done
+
+  if [ -z "$PHASE_DIR" ]; then
+    echo '{"error":"--phase-dir is required"}' >&2
+    exit 1
+  fi
+
+  # Config toggle check
+  local enabled
+  enabled=$(_load_qa_config "$PHASE_DIR" "post_phase")
+  if [ "$enabled" = "false" ]; then
+    local RESULT_JSON
+    RESULT_JSON=$(jq -n \
+      --arg gate "skipped" \
+      --arg gl "post-phase" \
+      --arg r "SKIPPED" \
+      --arg dt "$(date +%Y-%m-%d)" \
+      '{gate:$gate,gl:$gl,r:$r,steps:{ps:0,fl:0},tst:{ps:0,fl:0},plans:{complete:0,total:0},dur:0,dt:$dt}')
+    echo "$RESULT_JSON"
+    exit 0
+  fi
+
+  TIMEOUT=$(_config_timeout "$TIMEOUT")
+
+  # Team mode detection
+  local TEAM_MODE
+  TEAM_MODE=$(_detect_team_mode "$PHASE_DIR")
+
+  # Tracking
+  local FAILURES=()
+  local START_TIME
+  START_TIME=$(date +%s)
+
+  # Plan completeness check
+  local PLAN_FILES TOTAL_PLANS=0 COMPLETE_PLANS=0
+  PLAN_FILES=$(ls "$PHASE_DIR"/*.plan.jsonl 2>/dev/null) || PLAN_FILES=""
+
+  if [ -n "$PLAN_FILES" ]; then
+    while IFS= read -r plan_file; do
+      [ -z "$plan_file" ] && continue
+      TOTAL_PLANS=$((TOTAL_PLANS + 1))
+
+      local _plan_id
+      _plan_id=$(basename "$plan_file" .plan.jsonl)
+
+      local SUMMARY_FILE="$PHASE_DIR/${_plan_id}.summary.jsonl"
+      if [ -f "$SUMMARY_FILE" ]; then
+        local _status
+        _status=$(jq -r '.s // ""' "$SUMMARY_FILE" 2>/dev/null) || _status=""
+        if [ "$_status" = "complete" ]; then
+          COMPLETE_PLANS=$((COMPLETE_PLANS + 1))
+        else
+          FAILURES+=("plan $_plan_id summary status is '$_status', expected 'complete'")
+        fi
+      else
+        FAILURES+=("plan $_plan_id missing summary.jsonl")
+      fi
+    done <<< "$PLAN_FILES"
+  fi
+
+  if [ "$TOTAL_PLANS" -eq 0 ]; then
+    FAILURES+=("no plan files found in phase directory")
+  fi
+
+  if [ "$COMPLETE_PLANS" -lt "$TOTAL_PLANS" ]; then
+    FAILURES+=("incomplete plans: $COMPLETE_PLANS/$TOTAL_PLANS complete")
+  fi
+
+  # Gate validation via validate-gates.sh
+  local VALIDATE_GATES_PATH STEPS_PASSED=0 STEPS_FAILED=0
+  VALIDATE_GATES_PATH=$(command -v validate-gates.sh 2>/dev/null) || VALIDATE_GATES_PATH=""
+
+  local STEPS=(critique research architecture planning design_review test_authoring implementation code_review qa security signoff)
+
+  if [ -n "$VALIDATE_GATES_PATH" ] && [ -x "$VALIDATE_GATES_PATH" ]; then
+    for step in "${STEPS[@]}"; do
+      local step_exit=0 result gate_status=""
+      result=$(bash "$VALIDATE_GATES_PATH" --step "$step" --phase-dir "$PHASE_DIR" 2>/dev/null) || step_exit=$?
+      if [ -n "$result" ]; then
+        gate_status=$(echo "$result" | jq -r '.gate // ""' 2>/dev/null) || gate_status=""
+      fi
+      if [ "$gate_status" = "pass" ] || { [ -z "$gate_status" ] && [ "$step_exit" -eq 0 ]; }; then
+        STEPS_PASSED=$((STEPS_PASSED + 1))
+      elif [ "$step_exit" -ne 0 ] || [ "$gate_status" = "fail" ]; then
+        STEPS_FAILED=$((STEPS_FAILED + 1))
+        FAILURES+=("gate validation failed for step: $step")
+      fi
+    done
+  fi
+
+  # Test execution (full suite)
+  local TEST_SUMMARY_PATH PASS_COUNT=0 FAIL_COUNT=0
+  TEST_SUMMARY_PATH=$(command -v test-summary.sh 2>/dev/null) || TEST_SUMMARY_PATH=""
+
+  if ! command -v bats >/dev/null 2>&1; then
+    PASS_COUNT=0; FAIL_COUNT=0
+  elif [ -z "$TEST_SUMMARY_PATH" ] || ! [ -x "$TEST_SUMMARY_PATH" ]; then
+    PASS_COUNT=0; FAIL_COUNT=0
+  else
+    local _tmpout TEST_EXIT TEST_OUTPUT
+    _tmpout=$(mktemp)
+    _run_with_timeout "$TIMEOUT" bash "$TEST_SUMMARY_PATH" > "$_tmpout" 2>&1
+    TEST_EXIT=$?
+    TEST_OUTPUT=$(cat "$_tmpout")
+    rm -f "$_tmpout"
+
+    if [ "$TEST_EXIT" -eq 124 ]; then
+      PASS_COUNT=0; FAIL_COUNT=0
+    elif echo "$TEST_OUTPUT" | grep -q '^PASS'; then
+      PASS_COUNT=$(echo "$TEST_OUTPUT" | grep '^PASS' | sed 's/PASS (\([0-9]*\) tests)/\1/' | head -1) || PASS_COUNT=0
+      FAIL_COUNT=0
+    elif echo "$TEST_OUTPUT" | grep -q '^FAIL'; then
+      FAIL_COUNT=$(echo "$TEST_OUTPUT" | grep '^FAIL' | sed 's/FAIL (\([0-9]*\)\/\([0-9]*\) failed).*/\1/' | head -1) || FAIL_COUNT=0
+      local TOTAL
+      TOTAL=$(echo "$TEST_OUTPUT" | grep '^FAIL' | sed 's/FAIL (\([0-9]*\)\/\([0-9]*\) failed).*/\2/' | head -1) || TOTAL=0
+      PASS_COUNT=$((TOTAL - FAIL_COUNT))
+      FAILURES+=("test suite failed: $FAIL_COUNT failures")
+    fi
+  fi
+
+  # Result computation
+  local END_TIME DURATION GATE RESULT PHASE_NUM
+  END_TIME=$(date +%s)
+  DURATION=$((END_TIME - START_TIME))
+  PHASE_NUM=$(basename "$PHASE_DIR" | cut -d- -f1)
+
+  if [ ${#FAILURES[@]} -eq 0 ]; then
+    GATE="pass"; RESULT="PASS"
+  else
+    GATE="fail"; RESULT="FAIL"
+  fi
+
+  # JSON output
+  local RESULT_JSON
+  RESULT_JSON=$(jq -n \
+    --arg gate "$GATE" \
+    --arg gl "post-phase" \
+    --arg r "$RESULT" \
+    --arg ph "$PHASE_NUM" \
+    --argjson sps "$STEPS_PASSED" \
+    --argjson sfl "$STEPS_FAILED" \
+    --argjson ps "$PASS_COUNT" \
+    --argjson fl "$FAIL_COUNT" \
+    --argjson complete "$COMPLETE_PLANS" \
+    --argjson total "$TOTAL_PLANS" \
+    --argjson dur "$DURATION" \
+    --arg dt "$(date +%Y-%m-%d)" \
+    --arg tm "$TEAM_MODE" \
+    '{gate:$gate,gl:$gl,r:$r,ph:$ph,steps:{ps:$sps,fl:$sfl},tst:{ps:$ps,fl:$fl},plans:{complete:$complete,total:$total},dur:$dur,dt:$dt,tm:$tm}')
+  echo "$RESULT_JSON"
+
+  # Persist result
+  _persist_result "$RESULT_JSON" "$PHASE_DIR"
+
+  # Exit
+  if [ "$GATE" = "fail" ]; then
+    exit 1
+  else
+    exit 0
+  fi
 }
 
 # ============================================================

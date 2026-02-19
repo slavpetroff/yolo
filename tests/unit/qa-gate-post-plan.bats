@@ -6,7 +6,9 @@ setup() {
   load '../test_helper/common'
   load '../test_helper/fixtures'
   mk_test_workdir
-  SUT="$SCRIPTS_DIR/qa-gate-post-plan.sh"
+  # Consolidated dispatcher: qa-gate.sh --tier plan replaces qa-gate-post-plan.sh
+  SUT="$SCRIPTS_DIR/qa-gate.sh"
+  SUT_TIER_ARGS="--tier plan"
   PHASE_DIR="$TEST_WORKDIR/phase-test"
   mkdir -p "$PHASE_DIR"
   # Mock bin directory prepended to PATH for mock scripts
@@ -66,7 +68,7 @@ SCRIPT
 @test "passes when summary exists with s:complete and tests pass" {
   create_plan_and_summary "04-07"
   mk_mock_test_summary "PASS (5 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR" --plan 04-07
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR" --plan 04-07
   assert_success
   local gate
   gate=$(echo "$output" | jq -r '.gate')
@@ -79,7 +81,7 @@ SCRIPT
 {"p":"04","n":"04-07","t":"Test Plan","w":1,"d":[],"mh":{},"obj":"test"}
 {"id":"T1","tp":"auto","a":"dev","f":["scripts/a.sh"],"v":"ok","done":"ok","spec":"do stuff"}
 JSONL
-  run bash "$SUT" --phase-dir "$PHASE_DIR" --plan 04-07
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR" --plan 04-07
   assert_failure
   [[ "$output" =~ "summary" ]] || [[ "$output" == *"missing"* ]] || echo "$output" | jq -r '.r' | grep -qi "fail"
 }
@@ -92,7 +94,7 @@ JSONL
   cat > "$PHASE_DIR/04-07.summary.jsonl" <<'JSONL'
 {"p":"04","n":"04-07","s":"partial","fm":[],"commits":[],"desc":"Incomplete"}
 JSONL
-  run bash "$SUT" --phase-dir "$PHASE_DIR" --plan 04-07
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR" --plan 04-07
   assert_failure
 }
 
@@ -107,7 +109,7 @@ JSONL
 JSONL
   echo '{}' > "$PHASE_DIR/required-artifact.jsonl"
   mk_mock_test_summary "PASS (1 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR" --plan 04-07
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR" --plan 04-07
   assert_success
 }
 
@@ -120,7 +122,7 @@ JSONL
 {"p":"04","n":"04-07","s":"complete","fm":["scripts/a.sh"],"commits":["abc"],"desc":"Done"}
 JSONL
   mk_mock_test_summary "PASS (1 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR" --plan 04-07
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR" --plan 04-07
   # Verify mh counts appear in output
   echo "$output" | jq -e '.mh' >/dev/null 2>&1 || [[ "$output" =~ "missing" ]]
 }
@@ -128,7 +130,7 @@ JSONL
 @test "handles test failure by reporting fail" {
   create_plan_and_summary "04-07"
   mk_mock_test_summary "FAIL (3/10 failed)" 1
-  run bash "$SUT" --phase-dir "$PHASE_DIR" --plan 04-07
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR" --plan 04-07
   assert_failure
   local fail_count
   fail_count=$(echo "$output" | jq -r '.tst.fl')
@@ -138,7 +140,7 @@ JSONL
 @test "appends result to .qa-gate-results.jsonl" {
   create_plan_and_summary "04-07"
   mk_mock_test_summary "PASS (2 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR" --plan 04-07
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR" --plan 04-07
   assert_success
   [ -f "$PHASE_DIR/.qa-gate-results.jsonl" ]
   local line_count
@@ -151,7 +153,7 @@ JSONL
 
 @test "skips with gate:skipped JSON when config toggle is false" {
   mk_mock_qa_config '{"post_plan":false}'
-  run bash "$SUT" --phase-dir "$PHASE_DIR" --plan 04-07
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR" --plan 04-07
   assert_success
   local gate
   gate=$(echo "$output" | jq -r '.gate')
@@ -162,7 +164,7 @@ JSONL
   mk_mock_qa_config '{"post_plan":true}'
   create_plan_and_summary "04-07"
   mk_mock_test_summary "PASS (1 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR" --plan 04-07
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR" --plan 04-07
   local gate
   gate=$(echo "$output" | jq -r '.gate')
   [ "$gate" != "skipped" ]
@@ -172,7 +174,7 @@ JSONL
   rm -f "$MOCK_DIR/resolve-qa-config.sh"
   create_plan_and_summary "04-07"
   mk_mock_test_summary "PASS (1 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR" --plan 04-07
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR" --plan 04-07
   local gate
   gate=$(echo "$output" | jq -r '.gate')
   [ "$gate" != "skipped" ]
@@ -182,6 +184,6 @@ JSONL
   mk_mock_qa_config '{"timeout_seconds":5,"post_plan":true}'
   create_plan_and_summary "04-07"
   mk_mock_test_summary "PASS (1 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR" --plan 04-07
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR" --plan 04-07
   assert_success
 }

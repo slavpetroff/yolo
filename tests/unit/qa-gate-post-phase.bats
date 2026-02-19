@@ -6,7 +6,9 @@ setup() {
   load '../test_helper/common'
   load '../test_helper/fixtures'
   mk_test_workdir
-  SUT="$SCRIPTS_DIR/qa-gate-post-phase.sh"
+  # Consolidated dispatcher: qa-gate.sh --tier phase replaces qa-gate-post-phase.sh
+  SUT="$SCRIPTS_DIR/qa-gate.sh"
+  SUT_TIER_ARGS="--tier phase"
   PHASE_DIR="$TEST_WORKDIR/phase-test"
   mkdir -p "$PHASE_DIR"
   # Mock bin directory prepended to PATH for mock scripts
@@ -75,7 +77,7 @@ SCRIPT
   create_plan_with_summary "04-02" "complete"
   mk_mock_validate_gates '{"gate":"pass","steps":{"fl":0}}' 0
   mk_mock_test_summary "PASS (20 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR"
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR"
   assert_success
   local gate
   gate=$(echo "$output" | jq -r '.gate')
@@ -86,7 +88,7 @@ SCRIPT
   create_plan_with_summary "04-01" "complete"
   create_plan_no_summary "04-02"
   mk_mock_test_summary "PASS (10 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR"
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR"
   assert_failure
   local complete total
   complete=$(echo "$output" | jq -r '.plans.complete')
@@ -98,7 +100,7 @@ SCRIPT
   create_plan_with_summary "04-01" "complete"
   mk_mock_validate_gates '{"gate":"fail","steps":{"fl":2}}' 1
   mk_mock_test_summary "PASS (5 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR"
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR"
   assert_failure
   local step_failures
   step_failures=$(echo "$output" | jq -r '.steps.fl')
@@ -109,7 +111,7 @@ SCRIPT
   create_plan_with_summary "04-01" "complete"
   mk_mock_validate_gates '{"gate":"pass"}' 0
   mk_mock_test_summary "FAIL (5/20 failed)" 1
-  run bash "$SUT" --phase-dir "$PHASE_DIR"
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR"
   assert_failure
 }
 
@@ -119,7 +121,7 @@ SCRIPT
   create_plan_no_summary "04-03"
   mk_mock_validate_gates '{"gate":"pass"}' 0
   mk_mock_test_summary "PASS (10 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR"
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR"
   local total complete
   total=$(echo "$output" | jq -r '.plans.total')
   complete=$(echo "$output" | jq -r '.plans.complete')
@@ -129,7 +131,7 @@ SCRIPT
 
 @test "handles no plan files gracefully" {
   # Empty phase dir with no plans
-  run bash "$SUT" --phase-dir "$PHASE_DIR"
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR"
   # Should handle gracefully (not crash), either pass with 0 plans or warn
   local exit_ok=false
   if [ "$status" -eq 0 ] || [ "$status" -eq 1 ]; then
@@ -142,7 +144,7 @@ SCRIPT
   create_plan_with_summary "04-01" "complete"
   mk_mock_validate_gates '{"gate":"pass"}' 0
   mk_mock_test_summary "PASS (5 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR"
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR"
   [ -f "$PHASE_DIR/.qa-gate-results.jsonl" ]
   local line_count
   line_count=$(wc -l < "$PHASE_DIR/.qa-gate-results.jsonl" | tr -d ' ')
@@ -154,7 +156,7 @@ SCRIPT
 
 @test "skips with gate:skipped JSON when config toggle is false" {
   mk_mock_qa_config '{"post_phase":false}'
-  run bash "$SUT" --phase-dir "$PHASE_DIR"
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR"
   assert_success
   local gate
   gate=$(echo "$output" | jq -r '.gate')
@@ -166,7 +168,7 @@ SCRIPT
   create_plan_with_summary "04-01" "complete"
   mk_mock_validate_gates '{"gate":"pass"}' 0
   mk_mock_test_summary "PASS (1 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR"
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR"
   local gate
   gate=$(echo "$output" | jq -r '.gate')
   [ "$gate" != "skipped" ]
@@ -177,7 +179,7 @@ SCRIPT
   create_plan_with_summary "04-01" "complete"
   mk_mock_validate_gates '{"gate":"pass"}' 0
   mk_mock_test_summary "PASS (1 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR"
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR"
   local gate
   gate=$(echo "$output" | jq -r '.gate')
   [ "$gate" != "skipped" ]
@@ -188,6 +190,6 @@ SCRIPT
   create_plan_with_summary "04-01" "complete"
   mk_mock_validate_gates '{"gate":"pass"}' 0
   mk_mock_test_summary "PASS (1 tests)" 0
-  run bash "$SUT" --phase-dir "$PHASE_DIR"
+  run bash "$SUT" $SUT_TIER_ARGS --phase-dir "$PHASE_DIR"
   assert_success
 }
