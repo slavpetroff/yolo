@@ -1,0 +1,201 @@
+handoff_schemas:
+  desc: JSON-structured SendMessage schemas with type discriminator. Receivers JSON.parse content; fall back to plain text on parse failure.
+
+critique_result:
+  dir: Critic > Lead
+  desc: Brainstorm and gap-analysis findings for a phase, before architecture.
+  fields: type=critique_result, phase, findings(int), critical(int), major(int), minor(int), categories[], artifact, committed(bool)
+  note: Critic has no Write tool -- returns findings to Lead who writes critique.jsonl and commits.
+
+test_plan_result:
+  dir: Tester > Senior
+  desc: TDD RED phase test authoring results.
+  fields: type=test_plan_result, plan_id, tasks_tested(int), tasks_skipped(int), total_tests(int), all_red(bool), artifact, committed(bool)
+
+architecture_design:
+  dir: Architect > Lead
+  desc: Architecture decisions and system design for a phase.
+  fields: type=architecture_design, phase, artifact, decisions[{decision,rationale,alternatives[]}], risks[{risk,impact,mitigation}], committed(bool)
+
+senior_spec:
+  dir: Senior > Lead (after Design Review)
+  desc: Notification that plan specs have been enriched.
+  fields: type=senior_spec, plan_id, tasks_enriched(int), concerns[], committed(bool)
+
+dev_progress:
+  dir: Dev > Senior
+  desc: Status update after completing a task.
+  fields: type=dev_progress, task, plan_id, commit, status(complete|partial|failed), concerns[]
+
+dev_blocker:
+  dir: Dev > Senior
+  desc: Escalation when blocked and cannot proceed.
+  fields: type=dev_blocker, task, plan_id, blocker, needs, attempted[]
+
+code_review_changes:
+  dir: Senior > Dev
+  desc: Exact fix instructions on changes_requested. Dev MUST follow precisely.
+  fields: type=code_review_changes, plan_id, cycle(int), changes[{f,ln,issue,fix}], must_fix[], rerun_tests(bool)
+
+code_review_result:
+  dir: Senior > Lead
+  desc: Code review verdict after reviewing implementation.
+  fields: type=code_review_result, plan_id, result(approve|changes_requested), cycle(int), findings_count(int), critical(int), artifact, committed(bool)
+
+qa_result:
+  dir: QA Lead > Lead
+  desc: Plan-level verification results.
+  fields: type=qa_result, tier(quick|standard|deep), result(PASS|FAIL|PARTIAL), checks{passed,failed,total}, failures[{check,expected,actual,evidence}], artifact, committed(bool)
+
+qa_code_result:
+  dir: QA --mode code > Lead
+  desc: Code-level verification results.
+  fields: type=qa_code_result, result(PASS|FAIL|PARTIAL), tests{passed,failed,skipped}, lint{errors,warnings}, findings_count(int), critical(int), artifact, committed(bool)
+
+security_audit:
+  dir: Security > Lead
+  desc: Security audit results.
+  fields: type=security_audit, result(PASS|FAIL|WARN), findings(int), critical(int), categories[secrets,owasp,deps,config], artifact, committed(bool)
+
+scout_findings:
+  dir: Scout > Lead
+  desc: Research findings from investigating a topic.
+  fields: type=scout_findings, domain(tech-stack|architecture|quality|concerns), findings[{query,finding,confidence}], artifact, committed(bool)
+
+research_request:
+  dir: Any agent > Orchestrator
+  desc: On-demand research request. Orchestrator routes to Scout.
+  fields: type=research_request, from, task, plan_id, query, context, request_type(blocking|informational), priority(high|medium|low)
+  note: Blocking requests pause agent until Scout returns. Informational requests are async.
+
+research_response:
+  dir: Orchestrator > Requesting agent
+  desc: Scout findings routed back to requester.
+  fields: type=research_response, request_from, query, findings[{q,src,finding,conf}], request_type, resolved_at
+
+debugger_report:
+  dir: Debugger > Lead
+  desc: Investigation findings from competing hypotheses mode.
+  fields: type=debugger_report, hypothesis, evidence_for[], evidence_against[], confidence(high|medium|low), recommended_fix, artifact
+
+escalation:
+  dir: Any > Up the chain
+  desc: Escalation when agent cannot resolve within authority.
+  fields: type=escalation, from, to, issue, evidence[], recommendation, severity(blocking|major|minor)
+
+escalation_resolution:
+  dir: Resolver > Down the chain
+  desc: Resolution for previously-escalated blocker. Flows DOWNWARD only.
+  fields: type=escalation_resolution, original_escalation, decision, rationale, action_items[], resolved_by(user|owner|architect|lead)
+  note: Senior translates action_items into Dev-actionable code_review_changes.
+
+escalation_timeout_warning:
+  dir: Lead > Architect/Owner
+  desc: Sent when escalation pending longer than escalation.timeout_seconds (default 300s).
+  fields: type=escalation_timeout_warning, original_escalation, elapsed_seconds(int), current_level, agent_blocked, recommended_action
+
+agent_health_event:
+  dir: Lead internal (team_mode=teammate)
+  desc: Lead-internal health tracking. NOT sent via SendMessage.
+  fields: type=agent_health_event, agent_id, dept, state(start|idle|stop|disappeared), timestamp, prev_state, timeout_triggered(bool)
+
+circuit_breaker_state:
+  dir: Lead internal (team_mode=teammate)
+  desc: Per-department circuit breaker. Lead-internal.
+  fields: type=circuit_breaker_state, dept, state(closed|open|half-open), opened_at, failure_count(int), last_probe_at
+
+task_claim:
+  dir: Dev > Lead (team_mode=teammate)
+  desc: Dev claims task from shared list. Lead adds files to claimed_files set.
+  fields: type=task_claim, task_id, plan_id, files[], claimed_at
+
+task_complete:
+  dir: Dev > Lead (team_mode=teammate)
+  desc: Dev reports task completion. Lead removes files from claimed_files.
+  fields: type=task_complete, task_id, plan_id, commit, files_modified[], status, deviations[]
+  note: Distinct from dev_progress (sent to Senior). task_complete is Lead accounting only.
+
+summary_aggregation:
+  dir: Lead internal (team_mode=teammate)
+  desc: Lead constructs from collected task_complete messages for summary.jsonl.
+  fields: type=summary_aggregation, plan_id, tasks_completed(int), tasks_total(int), commit_hashes[], files_modified[], deviations[], status
+
+phase_progress:
+  dir: Lead > go.md
+  desc: Intra-phase progress update for status display.
+  fields: type=phase_progress, department, phase, step, plans_complete(int), plans_total(int), percent_complete(int), blockers[], eta
+
+shutdown_request:
+  dir: Lead > Teammates (team_mode=teammate)
+  desc: Initiate graceful shutdown at Step 10 or on error.
+  fields: type=shutdown_request, reason(phase_complete|timeout|error), deadline_seconds(int)
+  ref: references/teammate-api-patterns.md, agents/yolo-lead.md ## Shutdown Protocol
+
+shutdown_response:
+  dir: Teammates > Lead (team_mode=teammate)
+  desc: Teammate response to shutdown request.
+  fields: type=shutdown_response, status(clean|in_progress|error), pending_work[], artifacts_committed(bool)
+
+cross_dept_schemas:
+  note: Used when departments.frontend or departments.uiux = true.
+
+design_handoff:
+  dir: UX Lead > Frontend Lead + Backend Lead
+  desc: UI/UX design artifacts ready for Frontend consumption.
+  fields: type=design_handoff, phase, department=uiux, artifacts{design_tokens,component_specs,user_flows}, ready_components[], deferred[], acceptance_criteria[], status
+
+api_contract:
+  dir: Frontend Lead <> Backend Lead (bidirectional)
+  desc: API contract negotiation.
+  fields: type=api_contract, direction(frontend_to_backend|backend_to_frontend), endpoints[{method,path,request,response}], status(proposed|agreed|implemented)
+
+department_result:
+  dir: Department Lead > Owner
+  desc: Department completion report for final sign-off.
+  fields: type=department_result, department, phase, result(PASS|PARTIAL|FAIL), plans_completed(int), plans_total(int), qa_result, security_result, tdd_coverage
+
+owner_review:
+  dir: Owner > Leads (after critique review)
+  desc: Critique review with department priorities and dispatch order.
+  fields: type=owner_review, phase, departments_needed[], dispatch_order[], priorities[], risks[]
+
+owner_signoff:
+  dir: Owner > All Leads (final decision)
+  desc: Final phase decision.
+  fields: type=owner_signoff, phase, decision(SHIP|HOLD), departments_approved[], integration_qa, notes
+
+po_qa_verdict:
+  dir: PO > Orchestrator
+  desc: Post-integration Q&A verdict against scope.
+  fields: type=po_qa_verdict, verdict(approve|patch|major), findings[{check,result,dept,detail}], target_dept, re_scope_items[], scope_confidence(float 0-1)
+  routing: approve > user_presentation, patch > patch_request to dept Senior, major > major_rejection to PO Mode 0
+
+patch_request:
+  dir: PO > Orchestrator > Dept Senior
+  desc: Targeted fix for PO patch verdict. Max 2 tasks, <20% token budget.
+  fields: type=patch_request, target_dept, failing_checks[], fix_instructions, scope_ref, max_tasks(int, cap 2)
+  note: Senior re-specs, Dev implements, re-run integration gate for failing checks only. If fail > Major path.
+
+major_rejection:
+  dir: PO > Orchestrator > Questionary
+  desc: Re-scope when PO verdict is major. Only affected depts re-run.
+  fields: type=major_rejection, re_scope_items[], affected_depts[], rationale, original_scope_ref
+
+feedback_response:
+  dir: User > Orchestrator > PO
+  desc: User feedback after delivery presentation.
+  fields: type=feedback_response, response(approve|request_changes|reject), comments, change_requests[], scope_ref
+  routing: approve > finalize, request_changes > patch_request, reject > major_rejection
+
+phase_handoff:
+  dir: Orchestrator (phase transition)
+  loc: .yolo-planning/phases/{NN}-{slug}/phase-handoff.jsonl
+  desc: Cross-phase transition data. Critic (Step 1) and Architect (Step 3) receive from previous phase.
+  fields: type=phase_handoff, from_phase, to_phase, dt, decisions[], open_items[], artifacts[], research_refs[], escalations_resolved(int), escalations_pending(int)
+
+dept_handoff:
+  dir: Department Leads (multi-dept)
+  loc: .yolo-planning/phases/{NN}-{slug}/dept-handoff.jsonl
+  desc: Cross-department coordination artifact.
+  fields: type=dept_handoff, from_dept, to_dept, dt, artifacts[], contracts[{name,spec}], blockers[], notes
+  flow: UX Lead writes after UX complete > FE Lead + BE Lead receive > Integration Gate validates contracts

@@ -1,0 +1,182 @@
+company_hierarchy:
+  desc: Agent hierarchy, team structure, workflow, escalation. Referenced by all agents and commands.
+
+roster:
+  agent|role|model|tools|produces|budget
+  yolo-analyze|Complexity Classifier / Intent Detector|Opus|Read,Glob,Grep|analysis.json|1000
+  yolo-po|Product Owner / Vision & Scope|Opus|Read,Glob,Grep,Write|scope-document.json, user_presentation|3000
+  yolo-questionary|Scope Clarification / Requirements Analyst|Sonnet|Read,Glob,Grep|scope_clarification JSON|2000
+  yolo-roadmap|Dependency & Roadmap Planner|Sonnet|Read,Glob,Grep,Write|roadmap_plan JSON|2000
+  yolo-critic|Brainstorm / Gap Analyst|Opus|Read,Glob,Grep,WebSearch,WebFetch|critique.jsonl|4000
+  yolo-architect|VP Eng / Solutions Architect|Opus|Read,Glob,Grep,Write,WebSearch,WebFetch|architecture.toon, ROADMAP.md|5000
+  yolo-lead|Tech Lead|Sonnet|Read,Glob,Grep,Write,Bash,WebFetch|plan.jsonl, orchestration|3000
+  yolo-senior|Senior Engineer|Opus|Read,Glob,Grep,Write,Edit,Bash|enriched plan specs (spec+ts), code-review.jsonl|4000
+  yolo-tester|TDD Test Author|Sonnet|Read,Glob,Grep,Write,Bash|test files, test-plan.jsonl|3000
+  yolo-dev|Junior Developer|Sonnet|All|source code, summary.jsonl|2000
+  yolo-qa|QA Lead|Sonnet|Read,Glob,Grep (read-only)|verification.jsonl|2000
+  yolo-security|Backend Security Engineer|Sonnet|Read,Glob,Grep,Bash,SendMessage|security-audit.jsonl|3000
+  yolo-fe-security|FE Security Reviewer|Sonnet|Read,Grep,Glob,Bash,SendMessage|security-audit.jsonl|3000
+  yolo-ux-security|UX Security Reviewer|Sonnet|Read,Grep,Glob,SendMessage|security-audit.jsonl|2000
+  yolo-documenter|Backend Documenter|Haiku|Read,Glob,Grep,Write,Bash|docs.jsonl|2000
+  yolo-fe-documenter|FE Documenter|Haiku|Read,Glob,Grep,Write|docs.jsonl|2000
+  yolo-ux-documenter|UX Documenter|Haiku|Read,Glob,Grep,Write|docs.jsonl|2000
+  yolo-scout|Research Analyst|Haiku|Read,Glob,Grep,WebSearch,WebFetch|research.jsonl|1000
+  yolo-debugger|Incident Responder|Sonnet|All|debug-report.jsonl|3000
+  yolo-integration-gate|Integration Gate / Cross-Dept Validator|Sonnet|Read,Glob,Grep|integration-gate-result.jsonl|2000
+
+teams:
+  planning:
+    agents: Analyze, PO, Questionary, Roadmap, Critic, Architect, Scout, Lead
+    active: Analysis, Product Ownership, Scope Clarification, Roadmap Planning, Critique, Scope, Research, Plan
+    handoff: analysis.json > PO routing > Questionary (max 3 rounds) > Roadmap > PO (scope-document.json) > Critic > Architect > Lead
+    po_optional: when po.enabled=false, Analyze routes directly to Critic > Architect > Lead
+  execution:
+    agents: Senior, Tester, Dev (x1-3), Debugger (on-call)
+    active: Design Review, Test Authoring (RED), Implementation
+    handoff: enriched plan.jsonl (spec+ts) > Tester > Dev, code commits > Senior
+  quality:
+    agents: QA Lead, QA Code, Senior (escalation), Security Reviewers (per-dept)
+    active: Code Review, QA, Security
+    handoff: code-review.jsonl > Lead, verification.jsonl > Lead, security-audit.jsonl > Lead
+  rnd:
+    agents: PO, Questionary, Roadmap, Critic, Scout, Architect
+    active: Product Ownership, Scope Clarification, Roadmap Planning, Critique (Step 1), Research (Step 2), Architecture (Step 3)
+    handoff: analysis.json > PO(scope-document.json) > Critic > Scout > research.jsonl > Architect
+    gate: Architect>Lead uses Go/Recycle/Kill model. ref: @references/rnd-handoff-protocol.md
+  integration:
+    agents: Integration Gate, PO (Mode 4 QA), Owner (Delivery)
+    active: Post-Security (Step 11.5), Final Delivery (Step 12)
+    flow: Security passes > Integration Gate > PO QA > Owner Delivery
+    multi_dept_only: Integration Gate skipped in single-dept. PO QA requires po.enabled=true.
+
+workflow_11step:
+  Step|Agent|Input|Output|Commit|Skip
+  1|Critic|reqs + PROJECT + codebase|critique.jsonl|docs({phase}): critique and gap analysis|turbo, exists
+  2|Scout|critique (critical/major) + reqs|research.jsonl|docs({phase}): research findings|turbo
+  3|Architect|reqs + codebase + critique|architecture.toon|docs({phase}): architecture design|exists
+  4|Lead|architecture.toon + reqs|plan.jsonl|docs({phase}): plan {NN-MM}|--
+  5|Senior|plan + architecture + codebase|enriched plan (spec+ts)|docs({phase}): enrich plan {NN-MM} specs|--
+  6|Tester|enriched plan (ts fields)|test files + test-plan.jsonl|test({phase}): RED phase tests|turbo, no ts
+  7|Dev|enriched plan + test files|code + summary.jsonl|{type}({phase}-{plan}): {task}|--
+  8|Senior|git diff + plan + tests|code-review.jsonl|docs({phase}): code review {NN-MM}|--
+  8.5|Documenter|code + plan + architecture|docs.jsonl|docs({phase}): documentation|config-gated
+  9|QA (plan + code)|plan + summary + artifacts|verification.jsonl + qa-code.jsonl|docs({phase}): verification results|--skip-qa, turbo
+  10|Security|commits + deps|security-audit.jsonl|docs({phase}): security audit|--skip-security
+  11|Lead|all artifacts|state.json + ROADMAP.md|chore(state): phase {N} complete|--
+  11.5|Integration Gate|dept artifacts + contracts|integration-gate-result.jsonl|docs({phase}): integration gate|single-dept, turbo
+  12|PO (QA) + Owner (Delivery)|scope-document + artifacts|po-qa-verdict.jsonl|docs({phase}): PO QA verdict|po.enabled=false
+
+escalation:
+  primary_chain: Dev > Senior > Lead > Architect > User (single-dept)
+  multi_dept_chain: Dept Dev > Dept Senior > Dept Lead > Dept Architect > Owner > User
+  qa_remediation: QA Code FAIL > Lead > Senior re-specs > Dev fixes > QA re-verifies (max 3 cycles, then Architect)
+  code_review: Senior changes_requested > Minor (auto-approve after fix) / Major (cycle 2) > cycle 2 fail > Lead > Accept or Architect
+  rules:
+    1. Each agent escalates ONLY to direct report-to. No skipping levels.
+    2. Dev NEVER contacts Lead, Architect, or User. Senior is Dev's single contact.
+    3. QA/Tester NEVER contact Architect. Findings route through Lead.
+    4. Only Owner/go.md talks to User. Security FAIL is sole bypass.
+    5. Escalation includes evidence: issue + context + recommendation.
+  table:
+    agent|escalates_to|trigger
+    Dev|Senior|Blocker, spec unclear, 2 task failures, architectural issue
+    Senior|Lead|Can't resolve Dev blocker, design conflict, code review cycle 2 fail
+    Lead|Architect|Can't resolve Senior escalation, design problem, cross-phase issue
+    Architect|User|Design-level decision needed, scope change required
+    Tester|Senior|ts field unclear, tests pass unexpectedly
+    QA Lead|Lead|Verification findings, FAIL result
+    QA Code|Lead|Critical/major findings, FAIL result
+    Security|Lead (FAIL > User)|Findings to report; FAIL = HARD STOP
+    Documenter|Lead|Findings only (per-dept routing)
+    Scout|Lead|Cannot find info, conflicting sources (advisory)
+    Debugger|Lead|Investigation complete, fix recommendation
+    Critic|Lead|Findings advisory; Lead forwards to Architect
+  round_trip:
+    upward: Dev(dev_blocker) > Senior(escalation) > Lead(escalation) > Architect(structured opts) > go.md(AskUserQuestion) > User
+    downward: User(choice) > go.md(escalation_resolution) > Architect(architecture update) > Lead(forward) > Senior(translate to code_review_changes) > Dev(resume)
+    verification: Each level confirms next level acted before marking complete
+    timeout: escalation.timeout_seconds auto-escalates to next level up
+
+decision_authority:
+  agent|can_decide|must_escalate
+  Analyze|complexity (trivial/medium/high), dept detection, intent, routing|ambiguous intent (conf<0.6), scope changes, architecture
+  PO|scope boundaries, acceptance criteria, milestone decomposition|architecture, technology, implementation, budget (> User)
+  Questionary|question strategy, clarification rounds, sufficiency|scope expansion (> PO), architecture questions (> Architect via PO)
+  Roadmap|phase ordering, dependency graph, milestone grouping|scope changes (> PO), architecture (> Architect), priority (> PO > User)
+  Dev|implementation within spec, library API calls, test fixes|spec ambiguity, missing reqs, architecture, new files not in spec
+  Tester|test structure, mock strategy, assertions, naming|scope beyond ts field, testing infra changes
+  Senior|spec enrichment, code review approve/changes, patterns|architecture changes, new deps, scope changes, cross-phase impacts
+  Lead|plan decomposition, task ordering, waves, resource allocation|architecture, technology, scope, cross-dept, user-facing decisions
+  Architect|technology, design patterns, architecture, deps, performance|scope add/remove, budget/timeline, user preference, business priority
+  QA Lead|pass/fail, finding severity, remediation need|ship with known issues (> Lead), scope reduction (> Lead)
+  Security|vulnerability severity, compliance, audit pass/fail|FAIL = STOP > User. Remediation approach (> Lead > Senior)
+  rule: If question outside CAN column, escalate immediately with question + context + recommendation.
+
+context_isolation:
+  per_agent:
+    agent|receives|never_receives
+    Lead|Dept CONTEXT + ROADMAP + REQUIREMENTS + architecture.toon + prior summaries + codebase|other dept contexts, code-review, gaps, security-audit
+    Architect|Dept CONTEXT + REQUIREMENTS + critique.jsonl + codebase + research.jsonl|other dept, implementation code, QA artifacts
+    Senior (design)|architecture.toon + plan.jsonl + codebase + critique.jsonl|full CONTEXT directly, other dept
+    Senior (code review)|plan.jsonl + git diff + test-plan.jsonl|CONTEXT, ROADMAP
+    Tester|enriched plan.jsonl (ts field) + codebase patterns|CONTEXT, architecture.toon, critique
+    Dev|enriched plan.jsonl (spec field ONLY) + test files (RED)|architecture.toon, CONTEXT, critique, ROADMAP, REQUIREMENTS
+    QA (plan)|plan.jsonl + summary.jsonl + .ctx-qa.toon|source code, CONTEXT
+    QA (code)|summary.jsonl (file list) + test-plan.jsonl + .ctx-qa.toon|CONTEXT, architecture.toon
+  principle: Dev receives ZERO creative context. spec field IS the complete instruction set.
+  cross_dept:
+    dept|receives|never_receives
+    Backend|{phase}-CONTEXT-backend.md|UX context, FE context, design tokens, component specs
+    UI/UX|{phase}-CONTEXT-uiux.md|BE context, FE context, API contracts
+    Frontend|{phase}-CONTEXT-frontend.md + UX handoff|BE context, UX internal plans/architecture
+  rule: Backend NEVER reads UI/UX directly. Frontend relays via handoff artifacts only.
+
+commit_protocol:
+  Step|Agent|Commits
+  Critique|Critic (via Lead)|critique.jsonl
+  Architecture|Architect|architecture.toon
+  Planning|Lead|{plan}.plan.jsonl
+  Design Review|Senior|enriched plan.jsonl (spec + ts)
+  Test Authoring|Tester|test files + test-plan.jsonl
+  Implementation|Dev|source code per task + summary.jsonl
+  Code Review|Senior|code-review.jsonl
+  Documentation|Documenter (config-gated)|docs.jsonl
+  QA|QA (plan + code)|verification.jsonl + qa-code.jsonl
+  Security|Security|security-audit.jsonl
+  Sign-off|Lead|state.json + ROADMAP.md
+  format: docs({phase}): {artifact} except Dev source: {type}({phase}-{plan}): {task}
+
+multi_dept:
+  departments:
+    dept|agents|protocol
+    Backend|architect, lead, senior, dev, tester, qa, security, documenter (8)|references/departments/backend.toon
+    Frontend|fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-security, fe-documenter (8)|references/departments/frontend.toon
+    UI/UX|ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-security, ux-documenter (8)|references/departments/uiux.toon
+    Shared|owner, critic, scout, debugger, integration-gate (5)|references/departments/shared.toon
+  total: ~33 agents across 4 groups + PO layer (qa-code merged into qa with --mode plan|code)
+  parallel: When department_workflow=parallel, dept Leads spawned as background Task subagents. Wave: UX first > FE + BE parallel after UX handoff gate.
+  coordination: File-based gates (.dept-status-{dept}.json, .handoff-*, .phase-orchestration.json). Atomic writes via flock in scripts/dept-status.sh.
+  dept_escalation: Dept Dev > Dept Senior > Dept Lead > Dept Architect > Owner > User. Cross-dept through Leads only.
+  ref: references/multi-dept-protocol.md, references/cross-team-protocol.md
+
+resume_protocol:
+  1. Read state.json > exact phase, step, status
+  2. Read .execution-state.json > plans done/pending
+  3. Check git log > correlate commits with tasks
+  4. Re-compile .ctx-{role}.toon from JSONL artifacts on disk
+  5. Resume at exact point -- everything is committed
+
+command_routing:
+  command|entry|primary_spawn|hierarchy|escalation
+  /yolo:go (analyze)|go.md|Analyze|go.md > Analyze > routing (trivial/medium/high)|ambiguous intent (conf<0.6) > go.md prompts user
+  /yolo:go (execute)|go.md|PO, Critic, Architect, Lead|go.md > Analyze > PO > Questionary > Roadmap > Critic > Architect > Lead > Senior > Tester > Dev > QA > Security > Sign-off|per-step escalation
+  /yolo:debug|go.md|Lead|go.md > Lead > Debugger(s)|Debugger > Lead > Architect (if >3 files or interface change)
+  /yolo:fix|go.md|Lead|go.md > Lead > {trivial: Dev, needs-spec: Senior > Dev}|Dev > Senior > Lead > go.md (scope too large > /yolo:go)
+  /yolo:research|go.md|Lead|go.md > Lead > Scout(s)|Scout > Lead > go.md (contradictions or arch impact)
+  /yolo:qa|go.md|Lead|go.md > Lead > QA Lead + QA Code|QA > Lead > Senior > Architect (after 3rd failure)
+  rules:
+    1. go.md is always entry point (Owner proxy for user communication)
+    2. Lead is primary dispatcher for all specialist commands
+    3. Specialists spawned BY Lead, never directly by go.md
+    4. Escalation follows chain strictly -- no level skipping
+    5. Only go.md talks to user

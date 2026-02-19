@@ -1,0 +1,113 @@
+teammate_api_patterns:
+  desc: Teammate API tool patterns for team_mode=teammate. When team_mode=task, all patterns inactive; agents use Task tool instead.
+
+activation:
+  guard: team_mode=teammate set by resolve-team-mode.sh (reads config, validates agent_teams=true, checks CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS env var)
+  relationship: agent_teams=true (feature flag) + team_mode=teammate (spawn strategy) = Teammate API active
+  default: team_mode=task (Task tool, file-based communication)
+
+team_lifecycle:
+  note: Lead agents ONLY (yolo-lead, yolo-fe-lead, yolo-ux-lead).
+  spawn: spawnTeam with name yolo-{dept} (e.g. yolo-backend). Description: {Dept} engineering team for phase {N}: {phase-name}. One team per dept. No nested teams.
+  registration:
+    step|agent|rationale
+    2|architect|receives design context, produces architecture.toon
+    4|senior|receives architecture, enriches plan specs
+    5|tester|receives plan ts fields, writes failing tests (TDD RED)
+    6|dev|receives enriched specs, implements tasks
+    8|qa|verification after implementation (plan + code modes)
+    9|security|security audit after QA passes
+    note: On-demand registration at workflow step boundaries, not all-at-once.
+
+shutdown_protocol:
+  phase_1_request:
+    1. Lead sends shutdown_request to ALL registered teammates via SendMessage
+    2. Include deadline_seconds (default 30) and reason (phase_complete|timeout|error)
+    3. Start deadline timer per teammate
+  phase_2_collection:
+    4. Collect shutdown_response from each teammate
+    5. Check status: clean (ideal), in_progress (log to dv deviations), error (log details)
+    6. Timeout: if no response within deadline_seconds, mark timed_out, do NOT block
+    7. Verify: all teammates responded or timed_out, artifacts_committed=true via git status, in_progress logged to deviations
+    8. Error recovery: if SendMessage unavailable, force-proceed with artifact verification
+  schemas: ref @references/handoff-schemas.md (shutdown_request, shutdown_response)
+  cleanup: Lead verifies artifacts committed, writes final summary, team auto-cleaned on Lead session end
+
+intra_team_comms:
+  note: Within department team only. All use SendMessage.
+  dev_to_senior_progress: dev_progress schema. Task mode: Task tool result. Teammate mode: SendMessage.
+  dev_to_senior_blocker: dev_blocker schema. Dev > Senior ONLY. Never Lead or Architect.
+  senior_to_lead_review: senior_spec (design review) or code_review_result (code review)
+  senior_to_dev_changes: code_review_changes. Teammate mode: direct SendMessage to Dev ID.
+  architect_to_lead: architecture_design schema.
+
+cross_team_comms:
+  note: BETWEEN department teams. Only Leads communicate cross-team.
+  lead_to_lead_contract: api_contract schema. File-based (api-contracts.jsonl) even in teammate mode (Leads in DIFFERENT teams; SendMessage only within team).
+  lead_to_owner_result: department_result schema. File-based (.dept-status-{dept}.json) regardless of team_mode.
+
+task_only_agents:
+  agent|reason
+  critic|Runs before architecture (Step 1) -- team does not exist yet. Cross-cutting.
+  scout|On-demand research. Ephemeral, no persistent membership needed.
+  debugger|On-demand investigation. Ephemeral.
+  rules: NEVER register as teammates. ALWAYS spawn via Task tool. No '## Teammate API' sections. Not counted in Teammate API coverage.
+
+task_coordination:
+  note: Active ONLY when team_mode=teammate.
+  task_create:
+    Lead reads plan.jsonl tasks (lines 2+), creates shared task list per task.
+    fields: task_id, plan_id, action, files, status=available, assignee=null, blocked_by
+    blocked_by_algorithm:
+      1. If task has td field: add each as {plan_id}/{td_entry}
+      2. If plan has d field: add ALL tasks from referenced plan as {dep_plan_id}/{task_id}
+  task_list:
+    Dev queries: status=available AND assignee=null AND blocked_by empty
+    Lead filters: exclude tasks where files intersect claimed_files set
+    claimed_files_algorithm: On task_claim: add files. On task_complete: remove files. Filter candidates against set.
+  task_update:
+    claim: status=claimed, assignee=dev-N
+    complete: status=complete, commit=hash
+
+dynamic_dev_scaling:
+  note: Active ONLY when team_mode=teammate.
+  formula: dev_count = min(available_unblocked_tasks, 5)
+  cap: 5 (prevents resource exhaustion)
+  algorithm:
+    1. Count available_unblocked_tasks from TaskList
+    2. Call scripts/compute-dev-count.sh --available N
+    3. Register dev_count Dev agents as teammates
+    4. Dispatch initial task assignments
+    5. Monitor loop: on task_complete, re-evaluate blocked tasks, recompute dev_count, assign newly unblocked
+
+task_blocking:
+  note: Active ONLY when team_mode=teammate.
+  intra_plan: td field (e.g. td:["T1","T3"]) -- blocked until T1 AND T3 in SAME plan complete. Mapped to {plan_id}/{td_entry}.
+  cross_plan: d field (e.g. d:["03-01"]) -- ALL tasks in plan B blocked by ALL tasks in plan A. Coarse-grained by design.
+  cross_phase: xd field -- Lead verifies referenced artifact exists (summary.jsonl with s:complete) before creating tasks.
+  ref: references/artifact-formats.md ## Plan Task (td field), scripts/resolve-task-deps.sh
+
+fallback_cascade:
+  tier_1_teammate:
+    conditions: team_mode=teammate, env var set, agent_teams=true in config
+    transport: spawnTeam/addTeammate, SendMessage
+  tier_2_task:
+    triggers: env var missing, agent_teams=false, spawnTeam fails, teammate unresponsive (60s timeout)
+    behavior: Task tool spawning, file-based communication. Schemas and artifact formats unchanged.
+    logging: "[FALLBACK] {reason}: switching from teammate to task for {agent/department}"
+  tier_3_error:
+    triggers: Task tool also fails (model unavailable, permissions error)
+    behavior: Lead logs error, commits partial artifacts, escalates to Architect. Phase halts.
+  dept_isolation: Fallback is per-department. If Backend fails, only Backend falls back. FE/UX continue in teammate mode.
+
+health_tracking:
+  note: Active ONLY when team_mode=teammate.
+  states: start (addTeammate), idle (task_complete, no new task), stop (shutdown_response), disappeared (60s timeout)
+  tracking: Lead maintains in-memory map agent_health = Map<agent_id, {state, timestamp, prev_state, dept}>
+  recovery: On disappeared: log, remove files from claimed_files, mark task available, trigger Tier 2 fallback, update circuit breaker.
+  schema: agent_health_event (Lead-internal, NOT sent via SendMessage)
+
+task_mode_fallback:
+  when: team_mode=task (default)
+  mapping: spawnTeam > Task tool, SendMessage > Task result + file artifacts, shutdown > natural session end
+  unchanged: Escalation chains, schemas, artifact formats identical. Only transport changes.
