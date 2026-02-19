@@ -397,3 +397,86 @@ CREATE INDEX IF NOT EXISTS idx_summaries_plan ON summaries(plan_id);
 CREATE INDEX IF NOT EXISTS idx_qa_gate_results_phase_plan ON qa_gate_results(phase, plan);
 CREATE INDEX IF NOT EXISTS idx_test_results_phase_plan ON test_results(phase, plan);
 CREATE INDEX IF NOT EXISTS idx_code_review_phase_plan ON code_review(phase, plan);
+
+-- ============================================================
+-- FTS5 Virtual Tables (T4)
+-- ============================================================
+
+-- Full-text search on research findings
+CREATE VIRTUAL TABLE IF NOT EXISTS research_fts USING fts5(
+    q, finding, conf, phase,
+    content=research,
+    content_rowid=rowid
+);
+
+-- Full-text search on decisions
+CREATE VIRTUAL TABLE IF NOT EXISTS decisions_fts USING fts5(
+    dec, reason, agent, phase,
+    content=decisions,
+    content_rowid=rowid
+);
+
+-- Full-text search on gaps
+CREATE VIRTUAL TABLE IF NOT EXISTS gaps_fts USING fts5(
+    desc, exp, act, res, phase,
+    content=gaps,
+    content_rowid=rowid
+);
+
+-- ============================================================
+-- FTS5 Sync Triggers (T4)
+-- ============================================================
+
+-- Research FTS sync
+CREATE TRIGGER IF NOT EXISTS research_ai AFTER INSERT ON research BEGIN
+    INSERT INTO research_fts(rowid, q, finding, conf, phase)
+    VALUES (new.rowid, new.q, new.finding, new.conf, new.phase);
+END;
+
+CREATE TRIGGER IF NOT EXISTS research_ad AFTER DELETE ON research BEGIN
+    INSERT INTO research_fts(research_fts, rowid, q, finding, conf, phase)
+    VALUES ('delete', old.rowid, old.q, old.finding, old.conf, old.phase);
+END;
+
+CREATE TRIGGER IF NOT EXISTS research_au AFTER UPDATE ON research BEGIN
+    INSERT INTO research_fts(research_fts, rowid, q, finding, conf, phase)
+    VALUES ('delete', old.rowid, old.q, old.finding, old.conf, old.phase);
+    INSERT INTO research_fts(rowid, q, finding, conf, phase)
+    VALUES (new.rowid, new.q, new.finding, new.conf, new.phase);
+END;
+
+-- Decisions FTS sync
+CREATE TRIGGER IF NOT EXISTS decisions_ai AFTER INSERT ON decisions BEGIN
+    INSERT INTO decisions_fts(rowid, dec, reason, agent, phase)
+    VALUES (new.rowid, new.dec, new.reason, new.agent, new.phase);
+END;
+
+CREATE TRIGGER IF NOT EXISTS decisions_ad AFTER DELETE ON decisions BEGIN
+    INSERT INTO decisions_fts(decisions_fts, rowid, dec, reason, agent, phase)
+    VALUES ('delete', old.rowid, old.dec, old.reason, old.agent, old.phase);
+END;
+
+CREATE TRIGGER IF NOT EXISTS decisions_au AFTER UPDATE ON decisions BEGIN
+    INSERT INTO decisions_fts(decisions_fts, rowid, dec, reason, agent, phase)
+    VALUES ('delete', old.rowid, old.dec, old.reason, old.agent, old.phase);
+    INSERT INTO decisions_fts(rowid, dec, reason, agent, phase)
+    VALUES (new.rowid, new.dec, new.reason, new.agent, new.phase);
+END;
+
+-- Gaps FTS sync
+CREATE TRIGGER IF NOT EXISTS gaps_ai AFTER INSERT ON gaps BEGIN
+    INSERT INTO gaps_fts(rowid, desc, exp, act, res, phase)
+    VALUES (new.rowid, new.desc, new.exp, new.act, new.res, new.phase);
+END;
+
+CREATE TRIGGER IF NOT EXISTS gaps_ad AFTER DELETE ON gaps BEGIN
+    INSERT INTO gaps_fts(gaps_fts, rowid, desc, exp, act, res, phase)
+    VALUES ('delete', old.rowid, old.desc, old.exp, old.act, old.res, old.phase);
+END;
+
+CREATE TRIGGER IF NOT EXISTS gaps_au AFTER UPDATE ON gaps BEGIN
+    INSERT INTO gaps_fts(gaps_fts, rowid, desc, exp, act, res, phase)
+    VALUES ('delete', old.rowid, old.desc, old.exp, old.act, old.res, old.phase);
+    INSERT INTO gaps_fts(rowid, desc, exp, act, res, phase)
+    VALUES (new.rowid, new.desc, new.exp, new.act, new.res, new.phase);
+END;
