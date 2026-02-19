@@ -10,6 +10,9 @@ setup() {
   mk_planning_dir
   SUT="$SCRIPTS_DIR/compile-context.sh"
 
+  # Initialize SQLite DB (required by compile-context.sh since Phase 11)
+  bash "$SCRIPTS_DIR/db/init-db.sh" --planning-dir "$TEST_WORKDIR/.yolo-planning" >/dev/null 2>&1
+
   # Create phase dir with 1 plan file
   PHASE_DIR=$(mk_phase 1 setup 1 0)
 
