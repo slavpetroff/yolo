@@ -1,0 +1,13 @@
+phase: 09
+goal: Test phase for token measurement
+
+tasks[5]{id,action,files,done,spec,test_spec}:
+  T1,,,,,
+  T2,,,,,
+  T3,,,,,
+  T4,,,,,
+  T5,,,,,
+
+
+tool_restrictions:
+  Do NOT use: EnterPlanMode, ExitPlanMode

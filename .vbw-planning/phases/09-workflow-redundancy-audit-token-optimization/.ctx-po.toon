@@ -1,0 +1,13 @@
+phase: 09
+goal: Test phase for token measurement
+department: shared
+
+
+roadmap: @.yolo-planning/ROADMAP.md
+
+prior_summaries:
+
+
+success_criteria: Not available
+tool_restrictions:
+  Do NOT use: Bash, Edit, EnterPlanMode, ExitPlanMode

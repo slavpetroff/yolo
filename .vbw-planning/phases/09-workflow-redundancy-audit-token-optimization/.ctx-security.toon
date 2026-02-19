@@ -1,0 +1,8 @@
+phase: 09
+goal: Test phase for token measurement
+
+files_to_audit:
+
+dependency_files:
+tool_restrictions:
+  Do NOT use: Edit, EnterPlanMode, ExitPlanMode, NotebookEdit, Write

@@ -1,0 +1,12 @@
+phase: 09
+goal: Test phase for token measurement
+
+success_criteria: Not available
+
+department_results:
+
+summaries:
+
+handoff_sentinels:
+tool_restrictions:
+  Do NOT use: Bash, Edit, EnterPlanMode, ExitPlanMode, Write

@@ -1,0 +1,9 @@
+phase: 09
+goal: Test phase for token measurement
+
+
+
+
+success_criteria: Not available
+tool_restrictions:
+  Do NOT use: Bash, Edit, EnterPlanMode, ExitPlanMode, Write

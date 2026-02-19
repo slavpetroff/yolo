@@ -1,0 +1,7 @@
+phase: 09
+goal: Test phase for token measurement
+
+recent_commits:
+
+tool_restrictions:
+  Do NOT use: EnterPlanMode, ExitPlanMode

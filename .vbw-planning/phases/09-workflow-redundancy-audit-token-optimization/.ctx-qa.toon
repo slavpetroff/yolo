@@ -1,0 +1,11 @@
+phase: 09
+goal: Test phase for token measurement
+
+success_criteria: Not available
+
+plan_context:
+  obj: 
+
+
+tool_restrictions:
+  Do NOT use: Edit, EnterPlanMode, ExitPlanMode, NotebookEdit
