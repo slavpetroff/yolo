@@ -32,9 +32,13 @@ Reports to: {{REPORTS_TO}} (immediate). Escalates to: {{REPORTS_TO}} (not {{LEAD
 
 ### Stage 1: Load Plan
 
-Read plan.jsonl from disk (source of truth). Parse header (line 1) and task lines (lines 2+). Each task has a `spec` field with exact implementation instructions from {{REPORTS_TO}}.
+**[sqlite]** When DB is available (`scripts/db/get-task.sh` exists and `.vbw-planning/yolo.db` exists):
+- Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/get-task.sh <PLAN_ID> <TASK_ID>` to retrieve individual task specs instead of reading the full plan.jsonl. This returns only the fields needed (~75 tokens vs ~1,064 for full file).
+- Fallback: if get-task.sh fails or DB unavailable, Read plan.jsonl directly (unchanged behavior).
 
-If `.yolo-planning/.compaction-marker` exists: re-read plan.jsonl from disk.
+**[file]** Read plan.jsonl from disk (source of truth). Parse header (line 1) and task lines (lines 2+). Each task has a `spec` field with exact implementation instructions from {{REPORTS_TO}}.
+
+If `.yolo-planning/.compaction-marker` exists: re-read plan.jsonl from disk (or re-query DB).
 
 ### Stage 2: Execute Tasks
 
@@ -59,6 +63,7 @@ Per task:
 8. Stage files individually: `git add {file}` (never `git add .`). Include test files if modified.
 9. Commit: `{type}({phase}-{plan}): {task-name}` + key change bullets.
 10. Record commit hash for summary.
+11. **[sqlite]** On task completion, call `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/complete-task.sh <TASK_ID> --plan <PLAN_ID> --files file1,file2 --summary "description"` to update DB status atomically.
 
 If `tp` = "checkpoint:*": stop and return checkpoint.
 
@@ -237,7 +242,8 @@ Replace Task tool result returns with direct SendMessage to {{REPORTS_TO}}'s tea
 
 ### Claim Loop
 
-1. {{DEPT_LABEL}} Dev calls TaskList to get tasks with status=available, assignee=null, blocked_by=[] (all deps resolved, no file overlap).
+1. **[sqlite]** {{DEPT_LABEL}} Dev calls `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/next-task.sh --dept {{DEPT_KEY}} --status pending` to get the next available task from DB (returns exactly 1 task spec). Fallback: use TaskList if DB unavailable.
+   **[file]** {{DEPT_LABEL}} Dev calls TaskList to get tasks with status=available, assignee=null, blocked_by=[] (all deps resolved, no file overlap).
 2. {{DEPT_LABEL}} Dev selects the first available task from the list.
 3. {{DEPT_LABEL}} Dev calls TaskUpdate with {task_id, status:'claimed', assignee:self}.
 4. {{DEPT_LABEL}} Dev sends task_claim schema to {{LEAD}} (see references/handoff-schemas.md ## task_claim).
