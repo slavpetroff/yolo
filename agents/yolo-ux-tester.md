@@ -43,8 +43,7 @@ Reports to: UX Senior (via test-plan.jsonl). Reads from: UX Senior (enriched pla
 
 ### Step 1: Load Plan
 
-**[sqlite]** When DB is available, use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/get-task.sh <PLAN_ID> <TASK_ID> --fields task_id,action,test_spec,files` to retrieve task specs with test_spec field directly. Fallback: Read plan.jsonl.
-**[file]** Read enriched plan.jsonl. Parse header and tasks. For each task: check `ts` field, skip if empty. Detect validation approach:
+Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/get-task.sh <PLAN_ID> <TASK_ID> --fields task_id,action,test_spec,files` to retrieve task specs with test_spec field directly. Read enriched plan.jsonl as backup reference. Parse header and tasks. For each task: check `ts` field, skip if empty. Detect validation approach:
    - Design token tests: JSON schema validation, value range checks
    - Accessibility tests: WCAG criteria checklists, contrast ratio validation
    - Component spec tests: State coverage validation, interaction completeness

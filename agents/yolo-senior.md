@@ -74,8 +74,7 @@ Before: `{"id":"T1","a":"Create auth middleware","f":["src/middleware/auth.ts"],
 Input: git diff of plan commits + plan.jsonl with specs + test-plan.jsonl (if exists) + summary.jsonl sg field (if present) --  Dev suggestions for consideration.
 
 ### Protocol
-1. **[sqlite]** Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/next-review.sh --plan <PLAN_ID>` to find tasks ready for review (status=complete, not yet reviewed). For cross-phase decision consistency: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/search-decisions.sh "<keyword>"`. Fallback: Read plan.jsonl directly.
-   **[file]** Read plan.jsonl for expected specs and `ts` fields.
+1. Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/next-review.sh --plan <PLAN_ID>` to find tasks ready for review (status=complete, not yet reviewed). For cross-phase decision consistency: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/search-decisions.sh "<keyword>"`. Read plan.jsonl for expected specs and `ts` fields.
 2. Run `git diff` for all plan commits.
 3. Review each file change against its task spec:
    - Adherence to spec (did Dev follow instructions?)
