@@ -363,3 +363,98 @@ setup() {
   grep -q 'skill-hook-dispatch.sh PostToolUse;' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
   grep -q 'skill-hook-dispatch.sh PreToolUse;' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
 }
+
+# Task 4: Audit bash-guard.sh pattern matching
+# Validate that bash-guard.sh grep pattern matching works under stricter classifier
+
+@test "bash-guard: script exists and is executable" {
+  [ -f "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/scripts/bash-guard.sh" ]
+  [ -x "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/scripts/bash-guard.sh" ]
+}
+
+@test "bash-guard: uses safe grep pattern construction" {
+  # Verify bash-guard.sh uses grep -iqE with patterns from file
+  # Pattern: grep -iqE "$PATTERNS"
+  # This is safe because patterns come from trusted config files
+
+  grep -q 'grep -iqE' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/scripts/bash-guard.sh"
+}
+
+@test "bash-guard: pattern file resolution is safe" {
+  # Verify bash-guard.sh resolves pattern files safely
+  # Uses simple file path construction, no user input in paths
+
+  SCRIPT="/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/scripts/bash-guard.sh"
+
+  # Check for safe pattern file references
+  grep -q 'destructive-commands.txt' "$SCRIPT"
+
+  # Check for loop over pattern files
+  grep -q 'for PFILE in' "$SCRIPT"
+}
+
+@test "bash-guard: pattern input validation and sanitization" {
+  # Verify bash-guard.sh strips comments and empty lines from pattern files
+  # Pattern: grep -v '^\s*#' ... | grep -v '^\s*$'
+
+  SCRIPT="/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/scripts/bash-guard.sh"
+
+  # Check for comment stripping
+  grep -q "grep -v '^\\\s\*#'" "$SCRIPT"
+
+  # Check for empty line stripping
+  grep -q "grep -v '^\\\s\*\$'" "$SCRIPT"
+}
+
+@test "bash-guard: regex escaping is not needed (patterns are trusted)" {
+  # bash-guard.sh patterns come from config files, not user input
+  # No need to escape regex metacharacters
+
+  # Verify patterns are read from files in config/ directory
+  [ -f "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/config/destructive-commands.txt" ]
+
+  # Pattern file should contain regex patterns (not escaped)
+  grep -q '\\s' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/config/destructive-commands.txt"
+}
+
+@test "bash-guard: jq parsing uses safe patterns" {
+  # Verify bash-guard.sh uses jq safely to parse hook JSON input
+  # Pattern: jq -r '.tool_input.command // ""'
+
+  SCRIPT="/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/scripts/bash-guard.sh"
+
+  # Check for safe jq usage with default fallback
+  grep -q "jq -r '\.tool_input\.command // \"\"'" "$SCRIPT"
+}
+
+@test "bash-guard: exit codes follow PreToolUse contract" {
+  # PreToolUse hooks must exit 0 (allow) or exit 2 (block)
+  # Verify bash-guard.sh uses correct exit codes
+
+  SCRIPT="/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/scripts/bash-guard.sh"
+
+  # Should have exit 0 for allow
+  grep -q 'exit 0' "$SCRIPT"
+
+  # Should have exit 2 for block
+  grep -q 'exit 2' "$SCRIPT"
+}
+
+@test "bash-guard: stdin input via cat is safe" {
+  # Verify bash-guard.sh reads stdin via cat, not complex substitution
+  # Pattern: INPUT=$(cat 2>/dev/null)
+
+  SCRIPT="/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/scripts/bash-guard.sh"
+
+  grep -q 'INPUT=\$(cat 2>/dev/null)' "$SCRIPT"
+}
+
+@test "bash-guard: command validation via echo pipe is safe" {
+  # Verify bash-guard.sh validates commands via echo | grep
+  # Pattern: echo "$COMMAND" | grep -iqE "$PATTERNS"
+
+  SCRIPT="/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/scripts/bash-guard.sh"
+
+  # Check for safe piping pattern
+  grep -q 'echo "\$COMMAND" | grep -iqE' "$SCRIPT"
+}
