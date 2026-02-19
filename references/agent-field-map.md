@@ -1,6 +1,6 @@
 # Agent Field Map
 
-Documents which JSONL artifact fields each agent role requires. Used by scripts/filter-agent-context.sh to extract only needed fields, reducing token overhead. The 26 agents across 4 departments (backend, frontend, UI/UX, shared) map to 11 base roles via fe-/ux- prefix stripping (e.g., fe-dev -> dev, ux-architect -> architect). This mapping is implemented in compile-context.sh lines 25-29 and filter-agent-context.sh.
+Documents which JSONL artifact fields each agent role requires. Used by scripts/filter-agent-context.sh to extract only needed fields, reducing token overhead. The 23 agents across 4 departments (backend, frontend, UI/UX, shared) map to 10 base roles via fe-/ux- prefix stripping (e.g., fe-dev -> dev, ux-architect -> architect). This mapping is implemented in compile-context.sh lines 25-29 and filter-agent-context.sh. Note: qa-code was merged into qa (--mode plan|code).
 
 Note: Approximation: char/4 for token estimation (D9).
 
@@ -14,7 +14,6 @@ Note: Approximation: char/4 for token estimation (D9).
 | dev | (none) | dev |
 | tester | (none) | tester |
 | qa | (none) | qa |
-| qa-code | (none) | qa-code |
 | security | (none) | security |
 | fe-architect | fe- | architect |
 | fe-lead | fe- | lead |
@@ -22,14 +21,12 @@ Note: Approximation: char/4 for token estimation (D9).
 | fe-dev | fe- | dev |
 | fe-tester | fe- | tester |
 | fe-qa | fe- | qa |
-| fe-qa-code | fe- | qa-code |
 | ux-architect | ux- | architect |
 | ux-lead | ux- | lead |
 | ux-senior | ux- | senior |
 | ux-dev | ux- | dev |
 | ux-tester | ux- | tester |
 | ux-qa | ux- | qa |
-| ux-qa-code | ux- | qa-code |
 | owner | (none) | owner |
 | critic | (none) | critic |
 | scout | (none) | scout |
@@ -122,28 +119,15 @@ Note: Senior has TWO modes. Design review mode (Step 5) and code review mode (St
 
 ### qa
 
-| Artifact Type | Fields | jq Projection | Notes |
-|---------------|--------|---------------|-------|
-| plan.jsonl (header) | mh, obj | {mh,obj} | Must-haves and objective for verification |
-| plan.jsonl (tasks) | N/A | - | |
-| summary.jsonl | s, tc, tt, fm, dv, tst | {s,tc,tt,fm,dv,tst} | Completion status for QA |
-| critique.jsonl | N/A | - | |
-| research.jsonl | N/A | - | |
-| code-review.jsonl | N/A | - | |
-| verification.jsonl | N/A | - | |
-| qa-code.jsonl | N/A | - | |
-| security-audit.jsonl | N/A | - | |
-| test-plan.jsonl | N/A | - | |
-| gaps.jsonl | N/A | - | |
-
-### qa-code
+Note: QA operates in two modes (--mode plan|code). Plan mode uses plan-level fields; code mode uses code-level fields.
 
 | Artifact Type | Fields | jq Projection | Notes |
 |---------------|--------|---------------|-------|
-| summary.jsonl | fm | {fm} | Files to check |
-| test-plan.jsonl | id, tf, tc, red | {id,tf,tc,red} | Tests to verify |
-| plan.jsonl (header) | N/A | - | |
+| plan.jsonl (header) | mh, obj | {mh,obj} | Must-haves and objective (plan mode) |
 | plan.jsonl (tasks) | N/A | - | |
+| summary.jsonl (plan mode) | s, tc, tt, fm, dv, tst | {s,tc,tt,fm,dv,tst} | Completion status for plan verification |
+| summary.jsonl (code mode) | fm | {fm} | Files to check (code mode) |
+| test-plan.jsonl | id, tf, tc, red | {id,tf,tc,red} | Tests to verify (code mode) |
 | critique.jsonl | N/A | - | |
 | research.jsonl | N/A | - | |
 | code-review.jsonl | N/A | - | |
@@ -251,3 +235,23 @@ Note: Runtime state files (state.json, .execution-state.json) are excluded becau
 ## Senior Mode Disambiguation
 
 Senior operates in two modes depending on workflow step: Design Review (Step 5) enriches plan tasks with specs, reading tasks(id,a,f,done,v) and critique(id,desc,rec where st=open). Code Review (Step 8) reviews implementation against specs, reading tasks(id,a,f,spec,ts,done) and test-plan(id,tf,tc,red). filter-agent-context.sh accepts an optional --mode=design|review flag for Senior. Default is design. When --mode=review, plan task projection uses the review field set.
+
+## Agent Non-Overlap Matrix
+
+Defines exclusive responsibilities per agent role. Each agent has a clear primary function and explicit exclusions to prevent duplicate work and token waste.
+
+| Agent | Primary Responsibility | Explicit Exclusions |
+|-------|----------------------|---------------------|
+| QA | Plan-level verification (--mode plan) + code-level verification (--mode code): must_haves, test execution, lint, pattern checks | NO secret scanning (exclusive to Security) |
+| Security | Secret scanning, OWASP Top 10, dependency audits, threat surface analysis | NO plan verification, NO must_have checks |
+| Critic | Challenges Architect decisions, identifies gaps in architecture and requirements | NO external research (exclusive to Scout) |
+| Scout | External research, documentation lookup, technology evaluation | NO critique of architecture (exclusive to Critic) |
+| Architect | System design, technology decisions, phase decomposition, architecture.toon | NO task decomposition (exclusive to Lead) |
+| Lead | Task decomposition, delivery coordination, team management, plan.jsonl | NO design authority (exclusive to Architect) |
+
+### Enforcement Notes
+
+- QA secret scanning was removed in the QA/QA-Code merge. Secret detection patterns (API keys, AWS credentials, private keys, connection strings, .env, tokens) are exclusively in Security's audit protocol.
+- Critic consumes research.jsonl (from Scout) but never produces it. Scout consumes critique.jsonl (from Critic) but never produces it. This forms a directed pipeline: Critic -> Scout -> Architect.
+- Architect owns architecture.toon and design decisions. Lead owns plan.jsonl task decomposition. The boundary is: Architect says WHAT to build (components, interfaces, technology), Lead says HOW to organize the work (tasks, waves, dependencies).
+- Senior bridges the gap: enriches Architect's design into Dev-executable specs (Step 5) and reviews Dev output against those specs (Step 8).
