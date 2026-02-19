@@ -104,7 +104,7 @@ enable_flags() {
 @test "control-plane: pre-task uses lease-lock when v3_lease_locks=true" {
   create_test_plan
   cd "$TEST_TEMP_DIR"
-  enable_flags '.v3_lease_locks = true | .v3_lock_lite = true'
+  enable_flags '.v3_lease_locks = true'
   run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 1 --plan-path=test-plan.md --task-id=1-1-T1 --claimed-files=src/a.js
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.steps[] | select(.name == "lease_acquire") | .status == "pass"'
@@ -114,24 +114,10 @@ enable_flags() {
   jq -e '.expires_at' ".vbw-planning/.locks/1-1-T1.lock"
 }
 
-@test "control-plane: pre-task uses lock-lite when v3_lock_lite=true and v3_lease_locks=false" {
-  create_test_plan
-  cd "$TEST_TEMP_DIR"
-  enable_flags '.v3_lock_lite = true | .v3_lease_locks = false'
-  run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 1 --plan-path=test-plan.md --task-id=1-1-T1 --claimed-files=src/a.js
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.steps[] | select(.name == "lease_acquire") | .status == "pass"'
-  [ -f ".vbw-planning/.locks/1-1-T1.lock" ]
-  # lock-lite does NOT have expires_at field
-  ! jq -e '.expires_at' ".vbw-planning/.locks/1-1-T1.lock" 2>/dev/null || \
-    [ "$(jq -r '.expires_at // "none"' .vbw-planning/.locks/1-1-T1.lock)" = "none" ]
-}
-
 # --- post-task tests ---
 
 @test "control-plane: post-task releases lease" {
   cd "$TEST_TEMP_DIR"
-  enable_flags '.v3_lock_lite = true'
   # Create a lock file first
   echo '{"task_id":"1-1-T1","pid":"999","timestamp":"2024-01-01T00:00:00Z","files":["a.js"]}' > ".vbw-planning/.locks/1-1-T1.lock"
   [ -f ".vbw-planning/.locks/1-1-T1.lock" ]
@@ -201,10 +187,6 @@ enable_flags() {
   run bash "$SCRIPTS_DIR/generate-contract.sh"
   [ "$status" -eq 0 ]
 
-  # lock-lite.sh with no args -> usage, exit 0
-  run bash "$SCRIPTS_DIR/lock-lite.sh"
-  [ "$status" -eq 0 ]
-
   # lease-lock.sh with no args -> usage, exit 0
   run bash "$SCRIPTS_DIR/lease-lock.sh"
   [ "$status" -eq 0 ]
@@ -244,7 +226,7 @@ enable_flags() {
   create_test_plan
   create_roadmap
   cd "$TEST_TEMP_DIR"
-  enable_flags '.v3_contract_lite = true | .v3_lock_lite = true'
+  enable_flags '.v3_contract_lite = true'
 
   # Step 1: full action (once per plan) — generates contract + compiles context
   run bash "$SCRIPTS_DIR/control-plane.sh" full 1 1 1 \
@@ -299,7 +281,7 @@ enable_flags() {
 @test "control-plane: multiple tasks in sequence without stale locks" {
   create_test_plan
   cd "$TEST_TEMP_DIR"
-  enable_flags '.v3_lock_lite = true'
+  enable_flags '.v3_lease_locks = true'
 
   # Task 1: pre-task -> post-task
   run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 1 --task-id=1-1-T1 --claimed-files=src/a.js
