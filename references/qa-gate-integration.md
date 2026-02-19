@@ -4,11 +4,14 @@ Three-level continuous QA system providing fast automated pre-checks at task, pl
 
 ## Gate Levels
 
-| Level | Trigger Point | Script | Scope | Timeout | Blocking Behavior |
-|-------|--------------|--------|-------|---------|-------------------|
-| post-task | After each Dev commit in Step 7 | `qa-gate-post-task.sh` | `--scope` (task-modified files only) | 30s | Blocks next task |
-| post-plan | After summary.jsonl written in Step 7 | `qa-gate-post-plan.sh` | Full test suite | 300s | Blocks next plan |
-| post-phase | Before QA agent spawn in Step 9 | `qa-gate-post-phase.sh` | Full test suite + gate validation | 300s | Blocks QA agent spawn |
+All gate tiers are consolidated into a single `qa-gate.sh` dispatcher with a `--tier` flag:
+
+| Level | Trigger Point | Invocation | Scope | Timeout | Blocking Behavior |
+|-------|--------------|------------|-------|---------|-------------------|
+| post-task | After each Dev commit in Step 7 | `qa-gate.sh --tier task` | `--scope` (task-modified files only) | 30s | Blocks next task |
+| post-plan | After summary.jsonl written in Step 7 | `qa-gate.sh --tier plan` | Full test suite | 300s | Blocks next plan |
+| post-phase | Before QA agent spawn in Step 9 | `qa-gate.sh --tier phase` | Full test suite + gate validation | 300s | Blocks QA agent spawn |
+| (no tier) | TeammateIdle notification hook | `qa-gate.sh` (stdin) | Structural checks | N/A | Exit 0=allow, 2=block |
 
 ## Failure Handling
 
