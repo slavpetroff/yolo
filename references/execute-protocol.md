@@ -8,6 +8,17 @@ Loaded on demand by /vbw:vibe Execute mode. Not a user-facing command.
 2. Check existing SUMMARY.md files (complete plans).
 3. `git log --oneline -20` for committed tasks (crash recovery).
 4. Build remaining plans list. If `--plan=NN`, filter to that plan.
+4b. **Worktree isolation (REQ-WORKTREE):** If `worktree_isolation` is not `"off"` in config:
+   ```bash
+   WORKTREE_ISOLATION=$(jq -r '.worktree_isolation // "off"' .vbw-planning/config.json 2>/dev/null || echo "off")
+   ```
+   For each uncompleted plan in the remaining plans list:
+   - Create worktree: `WPATH=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/worktree-create.sh {phase} {plan} 2>/dev/null || echo "")`. If `WPATH` is empty, log warning and continue without worktree for this plan.
+   - If `WPATH` is non-empty:
+     - Store `worktree_path` in the plan's entry in execution-state.json (added alongside `"status"` in the `plans` array).
+     - Fetch targeting JSON: `WTARGET=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/worktree-target.sh "$WPATH" 2>/dev/null || echo "{}")`.
+     - Register agent mapping: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/worktree-agent-map.sh set "dev-{plan}" "$WPATH" {phase} {plan} 2>/dev/null || true`.
+   When `worktree_isolation="off"`: skip this step silently.
 5. Partially-complete plans: note resume-from task number.
 6. **Crash recovery:** If `.vbw-planning/.execution-state.json` exists with `"status": "running"`, update plan statuses to match current SUMMARY.md state.
    - **V3 Event Recovery (REQ-17):** If `v3_event_recovery=true` in config, attempt event-sourced recovery first:
