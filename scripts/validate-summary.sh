@@ -1,7 +1,16 @@
 #!/bin/bash
 set -u
 # PostToolUse/SubagentStop: Validate SUMMARY structure (non-blocking, exit 0)
+# Thin wrapper — delegates to validate.sh --type summary
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VALIDATE="$SCRIPT_DIR/validate.sh"
+
+if [ -x "$VALIDATE" ]; then
+  exec bash "$VALIDATE" --type summary
+fi
+
+# Graceful fallback: inline validation if validate.sh not available
 INPUT=$(cat)
 # Fast exit for non-summary files (check raw stdin for summary patterns)
 case "$INPUT" in

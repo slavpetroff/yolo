@@ -2,7 +2,16 @@
 set -u
 # PostToolUse hook: Validate YAML frontmatter in markdown files
 # Non-blocking feedback only (always exit 0)
+# Thin wrapper — delegates to validate.sh --type frontmatter
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VALIDATE="$SCRIPT_DIR/validate.sh"
+
+if [ -x "$VALIDATE" ]; then
+  exec bash "$VALIDATE" --type frontmatter
+fi
+
+# Graceful fallback: inline validation if validate.sh not available
 if ! command -v jq &>/dev/null; then
   exit 0
 fi
