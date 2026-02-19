@@ -4,6 +4,7 @@ description: Verification agent using goal-backward methodology to validate comp
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, NotebookEdit
 model: inherit
+memory: project
 maxTurns: 25
 permissionMode: plan
 ---
