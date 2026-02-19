@@ -367,6 +367,24 @@ CREATE TABLE IF NOT EXISTS execution_state (
     updated_at   TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
+-- Phase metadata (from ROADMAP.md via import-roadmap.sh)
+CREATE TABLE IF NOT EXISTS phases (
+    phase_num       TEXT PRIMARY KEY,
+    slug            TEXT,
+    goal            TEXT,
+    reqs            TEXT,
+    success_criteria TEXT,
+    deps            TEXT,
+    status          TEXT DEFAULT 'planned'
+);
+
+-- Requirements (from REQUIREMENTS.md via import-requirements.sh)
+CREATE TABLE IF NOT EXISTS requirements (
+    req_id      TEXT PRIMARY KEY,
+    description TEXT,
+    priority    TEXT DEFAULT 'must-have'
+);
+
 -- ============================================================
 -- Indexes (T3)
 -- ============================================================

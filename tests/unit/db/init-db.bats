@@ -138,3 +138,83 @@ setup() {
   assert_success
   [ -f "$new_dir/yolo.db" ]
 }
+
+# ============================================================
+# Auto-import on creation
+# ============================================================
+
+@test "auto-imports ROADMAP.md when present" {
+  cat > "$PLANNING/ROADMAP.md" <<'ROADMAP'
+# Test
+
+## Phase 1: Setup
+
+**Goal:** Initialize project structure.
+
+**Requirements:** REQ-01, REQ-02
+
+**Success Criteria:**
+- Project builds
+
+**Dependencies:** None
+ROADMAP
+  bash "$SUT" --planning-dir "$PLANNING" --force >/dev/null
+  local count
+  count=$(sqlite3 "$PLANNING/yolo.db" "SELECT count(*) FROM phases;")
+  [ "$count" -eq 1 ]
+}
+
+@test "auto-imports REQUIREMENTS.md when present" {
+  cat > "$PLANNING/REQUIREMENTS.md" <<'REQS'
+# Requirements
+
+### REQ-01: Build system
+**Must-have**
+
+### REQ-02: Test framework
+**Nice-to-have**
+REQS
+  bash "$SUT" --planning-dir "$PLANNING" --force >/dev/null
+  local count
+  count=$(sqlite3 "$PLANNING/yolo.db" "SELECT count(*) FROM requirements;")
+  [ "$count" -eq 2 ]
+}
+
+@test "phases and requirements tables exist in schema" {
+  bash "$SUT" --planning-dir "$PLANNING" >/dev/null
+  local phases reqs
+  phases=$(sqlite3 "$PLANNING/yolo.db" "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='phases';")
+  reqs=$(sqlite3 "$PLANNING/yolo.db" "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='requirements';")
+  [ "$phases" -eq 1 ]
+  [ "$reqs" -eq 1 ]
+}
+
+@test "no error when ROADMAP.md absent" {
+  run bash "$SUT" --planning-dir "$PLANNING" --force
+  assert_success
+  local count
+  count=$(sqlite3 "$PLANNING/yolo.db" "SELECT count(*) FROM phases;")
+  [ "$count" -eq 0 ]
+}
+
+@test "auto-import is idempotent on re-init with --force" {
+  cat > "$PLANNING/ROADMAP.md" <<'ROADMAP'
+# Test
+
+## Phase 1: Setup
+
+**Goal:** Test goal.
+
+**Requirements:** REQ-01
+
+**Success Criteria:**
+- Test passes
+
+**Dependencies:** None
+ROADMAP
+  bash "$SUT" --planning-dir "$PLANNING" --force >/dev/null
+  bash "$SUT" --planning-dir "$PLANNING" --force >/dev/null
+  local count
+  count=$(sqlite3 "$PLANNING/yolo.db" "SELECT count(*) FROM phases;")
+  [ "$count" -eq 1 ]
+}

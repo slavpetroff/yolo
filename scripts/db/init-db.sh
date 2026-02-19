@@ -98,5 +98,23 @@ sqlite3 "$DB_PATH" "PRAGMA journal_mode=WAL;" >/dev/null
 sqlite3 "$DB_PATH" "PRAGMA busy_timeout=5000;" >/dev/null
 sqlite3 "$DB_PATH" "PRAGMA foreign_keys=ON;" >/dev/null
 
+# Auto-import ROADMAP.md if present
+ROADMAP_FILE="$PLANNING_DIR/ROADMAP.md"
+if [[ -f "$ROADMAP_FILE" ]] && [[ -f "$SCRIPT_DIR/import-roadmap.sh" ]]; then
+  bash "$SCRIPT_DIR/import-roadmap.sh" --file "$ROADMAP_FILE" --db "$DB_PATH" >/dev/null 2>&1 || true
+fi
+
+# Auto-import REQUIREMENTS.md if present
+REQS_FILE="$PLANNING_DIR/REQUIREMENTS.md"
+if [[ -f "$REQS_FILE" ]] && [[ -f "$SCRIPT_DIR/import-requirements.sh" ]]; then
+  bash "$SCRIPT_DIR/import-requirements.sh" --file "$REQS_FILE" --db "$DB_PATH" >/dev/null 2>&1 || true
+fi
+
+# Auto-import research-archive.jsonl if present
+ARCHIVE_FILE="$PLANNING_DIR/research-archive.jsonl"
+if [[ -f "$ARCHIVE_FILE" ]] && [[ -f "$SCRIPT_DIR/import-research-archive.sh" ]]; then
+  bash "$SCRIPT_DIR/import-research-archive.sh" --file "$ARCHIVE_FILE" --db "$DB_PATH" >/dev/null 2>&1 || true
+fi
+
 # Output DB path
 echo "$DB_PATH"
