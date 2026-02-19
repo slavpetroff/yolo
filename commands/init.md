@@ -115,6 +115,10 @@ jq --argjson fe "$DEPT_FRONTEND" --argjson ux "$DEPT_UIUX" --arg wf "$DEPT_WORKF
 
 This ensures config.json reflects user choices before any downstream scripts read it.
 
+### Step 1.3: Initialize artifact store
+
+Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/init-db.sh --planning-dir .yolo-planning`. On success display `✓ Artifact store initialized`. On failure display error and STOP -- DB is mandatory.
+
 ### Step 1.5: Install git hooks
 
 1. `git rev-parse --git-dir` — if not a git repo, display "○ Git hooks skipped (not a git repository)" and skip
@@ -345,6 +349,7 @@ Display a Phase Banner (double-line box per @${CLAUDE_PLUGIN_ROOT}/references/yo
 - `✓ .yolo-planning/STATE.md`
 - `✓ CLAUDE.md`
 - `✓ .yolo-planning/config.json`
+- `✓ .yolo-planning/yolo.db (artifact store)`
 - If GSD_IMPORTED=true: `✓ GSD project archived`
 - If BROWNFIELD=true: `✓ Codebase mapped`
 
