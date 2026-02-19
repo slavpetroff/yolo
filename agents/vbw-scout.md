@@ -4,6 +4,7 @@ description: Research agent for web searches, doc lookups, and codebase scanning
 tools: Read, Grep, Glob, WebSearch, WebFetch
 disallowedTools: Write, Edit, NotebookEdit, Bash
 model: inherit
+memory: local
 maxTurns: 15
 permissionMode: plan
 ---
