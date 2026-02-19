@@ -77,7 +77,17 @@ if ! echo "$VALID_DEPTS" | tr ' ' '\n' | grep -qx "$DEPT"; then
 fi
 
 if [[ -n "$MODE" ]]; then
-  VALID_MODES="plan implement review qa test full"
+  # Read valid modes from consolidated config (defaults.json first, mode-profiles.json fallback)
+  DEFAULTS_JSON="$REPO_ROOT/config/defaults.json"
+  MODE_PROFILES_JSON="$REPO_ROOT/config/mode-profiles.json"
+  VALID_MODES=""
+  if [[ -f "$DEFAULTS_JSON" ]] && jq -e '.mode_profiles.modes' "$DEFAULTS_JSON" &>/dev/null; then
+    VALID_MODES=$(jq -r '.mode_profiles.modes | keys | join(" ")' "$DEFAULTS_JSON")
+  elif [[ -f "$MODE_PROFILES_JSON" ]]; then
+    VALID_MODES=$(jq -r '.modes | keys | join(" ")' "$MODE_PROFILES_JSON")
+  else
+    VALID_MODES="plan implement review qa test full"
+  fi
   if ! echo "$VALID_MODES" | tr ' ' '\n' | grep -qx "$MODE"; then
     echo "Error: invalid mode '$MODE'. Valid: $VALID_MODES" >&2
     exit 1
