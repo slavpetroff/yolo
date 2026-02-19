@@ -93,6 +93,6 @@ See `references/qa-output-patterns.md` for human-readable output templates used 
 Gates and QA agents serve complementary but distinct roles:
 
 - **Gates** are fast automated pre-checks (<60s). They run scripts only -- no LLM invocation. They catch obvious failures: test regressions, missing artifacts, coverage gaps.
-- **QA agents** (`yolo-qa`, `yolo-qa-code`) are deep LLM-powered verification (5-10min). They analyze code quality, architectural compliance, edge cases, and cross-cutting concerns.
+- **QA agent** (`yolo-qa` with `--mode plan|code`) is deep LLM-powered verification (5-10min). It analyzes code quality, architectural compliance, edge cases, and cross-cutting concerns.
 
 Gates do NOT replace agents. Gates catch obvious failures early so agents can focus on deep analysis. Cost optimization: if a gate fails, agents never spawn -- this saves LLM tokens on phases that have surface-level breakage. If a gate passes, agents still run full verification.

@@ -9,7 +9,6 @@ roster:
   yolo-tester|TDD Test Author|Sonnet|Read,Glob,Grep,Write,Bash|test files, test-plan.jsonl|3000
   yolo-dev|Junior Developer|Sonnet|All|source code, summary.jsonl|2000
   yolo-qa|QA Lead|Sonnet|Read,Glob,Grep (read-only)|verification.jsonl|2000
-  yolo-qa-code|QA Engineer|Sonnet|Read,Glob,Grep,Bash|qa-code.jsonl|3000
   yolo-security|Backend Security Engineer|Sonnet|Read,Glob,Grep,Bash,SendMessage|security-audit.jsonl|3000
   yolo-documenter|Backend Documenter|Haiku|Read,Glob,Grep,Write,Bash|docs.jsonl|2000
   note: Models are quality profile defaults. Actual via resolve-agent-model.sh from config/model-profiles.json.
@@ -28,7 +27,7 @@ conventions:
 
 workflow:
   steps: 11-step standard from references/execute-protocol.md
-  order: Critique(Critic) > Research(Scout) > Architecture(Architect) > Planning(Lead) > Design Review(Senior) > Test RED(Tester) > Implementation(Dev) > Code Review(Senior) > Documentation(Documenter, config-gated) > QA(QA Lead+QA Code) > Security(Backend Security) > Sign-off(Lead/Owner)
+  order: Critique(Critic) > Research(Scout) > Architecture(Architect) > Planning(Lead) > Design Review(Senior) > Test RED(Tester) > Implementation(Dev) > Code Review(Senior) > Documentation(Documenter, config-gated) > QA(QA --mode plan|code) > Security(Backend Security) > Sign-off(Lead/Owner)
 
 cross_dept:
   Lead sends department_result to Owner at phase completion

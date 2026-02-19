@@ -136,7 +136,7 @@ Required: `{ts, agent, dec, reason}`. Optional: `{alts, task}`.
 Line 1 (verdict): `{plan, r, cycle, dt}`. Optional: `{tdd}`.
 Lines 2+ (findings): `{f, ln, sev, issue, sug}`.
 
-### QA Code (qa-code.jsonl)
+### QA Code (qa-code.jsonl — produced by qa --mode code)
 
 Line 1: `{r, tests, lint, dt}`.
 Lines 2+: `{f, ln, sev, issue, sug}`.

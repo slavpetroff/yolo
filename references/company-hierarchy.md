@@ -17,7 +17,6 @@ Agent hierarchy, team structure, workflow, and escalation. Referenced by all age
 | yolo-tester | TDD Test Author | Sonnet | Read,Glob,Grep,Write,Bash | test files, test-plan.jsonl | 3000 |
 | yolo-dev | Junior Developer | Sonnet | All | source code, summary.jsonl | 2000 |
 | yolo-qa | QA Lead | Sonnet | Read,Glob,Grep (read-only) | verification.jsonl | 2000 |
-| yolo-qa-code | QA Engineer | Sonnet | Read,Glob,Grep,Bash | qa-code.jsonl | 3000 |
 | yolo-security | Backend Security Engineer | Sonnet | Read,Glob,Grep,Bash,SendMessage | security-audit.jsonl | 3000 |
 | yolo-fe-security | FE Security Reviewer | Sonnet | Read,Grep,Glob,Bash,SendMessage | security-audit.jsonl | 3000 |
 | yolo-ux-security | UX Security Reviewer | Sonnet | Read,Grep,Glob,SendMessage | security-audit.jsonl | 2000 |
@@ -74,7 +73,7 @@ Each phase follows this cadence. Full protocol with entry/exit gates: see @refer
 | 7 | Dev | enriched plan + test files | code + summary.jsonl | `{type}({phase}-{plan}): {task}` | -- |
 | 8 | Senior | git diff + plan + tests | code-review.jsonl | `docs({phase}): code review {NN-MM}` | -- |
 | 8.5 | Documenter | code + plan + architecture | docs.jsonl | `docs({phase}): documentation` | config-gated |
-| 9 | QA Lead + Code | plan + summary + artifacts | verification + qa-code.jsonl | `docs({phase}): verification results` | --skip-qa, turbo |
+| 9 | QA (plan + code modes) | plan + summary + artifacts | verification.jsonl + qa-code.jsonl | `docs({phase}): verification results` | --skip-qa, turbo |
 | 10 | Security | commits + deps | security-audit.jsonl | `docs({phase}): security audit` | --skip-security |
 | 11 | Lead | all artifacts | state.json + ROADMAP.md | `chore(state): phase {N} complete` | -- |
 | 11.5 | Integration Gate | dept artifacts + contracts | integration-gate-result.jsonl | `docs({phase}): integration gate` | single-dept, turbo |
@@ -227,8 +226,8 @@ Each agent level receives progressively LESS context. This prevents noise and en
 | Senior (Code Review) | plan.jsonl + git diff + test-plan.jsonl | CONTEXT files, ROADMAP directly |
 | Tester | Enriched plan.jsonl (tasks with `ts` field) + codebase patterns | CONTEXT files, architecture.toon, critique.jsonl |
 | Dev | Enriched plan.jsonl (`spec` field ONLY) + test files (RED targets) | architecture.toon, CONTEXT files, critique.jsonl, ROADMAP, REQUIREMENTS |
-| QA Lead | plan.jsonl + summary.jsonl + .ctx-qa.toon | Source code modifications, CONTEXT files |
-| QA Code | summary.jsonl (file list) + test-plan.jsonl + .ctx-qa-code.toon | CONTEXT files, architecture.toon |
+| QA (plan mode) | plan.jsonl + summary.jsonl + .ctx-qa.toon | Source code modifications, CONTEXT files |
+| QA (code mode) | summary.jsonl (file list) + test-plan.jsonl + .ctx-qa.toon | CONTEXT files, architecture.toon |
 
 **Key principle:** Dev receives ZERO creative context. The `spec` field IS the complete instruction set.
 
@@ -262,7 +261,7 @@ Every persistent artifact gets committed immediately after creation:
 | Implementation | Dev | source code per task + summary.jsonl |
 | Code Review | Senior | code-review.jsonl |
 | Documentation | Documenter (config-gated) | docs.jsonl |
-| QA | QA Lead + QA Code | verification.jsonl + qa-code.jsonl |
+| QA | QA (plan + code modes) | verification.jsonl + qa-code.jsonl |
 | Security | Security | security-audit.jsonl |
 | Sign-off | Lead | state.json + ROADMAP.md |
 
@@ -274,12 +273,12 @@ When `departments.frontend` or `departments.uiux` is true in config, YOLO operat
 
 | Department | Agents | Protocol File |
 |------------|--------|---------------|
-| Backend | architect, lead, senior, dev, tester, qa, qa-code, security, documenter (9) | `references/departments/backend.toon` |
-| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-qa-code, fe-security, fe-documenter (9) | `references/departments/frontend.toon` |
-| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-qa-code, ux-security, ux-documenter (9) | `references/departments/uiux.toon` |
+| Backend | architect, lead, senior, dev, tester, qa (--mode plan\|code), security, documenter (8) | `references/departments/backend.toon` |
+| Frontend | fe-architect, fe-lead, fe-senior, fe-dev, fe-tester, fe-qa, fe-security, fe-documenter (8) | `references/departments/frontend.toon` |
+| UI/UX | ux-architect, ux-lead, ux-senior, ux-dev, ux-tester, ux-qa, ux-security, ux-documenter (8) | `references/departments/uiux.toon` |
 | Shared | owner, critic, scout, debugger, integration-gate (5) | `references/departments/shared.toon` |
 
-**Total: ~36 agents across 4 groups + PO layer.**
+**Total: ~33 agents across 4 groups + PO layer.** (qa-code merged into qa with --mode plan|code)
 
 Each department runs the same 11-step workflow independently. Cross-department coordination follows `references/cross-team-protocol.md`. Full multi-department orchestration: `references/multi-dept-protocol.md`.
 

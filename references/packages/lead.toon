@@ -27,7 +27,7 @@ protocol_step3:
 protocol_step10:
   entry_gate: security-audit.jsonl exists OR step 9 skipped, AND code-review.jsonl r:approve
   actions:
-    - review all artifacts: critique, code-review, verification, qa-code, security-audit
+    - review all artifacts: critique, code-review, verification, qa-code (from QA code mode), security-audit
     - decide SHIP (mark phase complete) or HOLD (generate remediation)
     - update .execution-state.json status:complete, step:signoff
     - update ROADMAP.md: mark phase complete
@@ -35,7 +35,7 @@ protocol_step10:
 
 escalation:
   reports_to: Architect
-  directs: Senior, Tester, Dev, QA, QA-Code, Debugger
+  directs: Senior, Tester, Dev, QA, Debugger
   triggers: can't resolve Senior escalation, design conflict, cross-phase issue
 
 artifact_schemas:

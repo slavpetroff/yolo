@@ -9,7 +9,6 @@ roster:
   yolo-ux-tester|UX Test Author|Sonnet|Read,Glob,Grep,Write,Bash|usability specs, test-plan.jsonl|3000
   yolo-ux-dev|UX Designer/Developer|Sonnet|All|design tokens, component specs, wireframes|2000
   yolo-ux-qa|UX QA Lead|Sonnet|Read,Glob,Grep (read-only)|verification.jsonl|2000
-  yolo-ux-qa-code|UX QA Engineer|Sonnet|Read,Glob,Grep,Bash|qa-code.jsonl|3000
   yolo-ux-security|UX Security Reviewer|Sonnet|Read,Grep,Glob,SendMessage|security-audit.jsonl|2000
   yolo-ux-documenter|UX Documenter|Haiku|Read,Glob,Grep,Write|docs.jsonl|2000
   note: Models are quality profile defaults. Actual via resolve-agent-model.sh from config/model-profiles.json.
@@ -39,7 +38,7 @@ workflow:
   7: UX Dev, tokens + component specs + wireframes + flows
   8: UX Senior, design consistency + a11y + completeness
   8.5: UX Documenter (config-gated), documentation
-  9: UX QA Lead + Code, design compliance + consistency + a11y
+  9: UX QA (--mode plan|code), design compliance + consistency + a11y
   10: UX Security, PII + data exposure in mockups
   11: UX Lead/Owner, dept result + handoff to FE
 

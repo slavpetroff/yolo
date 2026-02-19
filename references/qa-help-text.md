@@ -156,7 +156,7 @@ When static analysis or lint checks fail (future extensibility).
 ```
 ✗ 1 lint error(s) found in post-plan gate.
 
-    scripts/qa-gate-post-task.sh:15:3 -- SC2086: Double quote to prevent globbing and word splitting.
+    scripts/qa-gate.sh:15:3 -- SC2086: Double quote to prevent globbing and word splitting.
 
 ➜ Fix lint errors above. See rule documentation for guidance.
 ```

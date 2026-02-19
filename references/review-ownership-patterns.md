@@ -34,17 +34,17 @@ Machine-parseable mapping of agent to artifact type to review authority:
 {"agent":"yolo-architect","reviews":"critique.jsonl disposition","owns":"Architecture decisions","step":3}
 {"agent":"yolo-owner","reviews":"department_result","owns":"Cross-department quality","step":11}
 {"agent":"yolo-qa","reviews":"verification.jsonl","owns":"Verification thoroughness","step":9}
-{"agent":"yolo-qa-code","reviews":"qa-code.jsonl","owns":"Code quality assessment","step":9}
+{"agent":"yolo-qa","reviews":"qa-code.jsonl","owns":"Code quality assessment (--mode code)","step":9}
 {"agent":"yolo-fe-senior","reviews":"code-review.jsonl","owns":"FE Dev implementation quality","step":8}
 {"agent":"yolo-fe-lead","reviews":"plan.jsonl enrichment","owns":"FE plan and spec quality","step":5}
 {"agent":"yolo-fe-architect","reviews":"critique.jsonl disposition","owns":"FE architecture decisions","step":3}
 {"agent":"yolo-fe-qa","reviews":"verification.jsonl","owns":"FE verification thoroughness","step":9}
-{"agent":"yolo-fe-qa-code","reviews":"qa-code.jsonl","owns":"FE code quality assessment","step":9}
+{"agent":"yolo-fe-qa","reviews":"qa-code.jsonl","owns":"FE code quality assessment (--mode code)","step":9}
 {"agent":"yolo-ux-senior","reviews":"design-review.jsonl","owns":"UX Dev implementation quality","step":8}
 {"agent":"yolo-ux-lead","reviews":"plan.jsonl enrichment","owns":"UX plan and spec quality","step":5}
 {"agent":"yolo-ux-architect","reviews":"critique.jsonl disposition","owns":"UX architecture decisions","step":3}
 {"agent":"yolo-ux-qa","reviews":"verification.jsonl","owns":"UX verification thoroughness","step":9}
-{"agent":"yolo-ux-qa-code","reviews":"qa-code.jsonl","owns":"UX code quality assessment","step":9}
+{"agent":"yolo-ux-qa","reviews":"qa-code.jsonl","owns":"UX code quality assessment (--mode code)","step":9}
 <!-- OWNERSHIP_MATRIX_END -->
 
 ## Responsibility Definition (per R8)
@@ -78,6 +78,6 @@ Ownership language in review steps (5, 8, 9, 10) is grounded in each reviewing a
 | Architect (critique disposition) | `## Persona & Voice` in yolo-architect.md, yolo-fe-architect.md, yolo-ux-architect.md | VP Engineering / Director communication standards: architecture decisions, risk-weighted recommendations, trade-off articulation |
 | Owner (sign-off) | `## Persona & Voice` in yolo-owner.md | Product Owner communication standards: business priority framing, evidence-based gate decisions, cross-department quality |
 | QA Lead (verification) | `## Persona & Voice` in yolo-qa.md, yolo-fe-qa.md, yolo-ux-qa.md | QA Lead communication standards: evidence-based verification, finding classification, must-have enforcement |
-| QA Code (code quality) | `## Persona & Voice` in yolo-qa-code.md, yolo-fe-qa-code.md, yolo-ux-qa-code.md | QA Code Engineer communication standards: test result reporting, severity calibration, automated quality assessment |
+| QA Code (code quality) | `## QA Code Mode` section in yolo-qa.md, yolo-fe-qa.md, yolo-ux-qa.md | QA code mode standards: test result reporting, severity calibration, automated quality assessment (qa-code merged into qa) |
 
 All 4 departments (Backend, Frontend, UI/UX, Shared) follow the same archetype-to-voice mapping. Department-specific vocabulary domains differentiate each agent's voice within the shared archetype framework.

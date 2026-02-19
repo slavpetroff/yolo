@@ -26,7 +26,7 @@ One team per department. No nested teams (API constraint). Lead is automatically
 
 ### Registering Teammates
 
-After team creation, Lead registers teammates by role. Full roster: architect, senior, dev, tester, qa, qa-code, security.
+After team creation, Lead registers teammates by role. Full roster: architect, senior, dev, tester, qa (runs plan + code modes), security.
 
 Registration is on-demand at workflow step boundaries (not all-at-once at team creation):
 
@@ -36,10 +36,10 @@ Registration is on-demand at workflow step boundaries (not all-at-once at team c
 | 4 | senior | Receives architecture, enriches plan specs |
 | 6 | dev | Receives enriched specs, implements tasks |
 | 5 | tester | Receives plan ts fields, writes failing tests (TDD RED) |
-| 8 | qa, qa-code | Verification after implementation complete |
+| 8 | qa | Verification after implementation complete (runs plan + code modes) |
 | 9 | security | Security audit after QA passes |
 
-Registration order within a step: architect before senior before dev (earlier teammates may need context before later ones begin). Phase 2 agents (tester, qa, qa-code, security) are registered only when their workflow step begins, reducing team size during early steps.
+Registration order within a step: architect before senior before dev (earlier teammates may need context before later ones begin). Phase 2 agents (tester, qa, security) are registered only when their workflow step begins, reducing team size during early steps.
 
 ### Shutdown Protocol
 

@@ -2,7 +2,7 @@
 
 Reusable checklist comparing YOLO agent hierarchy against real company engineering processes. Run after each phase to verify alignment.
 
-## Agent Roles (26 agents)
+## Agent Roles (~33 agents, qa-code merged into qa)
 
 | # | Agent | Role Alignment | Review Owner | Status Reporting | Handoff | Change Mgmt |
 |---|-------|---------------|-------------|-----------------|---------|-------------|
@@ -11,21 +11,21 @@ Reusable checklist comparing YOLO agent hierarchy against real company engineeri
 | 3 | yolo-senior | Senior Engineer | Required (per D1) | N/A | N/A | Required (per D4) |
 | 4 | yolo-dev | Junior Developer | N/A (non-reviewing) | N/A | N/A | Required (per D4) |
 | 5 | yolo-qa | QA Lead | Required (per D1) | N/A | N/A | N/A |
-| 6 | yolo-qa-code | QA Code Engineer | Required (per D1) | N/A | N/A | N/A |
+| 6 | ~~yolo-qa-code~~ | ~~QA Code Engineer~~ | MERGED into yolo-qa --mode code | N/A | N/A | N/A |
 | 7 | yolo-tester | TDD Test Author | N/A (non-reviewing) | N/A | N/A | N/A |
 | 8 | yolo-fe-architect | Frontend Architect | Required (per D1) | N/A | Required | N/A |
 | 9 | yolo-fe-lead | Frontend Lead | Required (per D1) | Required (per D5) | N/A | N/A |
 | 10 | yolo-fe-senior | Frontend Senior | Required (per D1) | N/A | N/A | Required (per D4) |
 | 11 | yolo-fe-dev | Frontend Dev | N/A (non-reviewing) | N/A | N/A | Required (per D4) |
 | 12 | yolo-fe-qa | Frontend QA Lead | Required (per D1) | N/A | N/A | N/A |
-| 13 | yolo-fe-qa-code | Frontend QA Code | Required (per D1) | N/A | N/A | N/A |
+| 13 | ~~yolo-fe-qa-code~~ | ~~Frontend QA Code~~ | MERGED into yolo-fe-qa --mode code | N/A | N/A | N/A |
 | 14 | yolo-fe-tester | Frontend Tester | N/A (non-reviewing) | N/A | N/A | N/A |
 | 15 | yolo-ux-architect | UX Architect | Required (per D1) | N/A | Required | N/A |
 | 16 | yolo-ux-lead | UX Lead | Required (per D1) | Required (per D5) | N/A | N/A |
 | 17 | yolo-ux-senior | UX Senior | Required (per D1) | N/A | N/A | Required (per D4) |
 | 18 | yolo-ux-dev | UX Dev | N/A (non-reviewing) | N/A | N/A | Required (per D4) |
 | 19 | yolo-ux-qa | UX QA Lead | Required (per D1) | N/A | N/A | N/A |
-| 20 | yolo-ux-qa-code | UX QA Code | Required (per D1) | N/A | N/A | N/A |
+| 20 | ~~yolo-ux-qa-code~~ | ~~UX QA Code~~ | MERGED into yolo-ux-qa --mode code | N/A | N/A | N/A |
 | 21 | yolo-ux-tester | UX Tester | N/A (non-reviewing) | N/A | N/A | N/A |
 | 22 | yolo-owner | Project Owner | Required (per D1) | N/A | N/A | N/A |
 | 23 | yolo-critic | Brainstorm / Gap Analyst | N/A (non-reviewing) | N/A | N/A | N/A |
@@ -52,7 +52,7 @@ Checklist:
 | 6 | Test Authoring | Tester | enriched plan.jsonl (ts fields) | test-plan.jsonl + test files | Entry: enriched plan.jsonl with spec | OK |
 | 7 | Implementation | Dev | enriched plan.jsonl + test files | code + summary.jsonl | Entry: plan.jsonl + test-plan.jsonl (if step 6 ran) | Gap: Missing change management formalization (WF-003) |
 | 8 | Code Review | Senior | git diff + plan + tests | code-review.jsonl | Entry: summary.jsonl | Gap: Missing Minor/Major classification (WF-003) |
-| 9 | QA | QA Lead + Code | plan + summary + artifacts | verification.jsonl + qa-code.jsonl | Entry: code-review.jsonl approved | Gap: Feedback loop content underspecified (WF-005) |
+| 9 | QA | QA (plan + code modes) | plan + summary + artifacts | verification.jsonl + qa-code.jsonl | Entry: code-review.jsonl approved | Gap: Feedback loop content underspecified (WF-005) |
 | 10 | Security | Security | summary.jsonl (file list) | security-audit.jsonl | Entry: verification.jsonl OR step 9 skipped | OK |
 | 11 | Sign-off | Lead | all artifacts | execution-state.json + ROADMAP.md | Entry: security-audit.jsonl OR step 10 skipped | OK |
 

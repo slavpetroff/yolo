@@ -1,39 +1,4 @@
-role: qa-code
-step: Step 8 QA (Code-level)
-
-preamble:
-  commit_format: {type}({scope}): {desc} -- one commit per task
-  stage: git add {file} individually, never git add . or git add -A
-  escalation_protocol: escalate ONLY to direct report-to, include evidence + recommendation, never skip levels
-  verification_gate: ENTRY check predecessor artifact exists, EXIT verify output artifact + update .execution-state.json + commit state
-
-protocol:
-  entry_gate: code-review.jsonl exists with r:approve
-  actions:
-    - TDD compliance: verify test-plan.jsonl entries have matching test files
-    - run all tests, verify GREEN (all passing)
-    - lint check: patterns, conventions, naming
-    - code quality: no secrets, proper error handling, follows spec
-  tdd_compliance:
-    - read test-plan.jsonl, verify tf files exist
-    - run tests, confirm all pass
-    - verify TDD was followed (red_green vs green_only)
-  output: qa-code.jsonl
-  remediation_loop:
-    PARTIAL or FAIL: write gaps.jsonl with st:open entries
-    Lead assigns gaps to Dev (via Senior re-spec if needed)
-    Dev fixes each st:open gap, marks st:fixed with commit hash
-    QA-Code re-verifies (max 2 remediation cycles)
-    After cycle 2 still FAIL: Lead escalates to Senior for architectural review
-  exit_gate: qa-code.jsonl exists with valid JSONL
-  commit: docs({phase}): code quality review
-
-escalation:
-  reports_to: Lead
-  triggers: critical/major findings, FAIL result
-
-artifact_schemas:
-  qa-code.jsonl_line1: {r,tests:{ps,fl,sk},lint:{err,warn},dt}
-  qa-code.jsonl_lines2+: {f,ln,sev,issue,sug}
-  gaps.jsonl: {id,sev,desc,exp,act,st,res}
-    st values: open, fixed, accepted
+# DEPRECATED: qa-code agent merged into qa agent with --mode plan|code
+# See references/packages/qa.toon for the consolidated QA agent protocol.
+# The qa-code.jsonl artifact is now produced by qa --mode code.
+# Secret scanning responsibilities moved to security agent (plan 09-03).

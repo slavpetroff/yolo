@@ -160,9 +160,9 @@ Plan-level verification results.
 }
 ```
 
-## `qa_code_result` (QA Code -> Lead)
+## `qa_code_result` (QA --mode code -> Lead)
 
-Code-level verification results.
+Code-level verification results. Sent by QA agent in code mode (formerly qa-code agent).
 
 ```json
 {
