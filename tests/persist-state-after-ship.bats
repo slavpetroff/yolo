@@ -252,40 +252,45 @@ EOF
   [ ! -f .vbw-planning/STATE.md ]
 }
 
-@test "migration picks latest milestone when multiple exist" {
+@test "migration picks latest milestone by modification time" {
   cd "$TEST_TEMP_DIR"
-  mkdir -p .vbw-planning/milestones/alpha
-  cat > ".vbw-planning/milestones/alpha/STATE.md" <<'EOF'
+  # z-old: alphabetically last but chronologically older
+  mkdir -p .vbw-planning/milestones/z-old
+  cat > ".vbw-planning/milestones/z-old/STATE.md" <<'EOF'
 # State
 
 **Project:** Test
 
 ## Todos
-- Old todo from alpha (added 2026-01-01)
+- Old todo from z-old (added 2026-01-01)
 
 ## Blockers
 None
 EOF
+  touch -t 202602010000 ".vbw-planning/milestones/z-old/STATE.md"
 
-  mkdir -p .vbw-planning/milestones/beta
-  cat > ".vbw-planning/milestones/beta/STATE.md" <<'EOF'
+  # a-new: alphabetically first but chronologically newer
+  mkdir -p .vbw-planning/milestones/a-new
+  cat > ".vbw-planning/milestones/a-new/STATE.md" <<'EOF'
 # State
 
 **Project:** Test
 
 ## Todos
-- New todo from beta (added 2026-02-15)
+- New todo from a-new (added 2026-02-15)
 
 ## Blockers
 None
 EOF
+  touch -t 202602150000 ".vbw-planning/milestones/a-new/STATE.md"
 
   run bash "$SCRIPTS_DIR/migrate-orphaned-state.sh" .vbw-planning
   [ "$status" -eq 0 ]
 
   [ -f .vbw-planning/STATE.md ]
-  # Should use the latest milestone's STATE.md (by directory sort order)
-  grep -q "## Todos" .vbw-planning/STATE.md
+  # Should pick a-new (newer by mtime), not z-old (alphabetically later)
+  grep -q "New todo from a-new" .vbw-planning/STATE.md
+  ! grep -q "Old todo from z-old" .vbw-planning/STATE.md
 }
 
 # --- Finding 11: Additional edge-case coverage ---
@@ -479,4 +484,37 @@ EOF
   # Should find the root todo, not the milestone one
   echo "$output" | grep -q "Root todo item"
   ! echo "$output" | grep -q "Milestone-scoped todo"
+}
+
+# Finding 2: Empty sections get fallback placeholders instead of bare headings
+@test "persist script uses fallback placeholders for empty sections" {
+  cd "$TEST_TEMP_DIR"
+  mkdir -p .vbw-planning/milestones/m1
+  cat > ".vbw-planning/milestones/m1/STATE.md" <<'EOF'
+# State
+
+**Project:** Empty Sections
+
+## Current Phase
+Phase: 1 of 1
+Status: complete
+
+## Decisions
+
+## Todos
+
+## Blockers
+
+## Activity Log
+- 2026-02-18: Phase 1 built
+EOF
+
+  run bash "$SCRIPTS_DIR/persist-state-after-ship.sh" \
+    .vbw-planning/milestones/m1/STATE.md .vbw-planning/STATE.md "Empty Sections"
+  [ "$status" -eq 0 ]
+
+  [ -f .vbw-planning/STATE.md ]
+  # Should have fallback placeholders, not bare headings
+  grep -q "No decisions yet" .vbw-planning/STATE.md
+  grep -q "None\." .vbw-planning/STATE.md
 }

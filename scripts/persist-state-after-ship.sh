@@ -67,6 +67,11 @@ extract_decisions_with_skills() {
   ' "$file"
 }
 
+# Check if extracted section has content beyond just the heading line
+section_has_body() {
+  [[ -n "$1" ]] && echo "$1" | tail -n +2 | grep -qv '^[[:space:]]*$'
+}
+
 generate_root_state() {
   echo "# State"
   echo ""
@@ -76,7 +81,7 @@ generate_root_state() {
   # Decisions (+ Skills subsection)
   local decisions
   decisions=$(extract_decisions_with_skills "$ARCHIVED_PATH")
-  if [[ -n "$decisions" ]]; then
+  if section_has_body "$decisions"; then
     echo "$decisions"
     echo ""
   else
@@ -88,7 +93,7 @@ generate_root_state() {
   # Todos
   local todos
   todos=$(extract_section "$ARCHIVED_PATH" "Todos")
-  if [[ -n "$todos" ]]; then
+  if section_has_body "$todos"; then
     echo "$todos"
     echo ""
   else
@@ -100,7 +105,7 @@ generate_root_state() {
   # Blockers
   local blockers
   blockers=$(extract_section "$ARCHIVED_PATH" "Blockers")
-  if [[ -n "$blockers" ]]; then
+  if section_has_body "$blockers"; then
     echo "$blockers"
     echo ""
   else
@@ -112,7 +117,7 @@ generate_root_state() {
   # Codebase Profile (optional — only if it exists in archived state)
   local codebase
   codebase=$(extract_section "$ARCHIVED_PATH" "Codebase Profile")
-  if [[ -n "$codebase" ]]; then
+  if section_has_body "$codebase"; then
     echo "$codebase"
     echo ""
   fi

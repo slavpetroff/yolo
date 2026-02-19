@@ -37,10 +37,16 @@ if [[ -f "$PLANNING_DIR/ACTIVE" ]]; then
   exit 0
 fi
 
-# Find the latest archived STATE.md (glob loop avoids pipefail on empty match)
+# Find the latest archived STATE.md by modification time
 latest_state=""
+latest_mtime=-1
 for f in "$PLANNING_DIR"/milestones/*/STATE.md; do
-  [ -f "$f" ] && latest_state="$f"
+  [ -f "$f" ] || continue
+  mtime=$(stat -f %m "$f" 2>/dev/null || stat -c %Y "$f" 2>/dev/null || echo 0)
+  if [[ "$mtime" -gt "$latest_mtime" ]]; then
+    latest_mtime="$mtime"
+    latest_state="$f"
+  fi
 done
 
 if [[ -z "$latest_state" ]]; then
