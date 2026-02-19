@@ -492,9 +492,9 @@ Gate decision:
 
 1. Update execution state: `"step": "implementation"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} dev {phases_dir} {plan_path}`
-2.5. **[sqlite] Task queue ingestion (when `db_available=true`):**
+2.5. **Task queue ingestion:**
 
-   Before dispatching Devs, ingest all plan tasks into the SQLite task queue. This replaces plan.jsonl parsing for task assignment.
+   Before dispatching Devs, ingest all plan tasks into the SQLite task queue.
 
    ```bash
    # Lead ingests plan tasks into DB task queue
@@ -520,13 +520,11 @@ Gate decision:
    done
    ```
 
-   **[sqlite] Dev task retrieval (replaces plan.jsonl parsing):**
+   **Dev task retrieval:**
    - Dev calls `next-task.sh` to self-assign: `bash scripts/db/next-task.sh --db "$DB_PATH"` -- returns exactly 1 unblocked pending task in TOON format.
    - Lead uses `claim-task.sh` for explicit assignment: `bash scripts/db/claim-task.sh --plan "$PLAN_ID" --task "$TASK_ID" --agent "dev" --db "$DB_PATH"`.
    - Dev calls `complete-task.sh` after each task: `bash scripts/db/complete-task.sh "$TASK_ID" --plan "$PLAN_ID" --files "$FILES_WRITTEN" --summary "$SUMMARY" --db "$DB_PATH"`.
    - Senior calls `next-review.sh` to find completed tasks needing review: `bash scripts/db/next-review.sh --plan "$PLAN_ID" --db "$DB_PATH"`.
-
-   **[file] File-based path (when `db_available=false`):** Existing plan.jsonl parsing behavior preserved unchanged. Dev reads plan.jsonl directly, manually tracks task completion via summary.jsonl writes. This is the default path for installations without the SQLite artifact store.
 
 3. **Task Creation and Dev Dispatch:**
 
@@ -673,10 +671,10 @@ If `timed_out > 0`: auto-escalate each timed-out entry to the next level per ## 
 1. Update escalation entry: `status: "resolved"`, `resolved_at: "{ISO8601}"`, `resolution: "{decision text}"`
 2. Commit: `chore(state): escalation resolved phase {N}`
 
-**[sqlite] DB-Aware Error Recovery (when `db_available=true`):**
+**DB-Aware Error Recovery:**
 
 When a task fails during implementation:
-1. **Release task on failure:** Call `release-task.sh` to return the task to pending with retry context, replacing the file-based gaps.jsonl retry_context pattern:
+1. **Release task on failure:** Call `release-task.sh` to return the task to pending with retry context:
    ```bash
    bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/release-task.sh" \
      --task "$TASK_ID" --plan "$PLAN_ID" \
@@ -701,14 +699,12 @@ When a task fails during implementation:
 
 3. **Skip-already-complete on retry:** When re-entering Step 7 after a crash or error, the DB task queue automatically provides only pending/unblocked tasks via `next-task.sh`. Already-completed tasks are skipped without summary.jsonl existence checks.
 
-4. **Escalation DB path:** Write escalation entries to DB alongside escalation.jsonl:
+4. **Escalation DB path:** Write escalation entries to DB:
    ```bash
    bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/append-finding.sh" \
      --type escalation --plan "${PLAN_ID}" --phase "${PHASE_NUM}" \
      --data "$escalation_json" --db "$DB_PATH" 2>/dev/null || true
    ```
-
-**[file]** When `db_available=false`, existing error recovery behavior applies: gaps.jsonl for retry context, summary.jsonl existence for completion checks, and file-based escalation tracking.
 
 **Summary verification gate (mandatory):**
 When team_mode=teammate: Lead-written summary.jsonl is verified (Lead is sole writer). Lead checks `jq empty {phase-dir}/{plan_id}.summary.jsonl` after writing.
