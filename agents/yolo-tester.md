@@ -42,7 +42,8 @@ Reports to: Senior (via test-plan.jsonl). Reads from: Senior (enriched plan.json
 
 ### Step 1: Load Plan
 
-Read enriched plan.jsonl. Parse header and tasks. For each task: check `ts` field, skip if empty. Detect test framework: Node (jest/vitest/mocha), Python (pytest/unittest), Go (testing), Shell (bats-core), or follow `ts` field conventions.
+**[sqlite]** When DB is available, use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/get-task.sh <PLAN_ID> <TASK_ID> --fields task_id,action,test_spec,files` to retrieve task specs with test_spec field directly. Fallback: Read plan.jsonl.
+**[file]** Read enriched plan.jsonl. Parse header and tasks. For each task: check `ts` field, skip if empty. Detect test framework: Node (jest/vitest/mocha), Python (pytest/unittest), Go (testing), Shell (bats-core), or follow `ts` field conventions.
 
 ### Step 2: Write Failing Tests (RED Phase)
 

@@ -120,6 +120,8 @@ Rules:
 
 Write each plan.jsonl immediately to `{phase-dir}/{NN-MM}.plan.jsonl`.
 
+**[sqlite]** After writing plan.jsonl, populate DB for each task: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/insert-task.sh --plan <PLAN_ID> --id <TASK_ID> --action "<TEXT>" [--spec TEXT] [--files FILE1,FILE2] [--deps T1,T2]`. This enables DB-aware task retrieval by downstream agents.
+
 Display: `  ✓ Plan {NN-MM}: {title} ({N} tasks, wave {W})`
 
 ### Stage 3: Self-Review
@@ -128,6 +130,10 @@ Display: `◆ FE Lead: Self-reviewing plans...`
 Checklist: requirements coverage (every REQ-ID mapped), no circular deps, no same-wave file conflicts, success criteria = phase goals, 3-5 tasks per plan, must-haves testable, cross-phase deps reference completed phases, valid JSONL. Fix inline, re-write corrected files.
 
 Display: `✓ FE Lead: Self-review complete — {issues found and fixed | no issues found}`
+
+### Stage 3.5: Progress Monitoring
+
+**[sqlite]** Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/check-phase-status.sh <PHASE>` to check phase completion status (~50 tokens vs re-reading all summary files). Fallback: Glob + Read summary files when DB unavailable.
 
 ### Stage 4: Commit and Report
 Display: `✓ FE Lead: All plans written to disk`
@@ -165,7 +171,7 @@ Full patterns: @references/teammate-api-patterns.md
 ### Team Lifecycle
 
 1. **Create team:** Call spawnTeam with name `yolo-frontend` and description `FE engineering team for phase {N}: {phase-name}`.
-2. **Register teammates:** Register in order: fe-architect (if Step 2), fe-senior (Step 4/7), fe-dev (Step 6). On-demand registration: fe-tester at step 5, fe-qa/fe-qa-code at step 8. Each teammate receives only their scoped context (see Context Scoping Protocol in execute-protocol.md).
+2. **Register teammates:** Register in order: fe-architect (if Step 2), fe-senior (Step 4/7), fe-dev (Step 6). On-demand registration: fe-tester at step 5, fe-qa at step 8. Each teammate receives only their scoped context (see Context Scoping Protocol in execute-protocol.md).
 3. **Coordinate via SendMessage:** Replace Task tool spawn+wait with SendMessage to registered teammates. Receive results via SendMessage responses. Schemas: see references/handoff-schemas.md.
 4. **Shutdown:** When phase completes (Step 10) or on error, send `shutdown_request` to all teammates. Wait for `shutdown_response` from each (30s timeout). Verify all artifacts committed.
 5. **Cleanup:** After shutdown responses received, verify git status clean for team files. Log any incomplete work in deviations.

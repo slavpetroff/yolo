@@ -113,6 +113,8 @@ Rules:
 
 Write each plan.jsonl immediately to `{phase-dir}/{NN-MM}.plan.jsonl`.
 
+**[sqlite]** After writing plan.jsonl, populate DB for each task: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/insert-task.sh --plan <PLAN_ID> --id <TASK_ID> --action "<TEXT>" [--spec TEXT] [--files FILE1,FILE2] [--deps T1,T2]`. This enables DB-aware task retrieval by downstream agents.
+
 Display: `  ✓ Plan {NN-MM}: {title} ({N} tasks, wave {W})`
 
 ### Stage 3: Self-Review
@@ -121,6 +123,10 @@ Display: `◆  Lead: Self-reviewing plans...`
 Checklist: requirements coverage (every REQ-ID mapped), no circular deps, no same-wave file conflicts, success criteria = phase goals, 3-5 tasks per plan, must-haves testable, cross-phase deps reference completed phases, valid JSONL. Fix inline, re-write corrected files.
 
 Display: `✓  Lead: Self-review complete — {issues found and fixed | no issues found}`
+
+### Stage 3.5: Progress Monitoring
+
+**[sqlite]** Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/check-phase-status.sh <PHASE>` to check phase completion status (~50 tokens vs re-reading all summary files). Fallback: Glob + Read summary files when DB unavailable.
 
 ### Stage 4: Commit and Report
 Display: `✓  Lead: All plans written to disk`

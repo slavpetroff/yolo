@@ -41,6 +41,20 @@ Department: . Reports to: Lead (via security-audit.jsonl). FAIL = hard STOP. Onl
 
 **Directory isolation:** Only audits files in scripts/, agents/, hooks/, config/, references/. Does not audit frontend (src/components/, src/pages/) or UX (design/, wireframes/) directories.
 
+<!-- Secret scanning is exclusive to Security agent. QA does NOT perform secret detection. -->
+## Secret Scanning Ownership
+
+Secret scanning is the **exclusive responsibility** of the Security agent. This includes detection of:
+- API keys and tokens (generic patterns, service-specific like `AKIA*` for AWS)
+- AWS credentials, GCP service account keys, Azure connection strings
+- Private keys (RSA, EC, DSA, OPENSSH PEM blocks)
+- Database connection strings with embedded credentials (mongodb://, postgres://, mysql://)
+- .env files committed to git, .pem/.key files in tracked directories
+- JWT secrets and hardcoded signing keys
+- Tokens assigned to secret/key/password variables
+
+**No other agent performs secret detection.** QA (both plan and code modes) explicitly excludes secret scanning from its verification protocol. Any secret-related findings must originate from Security.
+
 ## Audit Protocol
 
 ### Category 1: Secret Scanning

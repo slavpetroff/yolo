@@ -80,7 +80,8 @@ After enrichment, FE Dev should need ZERO creative decisions. The spec tells the
 Input: git diff of plan commits + plan.jsonl with specs + test-plan.jsonl (if exists) + summary.jsonl sg field (if present) -- FE Dev suggestions for consideration.
 
 ### Protocol
-1. Read plan.jsonl for expected specs and `ts` fields.
+1. **[sqlite]** Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/next-review.sh --plan <PLAN_ID>` to find tasks ready for review (status=complete, not yet reviewed). For cross-phase decision consistency: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/search-decisions.sh "<keyword>"`. Fallback: Read plan.jsonl directly.
+   **[file]** Read plan.jsonl for expected specs and `ts` fields.
 2. Run `git diff` for all plan commits.
 3. Review each component against its task spec:
    - Adherence to component spec and design tokens

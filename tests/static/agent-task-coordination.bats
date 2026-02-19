@@ -136,6 +136,85 @@ setup() {
   assert_success
 }
 
+# --- DB Script References (Phase 10 SQLite) ---
+
+@test "dev agents reference get-task.sh" {
+  for agent in yolo-dev.md yolo-fe-dev.md yolo-ux-dev.md; do
+    run grep 'get-task.sh' "$AGENTS_DIR/$agent"
+    [[ $status -eq 0 ]] || fail "Missing get-task.sh reference in $agent"
+  done
+}
+
+@test "dev agents reference complete-task.sh" {
+  for agent in yolo-dev.md yolo-fe-dev.md yolo-ux-dev.md; do
+    run grep 'complete-task.sh' "$AGENTS_DIR/$agent"
+    [[ $status -eq 0 ]] || fail "Missing complete-task.sh reference in $agent"
+  done
+}
+
+@test "lead agents reference insert-task.sh" {
+  for agent in yolo-lead.md yolo-fe-lead.md yolo-ux-lead.md; do
+    run grep 'insert-task.sh' "$AGENTS_DIR/$agent"
+    [[ $status -eq 0 ]] || fail "Missing insert-task.sh reference in $agent"
+  done
+}
+
+@test "lead agents reference check-phase-status.sh" {
+  for agent in yolo-lead.md yolo-fe-lead.md yolo-ux-lead.md; do
+    run grep 'check-phase-status.sh' "$AGENTS_DIR/$agent"
+    [[ $status -eq 0 ]] || fail "Missing check-phase-status.sh reference in $agent"
+  done
+}
+
+@test "qa agents reference get-summaries.sh" {
+  for agent in yolo-qa.md yolo-fe-qa.md yolo-ux-qa.md; do
+    run grep 'get-summaries.sh' "$AGENTS_DIR/$agent"
+    [[ $status -eq 0 ]] || fail "Missing get-summaries.sh reference in $agent"
+  done
+}
+
+@test "tester agents reference get-task.sh with test_spec" {
+  for agent in yolo-tester.md yolo-fe-tester.md yolo-ux-tester.md; do
+    run grep 'get-task.sh' "$AGENTS_DIR/$agent"
+    [[ $status -eq 0 ]] || fail "Missing get-task.sh reference in $agent"
+    run grep 'test_spec' "$AGENTS_DIR/$agent"
+    [[ $status -eq 0 ]] || fail "Missing test_spec reference in $agent"
+  done
+}
+
+@test "architect agents reference get-phase.sh" {
+  for agent in yolo-architect.md yolo-fe-architect.md yolo-ux-architect.md; do
+    run grep 'get-phase.sh' "$AGENTS_DIR/$agent"
+    [[ $status -eq 0 ]] || fail "Missing get-phase.sh reference in $agent"
+  done
+}
+
+@test "scout references search-research.sh" {
+  run grep 'search-research.sh' "$AGENTS_DIR/yolo-scout.md"
+  assert_success
+}
+
+@test "critic references search-decisions.sh" {
+  run grep 'search-decisions.sh' "$AGENTS_DIR/yolo-critic.md"
+  assert_success
+}
+
+@test "all DB-aware agents have backward-compatible fallback" {
+  local DB_AGENTS=(
+    yolo-dev.md yolo-fe-dev.md yolo-ux-dev.md
+    yolo-lead.md yolo-fe-lead.md yolo-ux-lead.md
+    yolo-senior.md yolo-fe-senior.md yolo-ux-senior.md
+    yolo-qa.md yolo-fe-qa.md yolo-ux-qa.md
+    yolo-tester.md yolo-fe-tester.md yolo-ux-tester.md
+    yolo-architect.md yolo-fe-architect.md yolo-ux-architect.md
+  )
+  for agent in "${DB_AGENTS[@]}"; do
+    run grep -c '\[sqlite\]' "$AGENTS_DIR/$agent"
+    [[ $status -eq 0 ]] || fail "Missing [sqlite] block in $agent"
+    [[ "$output" -ge 1 ]] || fail "Zero [sqlite] blocks in $agent"
+  done
+}
+
 # --- Cross-cutting: all task coordination agents reference teammate-api-patterns.md ---
 
 @test "all task coordination sections reference teammate-api-patterns.md" {
