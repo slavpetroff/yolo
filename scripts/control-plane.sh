@@ -64,11 +64,9 @@ for arg in "$@"; do
 done
 
 # --- Config / flag resolution ---
-V3_CONTRACT_LITE=false
 CONTEXT_COMPILER=false
 
 if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
-  V3_CONTRACT_LITE=$(jq -r '.v3_contract_lite // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
   CONTEXT_COMPILER=$(jq -r 'if .context_compiler == null then true else .context_compiler end' "$CONFIG_PATH" 2>/dev/null || echo "true")
 fi
 
