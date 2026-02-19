@@ -46,19 +46,11 @@
     },
     "qa": {
       "files": ["success_criteria"],
-      "artifacts": ["plan", "escalation", "test-results"],
+      "artifacts": ["plan", "summary", "escalation", "test-results"],
       "fields": {
         "plan": ["obj", "mh"],
-        "escalation": ["id", "agent", "sb", "tgt", "sev", "st", "res"],
-        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
-      },
-      "budget": 2000
-    },
-    "qa-code": {
-      "files": [],
-      "artifacts": ["summary", "test-results"],
-      "fields": {
         "summary": ["fm"],
+        "escalation": ["id", "agent", "sb", "tgt", "sev", "st", "res"],
         "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
       },
       "budget": 3000
@@ -234,24 +226,15 @@
     },
     "fe-qa": {
       "files": ["success_criteria"],
-      "artifacts": ["plan", "escalation", "test-results"],
+      "artifacts": ["plan", "summary", "escalation", "test-results"],
       "fields": {
         "plan": ["obj", "mh"],
+        "summary": ["fm"],
         "escalation": ["id", "agent", "sb", "tgt", "sev", "st", "res"],
         "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
       },
-      "budget": 2000,
-      "includes": ["qa"]
-    },
-    "fe-qa-code": {
-      "files": [],
-      "artifacts": ["summary", "test-results"],
-      "fields": {
-        "summary": ["fm"],
-        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
-      },
       "budget": 3000,
-      "includes": ["qa-code"]
+      "includes": ["qa"]
     },
     "ux-architect": {
       "files": ["ROADMAP.md", "REQUIREMENTS.md", "codebase/*"],
@@ -304,24 +287,15 @@
     },
     "ux-qa": {
       "files": ["success_criteria"],
-      "artifacts": ["plan", "escalation", "test-results"],
+      "artifacts": ["plan", "summary", "escalation", "test-results"],
       "fields": {
         "plan": ["obj", "mh"],
+        "summary": ["fm"],
         "escalation": ["id", "agent", "sb", "tgt", "sev", "st", "res"],
         "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
       },
-      "budget": 2000,
-      "includes": ["qa"]
-    },
-    "ux-qa-code": {
-      "files": [],
-      "artifacts": ["summary", "test-results"],
-      "fields": {
-        "summary": ["fm"],
-        "test-results": ["plan", "dept", "phase", "tc", "ps", "fl", "tasks"]
-      },
       "budget": 3000,
-      "includes": ["qa-code"]
+      "includes": ["qa"]
     }
   }
 }
