@@ -1,12 +1,12 @@
 #!/usr/bin/env bats
-# test-validate-deps.bats — Unit tests for scripts/validate-deps.sh
+# test-validate-deps.bats -- Unit tests for validate.sh --type deps
 # Validates dependency graph: linear chains, cycles, missing refs, empty, critical path.
 
 setup() {
   load '../test_helper/common'
   load '../test_helper/fixtures'
   mk_test_workdir
-  SUT="$SCRIPTS_DIR/validate-deps.sh"
+  SUT="$SCRIPTS_DIR/validate.sh"
 }
 
 # Helper: create a dependency graph JSON file
@@ -16,13 +16,13 @@ mk_dep_graph() {
   echo "$file"
 }
 
-@test "validate-deps.sh exists and is executable" {
-  [ -f "$SUT" ] || skip "validate-deps.sh not yet created"
-  [ -x "$SUT" ] || skip "validate-deps.sh not executable"
+@test "validate.sh --type deps exists and is executable" {
+  [ -f "$SUT" ] || skip "validate.sh not yet created"
+  [ -x "$SUT" ] || skip "validate.sh not executable"
 }
 
 @test "valid linear graph A->B->C returns valid:true" {
-  [ -x "$SUT" ] || skip "validate-deps.sh not yet created"
+  [ -x "$SUT" ] || skip "validate.sh not yet created"
   local graph
   graph=$(mk_dep_graph <<'JSON'
 {
@@ -34,7 +34,7 @@ mk_dep_graph() {
 }
 JSON
   )
-  run bash "$SUT" --roadmap-json "$graph"
+  run bash "$SUT" --type deps --roadmap-json "$graph"
   assert_success
   local valid
   valid=$(echo "$output" | jq -r '.valid // empty' 2>/dev/null)
@@ -42,7 +42,7 @@ JSON
 }
 
 @test "circular dependency A->B->C->A returns valid:false with cycle error" {
-  [ -x "$SUT" ] || skip "validate-deps.sh not yet created"
+  [ -x "$SUT" ] || skip "validate.sh not yet created"
   local graph
   graph=$(mk_dep_graph <<'JSON'
 {
@@ -54,13 +54,13 @@ JSON
 }
 JSON
   )
-  run bash "$SUT" --roadmap-json "$graph"
+  run bash "$SUT" --type deps --roadmap-json "$graph"
   assert_failure
   assert_output --partial "Circular"
 }
 
 @test "missing phase reference returns error" {
-  [ -x "$SUT" ] || skip "validate-deps.sh not yet created"
+  [ -x "$SUT" ] || skip "validate.sh not yet created"
   local graph
   graph=$(mk_dep_graph <<'JSON'
 {
@@ -71,13 +71,13 @@ JSON
 }
 JSON
   )
-  run bash "$SUT" --roadmap-json "$graph"
+  run bash "$SUT" --type deps --roadmap-json "$graph"
   assert_failure
   assert_output --partial "nonexistent"
 }
 
 @test "empty graph (no phases) returns valid:false" {
-  [ -x "$SUT" ] || skip "validate-deps.sh not yet created"
+  [ -x "$SUT" ] || skip "validate.sh not yet created"
   local graph
   graph=$(mk_dep_graph <<'JSON'
 {
@@ -85,7 +85,7 @@ JSON
 }
 JSON
   )
-  run bash "$SUT" --roadmap-json "$graph"
+  run bash "$SUT" --type deps --roadmap-json "$graph"
   assert_failure
   local valid
   valid=$(echo "$output" | jq -r '.valid // empty' 2>/dev/null)
@@ -93,7 +93,7 @@ JSON
 }
 
 @test "orphaned phase produces warning" {
-  [ -x "$SUT" ] || skip "validate-deps.sh not yet created"
+  [ -x "$SUT" ] || skip "validate.sh not yet created"
   local graph
   graph=$(mk_dep_graph <<'JSON'
 {
@@ -106,7 +106,7 @@ JSON
 }
 JSON
   )
-  run bash "$SUT" --roadmap-json "$graph"
+  run bash "$SUT" --type deps --roadmap-json "$graph"
   assert_success
   assert_output --partial "orphaned"
 }

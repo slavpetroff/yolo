@@ -36,7 +36,7 @@ At each step below, "Spawn X with Task tool" is the task-mode instruction. When 
 4. **Validate all plans:** Before execution, validate every plan.jsonl in the phase directory:
    ```bash
    for plan in "${PHASE_DIR}"/*.plan.jsonl; do
-     result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-plan.sh --plan "$plan")
+     result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh --type plan "$plan")
      if [ $? -ne 0 ]; then
        echo "Plan validation failed: $plan" >&2
        echo "$result" | jq -r '.errors[]' >&2
@@ -47,9 +47,9 @@ At each step below, "Spawn X with Task tool" is the task-mode instruction. When 
 
    ```bash
    # Naming convention validation (post-structural)
-   if [ -x "${CLAUDE_PLUGIN_ROOT}/scripts/validate-naming.sh" ]; then
+   if [ -x "${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh" ]; then
      for plan in "${PHASE_DIR}"/*.plan.jsonl; do
-       result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-naming.sh "$plan" --type=plan)
+       result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh --type naming "$plan" --type=plan)
        if [ $? -ne 0 ]; then
          echo "Naming validation failed: $plan" >&2
          echo "$result" | jq -r '.errors[]' >&2
@@ -92,15 +92,15 @@ Each agent receives ONLY what it needs (progressive scoping — lower agents see
 - If artifact was produced by a skippable step, also accept: step status is "skipped" in .execution-state.json (check via `jq -r '.steps["{step_name}"].status' .yolo-planning/.execution-state.json`)
 - If NEITHER artifact exists NOR step is skipped: **STOP** "{Step N} artifact missing — {artifact} not found in {phase-dir}. Run step {N} first."
 
-> **Script delegation:** Entry gate checks can be delegated to `validate-gates.sh` for deterministic verification:
+> **Script delegation:** Entry gate checks can be delegated to `validate.sh --type gates` for deterministic verification:
 > ```bash
-> result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-gates.sh --step "{step_name}" --phase-dir "{phase-dir}")
+> result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh --type gates --step "{step_name}" --phase-dir "{phase-dir}")
 > if [ $? -ne 0 ]; then
 >   echo "$result" | jq -r '.missing[]' >&2
 >   STOP "{Step N} artifact missing"
 > fi
 > ```
-> This replaces inline file existence checks with a centralized lookup table (see scripts/validate-gates.sh).
+> This replaces inline file existence checks with a centralized lookup table (see scripts/validate.sh --type gates).
 
 ### State Commit
 
@@ -182,9 +182,8 @@ When `po.enabled=true` and guard conditions not met:
 
 3. **Roadmap Agent (full_ceremony only):** PO spawns Roadmap Agent for dependency analysis. Roadmap produces phase ordering, dependency graph, critical path, milestones. Skip if medium_path or effort=fast.
    ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-deps.sh \
-     --graph "{phase-dir}/roadmap-plan.json" \
-     --format adjacency
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh --type deps \
+     --roadmap-json "{phase-dir}/roadmap-plan.json"
    ```
    Validate no cycles in dependency graph.
 

@@ -233,9 +233,8 @@ PO layer runs AFTER Analyze routing and BEFORE Critic→Architect→Lead dispatc
    ```
    Spawn yolo-roadmap with enriched scope from PO-Questionary output. Roadmap produces dependency graph:
    ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-deps.sh \
-     --graph "{phase-dir}/roadmap-plan.json" \
-     --format adjacency
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh --type deps \
+     --roadmap-json "{phase-dir}/roadmap-plan.json"
    ```
    Validate no cycles in dependency graph. Display: `◆ Spawning Roadmap (${ROADMAP_MODEL})...` → `✓ Roadmap complete — {N} phases, critical path: {path}`
 

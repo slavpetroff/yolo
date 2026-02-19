@@ -368,7 +368,7 @@ Post-plan gate runs full test suite (not scoped). The `mh` field verifies must_h
 | `gates` | gate_check | object | {"ps":11,"fl":0,"tt":11} |
 | `dt` | datetime | string | "2026-02-17T15:00:00Z" |
 
-Post-phase gate is the most comprehensive -- runs full test suite, validates all plan gates passed, checks all workflow steps complete via `validate-gates.sh`. The `plans` array summarizes per-plan gate results. The `gates` field aggregates `validate-gates.sh` step checks. `esc` counts escalation events. This is a fast automated pre-check before QA agent spawn (architecture C11).
+Post-phase gate is the most comprehensive -- runs full test suite, validates all plan gates passed, checks all workflow steps complete via `validate.sh --type gates`. The `plans` array summarizes per-plan gate results. The `gates` field aggregates `validate.sh --type gates` step checks. `esc` counts escalation events. This is a fast automated pre-check before QA agent spawn (architecture C11).
 
 ### Manual QA (manual-qa.jsonl)
 

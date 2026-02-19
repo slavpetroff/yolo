@@ -1,6 +1,6 @@
 # Naming Conventions
 
-Canonical naming patterns for all YOLO artifacts. This document is the single source of truth, referenced by validate-naming.sh. Normative key definitions are in artifact-formats.md.
+Canonical naming patterns for all YOLO artifacts. This document is the single source of truth, referenced by validate.sh --type naming. Normative key definitions are in artifact-formats.md.
 
 ## 1. File Naming Patterns
 

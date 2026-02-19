@@ -140,7 +140,7 @@ Returns `roadmap_plan` JSON to PO Agent:
 
 ## Constraints
 
-**No user contact**: Roadmap Agent communicates only with PO Agent. Never produces user_presentation or calls AskUserQuestion. **No code-level decisions**: Operates at phase/milestone level only. Technical decisions belong to Architect and Lead. **DAG guarantee**: Output dependency_graph must be a valid directed acyclic graph. No cycles permitted. **Produces dependency_graph for validate-deps.sh**: Output format must be compatible with the dependency validation script. **Cannot spawn subagents**: No task creation or agent spawning. **Single analysis per invocation**: Analyzes one enriched scope document. Re-read files after compaction marker.
+**No user contact**: Roadmap Agent communicates only with PO Agent. Never produces user_presentation or calls AskUserQuestion. **No code-level decisions**: Operates at phase/milestone level only. Technical decisions belong to Architect and Lead. **DAG guarantee**: Output dependency_graph must be a valid directed acyclic graph. No cycles permitted. **Produces dependency_graph for validate.sh --type deps**: Output format must be compatible with the dependency validation script. **Cannot spawn subagents**: No task creation or agent spawning. **Single analysis per invocation**: Analyzes one enriched scope document. Re-read files after compaction marker.
 
 ## Context
 

@@ -7,7 +7,7 @@ set -u
 #   (no --tier)         Notification hook: structural checks (exit 0=allow, exit 2=block)
 #   --tier task         Post-task gate: test-summary.sh after each task (exit 0=pass/warn, 1=fail)
 #   --tier plan         Post-plan gate: summary + full test suite + must_haves (exit 0=pass/warn, 1=fail)
-#   --tier phase        Post-phase gate: validate-gates + all plans + full tests (exit 0=pass/warn, 1=fail)
+#   --tier phase        Post-phase gate: validate.sh --type gates + all plans + full tests (exit 0=pass/warn, 1=fail)
 #
 # Common flags (--tier modes only):
 #   --phase-dir <path>  Required. Phase directory path.
@@ -709,16 +709,17 @@ gate_post_phase() {
     FAILURES+=("incomplete plans: $COMPLETE_PLANS/$TOTAL_PLANS complete")
   fi
 
-  # Gate validation via validate-gates.sh
-  local VALIDATE_GATES_PATH STEPS_PASSED=0 STEPS_FAILED=0
-  VALIDATE_GATES_PATH=$(command -v validate-gates.sh 2>/dev/null) || VALIDATE_GATES_PATH=""
+  # Gate validation via validate.sh --type gates
+  local VALIDATE_SH STEPS_PASSED=0 STEPS_FAILED=0
+  VALIDATE_SH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/validate.sh"
+  [ ! -x "$VALIDATE_SH" ] && VALIDATE_SH=""
 
   local STEPS=(critique research architecture planning design_review test_authoring implementation code_review qa security signoff)
 
-  if [ -n "$VALIDATE_GATES_PATH" ] && [ -x "$VALIDATE_GATES_PATH" ]; then
+  if [ -n "$VALIDATE_SH" ]; then
     for step in "${STEPS[@]}"; do
       local step_exit=0 result gate_status=""
-      result=$(bash "$VALIDATE_GATES_PATH" --step "$step" --phase-dir "$PHASE_DIR" 2>/dev/null) || step_exit=$?
+      result=$(bash "$VALIDATE_SH" --type gates --step "$step" --phase-dir "$PHASE_DIR" 2>/dev/null) || step_exit=$?
       if [ -n "$result" ]; then
         gate_status=$(echo "$result" | jq -r '.gate // ""' 2>/dev/null) || gate_status=""
       fi
