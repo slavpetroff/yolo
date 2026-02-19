@@ -63,7 +63,7 @@ EOF
 
   run_migration
 
-  # Verify all 22 flags exist (graduated flags removed, only v2_token_budgets remains)
+  # Verify still-live flags are present
   run jq '[
     has("context_compiler"), has("v2_token_budgets"),
     has("model_overrides"), has("prefer_teams")
@@ -71,20 +71,20 @@ EOF
   [ "$status" -eq 0 ]
   [ "$output" = "4" ]
 
-  # Verify full defaults count = 22
+  # Verify all defaults.json keys are present (22 defaults + 2 pre-existing extra keys)
   run jq 'keys | length' "$TEST_TEMP_DIR/.vbw-planning/config.json"
   [ "$status" -eq 0 ]
-  [ "$output" = "22" ]
+  [ "$output" = "24" ]
 
   # Verify existing values were preserved
   run jq -r '.context_compiler' "$TEST_TEMP_DIR/.vbw-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "false" ]
 
-  # v3_delta_context was graduated and removed from config
-  run jq -r 'has("v3_delta_context")' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  # v3_delta_context and v2_hard_contracts are preserved (migration adds, does not remove keys)
+  run jq -r '.v3_delta_context' "$TEST_TEMP_DIR/.vbw-planning/config.json"
   [ "$status" -eq 0 ]
-  [ "$output" = "false" ]
+  [ "$output" = "true" ]
 
   run jq -r '.v2_hard_contracts' "$TEST_TEMP_DIR/.vbw-planning/config.json"
   [ "$status" -eq 0 ]
