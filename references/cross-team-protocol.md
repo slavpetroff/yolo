@@ -80,14 +80,14 @@ Phase Start
 | Within department: Architect->Lead | Task tool result return | SendMessage within team |
 | Within department: Tester->Senior | Task tool result return | SendMessage (test_plan_result to Senior, NOT Lead) |
 | Within department: QA->Lead | Task tool result return | SendMessage (qa_result to Lead) |
-| Within department: QA-Code->Lead | Task tool result return | SendMessage (qa_code_result to Lead) |
+| Within department: QA (code mode)->Lead | Task tool result return | SendMessage (qa_code_result to Lead) |
 | Within department: Security->Lead | Task tool result return | SendMessage (security_audit to Lead, backend team ONLY) |
 | Within department: Senior->Dev (review changes) | New Task tool spawn | SendMessage (code_review_changes to Dev) |
 | Cross department: Lead->Lead | File-based artifacts (api-contracts.jsonl, design-handoff.jsonl) | File-based artifacts (UNCHANGED -- different teams) |
 | Lead->Owner | File-based (.dept-status-{dept}.json) | File-based (UNCHANGED -- Owner is not in any department team) |
 | Owner->User | go.md proxy (AskUserQuestion) | go.md proxy (UNCHANGED) |
 
-**Key insight:** Cross-team communication is ALWAYS file-based regardless of team_mode. The Teammate API SendMessage only works within a single team. Since each department is its own team (yolo-backend, yolo-frontend, yolo-uiux), inter-department coordination cannot use SendMessage. Within each team, all 19 Phase 2 agents (tester x3, qa x3, qa-code x3, security x1, plus the 4 Phase 1 agents and 8 FE/UX core agents from plan 02-05) use SendMessage for intra-team coordination when team_mode=teammate. This is by design -- it enforces the same strict context isolation that file-based gates provide.
+**Key insight:** Cross-team communication is ALWAYS file-based regardless of team_mode. The Teammate API SendMessage only works within a single team. Since each department is its own team (yolo-backend, yolo-frontend, yolo-uiux), inter-department coordination cannot use SendMessage. Within each team, all 16 Phase 2 agents (tester x3, qa x3, security x1, plus the 4 Phase 1 agents and 8 FE/UX core agents from plan 02-05) use SendMessage for intra-team coordination when team_mode=teammate. Note: qa-code was merged into qa with --mode plan|code; the QA agent handles both plan-level and code-level verification. This is by design -- it enforces the same strict context isolation that file-based gates provide.
 
 ## Context Isolation Rules (STRICT — NO CONTEXT BLEED)
 
@@ -161,7 +161,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/dept-gate.sh \
 
 **Timeout:** 60 minutes (configurable). On timeout: display per-department status report from .dept-status-{dept}.json files.
 
-**Teammate mode:** When `team_mode=teammate`, each department Lead signals completion by writing .dept-status-{dept}.json (same as task mode) AND by sending department_result via SendMessage to go.md. The integration gate check via dept-gate.sh is identical in both modes. Within each department, agents used SendMessage for coordination (Tester->Senior, QA->Lead, QA-Code->Lead, Security->Lead for backend), but the cross-department gate remains file-based. dept-gate.sh does not need modification for teammate mode.
+**Teammate mode:** When `team_mode=teammate`, each department Lead signals completion by writing .dept-status-{dept}.json (same as task mode) AND by sending department_result via SendMessage to go.md. The integration gate check via dept-gate.sh is identical in both modes. Within each department, agents used SendMessage for coordination (Tester->Senior, QA->Lead, Security->Lead for backend), but the cross-department gate remains file-based. dept-gate.sh does not need modification for teammate mode.
 
 ### Gate 4: Owner Sign-off
 
