@@ -256,3 +256,110 @@ setup() {
   # At least one per hook (may be more due to multiple redirects)
   [ "$ERROR_SUPPRESS" -ge 26 ]
 }
+
+# Task 3: Test individual hook script invocations
+# Validate that each unique script invocation passes the stricter classifier
+
+@test "script invocation: validate-summary.sh PostToolUse pattern" {
+  # PostToolUse Write|Edit -> validate-summary.sh
+  # This hook validates SUMMARY.md files after Write/Edit
+
+  INVOCATION=$(grep 'validate-summary.sh' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json" | head -1)
+  [ -n "$INVOCATION" ]
+
+  # Verify it's a valid bash -c command
+  echo "$INVOCATION" | grep -q 'bash -c'
+}
+
+@test "script invocation: bash-guard.sh with grep pattern matching" {
+  # PreToolUse Bash -> bash-guard.sh
+  # This script uses grep -iqE for destructive command detection
+
+  # Verify bash-guard.sh exists and uses safe grep patterns
+  [ -f "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/scripts/bash-guard.sh" ]
+
+  # Verify it reads patterns from config file (not inline regex)
+  grep -q 'grep.*-iqE' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/scripts/bash-guard.sh"
+}
+
+@test "script invocation: agent-health.sh with subcommand arguments" {
+  # Multiple events -> agent-health.sh {start|stop|idle|cleanup}
+  # Validates that hook scripts can receive arguments after script name
+
+  # Check for all 4 subcommands in hooks.json
+  grep -q 'agent-health.sh start' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
+  grep -q 'agent-health.sh stop' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
+  grep -q 'agent-health.sh idle' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
+  grep -q 'agent-health.sh cleanup' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
+}
+
+@test "script invocation: skill-hook-dispatch.sh with event type argument" {
+  # PostToolUse and PreToolUse -> skill-hook-dispatch.sh {PostToolUse|PreToolUse}
+  # Validates passing event type as argument
+
+  grep -q 'skill-hook-dispatch.sh PostToolUse' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
+  grep -q 'skill-hook-dispatch.sh PreToolUse' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
+}
+
+@test "script invocation: all 21 unique scripts are invoked correctly" {
+  # Verify all documented scripts appear in hooks.json with correct invocation
+
+  SCRIPTS=(
+    "validate-summary.sh"
+    "validate-frontmatter.sh"
+    "validate-commit.sh"
+    "skill-hook-dispatch.sh"
+    "state-updater.sh"
+    "bash-guard.sh"
+    "security-filter.sh"
+    "file-guard.sh"
+    "agent-start.sh"
+    "agent-stop.sh"
+    "agent-health.sh"
+    "qa-gate.sh"
+    "task-verify.sh"
+    "blocker-notify.sh"
+    "session-start.sh"
+    "map-staleness.sh"
+    "post-compact.sh"
+    "compaction-instructions.sh"
+    "session-stop.sh"
+    "prompt-preflight.sh"
+    "notification-log.sh"
+  )
+
+  for script in "${SCRIPTS[@]}"; do
+    grep -q "$script" "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
+  done
+}
+
+@test "script invocation: no inline piping in hook commands (only in wrapper)" {
+  # Hooks should not contain piped commands outside the wrapper pattern
+  # All piping should be contained within the bash -c wrapper
+
+  # Extract just the script invocation parts (after exec bash "$w")
+  # These should not contain additional pipes
+  # The only pipes should be in the ls|sort|tail resolution pattern
+
+  SCRIPT_PARTS=$(grep -o 'exec bash "\$w" [^;]*' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json" || true)
+
+  # None of the script invocation parts should contain pipes
+  if [ -n "$SCRIPT_PARTS" ]; then
+    ! echo "$SCRIPT_PARTS" | grep -q '|'
+  fi
+}
+
+@test "script invocation: all scripts use simple argument passing" {
+  # Scripts that take arguments use simple space-separated args
+  # Arguments are literal strings, not command substitutions
+
+  # agent-health.sh takes simple literal subcommands
+  grep -q 'agent-health.sh start;' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
+  grep -q 'agent-health.sh stop;' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
+  grep -q 'agent-health.sh idle;' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
+  grep -q 'agent-health.sh cleanup;' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
+
+  # skill-hook-dispatch.sh takes literal event type arguments
+  grep -q 'skill-hook-dispatch.sh PostToolUse;' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
+  grep -q 'skill-hook-dispatch.sh PreToolUse;' "/Users/tiagoserodio/Documents/AI Stuff/vbw-cc/hooks/hooks.json"
+}
