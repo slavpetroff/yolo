@@ -96,19 +96,19 @@ When `config_complexity_routing=true` AND $ARGUMENTS present AND no mode flags d
 4. **Route based on suggested_path:**
    - `trivial_shortcut` (confidence >= `config_trivial_threshold`):
      ```bash
-     result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-trivial.sh \
+     result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/route.sh --path trivial \
        --phase-dir "{phase-dir}" --intent "$ARGUMENTS" \
        --config .yolo-planning/config.json --analysis-json /tmp/yolo-analysis.json)
      ```
      Then dispatch to **Mode: Trivial Shortcut** below.
    - `medium_path` (confidence >= `config_medium_threshold`):
      ```bash
-     result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-medium.sh \
+     result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/route.sh --path medium \
        --phase-dir "{phase-dir}" --intent "$ARGUMENTS" \
        --config .yolo-planning/config.json --analysis-json /tmp/yolo-analysis.json)
      ```
      Then dispatch to **Mode: Medium Path** below.
-   - `full_ceremony`: Call `bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-high.sh` (if exists), then proceed to **PO Layer** (if enabled) before existing Plan+Execute flow (full ceremony).
+   - `full_ceremony`: Call `bash ${CLAUDE_PLUGIN_ROOT}/scripts/route.sh --path high`, then proceed to **PO Layer** (if enabled) before existing Plan+Execute flow (full ceremony).
    - `medium_path` with PO: If `po.enabled=true` AND complexity is NOT in `po.skip_on_complexity` array, run abbreviated PO (single-round Questionary, skip Roadmap Agent) before medium path dispatch. When `po.skip_on_complexity` includes `"medium"` (the default), PO is skipped entirely for medium-path tasks, saving ~2000 tokens.
    - `redirect`: Map Analyze intent to existing redirects:
      - debug → Redirect to `/yolo:debug` with $ARGUMENTS
@@ -354,10 +354,10 @@ If `planning_dir_exists=false`: STOP "YOLO is not set up yet. Run /yolo:init to 
 1. **Parse args:** Phase number (optional, auto-detected), --effort (optional, falls back to config).
 1.5. **Fallback notice:** If `fallback_notice=true` from resolve-team-mode.sh, display: `[notice] Teammate API requested but unavailable (CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS not set). Using Task tool spawn instead.` This is informational only -- execution proceeds with team_mode=task.
 2. **Phase Discovery (if applicable):** Skip if already planned or DISCOVERY_DEPTH=skip. If phase dir has `{phase}-CONTEXT.md`: AskUserQuestion "Existing context found for this phase. What would you like to do?" Options: (1) "Reuse existing context (Recommended)" — skip Phase Discovery, use existing file. (2) "Gather fresh context" — delete `{phase}-CONTEXT.md` and run Phase Discovery below. If no CONTEXT.md exists, run Phase Discovery: read `${CLAUDE_PLUGIN_ROOT}/references/discovery-protocol.md` Phase Discovery mode. Generate phase-scoped questions (quick=1, standard=1-2, thorough=2-3). Skip categories already in `discovery.json.answered[]`. Present via AskUserQuestion. Append to `discovery.json`. Write `{phase}-CONTEXT.md`.
-3. **Context compilation:** If `config_context_compiler=true`, compile context for the appropriate leads (see step 5/6).
+3. **Context compilation:** If `config_context_compiler=true`, compile context for the appropriate leads (see step 5/6). Always include `--measure`.
 4. **Turbo shortcut:** If effort=turbo, skip Lead. Read phase reqs from ROADMAP.md, create single lightweight plan.jsonl inline (header + tasks, no spec field).
 5. **Single-department planning (when `multi_dept=false` from resolve-departments.sh above):**
-   - Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} lead {phases_dir}`
+   - Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh --measure {phase} lead {phases_dir}`
    - Resolve Lead model (see pattern above).
    - **CRITICAL:** Add `model: "${LEAD_MODEL}"` parameter to the Task tool invocation.
    - **Spawn strategy (OBEY team_mode from pre-computed output above):**
@@ -377,7 +377,7 @@ If `planning_dir_exists=false`: STOP "YOLO is not set up yet. Run /yolo:init to 
    b. **Resolve models for ALL active department Leads + Owner** (resolve-agent-model.sh pattern for each: lead, fe-lead if fe_active, ux-lead if ux_active, owner).
 
    c. **Compile context per department Lead:**
-      `compile-context.sh {phase} {role} {phases_dir}` for each active lead (lead, fe-lead, ux-lead).
+      `compile-context.sh --measure {phase} {role} {phases_dir}` for each active lead (lead, fe-lead, ux-lead).
 
    d. **Follow `leads_to_spawn` dispatch order from resolve-departments.sh:**
       Parse `leads_to_spawn` — `|` separates waves, `,` separates parallel within a wave.
@@ -469,9 +469,13 @@ This mode delegates to protocol files. Before reading:
    - Not initialized: STOP "YOLO is not set up yet. Run /yolo:init to get started."
    - No `*.plan.jsonl` files in phase dir: STOP "Phase {N} has no plans. Run `/yolo:go --plan {N}` first."
    - All plans have `*.summary.jsonl`: cautious/standard -> WARN + confirm; confident/pure-yolo -> warn + auto-continue.
-3. **Compile context:** If `config_context_compiler=true`, compile context for each agent role as needed per the protocol steps. Include `.ctx-{role}.toon` paths in agent task descriptions.
+3. **Compile context (MANDATORY --measure):** If `config_context_compiler=true`, compile context for each agent role as needed per the protocol steps. ALWAYS include `--measure` flag:
+   ```bash
+   ctx_path=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh --measure {phase} {role} {phases_dir} 2>"/tmp/yolo-ctx-measure-${role}.json")
+   ```
+   Include `.ctx-{role}.toon` paths in agent task descriptions. Check `--measure` stderr for budget enforcement — if the measurement JSON contains `"trimmed":true`, the context was trimmed to fit the budget. Log: `○ Context for {role}: {filtered_tokens}t (budget: {budget}t, trimmed: {trimmed})`.
 
-3.5. **Template mode filtering (YOLO_AGENT_MODE):** Before spawning department agents at each workflow step, set `YOLO_AGENT_MODE` env var to enable per-step token savings via template mode filtering. The SubagentStart hook (`template-generate-hook.sh`) reads this env var and passes `--mode` to `generate-agent.sh`, which strips irrelevant sections from the generated agent file.
+3.5. **Template mode filtering (YOLO_AGENT_MODE — MANDATORY):** Before spawning department agents at each workflow step, you MUST set `YOLO_AGENT_MODE` env var. This is not optional — skipping it wastes ~30% context per agent spawn. The SubagentStart hook (`template-generate-hook.sh`) reads this env var and passes `--mode` to `generate-agent.sh`, which strips irrelevant sections from the generated agent file.
 
    **Step-to-mode mapping:**
 
@@ -625,7 +629,7 @@ This mode delegates to protocol files. Before reading:
 **Steps:**
 
 1. Display: `Trivial task detected — fast path active`
-2. Read route-trivial.sh output for `plan_path` and `steps_skipped`.
+2. Read route.sh --path trivial output for `plan_path` and `steps_skipped`.
 3. Resolve Senior model:
    ```
    SENIOR_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh senior .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
@@ -634,7 +638,7 @@ This mode delegates to protocol files. Before reading:
    - model: "${SENIOR_MODEL}"
    - Mode: "design_review"
    - User intent as context
-   - Inline plan.jsonl from route-trivial.sh (`plan_path`)
+   - Inline plan.jsonl from route.sh --path trivial (`plan_path`)
    - Codebase mapping if available (`has_codebase_map`)
    - Display: `◆ Spawning Senior (${SENIOR_MODEL}) for trivial path...`
 5. Senior enriches spec inline (single task, no formal plan decomposition).
@@ -654,7 +658,7 @@ This mode delegates to protocol files. Before reading:
    If lint fails: display issues and halt. If lint passes: continue.
 9. Run post-task QA gate:
    ```bash
-   result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate-post-task.sh \
+   result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate.sh --tier task \
      --phase-dir "{phase-dir}" --plan "{plan-id}" --task "T1" --scope)
    ```
 10. Skip QA agents and security audit.
@@ -673,7 +677,7 @@ Owner-first principle still applies — go.md is the user proxy throughout.
 **Steps:**
 
 1. Display: `Medium complexity — streamlined path active`
-2. Read route-medium.sh output for `steps_included`, `steps_skipped`, `has_architecture`.
+2. Read route.sh --path medium output for `steps_included`, `steps_skipped`, `has_architecture`.
 3. Skip Critic (Step 1) and Scout (Step 2).
 4. If `has_architecture=true` (architecture.toon exists in phase dir): use it. Otherwise skip architecture step.
 5. Resolve Lead model:
@@ -691,7 +695,7 @@ Owner-first principle still applies — go.md is the user proxy throughout.
    - Step 8: Code Review (Senior reviews code)
 8. Run post-plan QA gate only (skip QA Lead and QA Code agents):
    ```bash
-   result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate-post-plan.sh \
+   result=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/qa-gate.sh --tier plan \
      --phase-dir "{phase-dir}" --plan "{plan-id}")
    ```
 9. Skip security audit (Step 10).
