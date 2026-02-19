@@ -99,3 +99,74 @@ graph TD
 - Single-dept mode uses Backend only; multi-dept adds Frontend and/or UI/UX via config
 
 ---
+
+## Diagram 2: Workflow Steps & Data Flow
+
+```mermaid
+flowchart LR
+    subgraph PO_Layer["PO Layer (optional)"]
+        PO["PO Agent"]
+        Quest["Questionary"]
+        Road["Roadmap"]
+        PO --> Quest
+        Quest --> PO
+        PO --> Road
+    end
+
+    subgraph Planning["Planning Phase"]
+        S1["Step 1<br/>Critic"]
+        S2["Step 2<br/>Scout"]
+        S3["Step 3<br/>Architect"]
+        S4["Step 4<br/>Lead (plan)"]
+    end
+
+    subgraph Execution["Execution Phase"]
+        S5["Step 5<br/>Senior<br/>(design review)"]
+        S6["Step 6<br/>Tester<br/>(RED)"]
+        S7["Step 7<br/>Dev<br/>(implement)"]
+        S8["Step 8<br/>Senior<br/>(code review)"]
+    end
+
+    subgraph Quality["Quality Phase"]
+        S85["Step 8.5<br/>Documenter<br/>(optional)"]
+        S9["Step 9<br/>QA"]
+        S10["Step 10<br/>Security"]
+        S11["Step 11<br/>Lead<br/>(sign-off)"]
+    end
+
+    PO -->|"scope-document.json"| S1
+    S1 -->|"critique.jsonl"| S2
+    S2 -->|"research.jsonl"| S3
+    S3 -->|"architecture.toon"| S4
+    S4 -->|"plan.jsonl"| S5
+    S5 -->|"enriched plan<br/>(spec + ts)"| S6
+    S6 -->|"test-plan.jsonl<br/>+ test files"| S7
+    S7 -->|"summary.jsonl<br/>+ test-results.jsonl"| S8
+    S8 -->|"code-review.jsonl"| S85
+    S85 -->|"docs.jsonl"| S9
+    S8 -->|"code-review.jsonl"| S9
+    S9 -->|"verification.jsonl"| S10
+    S10 -->|"security-audit.jsonl"| S11
+
+    S11 -->|"state complete"| Done{{"Phase Complete"}}
+```
+
+**Source files:** `references/execute-protocol.md`, `references/company-hierarchy.md`, `references/artifact-formats.md`
+
+**Artifact legend:**
+| Artifact | Format | Produced by | Consumed by |
+|----------|--------|-------------|-------------|
+| `scope-document.json` | JSON | PO | Critic, Architect, Lead |
+| `critique.jsonl` | JSONL | Critic | Scout, Architect |
+| `research.jsonl` | JSONL | Scout | Architect |
+| `architecture.toon` | TOON | Architect | Lead, Senior |
+| `plan.jsonl` | JSONL | Lead | Senior, Tester, Dev, QA |
+| `test-plan.jsonl` | JSONL | Tester | Dev, QA |
+| `test-results.jsonl` | JSONL | Dev | QA, Senior |
+| `summary.jsonl` | JSONL | Dev (task) / Lead (teammate) | Senior, QA, Security |
+| `code-review.jsonl` | JSONL | Senior | QA, Documenter |
+| `docs.jsonl` | JSONL | Documenter | (additive, non-blocking) |
+| `verification.jsonl` | JSONL | QA | Security, Lead |
+| `security-audit.jsonl` | JSONL | Security | Lead |
+
+---
