@@ -2,7 +2,7 @@
 
 **Goal:** YOLO — Your Own Local Orchestrator
 
-**Scope:** 9 phases
+**Scope:** 10 phases
 
 ## Progress
 | Phase | Status | Plans | Tasks | Commits |
@@ -16,6 +16,7 @@
 | 7 | Complete | 6 | 28 | 28 |
 | 8 | Complete | 7 | 33 | 39 |
 | 9 | Complete | 10 | 50 | 50 |
+| 10 | Pending | 0 | 0 | 0 |
 
 ---
 
@@ -29,6 +30,7 @@
 - [x] [Phase 7: Architecture Audit & Optimization](#phase-7-architecture-audit-optimization)
 - [x] [Phase 8: Full Template System Migration](#phase-8-full-template-system-migration)
 - [x] [Phase 9: Workflow Redundancy Audit & Token Optimization](#phase-9-workflow-redundancy-audit-token-optimization)
+- [ ] [Phase 10: SQLite-Backed Artifact Store & Context Engine](#phase-10-sqlite-backed-artifact-store-context-engine)
 
 ---
 
@@ -203,3 +205,37 @@
 - All reference docs accurate and non-redundant
 
 **Dependencies:** Phase 8
+
+---
+
+## Phase 10: SQLite-Backed Artifact Store & Context Engine
+
+**Goal:** Replace the file-based artifact system with a SQLite-backed store that eliminates redundant file reads, provides targeted context retrieval via bash scripts, and adds task queue semantics for agent coordination. Transform compile-context.sh from a file-scanning token-heavy operation into SQL-powered targeted queries. Agents call lightweight bash scripts instead of reading entire JSONL files, reducing per-agent context overhead by 80-95%.
+
+**Requirements:**
+- Design SQLite schema covering all 40+ artifact types (plans, summaries, decisions, research, gaps, critique, code-review, test-plan, test-results, escalation, handoffs)
+- Build query scripts: get-task.sh, get-context.sh, get-phase.sh, get-summaries.sh, search-research.sh, check-phase-status.sh
+- Build write scripts: insert-task.sh, complete-task.sh, append-finding.sh, update-status.sh
+- Implement task queue semantics: next-task.sh (picks next unblocked task), next-review.sh (picks completed tasks for QA)
+- Migrate compile-context.sh from file-scanning to SQLite queries (populate DB on artifact creation, query for context compilation)
+- Update all agent prompts to call bash scripts instead of Read for artifact access
+- Wire SQLite task queue into go.md and execute-protocol.md for agent coordination
+- Add TOON output format for remaining eligible references/*.md files
+- Implement WAL mode with proper locking for parallel agent access (15+ concurrent agents)
+- Add FTS5 full-text search for research findings, decisions, and cross-phase knowledge retrieval
+- Add token measurement: before/after per agent per phase for validated savings
+- Eliminate ROADMAP.md triplication (parse once into DB, serve structured data to each role)
+- Fix Architect budget overflow (targeted queries return only phase goals, not full roadmap)
+
+**Success Criteria:**
+- All artifact read/write operations go through SQLite scripts (zero direct JSONL file reads by agents)
+- Per-agent context overhead reduced 80-95% (measured: Dev from 1,064 to ~75 tokens per plan read)
+- ROADMAP.md read once per phase, not 3x (11,811 tokens → 1,200 tokens)
+- Task queue functional: agents self-coordinate via next-task.sh/complete-task.sh
+- Architect receives full context within budget (no lossy truncation)
+- WAL mode handles 15+ concurrent agent reads/writes without contention
+- FTS5 search replaces file-based grep for cross-phase research lookup
+- Token measurement shows 50%+ reduction in total per-phase overhead vs Phase 9 baseline
+- All existing workflow functionality preserved (plan, execute, verify, archive)
+
+**Dependencies:** Phase 9

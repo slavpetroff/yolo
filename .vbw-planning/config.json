@@ -46,7 +46,7 @@
   "v2_hard_contracts": false,
   "v2_hard_gates": false,
   "v2_typed_protocol": false,
-  "v2_role_isolation": false,
+  "v2_role_isolation": true,
   "v2_two_phase_completion": false,
-  "v2_token_budgets": false
+  "v2_token_budgets": true
 }
