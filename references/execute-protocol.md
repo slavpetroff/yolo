@@ -774,7 +774,9 @@ If `config.approval_gates.manual_qa` is true AND QA step is not skipped per step
 
 4. **Non-blocking:** QA (Step 9) proceeds regardless of documenter status. Documentation is additive, not a gate.
 
-5. **EXIT GATE:** Artifact: `docs.jsonl` (valid JSONL, if produced). State: `steps.documentation = complete`. Commit: `chore(state): documentation complete phase {N}`.
+5. **Consume output:** After Documenter completes, read `{phase-dir}/docs.jsonl`. Extract any warnings (entries with `"sev":"warn"` or `"sev":"error"`). Store warning count for sign-off display. If docs.jsonl contains warnings, include them in Owner sign-off context (Step 11 artifact review).
+
+6. **EXIT GATE:** Artifact: `docs.jsonl` (valid JSONL, if produced). State: `steps.documentation = complete`. Commit: `chore(state): documentation complete phase {N}`.
 
 ### Step 10: Security Audit (optional — Per-Department Security Reviewers)
 
@@ -824,6 +826,7 @@ If `config.approval_gates.manual_qa` is true AND QA step is not skipped per step
    - code-review.jsonl: all approved? TDD compliance?
    - verification.jsonl: PASS or PARTIAL (with accepted gaps)?
    - qa-code.jsonl: PASS? TDD coverage?
+   - docs.jsonl (if produced): any warnings? Coverage gaps?
    - security-audit.jsonl: PASS or WARN?
 3. Decision:
    - All good → SHIP (mark phase complete)
@@ -851,6 +854,7 @@ If `config.approval_gates.manual_qa` is true AND QA step is not skipped per step
        Plans: {completed}/{total}  Effort: {profile}
        Code Review: {approve/changes}  QA: {PASS|PARTIAL|FAIL}
        TDD: {red_green|green_only|no_tests}
+       Docs: {complete|skipped|warnings:{N}}
        Security: {PASS|WARN|FAIL|skipped}
 
      Deviations: {count}

@@ -583,7 +583,7 @@ This mode delegates to protocol files. Before reading:
     DOC_SPAWN=$(echo "$GATE_RESULT" | jq -r '.spawn')
     ```
     If `spawn=false` (exit code 1): skip Step 8.5 entirely. Write skip status to .execution-state.json: `{"step":"documentation","status":"skipped","reason":"documenter config=$(jq -r '.documenter // "on_request"' .yolo-planning/config.json)"}`. Display: `○ Documentation skipped (config={value})`. Commit: `chore(state): documentation skipped phase {N}`.
-    If `spawn=true`: spawn yolo-documenter. Non-blocking — proceed to QA immediately.
+    If `spawn=true`: spawn yolo-documenter. Non-blocking — proceed to QA immediately. After Documenter completes, read `{phase-dir}/docs.jsonl` and extract any warnings (entries with `"sev":"warn"` or `"sev":"error"`). Include warning count in sign-off metrics. If warnings exist, include them in Owner sign-off context.
 
   - **Security step (Step 10):** Spawn yolo-security (BE-scoped). Single-dept mode always uses backend security reviewer only.
 
