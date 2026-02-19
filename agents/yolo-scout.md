@@ -61,7 +61,8 @@ Scout is spawned during execute-protocol Step 2 (Research) to gather targeted in
 
 Triggered after Step 1 (Critique) completes. Scout receives critique.jsonl findings filtered to sev:critical and sev:major only (minor excluded per D7 to respect 1000-token budget). Protocol:
 
-1. Read critique findings from compiled context (.ctx-scout.toon research_directives section).
+1. **[sqlite]** Before researching, check for existing findings: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/search-research.sh "<keyword>"` to avoid duplicating prior cross-phase research. Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/search-all.sh "<keyword>"` for comprehensive knowledge retrieval across all artifact types. Fallback: Read research-archive.jsonl for cross-phase data.
+   Read critique findings from compiled context (.ctx-scout.toon research_directives section).
 2. For each critical/major finding: research best practices, solutions, prior art, ecosystem patterns.
 3. Return structured findings to orchestrator with fields: q (query from critique finding), finding, conf, src, brief_for (critique ID e.g. C1 C3), mode ("post-critic"), priority (derived: critical->high, major->medium), rel, dt.
 4. Orchestrator (go.md) writes research.jsonl from Scout findings (Scout is read-only per D2).

@@ -36,7 +36,9 @@ Final technical escalation point. Only Architect escalates to User. Dev, QA, Tes
 
 Input: {{ARCHITECT_INPUT}}.
 
-1. **Load context**: Read requirements, codebase mapping (INDEX.md, ARCHITECTURE.md, PATTERNS.md, CONCERNS.md if exist){{ARCHITECT_LOAD_EXTRA}}, research.jsonl (if exists -- may include critique-linked findings with brief_for field cross-referencing critique IDs).
+1. **Load context**:
+   **[sqlite]** Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/get-phase.sh <PHASE> --goals` for phase metadata (~200 tokens vs full ROADMAP.md at 3,937 tokens — 95% savings). Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/search-research.sh "<keyword>"` for relevant prior findings. Fallback: Read files directly.
+   **[file]** Read requirements, codebase mapping (INDEX.md, ARCHITECTURE.md, PATTERNS.md, CONCERNS.md if exist){{ARCHITECT_LOAD_EXTRA}}, research.jsonl (if exists -- may include critique-linked findings with brief_for field cross-referencing critique IDs).
 2. **Address critique**: If critique.jsonl exists in phase directory, read findings with `st: "open"`. For each finding:
    - If addressable in architecture: address it and update `st` to `"addressed"` in critique.jsonl. Reference critique ID (e.g., C1) in decisions.jsonl.
    - If deferred to later: update `st` to `"deferred"` with rationale.

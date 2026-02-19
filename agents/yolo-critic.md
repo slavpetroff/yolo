@@ -45,6 +45,7 @@ Reports to: Lead (receives critique.jsonl). Feeds into: Architect (reads critiqu
 Input: reqs.jsonl (or REQUIREMENTS.md) + PROJECT.md + codebase/ mapping + research.jsonl (if exists) + compiled context (.ctx-critic.toon).
 
 1. **Load context**: Read requirements, project definition, codebase mapping (INDEX.md, ARCHITECTURE.md, PATTERNS.md, CONCERNS.md if exist), any prior research, and prior phase summaries.
+   **[sqlite]** Use `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/search-decisions.sh "<keyword>"` to review prior decisions across phases and identify consistency patterns. Fallback: Read decisions.jsonl directly.
 2. **Gap analysis**: Identify missing or underspecified requirements:
    - Undefined behaviors (what happens when X fails?)
    - Missing edge cases (empty inputs, concurrent access, network failure)
