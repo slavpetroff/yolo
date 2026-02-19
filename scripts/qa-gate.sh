@@ -709,17 +709,30 @@ gate_post_phase() {
     FAILURES+=("incomplete plans: $COMPLETE_PLANS/$TOTAL_PLANS complete")
   fi
 
-  # Gate validation via validate.sh --type gates
-  local VALIDATE_SH STEPS_PASSED=0 STEPS_FAILED=0
-  VALIDATE_SH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/validate.sh"
-  [ ! -x "$VALIDATE_SH" ] && VALIDATE_SH=""
+  # Gate validation: check PATH for validate-gates.sh first (supports test mocking),
+  # fall back to validate.sh --type gates in scripts dir
+  local _VALIDATE_CMD="" _VALIDATE_USE_TYPE=false
+  _VALIDATE_CMD=$(command -v validate-gates.sh 2>/dev/null) || _VALIDATE_CMD=""
+  if [ -z "$_VALIDATE_CMD" ] || ! [ -x "$_VALIDATE_CMD" ]; then
+    local _validate_sh_path
+    _validate_sh_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/validate.sh"
+    if [ -x "$_validate_sh_path" ]; then
+      _VALIDATE_CMD="$_validate_sh_path"
+      _VALIDATE_USE_TYPE=true
+    fi
+  fi
 
+  local STEPS_PASSED=0 STEPS_FAILED=0
   local STEPS=(critique research architecture planning design_review test_authoring implementation code_review qa security signoff)
 
-  if [ -n "$VALIDATE_SH" ]; then
+  if [ -n "$_VALIDATE_CMD" ] && [ -x "$_VALIDATE_CMD" ]; then
     for step in "${STEPS[@]}"; do
       local step_exit=0 result gate_status=""
-      result=$(bash "$VALIDATE_SH" --type gates --step "$step" --phase-dir "$PHASE_DIR" 2>/dev/null) || step_exit=$?
+      if [ "$_VALIDATE_USE_TYPE" = true ]; then
+        result=$(bash "$_VALIDATE_CMD" --type gates --step "$step" --phase-dir "$PHASE_DIR" 2>/dev/null) || step_exit=$?
+      else
+        result=$(bash "$_VALIDATE_CMD" --step "$step" --phase-dir "$PHASE_DIR" 2>/dev/null) || step_exit=$?
+      fi
       if [ -n "$result" ]; then
         gate_status=$(echo "$result" | jq -r '.gate // ""' 2>/dev/null) || gate_status=""
       fi
