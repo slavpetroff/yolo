@@ -1,1 +1,0 @@
-{"p":"04","n":"02","t":"QA help text and error remediation patterns","s":"complete","dt":"2026-02-17","tc":4,"tt":4,"ch":["d69e1b5","55c5ac8","e58af14","b167836"],"fm":["references/qa-help-text.md"],"dv":[],"built":["QA config option help text","Error remediation patterns","Gate progression messaging","Gate skip/override messaging"],"tst":"no_tests"}

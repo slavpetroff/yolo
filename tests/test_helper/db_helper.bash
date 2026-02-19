@@ -6,7 +6,7 @@
 mk_test_db() {
   export TEST_DB="$BATS_TEST_TMPDIR/test-$BATS_TEST_NUMBER.db"
   sqlite3 "$TEST_DB" < "$PROJECT_ROOT/scripts/db/schema.sql"
-  sqlite3 "$TEST_DB" "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;"
+  sqlite3 "$TEST_DB" "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;" >/dev/null
 }
 
 # Insert a plan into the test DB

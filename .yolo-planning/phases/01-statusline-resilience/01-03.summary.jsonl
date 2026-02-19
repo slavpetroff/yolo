@@ -1,1 +1,0 @@
-{"p":"01","n":"03","t":"Width-limited rendering tests","s":"complete","dt":"2026-02-18","tc":4,"tt":4,"ch":["01d4c9f","6cd9e47"],"fm":["tests/unit/yolo-statusline.bats"],"dv":[],"built":["7 visible_width/strip_ansi/strip_osc8_links unit tests","8 truncate_line/compute_bar_width unit tests","4 L3+L1 integration width tests","4 L2+L4+comprehensive width tests"],"tst":"green_only"}
