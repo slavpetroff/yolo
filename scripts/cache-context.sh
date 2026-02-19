@@ -27,12 +27,6 @@ if [ -n "$PLAN_PATH" ] && [ -f "$PLAN_PATH" ]; then
   HASH_INPUT="${HASH_INPUT}:plan=${PLAN_SUM}"
 fi
 
-# Config V3 flags (affect compilation behavior)
-if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
-  V3_FLAGS=$(jq -r '[.v3_delta_context // false, .v3_plan_research_persist // false, .v3_metrics // false] | join(",")' "$CONFIG_PATH" 2>/dev/null || echo "false,false,false")
-  HASH_INPUT="${HASH_INPUT}:flags=${V3_FLAGS}"
-fi
-
 # Changed files list (git diff for delta awareness)
 if command -v git &>/dev/null && git rev-parse --is-inside-work-tree &>/dev/null 2>&1; then
   CHANGED_SUM=$(git diff --name-only HEAD 2>/dev/null | sort | shasum -a 256 2>/dev/null | cut -d' ' -f1 || echo "nogit")

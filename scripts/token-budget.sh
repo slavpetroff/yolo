@@ -11,7 +11,7 @@ set -u
 #
 # Input: file path as arg, or stdin if no file.
 # Output: truncated content within budget (stdout).
-# Logs overage to metrics when v3_metrics=true.
+# Logs overage to metrics (v3_metrics graduated).
 # Exit: 0 always (budget enforcement must never block).
 
 PLANNING_DIR=".vbw-planning"
@@ -148,13 +148,8 @@ case "$STRATEGY" in
     ;;
 esac
 
-# Log overage to metrics
-METRICS_ENABLED=false
-if [ -f "$CONFIG_PATH" ]; then
-  METRICS_ENABLED=$(jq -r '.v3_metrics // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
-fi
-
-if [ "$METRICS_ENABLED" = "true" ] && [ -f "${SCRIPT_DIR}/collect-metrics.sh" ]; then
+# Log overage to metrics (v3_metrics graduated)
+if [ -f "${SCRIPT_DIR}/collect-metrics.sh" ]; then
   bash "${SCRIPT_DIR}/collect-metrics.sh" token_overage 0 \
     "role=${ROLE}" "chars_total=${CHAR_COUNT}" "chars_max=${MAX_CHARS}" \
     "chars_truncated=${OVERAGE}" "budget_source=${BUDGET_SOURCE}" 2>/dev/null || true

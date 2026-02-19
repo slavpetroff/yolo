@@ -15,15 +15,6 @@ fi
 
 PHASE_DIR="$1"
 
-PLANNING_DIR=".vbw-planning"
-CONFIG_PATH="${PLANNING_DIR}/config.json"
-
-# Check feature flag
-if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
-  ENABLED=$(jq -r '.v3_monorepo_routing // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
-  [ "$ENABLED" != "true" ] && { echo "[]"; exit 0; }
-fi
-
 command -v jq &>/dev/null || { echo "[]"; exit 0; }
 [ ! -d "$PHASE_DIR" ] && { echo "[]"; exit 0; }
 

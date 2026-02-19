@@ -96,14 +96,9 @@ CACHE_HASH=""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_PATH="${PLANNING_DIR}/config.json"
 
-V3_DELTA_ENABLED=false
-V3_METRICS_ENABLED=false
+V3_DELTA_ENABLED=true
+V3_METRICS_ENABLED=true
 START_TIME=""
-
-if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
-  V3_DELTA_ENABLED=$(jq -r '.v3_delta_context // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
-  V3_METRICS_ENABLED=$(jq -r '.v3_metrics // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
-fi
 
 V3_ROLLING_SUMMARY=false
 if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
