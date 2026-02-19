@@ -15,9 +15,9 @@ setup() {
   assert_success
 }
 
-@test "go.md sets db_available flag" {
+@test "go.md does not use db_available flag (DB is mandatory)" {
   run grep 'db_available' "$GO_MD"
-  assert_success
+  assert_failure
 }
 
 @test "go.md imports existing plan.jsonl via import-jsonl.sh" {
@@ -25,9 +25,9 @@ setup() {
   assert_success
 }
 
-@test "go.md backward compatible when init-db.sh not found" {
+@test "go.md requires init-db.sh (no backward-compat fallback)" {
   run grep 'db_available=false' "$GO_MD"
-  assert_success
+  assert_failure
 }
 
 # --- T2: Task queue in execute-protocol.md Step 7 ---
@@ -52,9 +52,9 @@ setup() {
   assert_success
 }
 
-@test "execute-protocol.md preserves file-based path" {
+@test "execute-protocol.md has no [file] fallback markers" {
   run grep '\[file\]' "$EXEC_PROTO"
-  assert_success
+  assert_failure
 }
 
 # --- T3: Phase status in go.md ---
@@ -71,7 +71,7 @@ setup() {
   assert_success
 }
 
-@test "execute-protocol.md references import-jsonl.sh for dual-write" {
+@test "execute-protocol.md references import-jsonl.sh for DB import" {
   run grep 'import-jsonl.sh' "$EXEC_PROTO"
   assert_success
 }
@@ -90,12 +90,10 @@ setup() {
 
 # --- Backward compatibility ---
 
-@test "go.md db_available gates all DB operations" {
-  # Every DB operation should be gated by db_available check
-  local db_refs
-  db_refs=$(grep -c 'db_available' "$GO_MD")
-  # At minimum: initialization + status check + flag setting
-  [[ "$db_refs" -ge 3 ]]
+@test "go.md DB operations are unconditional (no db_available gating)" {
+  # DB operations should not be gated by db_available -- DB is mandatory
+  run grep -c 'db_available' "$GO_MD"
+  assert_failure
 }
 
 @test "execute-protocol.md preserves existing file-based workflow" {

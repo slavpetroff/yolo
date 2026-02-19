@@ -325,7 +325,7 @@ mk_yolo_db() {
   sqlite3 "$TEST_WORKDIR/.yolo-planning/yolo.db" "PRAGMA journal_mode=WAL;" >/dev/null
 }
 
-@test "dual-write: plan write imports to DB when yolo.db exists" {
+@test "DB sync: plan write imports to DB when yolo.db exists" {
   mk_state_md 1 2
   mk_yolo_db
 
@@ -341,7 +341,7 @@ mk_yolo_db() {
   [ "$plan_count" -ge 1 ]
 }
 
-@test "dual-write: summary write imports to DB when yolo.db exists" {
+@test "DB sync: summary write imports to DB when yolo.db exists" {
   mk_state_md 1 2
   mk_state_json 1 2 "executing"
   mk_execution_state "01" "01-01"
@@ -365,13 +365,13 @@ mk_yolo_db() {
   [ "$summary_count" -ge 1 ]
 }
 
-@test "dual-write: works without DB (backward compatible)" {
+@test "DB sync: plan write succeeds without yolo.db (state-updater is fail-open)" {
   mk_state_md 1 2
 
   local dir
   dir=$(mk_phase_plans_only 1 setup 1)
 
-  # No yolo.db created — should still work
+  # No yolo.db created — state-updater still updates STATE.md (DB import is optional)
   local plan_file="$dir/01-01.plan.jsonl"
   run_updater "$plan_file"
   assert_success

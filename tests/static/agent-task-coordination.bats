@@ -199,7 +199,7 @@ setup() {
   assert_success
 }
 
-@test "all DB-aware agents have backward-compatible fallback" {
+@test "all DB-aware agents use DB-only path (no fallback markers)" {
   local DB_AGENTS=(
     yolo-dev.md yolo-fe-dev.md yolo-ux-dev.md
     yolo-lead.md yolo-fe-lead.md yolo-ux-lead.md
@@ -209,9 +209,8 @@ setup() {
     yolo-architect.md yolo-fe-architect.md yolo-ux-architect.md
   )
   for agent in "${DB_AGENTS[@]}"; do
-    run grep -c '\[sqlite\]' "$AGENTS_DIR/$agent"
-    [[ $status -eq 0 ]] || fail "Missing [sqlite] block in $agent"
-    [[ "$output" -ge 1 ]] || fail "Zero [sqlite] blocks in $agent"
+    run grep -c '\[sqlite\]\|\[file\]' "$AGENTS_DIR/$agent"
+    [[ $status -ne 0 ]] || fail "Found legacy [sqlite]/[file] markers in $agent"
   done
 }
 
