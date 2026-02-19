@@ -23,7 +23,7 @@ fi
 PHASE="$1"
 ROLE="$2"
 PHASES_DIR="${3:-.yolo-planning/phases}"
-PLANNING_DIR=".yolo-planning"
+PLANNING_DIR=$(dirname "$PHASES_DIR")
 PLAN_PATH="${4:-}"
 
 # --- Extract department and base role from role name ---
