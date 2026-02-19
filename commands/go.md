@@ -508,6 +508,14 @@ This mode delegates to protocol files. Before reading:
 
    This gate applies to BOTH single-department and multi-department execution below. When team_mode=teammate in single-department mode: Lead creates one team (yolo-backend) and spawns all non-shared agents as teammates within it. When team_mode=teammate in multi-department mode: each Lead creates one team per active department (yolo-backend, yolo-frontend, yolo-uiux). The orchestrator (go.md) never calls TeamCreate directly.
 
+5.5. **Effort level cascading (MANDATORY for ALL agent spawns):**
+
+   When spawning ANY agent (via Task tool or SendMessage), include in the prompt:
+   ```
+   effort_level={level}. Effort level controls step skipping (handled by orchestrator), not agent quality. Execute your role at full quality.
+   ```
+   Where `{level}` is the resolved effort (turbo/fast/balanced/thorough). This ensures every downstream agent knows the active effort level for context-aware decisions (e.g., Scout limiting sources at fast, QA adjusting tier depth) while executing at full quality.
+
 6. **Escalation from Agents:**
 
    When an escalation reaches the top of the chain (Architect in single-dept, Owner in multi-dept), go.md intercepts and presents to the user:
