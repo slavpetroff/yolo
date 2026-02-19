@@ -447,6 +447,42 @@ Gate decision:
 
 1. Update execution state: `"step": "implementation"`
 2. Compile context: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} dev {phases_dir} {plan_path}`
+2.5. **[sqlite] Task queue ingestion (when `db_available=true`):**
+
+   Before dispatching Devs, ingest all plan tasks into the SQLite task queue. This replaces plan.jsonl parsing for task assignment.
+
+   ```bash
+   # Lead ingests plan tasks into DB task queue
+   DB_PATH=".vbw-planning/yolo.db"
+   for plan in "${PHASE_DIR}"/*.plan.jsonl; do
+     [ -f "$plan" ] || continue
+     PLAN_ID=$(jq -r '.p + "-" + .n' "$plan" | head -1)
+     # Skip header (line 1), process task lines
+     tail -n +2 "$plan" | while IFS= read -r task_line; do
+       TASK_ID=$(echo "$task_line" | jq -r '.id')
+       ACTION=$(echo "$task_line" | jq -r '.a // ""')
+       SPEC=$(echo "$task_line" | jq -r '.spec // ""')
+       FILES=$(echo "$task_line" | jq -r '.f // [] | join(",")')
+       DONE=$(echo "$task_line" | jq -r '.done // ""')
+       VERIFY=$(echo "$task_line" | jq -r '.v // ""')
+       TEST_SPEC=$(echo "$task_line" | jq -r '.ts // ""')
+       DEPS=$(echo "$task_line" | jq -r '.td // [] | join(",")')
+       bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/insert-task.sh" \
+         --plan "$PLAN_ID" --id "$TASK_ID" --action "$ACTION" \
+         --spec "$SPEC" --files "$FILES" --done "$DONE" --verify "$VERIFY" \
+         --test-spec "$TEST_SPEC" --deps "$DEPS" --db "$DB_PATH"
+     done
+   done
+   ```
+
+   **[sqlite] Dev task retrieval (replaces plan.jsonl parsing):**
+   - Dev calls `next-task.sh` to self-assign: `bash scripts/db/next-task.sh --db "$DB_PATH"` -- returns exactly 1 unblocked pending task in TOON format.
+   - Lead uses `claim-task.sh` for explicit assignment: `bash scripts/db/claim-task.sh --plan "$PLAN_ID" --task "$TASK_ID" --agent "dev" --db "$DB_PATH"`.
+   - Dev calls `complete-task.sh` after each task: `bash scripts/db/complete-task.sh "$TASK_ID" --plan "$PLAN_ID" --files "$FILES_WRITTEN" --summary "$SUMMARY" --db "$DB_PATH"`.
+   - Senior calls `next-review.sh` to find completed tasks needing review: `bash scripts/db/next-review.sh --plan "$PLAN_ID" --db "$DB_PATH"`.
+
+   **[file] File-based path (when `db_available=false`):** Existing plan.jsonl parsing behavior preserved unchanged. Dev reads plan.jsonl directly, manually tracks task completion via summary.jsonl writes. This is the default path for installations without the SQLite artifact store.
+
 3. **Task Creation and Dev Dispatch:**
 
    **When team_mode=teammate:**
