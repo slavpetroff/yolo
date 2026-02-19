@@ -675,3 +675,73 @@ User feedback routed to PO after delivery presentation. Orchestrator captures us
 | `scope_ref` | string | Scope document version for context |
 
 PO processes `feedback_response` to determine next action: approve -> finalize delivery, request_changes -> produce `patch_request`, reject -> produce `major_rejection`.
+
+## Cross-Phase Handoff Artifacts
+
+### `phase-handoff.jsonl` (Phase Transition Data)
+
+**Location:** `.yolo-planning/phases/{NN}-{slug}/phase-handoff.jsonl`
+
+Written by the orchestrator at phase completion. Captures key outputs, decisions, and open items for the next phase to consume. Enables resumable phase transitions.
+
+```json
+{
+  "type": "phase_handoff",
+  "from_phase": "03",
+  "to_phase": "04",
+  "dt": "2026-02-19T08:00:00Z",
+  "decisions": ["Use JWT RS256 for auth", "PostgreSQL over MongoDB"],
+  "open_items": ["SSO integration deferred to Phase 5"],
+  "artifacts": ["architecture.toon", "03-01.summary.jsonl", "03-02.summary.jsonl"],
+  "research_refs": ["research-archive.jsonl entries 12-18"],
+  "escalations_resolved": 1,
+  "escalations_pending": 0
+}
+```
+
+| Key | Full Name | Type |
+|-----|-----------|------|
+| `type` | handoff type | "phase_handoff" |
+| `from_phase` | source phase | string (e.g. "03") |
+| `to_phase` | target phase | string (e.g. "04") |
+| `dt` | timestamp | string (ISO 8601) |
+| `decisions` | key decisions carried forward | string[] |
+| `open_items` | deferred/unresolved items | string[] |
+| `artifacts` | produced artifact filenames | string[] |
+| `research_refs` | research archive references | string[] |
+| `escalations_resolved` | resolved escalation count | number |
+| `escalations_pending` | pending escalation count | number |
+
+The orchestrator writes this after all plans in a phase are complete and before advancing to the next phase. The next phase's Critic (Step 1) and Architect (Step 3) receive `phase-handoff.jsonl` from the previous phase as additional context.
+
+### `dept-handoff.jsonl` (Cross-Department Coordination)
+
+**Location:** `.yolo-planning/phases/{NN}-{slug}/dept-handoff.jsonl`
+
+Written by department Leads during multi-department execution. Captures artifacts and contracts produced by one department that another department depends on. Replaces implicit file-based coordination with explicit structured handoffs.
+
+```json
+{
+  "type": "dept_handoff",
+  "from_dept": "uiux",
+  "to_dept": "frontend",
+  "dt": "2026-02-19T09:00:00Z",
+  "artifacts": ["design-tokens.jsonl", "component-specs.jsonl", "user-flows.jsonl"],
+  "contracts": [{"name": "Button component", "spec": "component-specs.jsonl#btn-01"}],
+  "blockers": [],
+  "notes": "Design tokens finalized, all component specs reviewed by UX Senior"
+}
+```
+
+| Key | Full Name | Type |
+|-----|-----------|------|
+| `type` | handoff type | "dept_handoff" |
+| `from_dept` | source department | "backend"\|"frontend"\|"uiux" |
+| `to_dept` | target department | "backend"\|"frontend"\|"uiux" |
+| `dt` | timestamp | string (ISO 8601) |
+| `artifacts` | shared artifact filenames | string[] |
+| `contracts` | API/component contracts | object[] `{name, spec}` |
+| `blockers` | unresolved blockers | string[] |
+| `notes` | Lead commentary | string |
+
+**Flow:** UX Lead writes `dept-handoff.jsonl` after UX workflow completes (design-handoff gate). FE Lead and BE Lead receive this as input. Integration Gate Agent validates that all `contracts` entries are satisfied by receiving departments. If `blockers` is non-empty, Integration Gate flags as FAIL.
