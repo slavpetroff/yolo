@@ -1,5 +1,6 @@
 {
   "_doc": "Defines which conceptual sections each workflow mode includes. Used by generate-agent.sh --mode flag to filter agent prompts. Section names here are semantic categories -- actual markers in templates use <!-- mode:X,Y,Z --> with mode names from this file.",
+  "_deprecated": "This file is maintained for backward compatibility. Canonical mode profiles are in config/defaults.json under the mode_profiles key. generate-agent.sh reads defaults.json first, falls back to this file.",
   "modes": {
     "plan": {
       "description": "Planning and decomposition workflow step",
