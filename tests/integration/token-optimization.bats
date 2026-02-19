@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # token-optimization.bats -- Integration tests for Phase 3 token optimization pipeline
-# Tests the full chain: validate-plan, validate-gates, generate-execution-state,
+# Tests the full chain: validate.sh --type plan, validate-gates, generate-execution-state,
 # compile-context with packages, resolve-tool-permissions.
 # Scripts from 03-01/03-03 guarded with skip when not present.
 
@@ -11,7 +11,7 @@ setup() {
   mk_test_workdir
 
   # Set script paths
-  VALIDATE_PLAN="$SCRIPTS_DIR/validate-plan.sh"
+  VALIDATE_PLAN="$SCRIPTS_DIR/validate.sh"
   VALIDATE_GATES="$SCRIPTS_DIR/validate-gates.sh"
   GEN_STATE="$SCRIPTS_DIR/generate-execution-state.sh"
   COMPILE_CTX="$SCRIPTS_DIR/compile-context.sh"
@@ -68,27 +68,27 @@ run_from_workdir() {
   run bash -c "cd '$TEST_WORKDIR' && $*"
 }
 
-# --- Test 1: validate-plan.sh accepts valid plan ---
+# --- Test 1: validate.sh --type plan accepts valid plan ---
 
-@test "validate-plan.sh accepts valid plan" {
-  [ -f "$VALIDATE_PLAN" ] || skip "validate-plan.sh not yet built (03-01 dependency)"
+@test "validate.sh --type plan accepts valid plan" {
+  [ -f "$VALIDATE_PLAN" ] || skip "validate.sh not yet built (03-01 dependency)"
   # Create a fully valid plan with all required keys
   local full_plan="$TEST_WORKDIR/.yolo-planning/phases/01-setup/01-02.plan.jsonl"
   cat > "$full_plan" <<'PLAN'
 {"p":"01","n":"02","t":"Full plan","w":1,"d":[],"xd":[],"mh":{"tr":["it works"]},"obj":"Test","sk":[],"fm":["src/a.ts"],"auto":true}
 {"id":"T1","tp":"auto","a":"Do thing","f":["src/a.ts"],"v":"test passes","done":"file exists","spec":"Create file"}
 PLAN
-  run_from_workdir bash "$VALIDATE_PLAN" "$full_plan"
+  run_from_workdir bash "$VALIDATE_PLAN" --type plan "$full_plan"
   assert_success
   echo "$output" | jq -r '.valid' | grep -q 'true'
 }
 
-# --- Test 2: validate-plan.sh rejects invalid plan ---
+# --- Test 2: validate.sh --type plan rejects invalid plan ---
 
-@test "validate-plan.sh rejects invalid plan" {
-  [ -f "$VALIDATE_PLAN" ] || skip "validate-plan.sh not yet built (03-01 dependency)"
+@test "validate.sh --type plan rejects invalid plan" {
+  [ -f "$VALIDATE_PLAN" ] || skip "validate.sh not yet built (03-01 dependency)"
   echo '{"bad":true}' > "$TEST_WORKDIR/invalid.plan.jsonl"
-  run_from_workdir bash "$VALIDATE_PLAN" "$TEST_WORKDIR/invalid.plan.jsonl"
+  run_from_workdir bash "$VALIDATE_PLAN" --type plan "$TEST_WORKDIR/invalid.plan.jsonl"
   assert_failure
 }
 

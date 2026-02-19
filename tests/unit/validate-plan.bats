@@ -1,12 +1,13 @@
 #!/usr/bin/env bats
-# validate-plan.bats — Unit tests for scripts/validate-plan.sh
+# validate-plan.bats — Unit tests for validate.sh --type plan
 # Validates plan.jsonl structure: header keys, task keys, circular deps, paths.
+# Note: validate-plan.sh was consolidated into validate.sh --type plan
 
 setup() {
   load '../test_helper/common'
   load '../test_helper/fixtures'
   mk_test_workdir
-  SUT="$SCRIPTS_DIR/validate-plan.sh"
+  SUT="$SCRIPTS_DIR/validate.sh"
 }
 
 # Helper: create a valid plan.jsonl with header + 2 tasks
@@ -23,7 +24,7 @@ JSONL
 @test "valid plan passes validation" {
   local plan_file
   plan_file=$(mk_valid_plan)
-  run bash "$SUT" "$plan_file"
+  run bash "$SUT" --type plan "$plan_file"
   assert_success
   local valid
   valid=$(echo "$output" | jq -r '.valid')
@@ -39,7 +40,7 @@ JSONL
 {"n":"01","t":"Test","w":1,"d":[],"mh":{},"obj":"Test"}
 {"id":"T1","tp":"auto","a":"test","f":["src/a.sh"],"v":"ok","done":"ok"}
 JSONL
-  run bash "$SUT" "$file"
+  run bash "$SUT" --type plan "$file"
   assert_failure
   assert_output --partial "missing required key"
 }
@@ -50,7 +51,7 @@ JSONL
 {"p":"03","n":"01","t":"Test","w":1,"d":[],"mh":{},"obj":"Test"}
 {"tp":"auto","a":"test","f":["src/a.sh"],"v":"ok","done":"ok"}
 JSONL
-  run bash "$SUT" "$file"
+  run bash "$SUT" --type plan "$file"
   assert_failure
   assert_output --partial "missing required key: id"
 }
@@ -61,7 +62,7 @@ JSONL
 {"p":"03","n":"01","t":"Test","w":1,"d":["03-01"],"mh":{},"obj":"Test"}
 {"id":"T1","tp":"auto","a":"test","f":["src/a.sh"],"v":"ok","done":"ok"}
 JSONL
-  run bash "$SUT" "$file"
+  run bash "$SUT" --type plan "$file"
   assert_failure
   assert_output --partial "Circular dependency"
 }
@@ -72,7 +73,7 @@ JSONL
 {"p":"03","n":"01","t":"Test","w":1,"d":[],"mh":{},"obj":"Test"}
 {"id":"T1","tp":"auto","a":"test","f":["/usr/local/bin/foo"],"v":"ok","done":"ok"}
 JSONL
-  run bash "$SUT" "$file"
+  run bash "$SUT" --type plan "$file"
   assert_failure
   assert_output --partial "absolute path"
 }
@@ -80,14 +81,14 @@ JSONL
 @test "empty file fails" {
   local file="$TEST_WORKDIR/empty.jsonl"
   touch "$file"
-  run bash "$SUT" "$file"
+  run bash "$SUT" --type plan "$file"
   assert_failure
 }
 
 @test "non-JSON content fails" {
   local file="$TEST_WORKDIR/nonjson.jsonl"
   echo "this is not json" > "$file"
-  run bash "$SUT" "$file"
+  run bash "$SUT" --type plan "$file"
   assert_failure
 }
 
@@ -96,55 +97,53 @@ JSONL
   cat > "$file" <<'JSONL'
 {"p":"03","n":"01","t":"Test","w":1,"d":[],"mh":{},"obj":"Test"}
 JSONL
-  run bash "$SUT" "$file"
+  run bash "$SUT" --type plan "$file"
   assert_success
   local valid
   valid=$(echo "$output" | jq -r '.valid')
   [ "$valid" = "true" ]
 }
 
-# --- Integration tests: validate-plan.sh + validate-naming.sh ---
+# --- Integration tests: validate.sh --type plan + naming validation ---
 
-@test "validate-plan.sh still passes valid plan after naming integration" {
+@test "validate.sh --type plan still passes valid plan after naming integration" {
   local plan_file
   plan_file=$(mk_valid_plan)
-  run bash "$SUT" "$plan_file"
+  run bash "$SUT" --type plan "$plan_file"
   assert_success
 }
 
-@test "validate-plan.sh catches compound p field via naming validation" {
+@test "validate.sh --type plan catches compound p field via naming validation" {
   local file="$TEST_WORKDIR/01-01.plan.jsonl"
   cat > "$file" <<'JSONL'
 {"p":"01-01","n":"01","t":"Test Plan","w":1,"d":[],"mh":{"tr":["test"],"ar":[],"kl":[]},"obj":"Test"}
 {"id":"T1","tp":"auto","a":"test","f":["src/a.sh"],"v":"ok","done":"ok"}
 JSONL
-  run bash "$SUT" "$file"
+  run bash "$SUT" --type plan "$file"
   assert_failure
   assert_output --partial 'Naming:'
   assert_output --partial 'compound'
 }
 
-@test "validate-plan.sh catches title in n field via naming validation" {
+@test "validate.sh --type plan catches title in n field via naming validation" {
   local file="$TEST_WORKDIR/01-01.plan.jsonl"
   cat > "$file" <<'JSONL'
 {"p":"01","n":"Create auth","t":"Test Plan","w":1,"d":[],"mh":{"tr":["test"],"ar":[],"kl":[]},"obj":"Test"}
 {"id":"T1","tp":"auto","a":"test","f":["src/a.sh"],"v":"ok","done":"ok"}
 JSONL
-  run bash "$SUT" "$file"
+  run bash "$SUT" --type plan "$file"
   assert_failure
   assert_output --partial 'Naming:'
 }
 
-@test "validate-plan.sh works when validate-naming.sh does not exist" {
-  # Temporarily make validate-naming.sh non-executable
-  local naming_script="$SCRIPTS_DIR/validate-naming.sh"
-  local orig_perms
-  orig_perms=$(stat -f '%Lp' "$naming_script" 2>/dev/null || stat -c '%a' "$naming_script" 2>/dev/null)
-  chmod -x "$naming_script"
+@test "validate.sh --type plan includes naming validation by default" {
+  # Naming validation is now bundled in validate.sh (no separate script)
+  # Verify a valid plan passes both structural and naming checks
   local plan_file
   plan_file=$(mk_valid_plan)
-  run bash "$SUT" "$plan_file"
-  # Restore permissions
-  chmod +x "$naming_script"
+  run bash "$SUT" --type plan "$plan_file"
   assert_success
+  local valid
+  valid=$(echo "$output" | jq -r '.valid')
+  [ "$valid" = "true" ]
 }
