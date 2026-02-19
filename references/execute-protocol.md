@@ -175,7 +175,8 @@ For each uncompleted plan, TaskCreate:
 subject: "Execute {NN-MM}: {plan-title}"
 description: |
   Execute all tasks in {PLAN_PATH}.
-  Effort: {DEV_EFFORT}. Working directory: {pwd}.
+  Effort: {DEV_EFFORT}. Working directory: {worktree_path (from execution-state.json for this plan) if worktree_isolation is enabled and worktree_path is set, else {pwd}}.
+  {If worktree_isolation enabled and WTARGET non-empty: "Worktree targeting: {WTARGET}"}
   Model: ${DEV_MODEL}
   Phase context: {phase-dir}/.context-dev.md (if compiled)
   If `.vbw-planning/codebase/META.md` exists, read CONVENTIONS.md, PATTERNS.md, STRUCTURE.md, and DEPENDENCIES.md (whichever exist) from `.vbw-planning/codebase/` to bootstrap codebase understanding before executing.
