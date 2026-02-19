@@ -2,7 +2,7 @@
 
 **Goal:** YOLO — Your Own Local Orchestrator
 
-**Scope:** 8 phases
+**Scope:** 9 phases
 
 ## Progress
 | Phase | Status | Plans | Tasks | Commits |
@@ -14,7 +14,8 @@
 | 5 | Complete | 6 | 23 | 24 |
 | 6 | Complete | 6 | 26 | 22 |
 | 7 | Complete | 6 | 28 | 28 |
-| 8 | Pending | 0 | 0 | 0 |
+| 8 | Complete | 7 | 33 | 39 |
+| 9 | Pending | 0 | 0 | 0 |
 
 ---
 
@@ -26,7 +27,8 @@
 - [x] [Phase 5: Integration & Delivery Pipeline](#phase-5-integration-delivery-pipeline)
 - [x] [Phase 6: Migration & Token Optimization](#phase-6-migration-token-optimization)
 - [x] [Phase 7: Architecture Audit & Optimization](#phase-7-architecture-audit-optimization)
-- [ ] [Phase 8: Full Template System Migration](#phase-8-full-template-system-migration)
+- [x] [Phase 8: Full Template System Migration](#phase-8-full-template-system-migration)
+- [ ] [Phase 9: Workflow Redundancy Audit & Token Optimization](#phase-9-workflow-redundancy-audit-token-optimization)
 
 ---
 
@@ -167,3 +169,37 @@
 - Existing tests pass with generated agents (no behavioral regression)
 
 **Dependencies:** Phase 7
+
+---
+
+## Phase 9: Workflow Redundancy Audit & Token Optimization
+
+**Goal:** Comprehensive audit and optimization of the YOLO engine for token efficiency, workflow redundancy elimination, and architecture clarity. Identify and remove redundant agents/flows, ensure every agent persona serves a distinct quality role, optimize script utilization for minimal context propagation via files (resumable on failure), cascade effort levels to all downstream agents, and create Mermaid architecture diagrams documenting the full design and flow for ongoing audit capability.
+
+**Requirements:**
+- Audit all ~38 agents for overlapping responsibilities and eliminate redundancy (QA/QA-Code secret scanning overlap, Critic/Scout role bleed, Architect/Lead authority overlap)
+- Audit all ~80 scripts for duplicated logic and consolidate (validate-*.sh → single validator, dept-*.sh → single dept-state, route-*.sh → single router, qa-gate-*.sh → single gate)
+- Enforce context budgets in compile-context.sh (invoke --measure from go.md, trim when over budget)
+- Implement YOLO_AGENT_MODE in go.md (set env var before agent spawn for per-step template filtering)
+- Cascade effort level to all downstream agents (not just Lead)
+- Fix Documenter spawning to respect config enum (on_request/always/never), ensure output is consumed
+- Consolidate config sources (defaults.json + mode-profiles.json) and fix inconsistencies
+- Add cross-phase research persistence (research-archive.jsonl) to avoid re-research
+- Add explicit multi-department handoff artifacts
+- Persist escalation state for pause/resume
+- Create comprehensive Mermaid architecture diagram (docs/ARCHITECTURE.md) documenting full agent hierarchy, workflow steps, data flow, department interactions, and decision points
+- Audit all references/ docs for accuracy and remove outdated content
+- Verify context-manifest.json completeness and add validation
+
+**Success Criteria:**
+- Agent redundancy eliminated: clear non-overlap matrix for all agent pairs (QA vs QA-Code, Critic vs Scout, etc.)
+- Script count reduced by 30%+ through consolidation
+- Context budgets enforced and measurable (--measure invoked per agent spawn)
+- YOLO_AGENT_MODE functional (templates filtered per workflow step, 30% context reduction)
+- Effort level cascades to all agents (turbo → turbo for Lead, Senior, Dev, QA)
+- Mermaid architecture diagram exists with full workflow, agent hierarchy, and data flow
+- All config sources consolidated with documented precedence
+- Cross-phase research persistence eliminates redundant Scout invocations
+- All reference docs accurate and non-redundant
+
+**Dependencies:** Phase 8
