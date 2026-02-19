@@ -256,3 +256,144 @@ CREATE TABLE IF NOT EXISTS qa_gate_results (
     phase   TEXT NOT NULL,
     created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
+
+-- ============================================================
+-- Cross-Department and State Tables (T3)
+-- ============================================================
+
+-- Design tokens (design-tokens.jsonl, from UI/UX)
+CREATE TABLE IF NOT EXISTS design_tokens (
+    rowid   INTEGER PRIMARY KEY,
+    cat     TEXT,                   -- color, typography, spacing, elevation, motion
+    name    TEXT,                   -- token name
+    val     TEXT,                   -- CSS value
+    sem     TEXT,                   -- semantic usage context
+    dk      TEXT,                   -- dark mode value
+    phase   TEXT NOT NULL,
+    created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+-- Component specs (component-specs.jsonl, from UI/UX)
+CREATE TABLE IF NOT EXISTS component_specs (
+    rowid   INTEGER PRIMARY KEY,
+    name    TEXT,                   -- component identifier
+    desc    TEXT,                   -- purpose
+    states  TEXT,                   -- JSON array of interaction states
+    props   TEXT,                   -- JSON array of props
+    tokens  TEXT,                   -- JSON array of token references
+    a11y    TEXT,                   -- JSON object: ARIA role, keyboard nav
+    status  TEXT DEFAULT 'draft',  -- ready, draft, deferred
+    phase   TEXT NOT NULL,
+    created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+-- User flows (user-flows.jsonl, from UI/UX)
+CREATE TABLE IF NOT EXISTS user_flows (
+    rowid      INTEGER PRIMARY KEY,
+    id         TEXT NOT NULL,       -- UF-NN
+    name       TEXT,
+    steps      TEXT,                -- JSON array of step sequence
+    err        TEXT,                -- JSON array of error conditions
+    entry      TEXT,                -- entry point URL/state
+    exit_point TEXT,                -- success destination
+    phase      TEXT NOT NULL,
+    created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+-- Design handoff (design-handoff.jsonl, UX -> Frontend)
+CREATE TABLE IF NOT EXISTS design_handoff (
+    rowid     INTEGER PRIMARY KEY,
+    component TEXT,
+    status    TEXT,
+    tokens    TEXT,                 -- JSON array
+    phase     TEXT NOT NULL,
+    created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+-- API contracts (api-contracts.jsonl, Frontend <-> Backend)
+CREATE TABLE IF NOT EXISTS api_contracts (
+    rowid    INTEGER PRIMARY KEY,
+    endpoint TEXT,
+    method   TEXT,
+    status   TEXT,                  -- proposed, agreed, implemented
+    dept     TEXT,                  -- department
+    phase    TEXT NOT NULL,
+    created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+-- PO Q&A verdict (po-qa-verdict.jsonl)
+CREATE TABLE IF NOT EXISTS po_qa_verdict (
+    rowid       INTEGER PRIMARY KEY,
+    r           TEXT,               -- accept, patch, major
+    phase_id    TEXT,
+    scope_match TEXT,               -- full, partial, misaligned
+    findings    TEXT,               -- JSON array
+    action      TEXT,
+    dt          TEXT,
+    created_at  TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+-- Manual QA (manual-qa.jsonl)
+CREATE TABLE IF NOT EXISTS manual_qa (
+    rowid   INTEGER PRIMARY KEY,
+    r       TEXT,                   -- PASS, FAIL, PARTIAL
+    tests   TEXT,                   -- JSON array of test entries
+    dt      TEXT,
+    phase   TEXT NOT NULL,
+    created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+-- Workflow state (state.json)
+CREATE TABLE IF NOT EXISTS state (
+    rowid   INTEGER PRIMARY KEY,
+    ms      TEXT,                   -- milestone
+    ph      INTEGER,               -- current phase
+    tt      INTEGER,               -- total phases
+    st      TEXT,                   -- planning, executing, verifying, complete
+    step    TEXT,                   -- workflow step
+    pr      INTEGER DEFAULT 0,     -- progress 0-100
+    started TEXT,                   -- start date
+    updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+-- Execution state (.execution-state.json)
+CREATE TABLE IF NOT EXISTS execution_state (
+    rowid        INTEGER PRIMARY KEY,
+    phase        TEXT NOT NULL,
+    step         TEXT,
+    status       TEXT,
+    started_at   TEXT,
+    completed_at TEXT,
+    updated_at   TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+-- ============================================================
+-- Indexes (T3)
+-- ============================================================
+
+-- Phase-scoped indexes for all per-phase tables
+CREATE INDEX IF NOT EXISTS idx_critique_phase ON critique(phase);
+CREATE INDEX IF NOT EXISTS idx_research_phase ON research(phase);
+CREATE INDEX IF NOT EXISTS idx_decisions_phase ON decisions(phase);
+CREATE INDEX IF NOT EXISTS idx_escalation_phase ON escalation(phase);
+CREATE INDEX IF NOT EXISTS idx_gaps_phase ON gaps(phase);
+CREATE INDEX IF NOT EXISTS idx_verification_phase ON verification(phase);
+CREATE INDEX IF NOT EXISTS idx_code_review_phase ON code_review(phase);
+CREATE INDEX IF NOT EXISTS idx_security_audit_phase ON security_audit(phase);
+CREATE INDEX IF NOT EXISTS idx_test_plan_phase ON test_plan(phase);
+CREATE INDEX IF NOT EXISTS idx_test_results_phase ON test_results(phase);
+CREATE INDEX IF NOT EXISTS idx_qa_gate_results_phase ON qa_gate_results(phase);
+CREATE INDEX IF NOT EXISTS idx_design_tokens_phase ON design_tokens(phase);
+CREATE INDEX IF NOT EXISTS idx_component_specs_phase ON component_specs(phase);
+CREATE INDEX IF NOT EXISTS idx_user_flows_phase ON user_flows(phase);
+CREATE INDEX IF NOT EXISTS idx_design_handoff_phase ON design_handoff(phase);
+CREATE INDEX IF NOT EXISTS idx_api_contracts_phase ON api_contracts(phase);
+CREATE INDEX IF NOT EXISTS idx_manual_qa_phase ON manual_qa(phase);
+CREATE INDEX IF NOT EXISTS idx_execution_state_phase ON execution_state(phase);
+
+-- Phase+plan compound indexes for task-scoped tables
+CREATE INDEX IF NOT EXISTS idx_tasks_phase_plan ON tasks(plan_id);
+CREATE INDEX IF NOT EXISTS idx_summaries_plan ON summaries(plan_id);
+CREATE INDEX IF NOT EXISTS idx_qa_gate_results_phase_plan ON qa_gate_results(phase, plan);
+CREATE INDEX IF NOT EXISTS idx_test_results_phase_plan ON test_results(phase, plan);
+CREATE INDEX IF NOT EXISTS idx_code_review_phase_plan ON code_review(phase, plan);
