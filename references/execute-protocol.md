@@ -4,6 +4,8 @@ Loaded on demand by /yolo:go Execute mode. Not a user-facing command.
 
 Implements the 11-step company-grade engineering workflow. See `references/company-hierarchy.md` for full hierarchy and `references/artifact-formats.md` for JSONL schemas.
 
+**Effort level controls which steps execute, not how they execute.** All agents run at full quality regardless of effort level. Step skipping is handled by the orchestrator (go.md) per the step-skip dispatch table in go.md. See `references/effort-profile-{level}.toon` for per-level step-skip tables.
+
 ## Spawn Strategy Gate (MANDATORY — read FIRST before any step)
 
 `team_mode` is passed by go.md from resolve-team-mode.sh. This determines ALL agent spawning for the entire protocol. You MUST check this value and follow the correct path at every step.
@@ -156,7 +158,7 @@ When complexity routing is enabled (`config_complexity_routing=true` in phase-de
 
 ### Step 0: Product Ownership (PO Agent — optional, config-gated)
 
-**Guard:** Skip if `po.enabled=false` in config OR `--effort=turbo` OR `scope-document.json` already exists in phase dir. When skipped, the existing 11-step workflow runs unchanged (backward compatible). Skip Output per template. Commit: `chore(state): po skipped phase {N}`.
+**Guard:** Skip if `po.enabled=false` in config OR step-skip table (turbo: SKIP) OR `scope-document.json` already exists in phase dir. When skipped, the existing 11-step workflow runs unchanged (backward compatible). Skip Output per template. Commit: `chore(state): po skipped phase {N}`.
 
 **ENTRY GATE:** Verify Analyze output exists (analysis.json from Path 0) OR active milestone detected (phase-detect.sh). If neither: STOP "Step 0 requires Analyze output or active milestone."
 
@@ -200,7 +202,7 @@ When `po.enabled=true` and guard conditions not met:
 
 ### Step 1: Critique / Brainstorm (Critic Agent — Confidence-Gated Multi-Round)
 
-**Guard:** Skip if `--effort=turbo` OR `critique.jsonl` exists OR `critique.enabled=false` in config. Skip Output per template. Commit: `chore(state): critique skipped phase {N}`.
+**Guard:** Skip per effort step-skip table (turbo: SKIP) OR `critique.jsonl` exists OR `critique.enabled=false` in config. Skip Output per template. Commit: `chore(state): critique skipped phase {N}`.
 
 **ENTRY GATE:** None (first step after optional Step 0). Verify phase directory exists: `[ -d "{phase-dir}" ]`. If not: STOP "Phase directory missing. Run /yolo:go --plan first."
 
@@ -219,7 +221,7 @@ When `po.enabled=true` and guard conditions not met:
    - Provide: reqs.jsonl (or REQUIREMENTS.md), PROJECT.md, codebase/ mapping, research.jsonl (if exists)
    - Include compiled context: `{phase-dir}/.ctx-critic.toon`
    - Include round number for multi-round protocol (see agents/yolo-critic.md § Multi-Round Protocol)
-   - Effort: if `--effort=fast`, instruct Critic to limit to `critical` findings only
+   - Include `effort_level={level}` in prompt (Critic executes at full quality; step skipping handled by orchestrator)
 
    > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
    > ```bash
@@ -244,7 +246,7 @@ When `po.enabled=true` and guard conditions not met:
 
 ### Step 2: Research (Scout Agent)
 
-**Guard:** Skip if `--effort=turbo`. Note: research.jsonl existence does NOT trigger skip (append mode). Skip Output per template. Commit: `chore(state): research skipped phase {N}`.
+**Guard:** Skip per effort step-skip table (turbo: SKIP). Note: research.jsonl existence does NOT trigger skip (append mode). Skip Output per template. Commit: `chore(state): research skipped phase {N}`.
 
 **ENTRY GATE:** Verify `{phase-dir}/critique.jsonl` exists OR `steps.critique.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 1 artifact missing — critique.jsonl not found. Run step 1 first."
 
@@ -394,7 +396,7 @@ Gate decision:
 
 ### Step 6: Test Authoring — RED Phase (Tester Agent)
 
-**Guard:** Skip if `--effort=turbo` OR no tasks have `ts` fields. Skip Output per template. Commit: `chore(state): test_authoring skipped phase {N}`.
+**Guard:** Skip per effort step-skip table (turbo: SKIP) OR no tasks have `ts` fields. Skip Output per template. Commit: `chore(state): test_authoring skipped phase {N}`.
 
 **ENTRY GATE:** Verify enriched plan.jsonl exists with `spec` fields populated (check at least one task has non-empty `spec` via `jq -r .spec`). If not: STOP "Step 5 artifact missing — plan.jsonl tasks have no spec fields. Run step 5 first."
 
@@ -465,7 +467,8 @@ Gate decision:
    subject: "Execute {NN-MM}: {plan-title}"
    description: |
      Execute all tasks in {PLAN_PATH}.
-     Effort: {DEV_EFFORT}. Working directory: {pwd}.
+     effort_level={EFFORT_LEVEL}. Effort level controls step skipping (handled by orchestrator), not agent quality. Execute your role at full quality.
+     Working directory: {pwd}.
      Phase context: {phase-dir}/.ctx-dev.toon (if compiled)
      TDD: test-plan.jsonl exists — verify RED before implementing, verify GREEN after.
      {If resuming: "Resume from Task {N}. Tasks 1-{N-1} already committed."}
@@ -659,7 +662,7 @@ Note: NO `--scope` flag -- post-plan runs full test suite per architecture D4.
 
 ### Step 9: QA (QA Lead + QA Code)
 
-**Guard:** Skip if `--skip-qa` OR `--effort=turbo`. Skip Output per template. Commit: `chore(state): qa skipped phase {N}`.
+**Guard:** Skip per effort step-skip table (turbo: SKIP) OR `--skip-qa`. Skip Output per template. Commit: `chore(state): qa skipped phase {N}`.
 
 **ENTRY GATE:** Verify `{phase-dir}/code-review.jsonl` exists with `r: "approve"` in line 1 (`jq -r .r` equals `"approve"`). If not: STOP "Step 8 artifact missing — code-review.jsonl not found or not approved. Run step 8 first."
 
@@ -679,7 +682,7 @@ gate_status=$(echo "$result" | jq -r '.gate')
 Post-phase gate result is available to QA agents via `{phase-dir}/.qa-gate-results.jsonl`. QA Lead and QA Code can reference prior gate results for incremental verification.
 
 1. Update execution state: `"step": "qa"`
-2. **Tier resolution:** turbo=skip, fast=quick, balanced=standard, thorough=deep.
+2. **QA executes at full quality.** The orchestrator handles step skipping (turbo/fast skip QA entirely per step-skip table). When QA runs, it always executes at full depth.
 2.5. **Teammate registration (team_mode=teammate only):** Lead registers qa and qa-code as teammates in the department team. QA Lead receives plan.jsonl + summary.jsonl via SendMessage from Lead. QA Code receives summary.jsonl + test-plan.jsonl via SendMessage. QA Lead sends `qa_result` to Lead via SendMessage. QA Code sends `qa_code_result` to Lead via SendMessage. If QA Code result is PARTIAL/FAIL, QA Code also writes gaps.jsonl as a file artifact (not SendMessage -- it is a persistent artifact for remediation). In task mode, this step is skipped (qa/qa-code spawned via Task tool as documented below).
 3. Compile context:
    - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} qa {phases_dir}`
@@ -728,7 +731,7 @@ Post-phase gate result is available to QA agents via `{phase-dir}/.qa-gate-resul
 
 **Manual QA (config-controlled):**
 
-If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `--skip-qa` not set:
+If `config.approval_gates.manual_qa` is true AND QA step is not skipped per step-skip table AND `--skip-qa` not set:
 
 8. **Present manual test checklist** to user:
    - Extract from plan.jsonl `mh.tr` (truths/invariants) — human-testable assertions
@@ -749,7 +752,7 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 
 ### Step 8.5: Documentation (optional — Documenter Agent)
 
-**Guard:** Skip if documenter config is `'never'`. Skip if effort=turbo. Skip Output per template. Commit: `chore(state): documentation skipped phase {N}`.
+**Guard:** Skip if documenter config is `'never'`. Skip per effort step-skip table (turbo: SKIP, fast: SKIP). Skip Output per template. Commit: `chore(state): documentation skipped phase {N}`.
 
 **ENTRY GATE:** Verify `{phase-dir}/code-review.jsonl` exists with `r: "approve"` in line 1. If not: STOP "Step 8 artifact missing — code-review.jsonl not approved. Run step 8 first."
 
@@ -776,7 +779,7 @@ If `config.approval_gates.manual_qa` is true AND effort is NOT turbo/fast AND `-
 
 ### Step 10: Security Audit (optional — Per-Department Security Reviewers)
 
-**Guard:** Skip if `--skip-security` OR config `security_audit` != true. Skip Output per template. Commit: `chore(state): security skipped phase {N}`.
+**Guard:** Skip per effort step-skip table (turbo: SKIP, fast: SKIP) OR `--skip-security` OR config `security_audit` != true. Skip Output per template. Commit: `chore(state): security skipped phase {N}`.
 
 **ENTRY GATE:** Verify `{phase-dir}/verification.jsonl` exists OR `steps.qa.status` is `"skipped"` in `.execution-state.json`. If neither: STOP "Step 9 artifact missing — verification.jsonl not found. Run step 9 first."
 
@@ -960,18 +963,18 @@ After delivery presentation (item 6), the user responds with one of three action
 
 | Step | state.step | Entry Artifact | Exit Artifact | Commit Format | Skip Conditions |
 |------|-----------|----------------|---------------|---------------|----------------|
-| 0. PO | `po` | Analyze output OR active milestone | `scope-document.json` (PO-APPROVED) | `chore(state): po complete phase {N}` | `po.enabled=false`, `--effort=turbo`, scope-document.json exists |
-| 1. Critique | `critique` | Phase dir exists | `critique.jsonl` | `docs({phase}): critique and gap analysis` | `--effort=turbo`, critique.jsonl exists |
-| 2. Research | `research` | `critique.jsonl` OR step 1 skipped | `research.jsonl` | `docs({phase}): research findings` | `--effort=turbo` |
+| 0. PO | `po` | Analyze output OR active milestone | `scope-document.json` (PO-APPROVED) | `chore(state): po complete phase {N}` | `po.enabled=false`, step-skip (turbo), scope-document.json exists |
+| 1. Critique | `critique` | Phase dir exists | `critique.jsonl` | `docs({phase}): critique and gap analysis` | step-skip (turbo), critique.jsonl exists |
+| 2. Research | `research` | `critique.jsonl` OR step 1 skipped | `research.jsonl` | `docs({phase}): research findings` | step-skip (turbo) |
 | 3. Architecture | `architecture` | `research.jsonl` OR step 2 skipped | `architecture.toon` (completeness validated per rnd-handoff-protocol.md) | `docs({phase}): architecture design` | architecture.toon exists |
 | 4. Load Plans | `planning` | `architecture.toon` OR step 3 skipped | `.execution-state.json` + `*.plan.jsonl` | `chore(state): execution state phase {N}` | NONE (mandatory) |
 | 5. Design Review | `design_review` | `*.plan.jsonl` exists | enriched `plan.jsonl` (all tasks have `spec`) | `docs({phase}): enrich plan {NN-MM} specs` | NONE (mandatory) |
-| 6. Test Authoring | `test_authoring` | enriched `plan.jsonl` with `spec` fields | `test-plan.jsonl` + test files | `test({phase}): RED phase tests for plan {NN-MM}` | `--effort=turbo`, no `ts` fields |
+| 6. Test Authoring | `test_authoring` | enriched `plan.jsonl` with `spec` fields | `test-plan.jsonl` + test files | `test({phase}): RED phase tests for plan {NN-MM}` | step-skip (turbo), no `ts` fields |
 | 7. Implementation | `implementation` | enriched `plan.jsonl` + `test-plan.jsonl` (if step 6 ran) | `{plan_id}.summary.jsonl` per plan | `{type}({phase}-{plan}): {task}` per task | NONE (mandatory) |
 | 8. Code Review | `code_review` | `{plan_id}.summary.jsonl` for each plan | `code-review.jsonl` with `r: "approve"` | `docs({phase}): code review {NN-MM}` | NONE (mandatory) |
-| 8.5. Documentation | `documentation` | `code-review.jsonl` with `r: "approve"` | `docs.jsonl` (if produced) | `docs({phase}): documentation` | `documenter='never'`, `--effort=turbo` |
-| 9. QA | `qa` | `code-review.jsonl` with `r: "approve"` | `verification.jsonl` + `qa-code.jsonl` | `docs({phase}): verification results` | `--skip-qa`, `--effort=turbo` |
-| 10. Security | `security` | `verification.jsonl` OR step 9 skipped | `security-audit.jsonl` | `docs({phase}): security audit` | `--skip-security`, config `security_audit` != true |
+| 8.5. Documentation | `documentation` | `code-review.jsonl` with `r: "approve"` | `docs.jsonl` (if produced) | `docs({phase}): documentation` | `documenter='never'`, step-skip (turbo, fast) |
+| 9. QA | `qa` | `code-review.jsonl` with `r: "approve"` | `verification.jsonl` + `qa-code.jsonl` | `docs({phase}): verification results` | `--skip-qa`, step-skip (turbo) |
+| 10. Security | `security` | `verification.jsonl` OR step 9 skipped | `security-audit.jsonl` | `docs({phase}): security audit` | `--skip-security`, step-skip (turbo, fast), config `security_audit` != true |
 | 11. Sign-off | `signoff` | `security-audit.jsonl` OR step 10 skipped + `code-review.jsonl` approved | `.execution-state.json` complete + ROADMAP.md | `chore(state): phase {N} complete` | NONE (mandatory) |
 | 11.5. Integration Gate | `integration_gate` | `steps.signoff.status` = `"complete"` | `.execution-state.json` updated (integration_gate complete) | `chore(state): integration_gate complete phase {N}` | `multi_dept=false` AND `integration_gate.enabled=false` |
 | 12. Delivery | `delivery` | `steps.integration_gate` complete OR skipped | `.execution-state.json` updated (delivery complete, verdict) | `chore(state): delivery complete phase {N}` | `po.enabled=false` |
