@@ -27,5 +27,6 @@
     "dev": 75
   },
   "qa_skip_agents": ["docs"],
-  "v2_token_budgets": false
+  "v2_token_budgets": false,
+  "worktree_isolation": "off"
 }
