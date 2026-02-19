@@ -170,3 +170,68 @@ flowchart LR
 | `security-audit.jsonl` | JSONL | Security | Lead |
 
 ---
+
+## Diagram 3: Complexity Routing
+
+```mermaid
+flowchart TD
+    Input["User Input<br/>(go.md)"]
+    Classify["complexity-classify.sh"]
+    Analyze["Analyze Agent<br/>(LLM, if needed)"]
+
+    Input --> Classify
+
+    Classify -->|"skip_analyze=true<br/>high confidence"| Route
+    Classify -->|"skip_analyze=false<br/>or complexity=high"| Analyze
+    Analyze --> Route
+
+    Route{"suggested_path?"}
+
+    Route -->|"trivial_shortcut<br/>(confidence >= 0.85)"| Trivial
+    Route -->|"medium_path<br/>(confidence >= 0.7)"| Medium
+    Route -->|"full_ceremony"| High
+    Route -->|"confidence < 0.7"| Fallback["Fallback to<br/>intent detection"]
+
+    subgraph Trivial["Trivial Path"]
+        T_SR["Senior<br/>(design review)"]
+        T_Dev["Dev<br/>(implement)"]
+        T_Lint["trivial-lint.sh"]
+        T_QAG["qa-gate.sh --tier post-task"]
+        T_SR --> T_Dev --> T_Lint --> T_QAG
+    end
+
+    subgraph Medium["Medium Path"]
+        M_Lead["Lead<br/>(abbreviated plan)"]
+        M_SR1["Senior<br/>(design review)"]
+        M_Dev["Dev<br/>(implement)"]
+        M_SR2["Senior<br/>(code review)"]
+        M_QAG["qa-gate.sh --tier post-plan"]
+        M_Sign["Lead<br/>(sign-off)"]
+        M_Lead --> M_SR1 --> M_Dev --> M_SR2 --> M_QAG --> M_Sign
+    end
+
+    subgraph High["Full Ceremony (11-Step)"]
+        H_All["All steps per<br/>execute-protocol.md"]
+    end
+
+    subgraph Effort["Effort Step-Skip Overlay"]
+        direction LR
+        E_Turbo["turbo: skip 1,2,6,8.5,9,10"]
+        E_Fast["fast: skip 8.5,10"]
+        E_Balanced["balanced: full 11-step"]
+        E_Thorough["thorough: full + extra validation"]
+    end
+
+    High -.-> Effort
+```
+
+**Source files:** `commands/go.md` (Path 0), `scripts/complexity-classify.sh`, `scripts/route.sh`, `references/effort-profile-*.toon`
+
+**Routing rules:**
+- Shell classifier runs first; skips Analyze agent when confidence is high enough
+- Trivial: Senior + Dev only, no formal planning, no QA agents, no security
+- Medium: Lead + Senior + Dev + code review, post-plan QA gate only
+- High: Full 11-step ceremony with all agents
+- Effort level is orthogonal to complexity: turbo effort on high complexity still runs full ceremony but skips steps 1, 2, 6, 8.5, 9, 10
+
+---
