@@ -294,6 +294,7 @@ If `planning_dir_exists=false`: STOP "YOLO is not set up yet. Run /yolo:init to 
   ```
 
   Script handles today's date, Phase 1 status, empty decisions, and 0% progress.
+- **B4.5: Initialize artifact store** -- Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/db/init-db.sh --planning-dir .yolo-planning`. Import ROADMAP.md and REQUIREMENTS.md into DB. Display `✓ Artifact store initialized`. On failure, display error but continue (bootstrap can complete without DB -- execute will fail-fast later).
 - **B5: Brownfield summary** -- If BROWNFIELD=true AND no codebase/: count files by ext, check tests/CI/Docker/monorepo, add Codebase Profile to STATE.md.
 - **B6: CLAUDE.md** -- Extract name + core value from PROJECT.md. Call `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-claude.sh CLAUDE.md "$PROJECT_NAME" "$CORE_VALUE" [CLAUDE.md]`. Pass existing CLAUDE.md as 4th arg for section preservation (script replaces only YOLO-managed sections). Omit 4th arg if no existing file. Max 200 lines.
 - **B7: Transition** -- Display "Bootstrap complete. Transitioning to scoping..." Re-evaluate state, route to next match.
