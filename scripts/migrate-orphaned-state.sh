@@ -42,7 +42,7 @@ latest_state=""
 latest_mtime=-1
 for f in "$PLANNING_DIR"/milestones/*/STATE.md; do
   [ -f "$f" ] || continue
-  mtime=$(stat -f %m "$f" 2>/dev/null || stat -c %Y "$f" 2>/dev/null || echo 0)
+  mtime=$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null || echo 0)
   if [[ "$mtime" -gt "$latest_mtime" ]]; then
     latest_mtime="$mtime"
     latest_state="$f"
