@@ -46,7 +46,7 @@
     },
     "qa": {
       "files": ["success_criteria"],
-      "artifacts": ["plan", "summary", "escalation", "test-results"],
+      "artifacts": ["plan", "summary", "escalation", "test-results", "code-review"],
       "fields": {
         "plan": ["obj", "mh"],
         "summary": ["fm"],
@@ -137,7 +137,7 @@
     },
     "integration-gate": {
       "files": ["REQUIREMENTS.md", "success_criteria"],
-      "artifacts": ["department_result", "test-results", "summary"],
+      "artifacts": ["test-results", "summary", "api-contracts", "design-handoff"],
       "fields": {
         "summary": ["fm", "tst"],
         "test-results": ["plan", "dept", "phase", "tc", "ps", "fl"]
@@ -170,7 +170,7 @@
       "budget": 2000
     },
     "analyze": {
-      "files": ["REQUIREMENTS.md", "codebase/ARCHITECTURE.md", "codebase/STRUCTURE.md"],
+      "files": ["REQUIREMENTS.md", "codebase/ARCHITECTURE.md", "codebase/STRUCTURE.md", "codebase/INDEX.md"],
       "artifacts": [],
       "fields": {},
       "budget": 2000
@@ -226,7 +226,7 @@
     },
     "fe-qa": {
       "files": ["success_criteria"],
-      "artifacts": ["plan", "summary", "escalation", "test-results"],
+      "artifacts": ["plan", "summary", "escalation", "test-results", "code-review"],
       "fields": {
         "plan": ["obj", "mh"],
         "summary": ["fm"],
@@ -287,7 +287,7 @@
     },
     "ux-qa": {
       "files": ["success_criteria"],
-      "artifacts": ["plan", "summary", "escalation", "test-results"],
+      "artifacts": ["plan", "summary", "escalation", "test-results", "code-review"],
       "fields": {
         "plan": ["obj", "mh"],
         "summary": ["fm"],
