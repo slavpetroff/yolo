@@ -53,10 +53,17 @@ resolve_state_path() {
     fi
   fi
 
-  # Fallback: no root and no ACTIVE — check milestones/ for archived state
+  # Fallback: no root and no ACTIVE — use most-recently-modified archived STATE.md
   local latest_milestone=""
+  local latest_mtime=0
   for f in "$PLANNING_DIR"/milestones/*/STATE.md; do
-    [ -f "$f" ] && latest_milestone="$f" && break
+    [ -f "$f" ] || continue
+    local mtime
+    mtime=$(stat -c '%Y' "$f" 2>/dev/null || stat -f '%m' "$f" 2>/dev/null || echo 0)
+    if [[ "$mtime" -gt "$latest_mtime" ]]; then
+      latest_mtime="$mtime"
+      latest_milestone="$f"
+    fi
   done
   if [ -n "$latest_milestone" ]; then
     echo "$latest_milestone"

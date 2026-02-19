@@ -31,13 +31,13 @@ EXISTING_DECISIONS=""
 if [[ -f "$OUTPUT_PATH" ]]; then
   EXISTING_TODOS=$(awk '
     { low = tolower($0) }
-    low ~ /^## todos[[:space:]]*$/ { found=1; next }
+    low ~ /^##[[:space:]]+todos[[:space:]]*$/ { found=1; next }
     found && /^## / { found=0 }
     found { print }
   ' "$OUTPUT_PATH")
   EXISTING_DECISIONS=$(awk '
     { low = tolower($0) }
-    low ~ /^## (key )?decisions[[:space:]]*$/ { found=1; next }
+    low ~ /^##[[:space:]]+(key )?decisions[[:space:]]*$/ { found=1; next }
     found && /^## / { found=0 }
     found { print }
   ' "$OUTPUT_PATH")

@@ -582,3 +582,115 @@ EOF
   grep -q "lowercase heading decision" .vbw-planning/STATE.md
   grep -q "uppercase todo" .vbw-planning/STATE.md
 }
+
+# Finding 5 (QA R4): Extra spaces between ## and heading word
+@test "persist script handles extra spaces after ## in section headings" {
+  cd "$TEST_TEMP_DIR"
+  mkdir -p .vbw-planning/milestones/m1
+  # Create STATE.md where headings have multiple spaces after ##
+  cat > ".vbw-planning/milestones/m1/STATE.md" <<'EOF'
+# State
+
+**Project:** Spacing Test
+
+##   Current Phase
+Phase: 1 of 1
+Status: complete
+
+##   Decisions
+- extra-space decision
+
+##    Todos
+- extra-space todo (added 2026-02-18)
+
+##  Blockers
+- blocker with two spaces
+
+##   Activity Log
+- done
+EOF
+
+  run bash "$SCRIPTS_DIR/persist-state-after-ship.sh" \
+    .vbw-planning/milestones/m1/STATE.md .vbw-planning/STATE.md "Spacing Test"
+  [ "$status" -eq 0 ]
+
+  [ -f .vbw-planning/STATE.md ]
+  grep -q "extra-space decision" .vbw-planning/STATE.md
+  grep -q "extra-space todo" .vbw-planning/STATE.md
+  grep -q "blocker with two spaces" .vbw-planning/STATE.md
+  # Milestone sections should still be excluded
+  ! grep -qi "Current Phase" .vbw-planning/STATE.md
+  ! grep -qi "Activity Log" .vbw-planning/STATE.md
+}
+
+# Finding 5 (QA R4): bootstrap-state.sh also tolerates extra spaces
+@test "bootstrap preserves todos with extra-space headings in existing STATE.md" {
+  cd "$TEST_TEMP_DIR"
+  # Create existing STATE.md with extra spaces in headings
+  cat > "$TEST_TEMP_DIR/.vbw-planning/STATE.md" <<'EOF'
+# State
+
+**Project:** Extra Space Bootstrap
+
+##   Key Decisions
+| Decision | Date | Rationale |
+|----------|------|-----------|
+| Use GraphQL | 2026-02-18 | Flexible |
+
+##    Todos
+- spaced heading todo (added 2026-02-18)
+
+## Blockers
+None
+EOF
+
+  run bash "$SCRIPTS_DIR/bootstrap/bootstrap-state.sh" \
+    "$TEST_TEMP_DIR/.vbw-planning/STATE.md" "Extra Space Bootstrap" "M2" 2
+  [ "$status" -eq 0 ]
+
+  [ -f "$TEST_TEMP_DIR/.vbw-planning/STATE.md" ]
+  grep -q "spaced heading todo" "$TEST_TEMP_DIR/.vbw-planning/STATE.md"
+  grep -q "Use GraphQL" "$TEST_TEMP_DIR/.vbw-planning/STATE.md"
+}
+
+# Finding 6 (QA R4): list-todos fallback picks most recent milestone by mtime
+@test "list-todos fallback picks most recently modified milestone" {
+  cd "$TEST_TEMP_DIR"
+  # No root STATE.md, no ACTIVE — simulates fully-archived brownfield
+  # z-old: alphabetically last but older
+  mkdir -p .vbw-planning/milestones/z-old
+  cat > ".vbw-planning/milestones/z-old/STATE.md" <<'EOF'
+# State
+
+**Project:** Test
+
+## Todos
+- Old stale todo from z-old (added 2026-01-01)
+
+## Blockers
+None
+EOF
+  touch -t 202602010000 ".vbw-planning/milestones/z-old/STATE.md"
+
+  # a-new: alphabetically first but newer
+  mkdir -p .vbw-planning/milestones/a-new
+  cat > ".vbw-planning/milestones/a-new/STATE.md" <<'EOF'
+# State
+
+**Project:** Test
+
+## Todos
+- Fresh todo from a-new (added 2026-02-15)
+
+## Blockers
+None
+EOF
+  touch -t 202602150000 ".vbw-planning/milestones/a-new/STATE.md"
+
+  run bash "$SCRIPTS_DIR/list-todos.sh"
+  [ "$status" -eq 0 ]
+
+  # Should pick a-new (newer by mtime), not z-old (alphabetically later)
+  echo "$output" | grep -q "Fresh todo from a-new"
+  ! echo "$output" | grep -q "Old stale todo from z-old"
+}

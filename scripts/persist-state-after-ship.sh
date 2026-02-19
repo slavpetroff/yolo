@@ -52,7 +52,7 @@ extract_section() {
   awk -v h="$heading" '
     BEGIN { pat = tolower(h) }
     { low = tolower($0) }
-    low ~ ("^## " pat "[[:space:]]*$") { found=1; if (!hdr) { print $0; hdr=1 }; next }
+    low ~ ("^##[[:space:]]+" pat "[[:space:]]*$") { found=1; if (!hdr) { print $0; hdr=1 }; next }
     found && /^## / { found=0 }
     found { print }
   ' "$file"
@@ -64,7 +64,7 @@ extract_decisions_with_skills() {
   local file="$1"
   awk '
     { low = tolower($0) }
-    low ~ /^## (key )?decisions[[:space:]]*$/ { found=1; if (!hdr) { print $0; hdr=1 }; next }
+    low ~ /^##[[:space:]]+(key )?decisions[[:space:]]*$/ { found=1; if (!hdr) { print $0; hdr=1 }; next }
     found && /^## / { found=0 }
     found { print }
   ' "$file"
