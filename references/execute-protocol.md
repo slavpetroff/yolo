@@ -498,7 +498,7 @@ Gate decision:
 
    ```bash
    # Lead ingests plan tasks into DB task queue
-   DB_PATH=".vbw-planning/yolo.db"
+   DB_PATH=".yolo-planning/yolo.db"
    for plan in "${PHASE_DIR}"/*.plan.jsonl; do
      [ -f "$plan" ] || continue
      PLAN_ID=$(jq -r '.p + "-" + .n' "$plan" | head -1)

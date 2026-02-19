@@ -6,7 +6,7 @@ setup() {
   load '../../test_helper/fixtures'
   mk_test_workdir
   SUT="$SCRIPTS_DIR/db/init-db.sh"
-  PLANNING="$TEST_WORKDIR/.vbw-planning"
+  PLANNING="$TEST_WORKDIR/.yolo-planning"
   mkdir -p "$PLANNING"
 }
 

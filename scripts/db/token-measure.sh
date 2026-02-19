@@ -70,8 +70,15 @@ sql_exec "$DB" "CREATE TABLE IF NOT EXISTS token_measurements (
 );"
 
 # --- Find phase directory ---
-PHASES_DIR="$PROJECT_ROOT/.vbw-planning/phases"
-if [[ ! -d "$PHASES_DIR" ]]; then
+# Derive from DB path if explicit --db was provided, else fall back to PROJECT_ROOT
+DB_DIR=$(dirname "$DB")
+if [[ -d "$DB_DIR/phases" ]]; then
+  # DB is inside the planning dir (e.g., .yolo-planning/yolo.db)
+  PHASES_DIR="$DB_DIR/phases"
+elif [[ -d "$DB_DIR/.yolo-planning/phases" ]]; then
+  # DB is sibling to planning dir (e.g., test.db next to .yolo-planning/)
+  PHASES_DIR="$DB_DIR/.yolo-planning/phases"
+else
   PHASES_DIR="$PROJECT_ROOT/.yolo-planning/phases"
 fi
 PHASE_DIR=$(command ls -d "$PHASES_DIR/${PHASE}-"*/ 2>/dev/null | head -1 || true)
@@ -102,10 +109,7 @@ measure_role() {
   esac
 
   # Temporarily control DB availability by renaming
-  local db_path_file="$PROJECT_ROOT/.vbw-planning/yolo.db"
-  if [[ ! -f "$db_path_file" ]]; then
-    db_path_file="$PROJECT_ROOT/.yolo-planning/yolo.db"
-  fi
+  local db_path_file="$DB"
 
   local measure_json=""
   if [[ "$use_db" = "false" ]] && [[ -f "$db_path_file" ]]; then

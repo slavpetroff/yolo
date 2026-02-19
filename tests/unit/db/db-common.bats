@@ -17,10 +17,10 @@ mk_test_db() {
   echo "$db"
 }
 
-# Helper: create .vbw-planning dir with yolo.db for db_path resolution
+# Helper: create .yolo-planning dir with yolo.db for db_path resolution
 mk_planning_db() {
-  mkdir -p "$TEST_WORKDIR/.vbw-planning"
-  local db="$TEST_WORKDIR/.vbw-planning/yolo.db"
+  mkdir -p "$TEST_WORKDIR/.yolo-planning"
+  local db="$TEST_WORKDIR/.yolo-planning/yolo.db"
   sqlite3 "$db" "CREATE TABLE meta (k TEXT);"
   echo "$db"
 }
@@ -34,13 +34,13 @@ mk_planning_db() {
   [ "$result" = "/tmp/custom.db" ]
 }
 
-@test "db_path finds .vbw-planning/yolo.db walking up" {
+@test "db_path finds .yolo-planning/yolo.db walking up" {
   mk_planning_db
   cd "$TEST_WORKDIR"
   source "$DB_COMMON"
   local result
   result=$(db_path)
-  [ "$result" = "$TEST_WORKDIR/.vbw-planning/yolo.db" ]
+  [ "$result" = "$TEST_WORKDIR/.yolo-planning/yolo.db" ]
 }
 
 @test "db_path returns fallback when no planning dir found" {
@@ -48,7 +48,7 @@ mk_planning_db() {
   source "$DB_COMMON"
   local result
   result=$(db_path)
-  [[ "$result" == *".vbw-planning/yolo.db" ]]
+  [[ "$result" == *".yolo-planning/yolo.db" ]]
 }
 
 # --- require_db tests ---

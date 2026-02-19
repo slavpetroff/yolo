@@ -472,12 +472,12 @@ This mode delegates to protocol files. Before reading:
    - All plans have `*.summary.jsonl`: cautious/standard -> WARN + confirm; confident/pure-yolo -> warn + auto-continue.
 2.5. **Initialize artifact store (mandatory):**
    ```bash
-   bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/init-db.sh" --planning-dir .vbw-planning
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/init-db.sh" --planning-dir .yolo-planning
    if [ $? -ne 0 ]; then
      echo "ERROR: Artifact store initialization failed. Check SQLite availability."
      exit 1
    fi
-   DB_PATH=".vbw-planning/yolo.db"
+   DB_PATH=".yolo-planning/yolo.db"
    # Import existing JSONL artifacts into DB
    for plan in "${PHASE_DIR}"/*.plan.jsonl; do
      [ -f "$plan" ] && bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \

@@ -20,7 +20,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Default archive file location
-FILE="${FILE:-.vbw-planning/research-archive.jsonl}"
+FILE="${FILE:-.yolo-planning/research-archive.jsonl}"
 
 if [[ ! -f "$FILE" ]]; then
   echo "error: archive file not found: $FILE" >&2

@@ -47,7 +47,7 @@ DB=$(db_path "$DB_EXPLICIT")
 require_db "$DB"
 
 # Helper: escape single quotes for SQL
-esc() { echo "${1//\'/\'\'}"; }
+esc() { printf '%s' "$1" | sed "s/'/''/g"; }
 
 # Helper: extract field from jq, return empty string for null
 jf() { echo "$1" | jq -r ".$2 // empty"; }

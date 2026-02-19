@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Default DB path relative to project root
-_DB_DEFAULT_DIR=".vbw-planning"
+_DB_DEFAULT_DIR=".yolo-planning"
 _DB_DEFAULT_NAME="yolo.db"
 
 # Resolve DB path from --db flag value or default

@@ -18,7 +18,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-FILE="${FILE:-.vbw-planning/research-archive.jsonl}"
+FILE="${FILE:-.yolo-planning/research-archive.jsonl}"
 
 require_db "$DB"
 

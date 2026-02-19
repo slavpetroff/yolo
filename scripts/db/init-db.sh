@@ -31,7 +31,7 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: init-db.sh [--planning-dir PATH] [--force] [--verify]"
       echo ""
       echo "Options:"
-      echo "  --planning-dir PATH  Planning directory (default: .vbw-planning)"
+      echo "  --planning-dir PATH  Planning directory (default: .yolo-planning)"
       echo "  --force              Recreate DB even if it exists"
       echo "  --verify             Run integrity check and count tables"
       exit 0
@@ -45,7 +45,7 @@ done
 
 # Resolve planning dir
 if [[ -z "$PLANNING_DIR" ]]; then
-  PLANNING_DIR=".vbw-planning"
+  PLANNING_DIR=".yolo-planning"
 fi
 
 DB_PATH="$PLANNING_DIR/yolo.db"
@@ -115,6 +115,24 @@ fi
 ARCHIVE_FILE="$PLANNING_DIR/research-archive.jsonl"
 if [[ -f "$ARCHIVE_FILE" ]] && [[ -f "$SCRIPT_DIR/import-research-archive.sh" ]]; then
   bash "$SCRIPT_DIR/import-research-archive.sh" --file "$ARCHIVE_FILE" --db "$DB_PATH" >/dev/null 2>&1 || true
+fi
+
+# Auto-import existing plan.jsonl and summary.jsonl files from all phase dirs
+if [[ -d "$PLANNING_DIR/phases" ]] && [[ -f "$SCRIPT_DIR/import-jsonl.sh" ]]; then
+  for phase_dir in "$PLANNING_DIR/phases"/*/; do
+    [[ -d "$phase_dir" ]] || continue
+    # Extract phase number from dir name (e.g., 01-sqlite-schema-expansion -> 01)
+    phase_num=$(basename "$phase_dir" | grep -o '^[0-9]*')
+    [[ -z "$phase_num" ]] && continue
+    for plan in "$phase_dir"*.plan.jsonl; do
+      [[ -f "$plan" ]] || continue
+      bash "$SCRIPT_DIR/import-jsonl.sh" --type plan --file "$plan" --phase "$phase_num" --db "$DB_PATH" >/dev/null 2>&1 || true
+    done
+    for summary in "$phase_dir"*.summary.jsonl; do
+      [[ -f "$summary" ]] || continue
+      bash "$SCRIPT_DIR/import-jsonl.sh" --type summary --file "$summary" --phase "$phase_num" --db "$DB_PATH" >/dev/null 2>&1 || true
+    done
+  done
 fi
 
 # Output DB path
