@@ -645,8 +645,9 @@ run_cc() {
   run bash -c "cd '$TEST_WORKDIR' && bash '$SUT' --measure 01 dev '$PHASES_DIR' '$plan' 2>&1 1>/dev/null"
   assert_success
   assert_output --partial '"role":"dev"'
-  assert_output --partial '"filtered_chars"'
+  assert_output --partial '"filtered_tokens"'
   assert_output --partial '"reduction_pct"'
+  assert_output --partial '"trimmed"'
   assert_output --partial '"note":"char/4 approx"'
 }
 

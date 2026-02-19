@@ -1124,6 +1124,70 @@ if [ -f "$OUTPUT_FILE" ]; then
   enforce_budget "$OUTPUT_FILE" "$BUDGET"
 fi
 
+# --- Trim-to-budget (targeted section removal when --measure active) ---
+TRIMMED=false
+if [ "$MEASURE" = true ] && [ -f "$OUTPUT_FILE" ]; then
+  BUDGET_CHARS=$(( BUDGET * 4 ))
+  CURRENT_CHARS=$(wc -c < "$OUTPUT_FILE" | tr -d ' ')
+
+  if [ "$CURRENT_CHARS" -gt "$BUDGET_CHARS" ]; then
+    # Pass 1: Remove optional sections (prior_plans, dept_conventions, suggestions)
+    local_tmp="${OUTPUT_FILE}.trim1.$$"
+    awk '
+      /^prior_plans:/     { skip=1; next }
+      /^dept_conventions:/ { skip=1; next }
+      /^suggestions:/     { skip=1; next }
+      /^[a-z_]+:/         { skip=0 }
+      !skip { print }
+    ' "$OUTPUT_FILE" > "$local_tmp" 2>/dev/null && mv "$local_tmp" "$OUTPUT_FILE" || rm -f "$local_tmp"
+    CURRENT_CHARS=$(wc -c < "$OUTPUT_FILE" | tr -d ' ')
+    TRIMMED=true
+  fi
+
+  if [ "$CURRENT_CHARS" -gt "$BUDGET_CHARS" ]; then
+    # Pass 2: Truncate artifact JSONL references to last 5 lines per section
+    local_tmp="${OUTPUT_FILE}.trim2.$$"
+    awk -v max=5 '
+      /^  / && in_section { buf[++count] = $0; next }
+      /^[a-z_]+.*:/ {
+        if (in_section && count > 0) {
+          start = (count > max) ? count - max + 1 : 1
+          for (i = start; i <= count; i++) print buf[i]
+        }
+        in_section = 1; count = 0; delete buf
+        print; next
+      }
+      {
+        if (in_section && count > 0) {
+          start = (count > max) ? count - max + 1 : 1
+          for (i = start; i <= count; i++) print buf[i]
+        }
+        in_section = 0; count = 0; delete buf
+        print
+      }
+      END {
+        if (in_section && count > 0) {
+          start = (count > max) ? count - max + 1 : 1
+          for (i = start; i <= count; i++) print buf[i]
+        }
+      }
+    ' "$OUTPUT_FILE" > "$local_tmp" 2>/dev/null && mv "$local_tmp" "$OUTPUT_FILE" || rm -f "$local_tmp"
+    CURRENT_CHARS=$(wc -c < "$OUTPUT_FILE" | tr -d ' ')
+    TRIMMED=true
+  fi
+
+  if [ "$CURRENT_CHARS" -gt "$BUDGET_CHARS" ]; then
+    # Pass 3: Remove codebase references
+    local_tmp="${OUTPUT_FILE}.trim3.$$"
+    awk '
+      /^codebase:/        { skip=1; next }
+      /^[a-z_]+:/         { skip=0 }
+      !skip { print }
+    ' "$OUTPUT_FILE" > "$local_tmp" 2>/dev/null && mv "$local_tmp" "$OUTPUT_FILE" || rm -f "$local_tmp"
+    TRIMMED=true
+  fi
+fi
+
 # --- Token reduction measurement (D9: char/4 approximation) ---
 if [ "$MEASURE" = true ] && [ -f "$OUTPUT_FILE" ]; then
   FILTERED_CHARS=$(wc -c < "$OUTPUT_FILE" | tr -d ' ')
@@ -1154,7 +1218,7 @@ if [ "$MEASURE" = true ] && [ -f "$OUTPUT_FILE" ]; then
   fi
 
   # Output measurement JSON to stderr (stdout has the file path)
-  echo "{\"role\":\"$ROLE\",\"filtered_chars\":$FILTERED_CHARS,\"unfiltered_chars\":$UNFILTERED_CHARS,\"reduction_pct\":$REDUCTION_PCT,\"note\":\"char/4 approx\"}" >&2
+  echo "{\"role\":\"$ROLE\",\"budget\":$BUDGET,\"filtered_tokens\":$FILTERED_TOKENS,\"unfiltered_tokens\":$UNFILTERED_TOKENS,\"reduction_pct\":$REDUCTION_PCT,\"trimmed\":$TRIMMED,\"note\":\"char/4 approx\"}" >&2
 fi
 
 echo "$OUTPUT_FILE"
