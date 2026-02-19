@@ -791,15 +791,12 @@ Note: NO `--scope` flag -- post-plan runs full test suite per architecture D4.
    - If `config.approval_gates.code_review` is true → pause, display review summary, AskUserQuestion "Proceed to QA?" Options: "Proceed" / "Review changes".
    - Otherwise → proceed to Step 9.
 9. Senior commits: `docs({phase}): code review {NN-MM}`
-9.5. **[sqlite] Dual-write to DB (when `db_available=true`):**
+9.5. **Write to DB:**
    ```bash
-   if [ "$db_available" = "true" ]; then
-     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/append-finding.sh" \
-       --type code-review --plan "${PLAN_ID}" --phase "${PHASE_NUM}" \
-       --data "$(jq -c '.' {phase-dir}/code-review.jsonl)" --db "$DB_PATH" 2>/dev/null || true
-   fi
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/append-finding.sh" \
+     --type code-review --plan "${PLAN_ID}" --phase "${PHASE_NUM}" \
+     --data "$(jq -c '.' {phase-dir}/code-review.jsonl)" --db "$DB_PATH" 2>/dev/null || true
    ```
-   File-based code-review.jsonl remains the primary artifact. DB enables cross-plan review search.
 10. Verify: code-review.jsonl exists with `r: "approve"`.
 11. **EXIT GATE:** Artifact: `code-review.jsonl` per plan (r: "approve"). When team_mode=teammate: Lead waits for code_review_result messages from all dispatched Seniors in the current wave. After all received, Lead verifies each plan has code-review.jsonl with `r: "approve"` in line 1 (via `jq -r .r` equals "approve"). If any plan has changes_requested after cycle 2, Senior escalates to Lead per existing protocol. When team_mode=task: sequential verification unchanged (each plan checked after its Senior completes). State: `steps.code_review = complete`. Commit: `chore(state): code_review complete phase {N}`.
 
@@ -843,13 +840,11 @@ Post-phase gate result is available to QA agent via `{phase-dir}/.qa-gate-result
    > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-qa.toon). See D4 in architecture for soft enforcement details.
 
 5. QA (plan mode) produces verification.jsonl. Commits: `docs({phase}): verification results`
-5.5. **[sqlite] Dual-write verification to DB (when `db_available=true`):**
+5.5. **Write verification to DB:**
    ```bash
-   if [ "$db_available" = "true" ]; then
-     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
-       --type verification --file "{phase-dir}/verification.jsonl" \
-       --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
-   fi
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/import-jsonl.sh" \
+     --type verification --file "{phase-dir}/verification.jsonl" \
+     --phase "${PHASE_NUM}" --db "$DB_PATH" 2>/dev/null || true
    ```
 
 **QA code mode (code-level verification):**
@@ -865,15 +860,12 @@ Post-phase gate result is available to QA agent via `{phase-dir}/.qa-gate-result
    > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-qa.toon). See D4 in architecture for soft enforcement details.
 
 7. QA (code mode) runs TDD compliance (Phase 0), tests, lint, patterns. For shell/bats projects: `bash scripts/test-summary.sh` (single invocation, outputs `PASS (N tests)` or `FAIL (F/N failed)` with details — never invoke bats directly). Produces qa-code.jsonl. Commits: `docs({phase}): code quality review`
-7.5. **[sqlite] Dual-write qa-code to DB (when `db_available=true`):**
+7.5. **Write qa-code to DB:**
    ```bash
-   if [ "$db_available" = "true" ]; then
-     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/append-finding.sh" \
-       --type qa-code --plan "${PLAN_ID}" --phase "${PHASE_NUM}" \
-       --data "$(jq -c '.' {phase-dir}/qa-code.jsonl)" --db "$DB_PATH" 2>/dev/null || true
-   fi
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/append-finding.sh" \
+     --type qa-code --plan "${PLAN_ID}" --phase "${PHASE_NUM}" \
+     --data "$(jq -c '.' {phase-dir}/qa-code.jsonl)" --db "$DB_PATH" 2>/dev/null || true
    ```
-   File-based qa-code.jsonl remains the primary artifact. DB enables cross-phase QA trend analysis.
 
 **Result handling:**
 - Both PASS → Manual QA (if enabled) → Step 10 (or Step 11 if security disabled)
@@ -968,18 +960,15 @@ If `config.approval_gates.manual_qa` is true AND QA step is not skipped per step
    > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-security.toon). See D4 in architecture for soft enforcement details.
 
 4. Each Security Reviewer produces security-audit.jsonl (dept-prefixed when multi-dept: fe-security-audit.jsonl, ux-security-audit.jsonl). Commits: `docs({phase}): security audit`
-4.5. **[sqlite] Dual-write security findings to DB (when `db_available=true`):**
+4.5. **Write security findings to DB:**
    ```bash
-   if [ "$db_available" = "true" ]; then
-     for audit in {phase-dir}/*security-audit.jsonl; do
-       [ -f "$audit" ] || continue
-       bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/append-finding.sh" \
-         --type security --plan "${PLAN_ID}" --phase "${PHASE_NUM}" \
-         --data "$(jq -c '.' "$audit")" --db "$DB_PATH" 2>/dev/null || true
-     done
-   fi
+   for audit in {phase-dir}/*security-audit.jsonl; do
+     [ -f "$audit" ] || continue
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/append-finding.sh" \
+       --type security --plan "${PLAN_ID}" --phase "${PHASE_NUM}" \
+       --data "$(jq -c '.' "$audit")" --db "$DB_PATH" 2>/dev/null || true
+   done
    ```
-   File-based security-audit.jsonl remains the primary artifact. DB enables cross-phase security trend tracking.
 5. If `r: "FAIL"` from ANY department: **HARD STOP**. Display findings from failing department. Only user `--force` overrides.
 6. If `r: "WARN"`:
    - Display warnings.
