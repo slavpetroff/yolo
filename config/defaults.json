@@ -1,5 +1,6 @@
 {
   "_sections": "Phase 1: complexity_routing | Phase 2: critique, po, research_requests | Phase 3: review_loop, documenter | Phase 4: integration_gate, delivery | Phase 5: escalation, qa_gates, approval_gates",
+  "_precedence": "(1) CLI flags override all, (2) .yolo-planning/config.json (project-specific), (3) config/defaults.json (plugin defaults)",
   "effort": "balanced",
   "autonomy": "standard",
   "auto_commit": true,
@@ -84,5 +85,59 @@
     "force_analyze_model": "balanced",
     "max_trivial_files": 3,
     "max_medium_tasks": 3
+  },
+  "mode_profiles": {
+    "_doc": "Defines which conceptual sections each workflow mode includes. Used by generate-agent.sh --mode flag to filter agent prompts. Section names are semantic categories -- actual markers in templates use <!-- mode:X,Y,Z --> with mode names from this file.",
+    "modes": {
+      "plan": {
+        "description": "Planning and decomposition workflow step",
+        "sections": ["hierarchy", "persona", "decision-making", "planning-protocol", "output-format", "decision-logging"]
+      },
+      "implement": {
+        "description": "Implementation workflow step (includes all sections)",
+        "sections": ["hierarchy", "persona", "decision-making", "execution-protocol", "output-format", "escalation", "commit-discipline", "teammate-api", "self-claiming", "shutdown", "change-management", "research-request", "escalation-resolution", "decision-logging", "planning-protocol", "qa-checklist", "documentation-protocol"]
+      },
+      "review": {
+        "description": "Code review and design review workflow step",
+        "sections": ["hierarchy", "persona", "decision-making", "execution-protocol", "change-management", "review-ownership", "escalation-resolution", "qa-checklist"]
+      },
+      "qa": {
+        "description": "Quality assurance and verification workflow step",
+        "sections": ["hierarchy", "persona", "decision-making", "output-format", "qa-checklist", "verification-protocol", "continuous-qa", "audit-protocol", "review-ownership"]
+      },
+      "test": {
+        "description": "Test authoring (TDD RED phase) workflow step",
+        "sections": ["hierarchy", "persona", "decision-making", "execution-protocol", "output-format", "test-quality"]
+      },
+      "full": {
+        "description": "All sections included (no filtering). Default when --mode is omitted.",
+        "sections": ["*"]
+      }
+    },
+    "section_catalog": {
+      "_doc": "Reference catalog of all section categories used across templates",
+      "hierarchy": "Agent position in org chart, reporting lines",
+      "persona": "Professional archetype, vocabulary, communication standards",
+      "decision-making": "Decision framework and authority boundaries",
+      "execution-protocol": "Stage-by-stage implementation instructions",
+      "output-format": "JSONL artifact schemas and commit formats",
+      "escalation": "Escalation table and output schema",
+      "commit-discipline": "Git commit format, staging rules",
+      "teammate-api": "SendMessage patterns, team lifecycle",
+      "self-claiming": "Task self-claiming loop (teammate mode)",
+      "shutdown": "Graceful shutdown response protocol",
+      "change-management": "Code review fix cycle protocol",
+      "research-request": "External research request schema",
+      "escalation-resolution": "Receiving and applying escalation fixes",
+      "decision-logging": "Appending to decisions.jsonl",
+      "planning-protocol": "Plan decomposition stages",
+      "review-ownership": "Review thoroughness standards",
+      "qa-checklist": "Verification protocol and gate checks",
+      "verification-protocol": "Goal-backward verification methodology",
+      "continuous-qa": "Gate-aware incremental verification",
+      "audit-protocol": "Security audit categories and checks",
+      "documentation-protocol": "docs.jsonl generation protocol",
+      "test-quality": "Test quality standards and conventions"
+    }
   }
 }
