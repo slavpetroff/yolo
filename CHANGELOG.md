@@ -2,7 +2,7 @@
 
 All notable changes to VBW will be documented in this file.
 
-## [Unreleased]
+## [1.30.0] - 2026-02-19
 
 ### Added
 
@@ -11,7 +11,7 @@ All notable changes to VBW will be documented in this file.
 - **`agent-memory`** -- Native `memory` frontmatter added to all 7 agents. Core agents (lead, dev, qa, debugger, architect) use `memory: project` for cross-session learning. Ephemeral agents (scout, docs) use `memory: local`.
 - **`agent-restrictions`** -- Native `Task(agent_type)` spawn restrictions added to all 7 agents. Lead can only spawn Dev. Debugger can only spawn Debugger (competing hypotheses). Dev, architect, docs cannot spawn agents. Scout and QA already lacked Task capability.
 - **`cc-version-table`** -- Claude Code version requirements table added to README with minimum versions for key features (hooks, teams, classifier, memory).
-- **`token-analysis`** -- v1.30.0 token analysis document covering CC Alignment impact: 85 scripts, 56 test files, 838 BATS tests. Per-request +12% (enforcement content), 73% reduction vs stock teams.
+- **`token-analysis`** -- v1.30.0 token analysis document covering CC Alignment + Worktree Isolation impact: 85 scripts, 57 test files, 825 BATS tests. Per-request +12% (enforcement content), 73% reduction vs stock teams.
 - **`worktree-isolation`** — Git worktree-per-plan isolation for Dev agents
   (6 scripts, opt-in via `worktree_isolation` config, default "off").
 

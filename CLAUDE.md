@@ -7,7 +7,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 ## Active Context
 
 **Work:** No active milestone
-**Last shipped:** CC Alignment v1 — 4 phases, 48 tasks, 44 commits, 1 deviation
+**Last shipped:** VBW v1.30.0 — 6 phases, 40 tasks, 41 commits, 0 deviations
 **Next action:** Run /vbw:vibe to start a new milestone
 
 ## VBW Rules
