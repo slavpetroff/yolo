@@ -235,3 +235,123 @@ flowchart TD
 - Effort level is orthogonal to complexity: turbo effort on high complexity still runs full ceremony but skips steps 1, 2, 6, 8.5, 9, 10
 
 ---
+
+## Diagram 4: Hook System & Scripts
+
+```mermaid
+flowchart TD
+    subgraph Hooks["Hook Lifecycle"]
+        direction TB
+        SS["SessionStart"]
+        PTU_Pre["PreToolUse"]
+        PTU_Post["PostToolUse"]
+        SAS["SubagentStart"]
+        SAStop["SubagentStop"]
+        UPS["UserPromptSubmit"]
+        PC["PreCompact"]
+        Notif["Notification"]
+        Stop["Stop"]
+    end
+
+    HW["hook-wrapper.sh<br/>(central router)"]
+
+    SS --> HW
+    PTU_Pre --> HW
+    PTU_Post --> HW
+    SAS --> HW
+    SAStop --> HW
+    UPS --> HW
+    PC --> HW
+    Notif --> HW
+    Stop --> HW
+
+    subgraph SessionScripts["Session Scripts"]
+        S_Start["session-start.sh"]
+        S_Stop["session-stop.sh"]
+        S_Map["map-staleness.sh"]
+        S_Tpl["template-staleness-check.sh"]
+        S_Compact["post-compact.sh"]
+        S_CompInst["compaction-instructions.sh"]
+    end
+
+    subgraph GuardScripts["Guard Scripts"]
+        G_Block["block-plan-mode.sh"]
+        G_Sec["security-filter.sh"]
+        G_File["file-guard.sh"]
+        G_Dept["department-guard.sh"]
+        G_DeptSpawn["validate-dept-spawn.sh"]
+    end
+
+    subgraph ValidationScripts["Validation Scripts"]
+        V_Commit["validate-commit.sh"]
+        V_Summary["validate-summary.sh"]
+        V_Front["validate-frontmatter.sh"]
+        V_Validate["validate.sh --type<br/>(plan|naming|config|gates|deps|summary|frontmatter)"]
+        V_Send["validate-send-message.sh"]
+    end
+
+    subgraph AgentScripts["Agent Lifecycle"]
+        A_Start["agent-start.sh"]
+        A_Stop["agent-stop.sh"]
+        A_Template["template-generate-hook.sh<br/>-> generate-agent.sh"]
+    end
+
+    subgraph OrchestratorScripts["Orchestrator Scripts (go.md)"]
+        O_Phase["phase-detect.sh"]
+        O_Compile["compile-context.sh<br/>-> filter-agent-context.sh"]
+        O_Route["route.sh<br/>--path trivial|medium|high"]
+        O_QAGate["qa-gate.sh<br/>--tier post-task|post-plan|post-phase"]
+        O_Classify["complexity-classify.sh"]
+        O_Resolve["resolve-agent-model.sh"]
+        O_Team["resolve-team-mode.sh"]
+        O_Depts["resolve-departments.sh"]
+        O_Critique["critique-loop.sh"]
+        O_Review["review-loop.sh"]
+        O_Exec["generate-execution-state.sh"]
+    end
+
+    HW --> SessionScripts
+    HW --> GuardScripts
+    HW --> ValidationScripts
+    HW --> AgentScripts
+
+    GoMD["go.md<br/>(orchestrator)"] --> O_Phase
+    GoMD --> O_Compile
+    GoMD --> O_Route
+    GoMD --> O_QAGate
+    GoMD --> O_Classify
+    GoMD --> O_Resolve
+    GoMD --> O_Team
+    GoMD --> O_Depts
+    GoMD --> O_Critique
+    GoMD --> O_Review
+    GoMD --> O_Exec
+
+    HW --> Notif_QA["qa-gate.sh<br/>(Notification hook)"]
+    HW --> TaskV["task-verify.sh"]
+    HW --> SkillD["skill-hook-dispatch.sh"]
+    HW --> StateU["state-updater.sh"]
+    HW --> Preflight["prompt-preflight.sh"]
+```
+
+**Source files:** `hooks/hooks.json`, `scripts/hook-wrapper.sh`, `commands/go.md`
+
+**Hook dispatch rules:**
+| Hook Event | Scripts Triggered | Matcher |
+|------------|------------------|---------|
+| SessionStart | session-start.sh, map-staleness.sh, template-staleness-check.sh, post-compact.sh (on compact) | (all) |
+| PreToolUse | block-plan-mode.sh, security-filter.sh, file-guard.sh, department-guard.sh, skill-hook-dispatch.sh | Write\|Edit, Read\|Glob\|Grep, EnterPlanMode |
+| PostToolUse | validate-summary.sh, validate-frontmatter.sh, validate-commit.sh, state-updater.sh, skill-hook-dispatch.sh, validate-send-message.sh, task-verify.sh | Write\|Edit, Bash, SendMessage, TaskUpdate |
+| SubagentStart | validate-dept-spawn.sh, template-generate-hook.sh, agent-start.sh | yolo-* |
+| SubagentStop | validate-summary.sh, agent-stop.sh | yolo-* |
+| Notification | notification-log.sh, qa-gate.sh | (all) |
+| PreCompact | compaction-instructions.sh | (all) |
+| Stop | session-stop.sh | (all) |
+| UserPromptSubmit | prompt-preflight.sh | (all) |
+
+**Consolidated scripts (Phase 9):**
+- `scripts/route.sh` replaces route-trivial.sh, route-medium.sh, route-high.sh
+- `scripts/validate.sh` replaces validate-plan.sh, validate-naming.sh, validate-config.sh, validate-gates.sh, validate-deps.sh
+- `scripts/qa-gate.sh` replaces qa-gate-post-task.sh, qa-gate-post-plan.sh, qa-gate-post-phase.sh
+
+---
