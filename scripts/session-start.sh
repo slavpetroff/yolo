@@ -125,7 +125,6 @@ if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ] && command -v jq
     "VBW_V3_LOCK_LITE=\(.v3_lock_lite // false)",
     "VBW_V3_VALIDATION_GATES=\(.v3_validation_gates // false)",
     "VBW_V3_SMART_ROUTING=\(.v3_smart_routing // false)",
-    "VBW_V3_EVENT_LOG=\(.v3_event_log // false)",
     "VBW_V3_SCHEMA_VALIDATION=\(.v3_schema_validation // false)",
     "VBW_V3_SNAPSHOT_RESUME=\(.v3_snapshot_resume // false)",
     "VBW_V3_LEASE_LOCKS=\(.v3_lease_locks // false)",
@@ -143,21 +142,8 @@ fi
 # --- Flag dependency validation (REQ-01) ---
 FLAG_WARNINGS=""
 if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ]; then
-  _v2_hard_gates=$(jq -r '.v2_hard_gates // false' "$PLANNING_DIR/config.json" 2>/dev/null)
-  _v2_hard_contracts=$(jq -r '.v2_hard_contracts // false' "$PLANNING_DIR/config.json" 2>/dev/null)
-  _v3_event_recovery=$(jq -r '.v3_event_recovery // false' "$PLANNING_DIR/config.json" 2>/dev/null)
-  _v3_event_log=$(jq -r '.v3_event_log // false' "$PLANNING_DIR/config.json" 2>/dev/null)
-  _v2_two_phase=$(jq -r '.v2_two_phase_completion // false' "$PLANNING_DIR/config.json" 2>/dev/null)
-
-  if [ "$_v2_hard_gates" = "true" ] && [ "$_v2_hard_contracts" != "true" ]; then
-    FLAG_WARNINGS="${FLAG_WARNINGS} WARNING: v2_hard_gates requires v2_hard_contracts -- enable v2_hard_contracts first or contract_compliance gate will fail."
-  fi
-  if [ "$_v3_event_recovery" = "true" ] && [ "$_v3_event_log" != "true" ]; then
-    FLAG_WARNINGS="${FLAG_WARNINGS} WARNING: v3_event_recovery requires v3_event_log -- enable v3_event_log first or event recovery will find no events."
-  fi
-  if [ "$_v2_two_phase" = "true" ] && [ "$_v3_event_log" != "true" ]; then
-    FLAG_WARNINGS="${FLAG_WARNINGS} WARNING: v2_two_phase_completion requires v3_event_log -- enable v3_event_log first or completion events will be lost."
-  fi
+  # v2_hard_gates/v2_hard_contracts dependency removed - both are now always-on
+  true
 fi
 
 # Compaction marker cleanup moved to the early-exit check above and to post-compact.sh
