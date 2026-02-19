@@ -523,7 +523,7 @@ This mode delegates to protocol files. Before reading:
 
    When an escalation reaches the top of the chain (Architect in single-dept, Owner in multi-dept), go.md intercepts and presents to the user:
 
-   a. **Receive escalation context:** Architect/Owner returns structured escalation via Task result (task mode) or file-based artifact (teammate mode). The escalation contains: issue description, evidence array, recommendation, options array (2-3 concrete choices), severity.
+   a. **Receive escalation context:** Architect/Owner returns structured escalation via Task result (task mode) or file-based artifact (teammate mode). The escalation contains: issue description, evidence array, recommendation, options array (2-3 concrete choices), severity. **Persist immediately** to `.yolo-planning/.escalation-state.json` via state-updater.sh `save_escalation_state()` so the escalation survives session interruption.
 
    b. **Format for user:** Present via AskUserQuestion:
       ```
@@ -557,7 +557,7 @@ This mode delegates to protocol files. Before reading:
 
    e. **Return resolution:** Send escalation_resolution back to the escalating agent (Architect/Owner). In task mode: return as Task result. In teammate mode (cross-team): write as file artifact `.escalation-resolution-{dept}.json` in phase dir (go.md acts as Owner proxy per D1).
 
-   f. **Update escalation state:** Update .execution-state.json escalation entry: set status to "resolved", resolved_at to current timestamp, resolution to decision text. Commit immediately: `chore(state): escalation resolved phase {N}`.
+   f. **Update escalation state:** Update .execution-state.json escalation entry: set status to "resolved", resolved_at to current timestamp, resolution to decision text. Also resolve in `.yolo-planning/.escalation-state.json` via state-updater.sh `resolve_escalation()`. Commit immediately: `chore(state): escalation resolved phase {N}`.
 
 **Routing (based on `multi_dept` from resolve-departments.sh above):**
 

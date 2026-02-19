@@ -255,13 +255,58 @@ update_phase_orchestration() {
   fi
 }
 
+save_escalation_state() {
+  local phase_dir="$1" agent="$2" reason="$3" severity="${4:-medium}" target="${5:-}"
+  local esc_file=".yolo-planning/.escalation-state.json"
+  command -v jq >/dev/null 2>&1 || return 0
+
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  local phase_num
+  phase_num=$(basename "$phase_dir" | cut -d'-' -f1)
+
+  if [ ! -f "$esc_file" ]; then
+    echo '{"pending":[],"resolved":[]}' > "$esc_file"
+  fi
+
+  local tmp="${esc_file}.tmp.$$"
+  jq --arg agent "$agent" --arg reason "$reason" --arg sev "$severity" \
+     --arg target "$target" --arg phase "$phase_num" --arg dt "$now" \
+    '.pending += [{"agent":$agent,"reason":$reason,"severity":$sev,"target":$target,"phase":$phase,"created_at":$dt,"status":"pending"}]' \
+    "$esc_file" > "$tmp" 2>/dev/null && mv "$tmp" "$esc_file" 2>/dev/null || rm -f "$tmp" 2>/dev/null
+}
+
+load_escalation_state() {
+  local esc_file=".yolo-planning/.escalation-state.json"
+  if [ -f "$esc_file" ] && command -v jq >/dev/null 2>&1; then
+    jq -r '.pending | length' "$esc_file" 2>/dev/null
+  else
+    echo "0"
+  fi
+}
+
+resolve_escalation() {
+  local index="${1:-0}" resolution="$2"
+  local esc_file=".yolo-planning/.escalation-state.json"
+  command -v jq >/dev/null 2>&1 || return 0
+  [ -f "$esc_file" ] || return 0
+
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  local tmp="${esc_file}.tmp.$$"
+  jq --argjson idx "$index" --arg res "$resolution" --arg dt "$now" \
+    '.pending[$idx].status = "resolved" | .pending[$idx].resolved_at = $dt | .pending[$idx].resolution = $res |
+     .resolved += [.pending[$idx]] | .pending = [.pending[] | select(.status == "pending")]' \
+    "$esc_file" > "$tmp" 2>/dev/null && mv "$tmp" "$esc_file" 2>/dev/null || rm -f "$tmp" 2>/dev/null
+}
+
 commit_state_artifacts() {
   local msg="${1:-state transition}"
   # Non-blocking: fail silently if git unavailable or nothing to commit
   command -v git >/dev/null 2>&1 || return 0
 
   local files_to_add=""
-  for f in .yolo-planning/STATE.md .yolo-planning/state.json .yolo-planning/ROADMAP.md .yolo-planning/.execution-state.json; do
+  for f in .yolo-planning/STATE.md .yolo-planning/state.json .yolo-planning/ROADMAP.md .yolo-planning/.execution-state.json .yolo-planning/.escalation-state.json; do
     if [ -f "$f" ] && git diff --name-only "$f" 2>/dev/null | grep -q .; then
       files_to_add="$files_to_add $f"
     elif [ -f "$f" ] && ! git ls-files --error-unmatch "$f" 2>/dev/null | grep -q .; then
