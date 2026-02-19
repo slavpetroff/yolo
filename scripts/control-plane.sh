@@ -65,7 +65,6 @@ done
 
 # --- Config / flag resolution ---
 V3_CONTRACT_LITE=false
-V2_HARD_CONTRACTS=false
 V3_LOCK_LITE=false
 V3_LEASE_LOCKS=false
 V2_HARD_GATES=false
@@ -74,7 +73,6 @@ V2_TOKEN_BUDGETS=false
 
 if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
   V3_CONTRACT_LITE=$(jq -r '.v3_contract_lite // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
-  V2_HARD_CONTRACTS=$(jq -r '.v2_hard_contracts // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
   V3_LOCK_LITE=$(jq -r '.v3_lock_lite // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
   V3_LEASE_LOCKS=$(jq -r '.v3_lease_locks // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
   V2_HARD_GATES=$(jq -r '.v2_hard_gates // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
@@ -82,14 +80,18 @@ if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
   V2_TOKEN_BUDGETS=$(jq -r '.v2_token_budgets // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
 fi
 
+# V2 hard contracts are now always enabled (graduated)
+V2_HARD_CONTRACTS=true
+
 # --- No-op check (REQ-C1) ---
 # If all flags relevant to the chosen action are false, exit 0 immediately.
+# Note: v2_hard_contracts is now always-on (graduated), so contract generation always runs
 check_noop() {
   case "$ACTION" in
     pre-task)
-      [ "$V3_CONTRACT_LITE" != "true" ] && [ "$V2_HARD_CONTRACTS" != "true" ] && \
+      # Contract (v2_hard_contracts) is always-on, so check locking and gates
       [ "$V3_LOCK_LITE" != "true" ] && [ "$V3_LEASE_LOCKS" != "true" ] && \
-      [ "$V2_HARD_GATES" != "true" ] && return 0
+      [ "$V2_HARD_GATES" != "true" ] && return 1  # Contract still runs
       ;;
     post-task)
       [ "$V2_HARD_GATES" != "true" ] && \
@@ -99,8 +101,8 @@ check_noop() {
       [ "$CONTEXT_COMPILER" != "true" ] && return 0
       ;;
     full)
-      [ "$V3_CONTRACT_LITE" != "true" ] && [ "$V2_HARD_CONTRACTS" != "true" ] && \
-      [ "$CONTEXT_COMPILER" != "true" ] && return 0
+      # Contract (v2_hard_contracts) is always-on, so check compiler only
+      [ "$CONTEXT_COMPILER" != "true" ] && return 1  # Contract still runs
       ;;
   esac
   return 1
@@ -139,10 +141,7 @@ emit_result() {
 CONTRACT_PATH_OUT=""
 
 step_contract() {
-  if [ "$V3_CONTRACT_LITE" != "true" ] && [ "$V2_HARD_CONTRACTS" != "true" ]; then
-    record_step "contract" "skip" "no contract flags enabled"
-    return 0
-  fi
+  # v2_hard_contracts is now always enabled (graduated)
   if [ -z "$PLAN_PATH" ] || [ ! -f "$PLAN_PATH" ]; then
     record_step "contract" "skip" "no plan file"
     return 0

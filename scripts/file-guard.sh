@@ -48,13 +48,11 @@ normalize_path() {
 NORM_TARGET=$(normalize_path "$FILE_PATH")
 
 # --- V2 forbidden_paths check from active contract ---
+# v2_hard_contracts is now always enabled (graduated)
 CONFIG_PATH="$PROJECT_ROOT/.vbw-planning/config.json"
-V2_HARD=false
-if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
-  V2_HARD=$(jq -r '.v2_hard_contracts // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
-fi
 
-if [ "$V2_HARD" = "true" ]; then
+# Contract enforcement is now unconditional
+if true; then
   CONTRACT_DIR="$PROJECT_ROOT/.vbw-planning/.contracts"
   if [ -d "$CONTRACT_DIR" ]; then
     # Find active contract: match the first plan without a SUMMARY

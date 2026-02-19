@@ -28,13 +28,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check feature flags
 V3_LITE=false
-V2_HARD=false
 if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
   V3_LITE=$(jq -r '.v3_contract_lite // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
-  V2_HARD=$(jq -r '.v2_hard_contracts // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
 fi
 
-[ "$V3_LITE" != "true" ] && [ "$V2_HARD" != "true" ] && exit 0
+# v2_hard_contracts is now always enabled (graduated)
+V2_HARD=true
 
 # Validate contract file exists
 if [ ! -f "$CONTRACT_PATH" ]; then

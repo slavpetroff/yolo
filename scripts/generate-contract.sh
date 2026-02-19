@@ -27,14 +27,12 @@ CONFIG_PATH="${PLANNING_DIR}/config.json"
 
 # Check feature flags
 V3_LITE=false
-V2_HARD=false
 if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
   V3_LITE=$(jq -r '.v3_contract_lite // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
-  V2_HARD=$(jq -r '.v2_hard_contracts // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
 fi
 
-# Need at least one contract flag enabled
-[ "$V3_LITE" != "true" ] && [ "$V2_HARD" != "true" ] && exit 0
+# v2_hard_contracts is now always enabled (graduated)
+V2_HARD=true
 
 # Extract phase and plan from frontmatter
 PHASE=$(awk '/^---$/{n++; next} n==1 && /^phase:/{print $2; exit}' "$PLAN_PATH" 2>/dev/null) || exit 0
