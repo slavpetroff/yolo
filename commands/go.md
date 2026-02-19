@@ -489,21 +489,19 @@ This mode delegates to protocol files. Before reading:
    echo "✓ Artifact store initialized (SQLite)"
    ```
    If `init-db.sh` fails (non-zero exit), STOP with error. The DB is mandatory for all subsequent operations.
-2.7. **Phase status check (when `db_available=true`):**
+2.7. **Phase status check:**
    ```bash
-   if [ "$db_available" = true ]; then
-     phase_status=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/check-phase-status.sh" "${PHASE_NUM}" --db "$DB_PATH" --json 2>/dev/null)
-     if [ $? -eq 0 ] && [ -n "$phase_status" ]; then
-       completed_tasks=$(echo "$phase_status" | jq -r '.completed_tasks // 0')
-       total_tasks=$(echo "$phase_status" | jq -r '.total_tasks // 0')
-       completion_pct=$(echo "$phase_status" | jq -r '.completion_pct // 0')
-       blocked_tasks=$(echo "$phase_status" | jq -r '.blocked_tasks // 0')
-       in_progress_tasks=$(echo "$phase_status" | jq -r '.in_progress_tasks // 0')
-       echo "○ Phase ${PHASE_NUM}: ${completed_tasks}/${total_tasks} tasks (${completion_pct}%), ${blocked_tasks} blocked, ${in_progress_tasks} in-progress"
-     fi
+   phase_status=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/check-phase-status.sh" "${PHASE_NUM}" --db "$DB_PATH" --json 2>/dev/null)
+   if [ $? -eq 0 ] && [ -n "$phase_status" ]; then
+     completed_tasks=$(echo "$phase_status" | jq -r '.completed_tasks // 0')
+     total_tasks=$(echo "$phase_status" | jq -r '.total_tasks // 0')
+     completion_pct=$(echo "$phase_status" | jq -r '.completion_pct // 0')
+     blocked_tasks=$(echo "$phase_status" | jq -r '.blocked_tasks // 0')
+     in_progress_tasks=$(echo "$phase_status" | jq -r '.in_progress_tasks // 0')
+     echo "○ Phase ${PHASE_NUM}: ${completed_tasks}/${total_tasks} tasks (${completion_pct}%), ${blocked_tasks} blocked, ${in_progress_tasks} in-progress"
    fi
    ```
-   This replaces the glob+read pattern for progress tracking (counting summary.jsonl files) with DB-powered task-level granularity. When `db_available=false`, fall through to existing `phase-detect.sh` output for progress data.
+   DB-powered task-level granularity replaces the glob+read pattern for progress tracking.
 3. **Compile context (MANDATORY --measure):** If `config_context_compiler=true`, compile context for each agent role as needed per the protocol steps. ALWAYS include `--measure` flag:
    ```bash
    ctx_path=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh --measure {phase} {role} {phases_dir} 2>"/tmp/yolo-ctx-measure-${role}.json")
