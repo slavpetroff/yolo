@@ -89,45 +89,21 @@ sql_toon() {
   done
 }
 
-# --- Extract phase metadata (SQL-first, ROADMAP.md fallback) ---
+# --- Extract phase metadata (SQL-only) ---
 ROADMAP="$PLANNING_DIR/ROADMAP.md"
 
 PHASE_GOAL="Not available"
 PHASE_REQS="Not available"
 PHASE_SUCCESS="Not available"
 
-if [ "$DB_AVAILABLE" = true ]; then
-  # SQL path: query phases table (populated by get-phase.sh or import-jsonl.sh)
-  _db_goal=$(sql "SELECT objective FROM plans WHERE phase='$PHASE' LIMIT 1;" 2>/dev/null || true)
-  _db_reqs=$(sql "SELECT must_haves FROM plans WHERE phase='$PHASE' LIMIT 1;" 2>/dev/null || true)
-  if [ -n "$_db_goal" ] && [ "$_db_goal" != "" ]; then
-    PHASE_GOAL="$_db_goal"
-    # Extract tr (test requirements) from must_haves JSON for PHASE_REQS
-    if [ -n "$_db_reqs" ] && command -v jq &>/dev/null; then
-      _reqs_parsed=$(echo "$_db_reqs" | jq -r '.tr // [] | join(", ")' 2>/dev/null || true)
-      [ -n "$_reqs_parsed" ] && PHASE_REQS="$_reqs_parsed"
-    fi
+_db_goal=$(sql "SELECT objective FROM plans WHERE phase='$PHASE' LIMIT 1;" 2>/dev/null || true)
+_db_reqs=$(sql "SELECT must_haves FROM plans WHERE phase='$PHASE' LIMIT 1;" 2>/dev/null || true)
+if [ -n "$_db_goal" ] && [ "$_db_goal" != "" ]; then
+  PHASE_GOAL="$_db_goal"
+  if [ -n "$_db_reqs" ] && command -v jq &>/dev/null; then
+    _reqs_parsed=$(echo "$_db_reqs" | jq -r '.tr // [] | join(", ")' 2>/dev/null || true)
+    [ -n "$_reqs_parsed" ] && PHASE_REQS="$_reqs_parsed"
   fi
-fi
-
-# File fallback: parse ROADMAP.md when DB unavailable or empty
-if [ "$PHASE_GOAL" = "Not available" ] && [ -f "$ROADMAP" ]; then
-  # OPTIMIZATION 2: Single awk for ROADMAP extraction (replaces 1 sed + 3 grep + 3 sed = 7 subprocesses)
-  IFS=$'\t' read -r PHASE_GOAL PHASE_REQS PHASE_SUCCESS <<< "$(awk -v pn="$PHASE_NUM" '
-    BEGIN { g="Not available"; r="Not available"; s="Not available" }
-    /^## Phase / {
-      if (found) exit
-      if ($0 ~ "^## Phase " pn ":") found=1
-      next
-    }
-    found && /^\*\*Goal:\*\*/ { gsub(/\*\*Goal:\*\* */, ""); g=$0 }
-    found && /^\*\*Reqs:\*\*/ { gsub(/\*\*Reqs:\*\* */, ""); r=$0 }
-    found && /^\*\*Success/ { gsub(/\*\*Success.*:\*\* */, ""); s=$0 }
-    END { printf "%s\t%s\t%s", g, r, s }
-  ' "$ROADMAP" 2>/dev/null)" || true
-  : "${PHASE_GOAL:=Not available}"
-  : "${PHASE_REQS:=Not available}"
-  : "${PHASE_SUCCESS:=Not available}"
 fi
 
 # --- Build REQ grep pattern from comma-separated REQ IDs ---
@@ -268,30 +244,6 @@ MANIFEST_PATH="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")" && pwd)/..}/config/c
 MANIFEST_AVAILABLE=false
 if [ -f "$MANIFEST_PATH" ] && command -v jq &>/dev/null; then
   MANIFEST_AVAILABLE=true
-fi
-
-# --- DB population hook (T5: sync stale JSONL → DB) ---
-# If DB exists but JSONL artifacts are newer, resync.
-IMPORT_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")" && pwd)/..}/scripts/db/import-jsonl.sh"
-if [ "$DB_AVAILABLE" = true ] && [ -x "$IMPORT_SCRIPT" ] && [ -d "$PHASE_DIR" ]; then
-  DB_MTIME=$(stat -f %m "$DB_PATH" 2>/dev/null || stat -c %Y "$DB_PATH" 2>/dev/null || echo 0)
-  for _artifact in "$PHASE_DIR"/*.jsonl "$PHASE_DIR"/.*.jsonl; do
-    [ -f "$_artifact" ] || continue
-    ARTIFACT_MTIME=$(stat -f %m "$_artifact" 2>/dev/null || stat -c %Y "$_artifact" 2>/dev/null || echo 0)
-    if [ "$ARTIFACT_MTIME" -gt "$DB_MTIME" ]; then
-      # Determine type from filename
-      _basename=$(basename "$_artifact")
-      case "$_basename" in
-        *.plan.jsonl)     bash "$IMPORT_SCRIPT" --type plan --file "$_artifact" --phase "$PHASE" --db "$DB_PATH" >/dev/null 2>&1 || true ;;
-        *.summary.jsonl)  bash "$IMPORT_SCRIPT" --type summary --file "$_artifact" --phase "$PHASE" --db "$DB_PATH" >/dev/null 2>&1 || true ;;
-        critique.jsonl)   bash "$IMPORT_SCRIPT" --type critique --file "$_artifact" --phase "$PHASE" --db "$DB_PATH" >/dev/null 2>&1 || true ;;
-        research.jsonl)   bash "$IMPORT_SCRIPT" --type research --file "$_artifact" --phase "$PHASE" --db "$DB_PATH" >/dev/null 2>&1 || true ;;
-        decisions.jsonl)  bash "$IMPORT_SCRIPT" --type decisions --file "$_artifact" --phase "$PHASE" --db "$DB_PATH" >/dev/null 2>&1 || true ;;
-        escalation.jsonl) bash "$IMPORT_SCRIPT" --type escalation --file "$_artifact" --phase "$PHASE" --db "$DB_PATH" >/dev/null 2>&1 || true ;;
-        gaps.jsonl)       bash "$IMPORT_SCRIPT" --type gaps --file "$_artifact" --phase "$PHASE" --db "$DB_PATH" >/dev/null 2>&1 || true ;;
-      esac
-    fi
-  done
 fi
 
 get_manifest_config() {
