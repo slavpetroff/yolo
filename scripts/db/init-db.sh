@@ -97,6 +97,7 @@ sqlite3 "$DB_PATH" < "$SCHEMA_FILE"
 sqlite3 "$DB_PATH" "PRAGMA journal_mode=WAL;" >/dev/null
 sqlite3 "$DB_PATH" "PRAGMA busy_timeout=5000;" >/dev/null
 sqlite3 "$DB_PATH" "PRAGMA foreign_keys=ON;" >/dev/null
+sqlite3 "$DB_PATH" "PRAGMA wal_autocheckpoint=1000;" >/dev/null
 
 # Auto-import ROADMAP.md if present
 ROADMAP_FILE="$PLANNING_DIR/ROADMAP.md"
