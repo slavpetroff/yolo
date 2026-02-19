@@ -1,6 +1,0 @@
-{"p":"03-06","s":"complete","tc":5,"cc":5,"dev":0,"fm":["tests/static/test-dept-security-agent-naming.bats","tests/static/test-documenter-agent-naming.bats","tests/unit/test-critique-loop.bats","tests/unit/test-resolve-documenter-gate.bats","tests/unit/test-context-manifest.bats"]}
-{"id":"T1","s":"complete","c":"e6745c1","f":["tests/static/test-dept-security-agent-naming.bats"]}
-{"id":"T2","s":"complete","c":"409b050","f":["tests/static/test-documenter-agent-naming.bats"]}
-{"id":"T3","s":"complete","c":"e06ed9e","f":["tests/unit/test-critique-loop.bats"]}
-{"id":"T4","s":"complete","c":"d5e60b0","f":["tests/unit/test-resolve-documenter-gate.bats"]}
-{"id":"T5","s":"complete","c":"2cf3812","f":["tests/unit/test-context-manifest.bats"]}

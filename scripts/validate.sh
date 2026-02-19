@@ -650,11 +650,20 @@ validate_naming() {
     local dir="$1"
     local files=()
 
-    while IFS= read -r f; do
-      files+=("$f")
-    done < <(find "$dir" -maxdepth 2 \( -name '*.plan.jsonl' -o -name '*.summary.jsonl' -o -name 'reqs.jsonl' \) 2>/dev/null | sort)
+    # Glob-based discovery (replaces find — avoids meta-tool dependency)
+    local -a _glob_results=()
+    local _gf
+    for _gf in "$dir"/*.plan.jsonl "$dir"/*.summary.jsonl "$dir"/reqs.jsonl \
+               "$dir"/*/*.plan.jsonl "$dir"/*/*.summary.jsonl "$dir"/*/reqs.jsonl; do
+      [[ -f "$_gf" ]] && _glob_results+=("$_gf")
+    done
+    if [[ ${#_glob_results[@]} -gt 0 ]]; then
+      while IFS= read -r f; do
+        files+=("$f")
+      done < <(printf '%s\n' "${_glob_results[@]}" | sort)
+    fi
 
-    for f in "${files[@]}"; do
+    for f in "${files[@]+"${files[@]}"}"; do
       local ftype
       ftype=$(_naming_detect_type "$f")
       case "$ftype" in
@@ -682,16 +691,28 @@ validate_naming() {
         ERRORS=()
         VALID=true
 
-        while IFS= read -r f; do
-          local ftype
-          ftype=$(_naming_detect_type "$f")
-          case "$ftype" in
-            plan) _naming_validate_plan "$f";;
-            summary) _naming_validate_summary "$f";;
-            reqs) _naming_validate_reqs "$f";;
-            *) ;;
-          esac
-        done < <(find "$milestones_dir" \( -name '*.plan.jsonl' -o -name '*.summary.jsonl' -o -name 'reqs.jsonl' \) 2>/dev/null | sort)
+        # Glob-based discovery (replaces find — milestones have depth ≤4)
+        local -a _ms_glob=()
+        local _d _mgf
+        for _d in "" "/*" "/*/*" "/*/*/*"; do
+          for _mgf in "${milestones_dir}${_d}"/*.plan.jsonl \
+                     "${milestones_dir}${_d}"/*.summary.jsonl \
+                     "${milestones_dir}${_d}"/reqs.jsonl; do
+            [[ -f "$_mgf" ]] && _ms_glob+=("$_mgf")
+          done
+        done
+        if [[ ${#_ms_glob[@]} -gt 0 ]]; then
+          while IFS= read -r f; do
+            local ftype
+            ftype=$(_naming_detect_type "$f")
+            case "$ftype" in
+              plan) _naming_validate_plan "$f";;
+              summary) _naming_validate_summary "$f";;
+              reqs) _naming_validate_reqs "$f";;
+              *) ;;
+            esac
+          done < <(printf '%s\n' "${_ms_glob[@]}" | sort)
+        fi
 
         for err in "${ERRORS[@]+"${ERRORS[@]}"}"; do
           [ -z "$err" ] && continue

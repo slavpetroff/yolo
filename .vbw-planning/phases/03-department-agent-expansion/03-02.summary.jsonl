@@ -1,5 +1,0 @@
-{"p":"03-02","s":"complete","tc":4,"cc":4,"dev":0,"fm":["agents/yolo-documenter.md","agents/yolo-fe-documenter.md","agents/yolo-ux-documenter.md","scripts/resolve-documenter-gate.sh"]}
-{"id":"T1","s":"complete","c":"04eb9da","f":["agents/yolo-documenter.md"]}
-{"id":"T2","s":"complete","c":"6ec0491","f":["agents/yolo-fe-documenter.md"]}
-{"id":"T3","s":"complete","c":"aadf39a","f":["agents/yolo-ux-documenter.md"]}
-{"id":"T4","s":"complete","c":"555982b","f":["scripts/resolve-documenter-gate.sh"]}

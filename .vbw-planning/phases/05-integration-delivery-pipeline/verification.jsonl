@@ -1,6 +1,0 @@
-{"phase":"05","result":"PASS","ts":"2026-02-18T17:10:00Z","plans":6,"tasks":23,"commits":24,"tests":39,"fixes":3,"pre_existing_failures":0}
-{"check":"integration-gate","result":"PASS","detail":"10/10 tests pass — barrier pass, fail modes, timeout, single-dept, JSON schema"}
-{"check":"validate-config","result":"PASS","detail":"16/16 tests pass — integration_gate, po.default_rejection, delivery config keys"}
-{"check":"compile-context-integration-gate","result":"PASS","detail":"7/7 tests pass — toon production, dept results, test results, graceful degradation, budget"}
-{"check":"integration-delivery-flow","result":"PASS","detail":"6/6 tests pass — config validation, JSON parsing, compile-context, error handling"}
-{"check":"full-test-suite","result":"PASS","detail":"1473 tests pass, 0 failures, exit code 0"}

@@ -1,1 +1,0 @@
-{"p":"08","n":"05","t":"Wire generation into go.md and hooks","s":"complete","dt":"2026-02-19","tc":5,"tt":5,"commits":["36c7628","b4c95f0","ff18779","3185bb9","6dfb95b"],"sg":["Consider adding --mode to execute-protocol.md step-level instructions for per-agent granularity","Template staleness check could also run as a pre-commit hook to catch stale agents before commit"]}

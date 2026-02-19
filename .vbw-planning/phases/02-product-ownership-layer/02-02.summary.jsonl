@@ -1,4 +1,0 @@
-{"p":"02","n":"02","t":"Register new agents in config and references","s":"complete","tasks":3,"commits":3}
-{"id":"T1","s":"done","f":["config/model-profiles.json"],"c":"673874e","d":"Added po, questionary, roadmap to all 3 profiles: quality(opus/sonnet/sonnet), balanced(opus/sonnet/sonnet), budget(sonnet/haiku/haiku)"}
-{"id":"T2","s":"done","f":["references/company-hierarchy.md"],"c":"f76ce29","d":"Added 3 agents to Agent Roster, Planning Team, R&D Pipeline, Decision Authority Matrix, Command Routing Table (5 sections updated)"}
-{"id":"T3","s":"done","f":["scripts/resolve-agent-model.sh"],"c":"413a87e","d":"Script is data-driven via model-profiles.json; added roles to header docs. All 3 roles resolve correctly (verified)."}

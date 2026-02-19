@@ -1,6 +1,0 @@
-{"r":"PASS","dt":"2026-02-18","tier":"standard","plans":5,"tasks":19,"issues":16,"issues_fixed":16,"pre_existing_failures":4}
-{"id":"ISSUE-01","sev":"minor","plan":"02-04","task":"static","desc":"Static agent count test expects 26, now 30 (added analyze, po, questionary, roadmap)","fix":"Updated tests/static/department-agents.bats count from 26 to 30","commit":"e767847"}
-{"id":"ISSUE-02","sev":"minor","plan":"02-04","task":"static","desc":"Review Ownership test missing yolo-po.md; EXCLUDED_AGENTS missing new agents","fix":"Added yolo-po.md to REVIEWING_AGENTS (17), added analyze/questionary/roadmap to EXCLUDED_AGENTS","commit":"e767847"}
-{"id":"ISSUE-03","sev":"minor","plan":"02-04","task":"T1","desc":"test-po-scope-loop.bats tests used wrong mock helper and missing flags","fix":"Replaced mk_mock_questionary with mk_scope_draft/mk_phase_dir, added proper flags","commit":"e767847"}
-{"id":"ISSUE-09","sev":"minor","plan":"02-04","task":"T3","desc":"test-render-user-presentation.bats missing --presentation flag","fix":"Added --presentation flag to all test invocations","commit":"e767847"}
-{"id":"ISSUE-13","sev":"minor","plan":"02-04","task":"T2","desc":"test-validate-deps.bats missing --roadmap-json flag and wrong assertions","fix":"Added --roadmap-json flag, fixed empty graph/cycle/disconnected assertions","commit":"e767847"}

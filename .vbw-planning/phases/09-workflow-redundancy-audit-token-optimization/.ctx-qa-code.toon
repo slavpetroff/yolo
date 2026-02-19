@@ -1,7 +1,0 @@
-phase: 09
-goal: Test phase for token measurement
-
-files_to_check:
-
-tool_restrictions:
-  Do NOT use: Edit, EnterPlanMode, ExitPlanMode, NotebookEdit

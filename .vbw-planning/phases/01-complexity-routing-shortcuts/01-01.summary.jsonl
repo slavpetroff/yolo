@@ -1,5 +1,0 @@
-{"p":"01","n":"01","status":"complete","tasks_completed":4,"commits":["f8d66b8","5ae91fe","304eef5","e0dc74f"],"deviations":["T4: resolve-agent-model.sh has no case statement or hardcoded roles list — resolution is fully dynamic via jq from model-profiles.json. Updated usage comment only."]}
-{"id":"T1","status":"complete","commit_hash":"f8d66b8","files_modified":["agents/yolo-analyze.md"]}
-{"id":"T2","status":"complete","commit_hash":"5ae91fe","files_modified":["config/model-profiles.json"]}
-{"id":"T3","status":"complete","commit_hash":"304eef5","files_modified":["references/company-hierarchy.md"]}
-{"id":"T4","status":"complete","commit_hash":"e0dc74f","files_modified":["scripts/resolve-agent-model.sh"]}

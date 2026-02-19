@@ -1,5 +1,0 @@
-{"p":"02","n":"04","t":"Test scaffolding for PO layer","st":"complete","tasks":4,"commits":4}
-{"id":"T1","st":"done","c":"2716eaa","f":["tests/unit/test-po-scope-loop.bats"],"note":"5 @test blocks: 3-round cap, early exit, config reading, output format, graceful degradation"}
-{"id":"T2","st":"done","c":"9a7c60c","f":["tests/unit/test-validate-deps.bats"],"note":"5 @test blocks: linear graph, circular dep, missing ref, empty graph, critical path"}
-{"id":"T3","st":"done","c":"b143653","f":["tests/unit/test-render-user-presentation.bats"],"note":"4 @test blocks: basic render, empty options, missing fields, invalid JSON"}
-{"id":"T4","st":"done","c":"dc6d601","f":["tests/static/test-po-agent-naming.bats"],"note":"9 @test blocks: file existence (3), naming convention (3), frontmatter (3), model-profiles (3)"}

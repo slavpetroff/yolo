@@ -1,4 +1,0 @@
-{"p":"01","n":"03","status":"complete","tasks_completed":3,"commits":["82eec8e","d8aa250","f04b51e"],"deviations":["Refactored validate-config.sh early-exit pattern: qa_gates-missing no longer exits immediately, instead wrapped in conditional so complexity_routing validation also runs"]}
-{"id":"T1","status":"complete","commit_hash":"82eec8e","files_modified":["config/defaults.json"]}
-{"id":"T2","status":"complete","commit_hash":"d8aa250","files_modified":["scripts/phase-detect.sh"]}
-{"id":"T3","status":"complete","commit_hash":"f04b51e","files_modified":["scripts/validate-config.sh"]}

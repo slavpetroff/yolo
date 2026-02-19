@@ -1,6 +1,0 @@
-{"p":"04-05","s":"complete","tc":5,"cc":3,"dev":0,"fm":["references/artifact-formats.md","agents/yolo-dev.md","agents/yolo-senior.md","agents/yolo-fe-dev.md","agents/yolo-ux-dev.md","agents/yolo-fe-senior.md","agents/yolo-ux-senior.md"]}
-{"id":"T1","s":"complete","c":"pre-existing","f":["references/artifact-formats.md"]}
-{"id":"T2","s":"complete","c":"0f856ec","f":["agents/yolo-dev.md"]}
-{"id":"T3","s":"complete","c":"2b2d6c6","f":["agents/yolo-senior.md"]}
-{"id":"T4","s":"complete","c":"a20d7b5","f":["agents/yolo-fe-dev.md","agents/yolo-ux-dev.md"]}
-{"id":"T5","s":"complete","c":"8f82c09","f":["agents/yolo-fe-senior.md","agents/yolo-ux-senior.md"]}

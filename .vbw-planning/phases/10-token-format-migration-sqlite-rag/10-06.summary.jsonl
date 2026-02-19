@@ -1,1 +1,0 @@
-{"p":"10","n":"06","s":"complete","dt":"2026-02-19","tc":5,"tt":5,"ch":["83b249c"],"fm":["scripts/compile-context.sh","tests/unit/compile-context-sql.bats","scripts/db/import-jsonl.sh"],"tst":"green","built":["sql()","sql_toon()","DB_AVAILABLE detection","populate hook","23 SQL migration tests"]}
