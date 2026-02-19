@@ -3,7 +3,7 @@ model: Sonnet
 use_when: Quick fixes, config changes, obvious tasks, low-stakes edits.
 
 effort_vs_model:
-  effort_controls: Planning depth, verification thoroughness, research scope (workflow behavior)
+  effort_controls: Which workflow steps execute (step skipping). NOT agent quality.
   model_controls: Which Claude model each agent uses (cost optimization)
   independent: Can run Thorough effort on Budget profile or Fast effort on Quality profile
   recommendation: Match them (balanced+balanced, thorough+quality, fast+budget)
@@ -11,23 +11,26 @@ effort_vs_model:
   config_model: /yolo:config model_profile <profile>
   see: @references/model-profiles.md
 
-matrix:
-  Agent|Level|Notes
-  Lead|skip|Not spawned. No planning step
-  Architect|skip|Not spawned
-  Dev|low|Direct execution, no research, minimal change, brief commits
-  QA|skip|Not spawned. User judges output directly
-  Scout|skip|Not spawned
-  Debugger|low|Single hypothesis, targeted fix, minimal report (root cause + fix)
+agent_quality: full (always). Effort level never degrades agent reasoning or output quality.
+
+step_skips:
+  Step|Status|Reason
+  1: Critique|SKIP|Low-stakes tasks need no critique
+  2: Research (Scout)|SKIP|No research needed for obvious changes
+  3: Architecture|run|
+  4: Planning|run|
+  5: Design Review|run|
+  6: Test Authoring (RED)|SKIP|Minimal scope, no formal TDD
+  7: Implementation|run|
+  8: Code Review|run|
+  8.5: Documentation|SKIP|No documentation for quick fixes
+  9: QA|SKIP|User judges output directly
+  10: Security|SKIP|Low-stakes, no security audit
+  11: Sign-off|run|
 
 plan_approval (EFRT-07):
   Autonomy|Gate
   All levels|OFF
   note: No lead agent at Turbo; plan approval requires a lead.
-
-effort_mapping:
-  Level|Behavior
-  low|Minimal reasoning, direct execution
-  skip|Agent is not spawned at all
 
 override: --effort=turbo overrides config default for one invocation (EFRT-05)

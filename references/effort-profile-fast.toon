@@ -3,7 +3,7 @@ model: Sonnet
 use_when: Well-understood features, low-risk changes, iteration speed matters.
 
 effort_vs_model:
-  effort_controls: Planning depth, verification thoroughness, research scope (workflow behavior)
+  effort_controls: Which workflow steps execute (step skipping). NOT agent quality.
   model_controls: Which Claude model each agent uses (cost optimization)
   independent: Can run Thorough effort on Budget profile or Fast effort on Quality profile
   recommendation: Match them (balanced+balanced, thorough+quality, fast+budget)
@@ -11,22 +11,25 @@ effort_vs_model:
   config_model: /yolo:config model_profile <profile>
   see: @references/model-profiles.md
 
-matrix:
-  Agent|Level|Notes
-  Lead|high|Still needs good plans. Focused research, efficient decomposition
-  Architect|medium|Concise scope, essential criteria, grouped requirements
-  Dev|medium|Shortest path to done criteria. Standard verify checks
-  QA|low|Quick tier (5-10 checks). Artifact existence, frontmatter, key strings
-  Scout|low|Single-source lookups, one URL max, no exploration
-  Debugger|medium|Single most likely hypothesis first. Standard fix-and-verify
+agent_quality: full (always). Effort level never degrades agent reasoning or output quality.
+
+step_skips:
+  Step|Status|Reason
+  1: Critique|run|
+  2: Research (Scout)|run|
+  3: Architecture|run|
+  4: Planning|run|
+  5: Design Review|run|
+  6: Test Authoring (RED)|run|
+  7: Implementation|run|
+  8: Code Review|run|
+  8.5: Documentation|SKIP|Speed over docs for low-risk changes
+  9: QA|run|
+  10: Security|SKIP|Low-risk changes, no security audit
+  11: Sign-off|run|
 
 plan_approval (EFRT-07):
   Autonomy|Gate
   All levels|OFF
-
-effort_mapping:
-  Level|Behavior
-  medium|Moderate reasoning depth, standard exploration
-  low|Minimal reasoning, direct execution
 
 override: --effort=fast overrides config default for one invocation (EFRT-05)

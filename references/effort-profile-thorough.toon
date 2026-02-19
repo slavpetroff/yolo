@@ -3,7 +3,7 @@ model: Opus
 use_when: Critical features, complex architecture, production-impacting changes.
 
 effort_vs_model:
-  effort_controls: Planning depth, verification thoroughness, research scope (workflow behavior)
+  effort_controls: Which workflow steps execute (step skipping). NOT agent quality.
   model_controls: Which Claude model each agent uses (cost optimization)
   independent: Can run Thorough effort on Budget profile or Fast effort on Quality profile
   recommendation: Match them (balanced+balanced, thorough+quality, fast+budget)
@@ -11,14 +11,22 @@ effort_vs_model:
   config_model: /yolo:config model_profile <profile>
   see: @references/model-profiles.md
 
-matrix:
-  Agent|Level|Notes
-  Lead|max|Exhaustive research, detailed decomposition, full self-review
-  Architect|max|Comprehensive scope, full requirement mapping, traceability matrix
-  Dev|high|plan_mode_required -- read-only until lead approves. Thorough inline verification
-  QA|high|Deep tier (30+ checks). Full anti-pattern scan, requirement mapping
-  Scout|high|Broad research, cross-reference, adjacent topics. Runs on session model (Opus)
-  Debugger|high|All 3 hypotheses tested. Full regression suite. Detailed report
+agent_quality: full (always). Effort level never degrades agent reasoning or output quality.
+
+step_skips:
+  Step|Status|Reason
+  1: Critique|run|
+  2: Research (Scout)|run|
+  3: Architecture|run|
+  4: Planning|run|
+  5: Design Review|run|
+  6: Test Authoring (RED)|run|
+  7: Implementation|run|
+  8: Code Review|run + extra validation|Requirement traceability, architecture conformance, cross-plan consistency
+  8.5: Documentation|run|
+  9: QA|run|
+  10: Security|run|
+  11: Sign-off|run|
 
 plan_approval (EFRT-07):
   Autonomy|Gate
@@ -26,10 +34,5 @@ plan_approval (EFRT-07):
   standard|required
   confident / pure-yolo|OFF
   note: Platform-enforced: Dev cannot write files until lead approves.
-
-effort_mapping:
-  Level|Behavior
-  max|No effort override (default maximum reasoning)
-  high|Deep reasoning with focused scope
 
 override: --effort=thorough overrides config default for one invocation (EFRT-05)
