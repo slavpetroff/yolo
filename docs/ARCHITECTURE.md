@@ -2,7 +2,38 @@
 
 Visual reference for the YOLO engine architecture. All diagrams use Mermaid syntax for GitHub-native rendering.
 
-Last Updated: 2026-02-19
+**Last Updated:** 2026-02-19
+
+## Table of Contents
+
+1. [Agent Hierarchy](#diagram-1-agent-hierarchy) -- Department structure, reporting lines, shared agents
+2. [Workflow Steps & Data Flow](#diagram-2-workflow-steps--data-flow) -- 11-step workflow with artifact flow
+3. [Complexity Routing](#diagram-3-complexity-routing) -- Trivial/medium/high paths with effort overlay
+4. [Hook System & Scripts](#diagram-4-hook-system--scripts) -- Hook lifecycle, script call chains
+
+## Cross-References
+
+| Topic | Source File |
+|-------|------------|
+| Agent definitions | `agents/yolo-*.md` |
+| Agent roster & hierarchy | `references/company-hierarchy.md` |
+| Department protocols | `references/departments/*.toon` |
+| Execution protocol (11-step) | `references/execute-protocol.md` |
+| Multi-department orchestration | `references/multi-dept-protocol.md` |
+| Cross-team coordination | `references/cross-team-protocol.md` |
+| Effort profiles (step-skip) | `references/effort-profile-*.toon` |
+| Complexity routing | `commands/go.md` (Path 0) |
+| Artifact schemas (JSONL) | `references/artifact-formats.md` |
+| Handoff schemas | `references/handoff-schemas.md` |
+| Hook configuration | `hooks/hooks.json` |
+| Script directory | `scripts/*.sh` |
+| Consolidated route script | `scripts/route.sh` |
+| Consolidated validate script | `scripts/validate.sh` |
+| Consolidated QA gate script | `scripts/qa-gate.sh` |
+| Context compilation | `scripts/compile-context.sh` |
+| Context manifest | `config/context-manifest.json` |
+| Model profiles | `config/model-profiles.json` |
+| Config defaults | `config/defaults.json` |
 
 ---
 
@@ -355,3 +386,15 @@ flowchart TD
 - `scripts/qa-gate.sh` replaces qa-gate-post-task.sh, qa-gate-post-plan.sh, qa-gate-post-phase.sh
 
 ---
+
+## How to Update
+
+When modifying YOLO architecture, update the relevant diagram(s) in this file:
+
+1. **Adding/removing agents:** Update Diagram 1 (Agent Hierarchy). Update the subgraph for the affected department.
+2. **Changing workflow steps:** Update Diagram 2 (Workflow Steps). Add/remove nodes and artifact edges.
+3. **Changing complexity routing:** Update Diagram 3 (Complexity Routing). Update the decision tree and step-skip overlay.
+4. **Adding/removing hooks or scripts:** Update Diagram 4 (Hook System). Update the relevant script group subgraph.
+5. **After any update:** Set the `Last Updated` date at the top of this file.
+
+Diagrams use [Mermaid](https://mermaid.js.org/) syntax. Test locally with `mermaid-cli` or view on GitHub (renders natively in `.md` files).

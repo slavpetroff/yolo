@@ -11,6 +11,10 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 **Previous:** Teammate API Integration — 4 phases, 19 plans, 84 tasks, 76 commits, 876 tests
 **Next action:** Complete Phase 6 plans, verify milestone
 
+## Architecture Diagrams
+
+See `docs/ARCHITECTURE.md` for 4 Mermaid diagrams: Agent Hierarchy, Workflow Steps & Data Flow, Complexity Routing, Hook System & Scripts.
+
 ## Department Architecture
 
 ~36 agents across 4 departments + PO layer. Enable/disable departments via `config/defaults.json` `departments` key. PO layer (yolo-po, yolo-questionary, yolo-roadmap) gated by `po.enabled` config key. Documenter agents gated by `documenter` config key (on_request/always/never).
