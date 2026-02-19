@@ -58,11 +58,11 @@ if [ -z "$PHASE_DIR" ]; then
   exit 1
 fi
 
-# --- SQLite DB availability (early detection for phase metadata) ---
-DB_AVAILABLE=false
+# --- SQLite DB (mandatory) ---
 DB_PATH="${PLANNING_DIR}/yolo.db"
-if [ -f "$DB_PATH" ]; then
-  DB_AVAILABLE=true
+if [ ! -f "$DB_PATH" ]; then
+  echo "ERROR: Database not found at $DB_PATH. Run init-db.sh first." >&2
+  exit 1
 fi
 
 # Helper: execute read-only SQL query against yolo.db
