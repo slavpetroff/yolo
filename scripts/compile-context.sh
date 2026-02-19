@@ -481,11 +481,7 @@ ARCH_FILE=$(get_arch_file)
 
 # OPTIMIZATION 6: Cache file existence flags (avoid repeated stat syscalls)
 ARCH_EXISTS=false; [ -f "$ARCH_FILE" ] && ARCH_EXISTS=true
-DECISIONS_EXISTS=false; [ -f "$PHASE_DIR/decisions.jsonl" ] && DECISIONS_EXISTS=true
-# DB counts as having data available for guarded sections
-if [ "$DB_AVAILABLE" = true ]; then
-  DECISIONS_EXISTS=true
-fi
+DECISIONS_EXISTS=true
 HAS_CODEBASE=false; [ -d "$PLANNING_DIR/codebase" ] && HAS_CODEBASE=true
 DEPT_CONVENTIONS_AVAILABLE=false
 if [ -f "$PLANNING_DIR/departments/${DEPT_TOON_FILE:-}" ] || [ "$DEPT" != "shared" ]; then
@@ -565,19 +561,13 @@ case "$BASE_ROLE" in
         echo ""
       fi
       # Test results summary (GREEN phase metrics)
-      if [ "$DB_AVAILABLE" = true ]; then
-        _tr_rows=$(sql "SELECT plan, ps, fl, dept FROM test_results WHERE phase='$PHASE';" 2>/dev/null || true)
-        if [ -n "$_tr_rows" ]; then
-          echo ""
-          echo "test_results:"
-          echo "$_tr_rows" | while IFS=',' read -r _plan _ps _fl _dept; do
-            echo "  $_plan: ps=$_ps fl=$_fl dept=$_dept"
-          done
-        fi
-      elif [ -f "$PHASE_DIR/test-results.jsonl" ]; then
+      _tr_rows=$(sql "SELECT plan, ps, fl, dept FROM test_results WHERE phase='$PHASE';" 2>/dev/null || true)
+      if [ -n "$_tr_rows" ]; then
         echo ""
         echo "test_results:"
-        jq -r '"  \(.plan // ""): ps=\(.ps // 0) fl=\(.fl // 0) dept=\(.dept // "")"' "$PHASE_DIR/test-results.jsonl" 2>/dev/null || true
+        echo "$_tr_rows" | while IFS=',' read -r _plan _ps _fl _dept; do
+          echo "  $_plan: ps=$_ps fl=$_fl dept=$_dept"
+        done
       fi
       echo "success_criteria: $PHASE_SUCCESS"
       REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
@@ -617,29 +607,14 @@ case "$BASE_ROLE" in
         echo ""
       fi
       # Dev suggestions from summaries (for code review consumption)
-      if [ "$DB_AVAILABLE" = true ]; then
-        _sg_rows=$(sql "SELECT s.suggestions FROM summaries s JOIN plans p ON s.plan_id = p.rowid WHERE p.phase='$PHASE' AND s.suggestions IS NOT NULL AND s.suggestions != '' AND s.suggestions != 'null';" 2>/dev/null || true)
-        if [ -n "$_sg_rows" ]; then
-          echo ""
-          echo "suggestions:"
-          echo "$_sg_rows" | while IFS= read -r _sg_json; do
-            echo "$_sg_json" | jq -r '.[]' 2>/dev/null | while IFS= read -r sg_item; do
-              echo "  - $sg_item"
-            done
+      _sg_rows=$(sql "SELECT s.suggestions FROM summaries s JOIN plans p ON s.plan_id = p.rowid WHERE p.phase='$PHASE' AND s.suggestions IS NOT NULL AND s.suggestions != '' AND s.suggestions != 'null';" 2>/dev/null || true)
+      if [ -n "$_sg_rows" ]; then
+        echo ""
+        echo "suggestions:"
+        echo "$_sg_rows" | while IFS= read -r _sg_json; do
+          echo "$_sg_json" | jq -r '.[]' 2>/dev/null | while IFS= read -r sg_item; do
+            echo "  - $sg_item"
           done
-        fi
-      else
-        for summary in "$PHASE_DIR"/*.summary.jsonl; do
-          if [ -f "$summary" ]; then
-            SG=$(jq -r 'select(.sg != null and (.sg | length) > 0) | .sg[]' "$summary" 2>/dev/null || true)
-            if [ -n "$SG" ]; then
-              echo ""
-              echo "suggestions:"
-              echo "$SG" | while IFS= read -r sg_item; do
-                echo "  - $sg_item"
-              done
-            fi
-          fi
         done
       fi
       echo ""
@@ -731,18 +706,12 @@ case "$BASE_ROLE" in
       echo "success_criteria: $PHASE_SUCCESS"
       echo ""
       # Test results as primary QA input
-      if [ "$DB_AVAILABLE" = true ]; then
-        _tr_rows=$(sql "SELECT plan, ps, fl, dept FROM test_results WHERE phase='$PHASE';" 2>/dev/null || true)
-        if [ -n "$_tr_rows" ]; then
-          echo "test_results:"
-          echo "$_tr_rows" | while IFS=',' read -r _plan _ps _fl _dept; do
-            echo "  $_plan: ps=$_ps fl=$_fl dept=$_dept"
-          done
-          echo ""
-        fi
-      elif [ -f "$PHASE_DIR/test-results.jsonl" ]; then
+      _tr_rows=$(sql "SELECT plan, ps, fl, dept FROM test_results WHERE phase='$PHASE';" 2>/dev/null || true)
+      if [ -n "$_tr_rows" ]; then
         echo "test_results:"
-        jq -r '"  \(.plan // ""): ps=\(.ps // 0) fl=\(.fl // 0) dept=\(.dept // "")"' "$PHASE_DIR/test-results.jsonl" 2>/dev/null || true
+        echo "$_tr_rows" | while IFS=',' read -r _plan _ps _fl _dept; do
+          echo "  $_plan: ps=$_ps fl=$_fl dept=$_dept"
+        done
         echo ""
       fi
       # Plan header context (must-haves and objective)
@@ -777,18 +746,11 @@ case "$BASE_ROLE" in
         echo "$CONVENTIONS"
       fi
       # Escalation summary (open/resolved counts)
-      if [ "$DB_AVAILABLE" = true ]; then
-        _esc_open=$(sql "SELECT COUNT(*) FROM escalation WHERE phase='$PHASE' AND st='open';" 2>/dev/null || echo 0)
-        _esc_resolved=$(sql "SELECT COUNT(*) FROM escalation WHERE phase='$PHASE' AND st='resolved';" 2>/dev/null || echo 0)
-        if [ "$(( _esc_open + _esc_resolved ))" -gt 0 ] 2>/dev/null; then
-          echo ""
-          echo "escalations: open=$_esc_open resolved=$_esc_resolved"
-        fi
-      elif [ -f "$PHASE_DIR/escalation.jsonl" ]; then
-        ESC_OPEN=$(jq -r 'select(.st == "open") | .id' "$PHASE_DIR/escalation.jsonl" 2>/dev/null | wc -l | tr -d ' ')
-        ESC_RESOLVED=$(jq -r 'select(.st == "resolved") | .id' "$PHASE_DIR/escalation.jsonl" 2>/dev/null | wc -l | tr -d ' ')
+      _esc_open=$(sql "SELECT COUNT(*) FROM escalation WHERE phase='$PHASE' AND st='open';" 2>/dev/null || echo 0)
+      _esc_resolved=$(sql "SELECT COUNT(*) FROM escalation WHERE phase='$PHASE' AND st='resolved';" 2>/dev/null || echo 0)
+      if [ "$(( _esc_open + _esc_resolved ))" -gt 0 ] 2>/dev/null; then
         echo ""
-        echo "escalations: open=$ESC_OPEN resolved=$ESC_RESOLVED"
+        echo "escalations: open=$_esc_open resolved=$_esc_resolved"
       fi
       REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
       get_tool_restrictions
@@ -801,30 +763,13 @@ case "$BASE_ROLE" in
       echo ""
       # Rolling summaries for all plans (QA-code reviews phase-wide)
       get_all_plan_summaries
-      # Files modified (from DB or summary.jsonl files in phase dir)
+      # Files modified (from DB summaries)
       echo "files_to_check:"
-      if [ "$DB_AVAILABLE" = true ]; then
-        sql "SELECT s.fm FROM summaries s JOIN plans p ON s.plan_id = p.rowid WHERE p.phase='$PHASE' AND s.fm IS NOT NULL AND s.fm != '' AND s.fm != 'null';" 2>/dev/null | while IFS= read -r _fm_json; do
-          echo "$_fm_json" | jq -r '.[]' 2>/dev/null | while IFS= read -r f; do
-            echo "  $f"
-          done
-        done || true
-      else
-        for summary in "$PHASE_DIR"/*.summary.jsonl; do
-          if [ -f "$summary" ]; then
-            if [ "$FILTER_AVAILABLE" = true ]; then
-              bash "$FILTER_SCRIPT" --role "$BASE_ROLE" --artifact "$summary" --type summary 2>/dev/null | \
-                jq -r '.fm // [] | .[]' 2>/dev/null | while IFS= read -r f; do
-                  echo "  $f"
-                done
-            else
-              jq -r '.fm // [] | .[]' "$summary" 2>/dev/null | while IFS= read -r f; do
-                echo "  $f"
-              done
-            fi
-          fi
+      sql "SELECT s.fm FROM summaries s JOIN plans p ON s.plan_id = p.rowid WHERE p.phase='$PHASE' AND s.fm IS NOT NULL AND s.fm != '' AND s.fm != 'null';" 2>/dev/null | while IFS= read -r _fm_json; do
+        echo "$_fm_json" | jq -r '.[]' 2>/dev/null | while IFS= read -r f; do
+          echo "  $f"
         done
-      fi
+      done || true
       echo ""
       # Conventions for pattern checking
       CONVENTIONS=$(get_conventions)
@@ -929,18 +874,12 @@ case "$BASE_ROLE" in
       done
       echo ""
       # Test results per department
-      if [ "$DB_AVAILABLE" = true ]; then
-        _tr_rows=$(sql "SELECT plan, dept, tc, ps, fl FROM test_results WHERE phase='$PHASE';" 2>/dev/null || true)
-        if [ -n "$_tr_rows" ]; then
-          echo "test_results:"
-          echo "$_tr_rows" | while IFS=',' read -r _plan _dept _tc _ps _fl; do
-            echo "  $_plan: dept=$_dept phase=$PHASE tc=$_tc ps=$_ps fl=$_fl"
-          done
-          echo ""
-        fi
-      elif [ -f "$PHASE_DIR/test-results.jsonl" ]; then
+      _tr_rows=$(sql "SELECT plan, dept, tc, ps, fl FROM test_results WHERE phase='$PHASE';" 2>/dev/null || true)
+      if [ -n "$_tr_rows" ]; then
         echo "test_results:"
-        jq -r '"  \(.plan // ""): dept=\(.dept // "") phase=\(.phase // "") tc=\(.tc // 0) ps=\(.ps // 0) fl=\(.fl // 0)"' "$PHASE_DIR/test-results.jsonl" 2>/dev/null || true
+        echo "$_tr_rows" | while IFS=',' read -r _plan _dept _tc _ps _fl; do
+          echo "  $_plan: dept=$_dept phase=$PHASE tc=$_tc ps=$_ps fl=$_fl"
+        done
         echo ""
       fi
       # API contracts (cross-dept, if exists)
@@ -957,17 +896,9 @@ case "$BASE_ROLE" in
       fi
       # Summary fm/tst fields for implementation evidence
       echo "summaries:"
-      if [ "$DB_AVAILABLE" = true ]; then
-        sql "SELECT p.plan_num, s.status, s.test_status, s.fm FROM summaries s JOIN plans p ON s.plan_id = p.rowid WHERE p.phase='$PHASE' ORDER BY p.plan_num;" 2>/dev/null | while IFS=',' read -r _pn _st _tst _fm; do
-          echo "  $PHASE-$_pn: s=$_st tst=${_tst:-n/a} fm=$_fm"
-        done || true
-      else
-        for summary in "$PHASE_DIR"/*.summary.jsonl; do
-          if [ -f "$summary" ]; then
-            jq -r '"  \(.p // "")-\(.n // ""): s=\(.s // "") tst=\(.tst // "n/a") fm=\(.fm // [] | join(";"))"' "$summary" 2>/dev/null || true
-          fi
-        done
-      fi
+      sql "SELECT p.plan_num, s.status, s.test_status, s.fm FROM summaries s JOIN plans p ON s.plan_id = p.rowid WHERE p.phase='$PHASE' ORDER BY p.plan_num;" 2>/dev/null | while IFS=',' read -r _pn _st _tst _fm; do
+        echo "  $PHASE-$_pn: s=$_st tst=${_tst:-n/a} fm=$_fm"
+      done || true
       echo ""
       # Handoff sentinels
       echo "handoff_sentinels:"
@@ -987,28 +918,11 @@ case "$BASE_ROLE" in
       echo ""
       # Files modified (from summary.jsonl files or DB)
       echo "files_to_audit:"
-      if [ "$DB_AVAILABLE" = true ]; then
-        sql "SELECT s.fm FROM summaries s JOIN plans p ON s.plan_id = p.rowid WHERE p.phase='$PHASE' AND s.fm IS NOT NULL AND s.fm != '' AND s.fm != 'null';" 2>/dev/null | while IFS= read -r _fm_json; do
-          echo "$_fm_json" | jq -r '.[]' 2>/dev/null | while IFS= read -r f; do
-            echo "  $f"
-          done
-        done || true
-      else
-        for summary in "$PHASE_DIR"/*.summary.jsonl; do
-          if [ -f "$summary" ]; then
-            if [ "$FILTER_AVAILABLE" = true ]; then
-              bash "$FILTER_SCRIPT" --role "$BASE_ROLE" --artifact "$summary" --type summary 2>/dev/null | \
-                jq -r '.fm // [] | .[]' 2>/dev/null | while IFS= read -r f; do
-                  echo "  $f"
-                done
-            else
-              jq -r '.fm // [] | .[]' "$summary" 2>/dev/null | while IFS= read -r f; do
-                echo "  $f"
-              done
-            fi
-          fi
+      sql "SELECT s.fm FROM summaries s JOIN plans p ON s.plan_id = p.rowid WHERE p.phase='$PHASE' AND s.fm IS NOT NULL AND s.fm != '' AND s.fm != 'null';" 2>/dev/null | while IFS= read -r _fm_json; do
+        echo "$_fm_json" | jq -r '.[]' 2>/dev/null | while IFS= read -r f; do
+          echo "  $f"
         done
-      fi
+      done || true
       echo ""
       # Dependency manifests
       echo "dependency_files:"
@@ -1034,17 +948,12 @@ case "$BASE_ROLE" in
       done || true
       echo ""
       # Gaps if any exist
-      if [ "$DB_AVAILABLE" = true ]; then
-        _gap_rows=$(sql "SELECT sev, \"desc\" FROM gaps WHERE phase='$PHASE' AND \"desc\" != '';" 2>/dev/null || true)
-        if [ -n "$_gap_rows" ]; then
-          echo "known_gaps:"
-          echo "$_gap_rows" | while IFS=',' read -r _sev _desc; do
-            echo "  $_sev: $_desc"
-          done
-        fi
-      elif [ -f "$PHASE_DIR/gaps.jsonl" ]; then
+      _gap_rows=$(sql "SELECT sev, \"desc\" FROM gaps WHERE phase='$PHASE' AND \"desc\" != '';" 2>/dev/null || true)
+      if [ -n "$_gap_rows" ]; then
         echo "known_gaps:"
-        jq -r 'select((.desc // empty) != "") | "  \(.sev // ""): \(.desc)"' "$PHASE_DIR/gaps.jsonl" 2>/dev/null || true
+        echo "$_gap_rows" | while IFS=',' read -r _sev _desc; do
+          echo "  $_sev: $_desc"
+        done
       fi
       REF_PKG=$(get_reference_package) && { echo ''; echo "reference_package: @${REF_PKG}"; }
       get_tool_restrictions
@@ -1085,17 +994,12 @@ case "$BASE_ROLE" in
       echo ""
       get_requirements
       echo ""
-      if [ "$DB_AVAILABLE" = true ]; then
-        _crit_rows=$(sql "SELECT id, q FROM critique WHERE phase='$PHASE' AND (sev='critical' OR sev='major') AND q != '';" 2>/dev/null || true)
-        if [ -n "$_crit_rows" ]; then
-          echo "research_directives:"
-          echo "$_crit_rows" | while IFS=',' read -r _id _q; do
-            echo "  $_id: $_q"
-          done
-        fi
-      elif [ -f "$PHASE_DIR/critique.jsonl" ]; then
+      _crit_rows=$(sql "SELECT id, q FROM critique WHERE phase='$PHASE' AND (sev='critical' OR sev='major') AND q != '';" 2>/dev/null || true)
+      if [ -n "$_crit_rows" ]; then
         echo "research_directives:"
-        jq -r 'select(.sev == "critical" or .sev == "major") | "  \(.id // ""): \(.q // .desc // "")"' "$PHASE_DIR/critique.jsonl" 2>/dev/null || true
+        echo "$_crit_rows" | while IFS=',' read -r _id _q; do
+          echo "  $_id: $_q"
+        done
       fi
       echo ""
       if [ "$HAS_CODEBASE" = true ]; then
