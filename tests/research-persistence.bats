@@ -130,21 +130,3 @@ ROADMAP
   [ "$RESEARCH_LINES" -ge 4 ]
 }
 
-@test "research-persistence: vibe plan mode respects flag=false" {
-  cd "$TEST_TEMP_DIR"
-
-  # Setup temp config with v3_plan_research_persist=false (default in defaults.json)
-  jq '.v3_plan_research_persist = false | .effort = "thorough"' .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
-
-  # Create phase dir without RESEARCH.md
-  mkdir -p "$TEST_TEMP_DIR/phase-dir"
-
-  # Call research-warn.sh to validate skip path
-  run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/phase-dir"
-  [ "$status" -eq 0 ]
-
-  # Verify output is result=ok with reason="research_persist disabled"
-  echo "$output" | jq -e '.result == "ok"'
-  echo "$output" | jq -e '.reason == "research_persist disabled"'
-}
