@@ -92,7 +92,7 @@ done_esc=$(esc "$DONE")
 test_spec_esc=$(esc "$TEST_SPEC")
 deps_esc=$(esc "$deps_json")
 
-sql_exec "$DB" "INSERT INTO tasks (plan_id, task_id, action, spec, files, verify, done, test_spec, task_depends, status)
+sql_with_retry "$DB" "INSERT INTO tasks (plan_id, task_id, action, spec, files, verify, done, test_spec, task_depends, status)
 VALUES ($plan_rowid, '$TASK_ID', '$action_esc', '$spec_esc', '$files_esc', '$verify_esc', '$done_esc', '$test_spec_esc', '$deps_esc', 'pending')
 ON CONFLICT(plan_id, task_id) DO UPDATE SET
   action=excluded.action,

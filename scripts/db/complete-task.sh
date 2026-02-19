@@ -95,7 +95,7 @@ if [[ -n "$SUMMARY" ]]; then
   set_clause="$set_clause, summary='$summary_esc'"
 fi
 
-sql_exec "$DB" \
+sql_with_retry "$DB" \
   "UPDATE tasks SET $set_clause WHERE plan_id=$plan_rowid AND task_id='$TASK_ID';"
 
 echo "ok: $TASK_ID complete (plan $PLAN_ID)"

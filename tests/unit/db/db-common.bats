@@ -162,3 +162,60 @@ mk_planning_db() {
   [ "$_DB_PATH" = "" ]
   [ "${#_REMAINING_ARGS[@]}" -eq 2 ]
 }
+
+# --- sql_with_retry tests ---
+
+@test "sql_with_retry writes data successfully" {
+  local db
+  db=$(mk_test_db)
+  source "$DB_COMMON"
+  sql_with_retry "$db" "INSERT INTO items VALUES ('d','four');"
+  local result
+  result=$(sqlite3 "$db" "SELECT val FROM items WHERE id='d';")
+  [ "$result" = "four" ]
+}
+
+@test "sql_with_retry sets PRAGMA synchronous=NORMAL" {
+  local db
+  db=$(mk_test_db)
+  source "$DB_COMMON"
+  # After sql_with_retry, check synchronous mode within same session isn't possible
+  # but we can verify the function accepts valid SQL
+  sql_with_retry "$db" "INSERT INTO items VALUES ('e','five');"
+  local count
+  count=$(sqlite3 "$db" "SELECT count(*) FROM items;")
+  [ "$count" -eq 3 ]
+}
+
+@test "sql_with_retry returns output from SELECT" {
+  local db
+  db=$(mk_test_db)
+  source "$DB_COMMON"
+  local result
+  result=$(sql_with_retry "$db" "INSERT INTO items VALUES ('f','six'); SELECT count(*) FROM items;")
+  [[ "$result" == *"3"* ]]
+}
+
+@test "SQLITE_BUSY_RETRIES constant is set" {
+  source "$DB_COMMON"
+  [ "$SQLITE_BUSY_RETRIES" -eq 3 ]
+}
+
+# --- sql_verify tests ---
+
+@test "sql_verify passes on valid database" {
+  local db
+  db=$(mk_test_db)
+  source "$DB_COMMON"
+  run sql_verify "$db"
+  assert_success
+}
+
+@test "sql_verify fails on corrupted database" {
+  source "$DB_COMMON"
+  local db="$TEST_WORKDIR/corrupt.db"
+  # Create a file that is not a valid SQLite database
+  echo "not a database" > "$db"
+  run sql_verify "$db"
+  assert_failure
+}

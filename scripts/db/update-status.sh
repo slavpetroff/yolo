@@ -159,9 +159,9 @@ if [[ "$TYPE" == "task" ]]; then
     set_clause="$set_clause, completed_at=strftime('%Y-%m-%dT%H:%M:%SZ', 'now')"
   fi
   if [[ -n "$PHASE" ]]; then
-    sql_exec "$DB" "UPDATE tasks SET $set_clause WHERE task_id='$(esc "$ID")' AND plan_id IN (SELECT rowid FROM plans WHERE phase='$(esc "$PHASE")');"
+    sql_with_retry "$DB" "UPDATE tasks SET $set_clause WHERE task_id='$(esc "$ID")' AND plan_id IN (SELECT rowid FROM plans WHERE phase='$(esc "$PHASE")');"
   else
-    sql_exec "$DB" "UPDATE tasks SET $set_clause WHERE task_id='$(esc "$ID")';"
+    sql_with_retry "$DB" "UPDATE tasks SET $set_clause WHERE task_id='$(esc "$ID")';"
   fi
 else
   set_clause="$ST_COL='$(esc "$STATUS")'"
@@ -169,9 +169,9 @@ else
     set_clause="$set_clause, res='$res_esc'"
   fi
   if [[ -n "$PHASE" ]]; then
-    sql_exec "$DB" "UPDATE $TABLE SET $set_clause WHERE $ID_COL='$(esc "$ID")' AND phase='$(esc "$PHASE")';"
+    sql_with_retry "$DB" "UPDATE $TABLE SET $set_clause WHERE $ID_COL='$(esc "$ID")' AND phase='$(esc "$PHASE")';"
   else
-    sql_exec "$DB" "UPDATE $TABLE SET $set_clause WHERE $ID_COL='$(esc "$ID")';"
+    sql_with_retry "$DB" "UPDATE $TABLE SET $set_clause WHERE $ID_COL='$(esc "$ID")';"
   fi
 fi
 
