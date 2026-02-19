@@ -30,19 +30,34 @@ fi
 TYPE=""
 ARGS=()
 
+TYPE_SET=false
 for arg in "$@"; do
   case "$arg" in
-    --type) ;; # next arg is the type value
-    --type=*) TYPE="${arg#--type=}" ;;
+    --type)
+      if [ "$TYPE_SET" = "false" ]; then
+        : # next arg is the type value
+      else
+        ARGS+=("$arg")
+      fi
+      ;;
+    --type=*)
+      if [ "$TYPE_SET" = "false" ]; then
+        TYPE="${arg#--type=}"
+        TYPE_SET=true
+      else
+        ARGS+=("$arg")
+      fi
+      ;;
     *)
-      if [ -z "$TYPE" ] && [ "${prev_was_type:-}" = "true" ]; then
+      if [ "$TYPE_SET" = "false" ] && [ "${prev_was_type:-}" = "true" ]; then
         TYPE="$arg"
+        TYPE_SET=true
       else
         ARGS+=("$arg")
       fi
       ;;
   esac
-  if [ "$arg" = "--type" ]; then
+  if [ "$arg" = "--type" ] && [ "$TYPE_SET" = "false" ]; then
     prev_was_type=true
   else
     prev_was_type=false
