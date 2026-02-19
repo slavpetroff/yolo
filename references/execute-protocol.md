@@ -10,7 +10,7 @@ Implements the 11-step company-grade engineering workflow. See `references/compa
 
 `team_mode` is passed by go.md from resolve-team-mode.sh. This determines ALL agent spawning for the entire protocol. You MUST check this value and follow the correct path at every step.
 
-**If `team_mode=teammate`:** Department teams are created via Teammate API by go.md before this protocol runs. Within each step, agents that belong to the department team (architect, senior, dev, tester, qa, qa-code, security) are spawned as teammates using `Task` tool with `team_name` param, and coordinate via `SendMessage`. You MUST NOT use bare Task tool (without team_name) for these agents. The ONLY agents spawned via bare Task tool are the three Task-only shared agents: critic, scout, debugger — they are explicitly excluded from team membership (see `references/teammate-api-patterns.md` ## Task-Only Agents).
+**If `team_mode=teammate`:** Department teams are created via Teammate API by go.md before this protocol runs. Within each step, agents that belong to the department team (architect, senior, dev, tester, qa, security) are spawned as teammates using `Task` tool with `team_name` param, and coordinate via `SendMessage`. You MUST NOT use bare Task tool (without team_name) for these agents. The ONLY agents spawned via bare Task tool are the three Task-only shared agents: critic, scout, debugger — they are explicitly excluded from team membership (see `references/teammate-api-patterns.md` ## Task-Only Agents).
 
 **If `team_mode=task`:** All agents are spawned via Task tool as documented below. No Teammate API usage.
 
@@ -29,7 +29,7 @@ At each step below, "Spawn X with Task tool" is the task-mode instruction. When 
    - All plans have summary.jsonl: cautious/standard → WARN + confirm; confident/pure-yolo → warn + continue.
 3. **Resolve models for all agents:**
    ```bash
-   for role in critic scout architect lead senior tester dev qa qa-code security; do
+   for role in critic scout architect lead senior tester dev qa security; do
      eval "${role^^}_MODEL=\$(bash \${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh $role .yolo-planning/config.json \${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)"
    done
    ```
@@ -146,7 +146,7 @@ When complexity routing is enabled (`config_complexity_routing=true` in phase-de
 
 1. **Trivial path:** Only Senior (design review), Dev (implementation), and the post-task QA gate run. Senior receives the inline plan directly from route.sh --path trivial. No formal planning, no code review cycle, no QA agents, no security audit.
 
-2. **Medium path:** Lead performs abbreviated planning (single plan, max `complexity_routing.max_medium_tasks` tasks). Senior enriches, Dev implements, Senior reviews code. Post-plan QA gate runs but full QA agents (qa, qa-code) are skipped. Security audit is skipped.
+2. **Medium path:** Lead performs abbreviated planning (single plan, max `complexity_routing.max_medium_tasks` tasks). Senior enriches, Dev implements, Senior reviews code. Post-plan QA gate runs but full QA agent (qa) is skipped. Security audit is skipped.
 
 3. **High path:** All steps run per existing logic. Complexity routing has no effect when high path is selected — the full ceremony applies with standard skip conditions.
 
@@ -552,7 +552,7 @@ After all tasks in a plan pass GREEN, Dev writes `test-results.jsonl` with struc
 
 Commit: `docs({phase}): test results {NN-MM}`
 
-This is separate from summary.jsonl — test-results.jsonl captures structured test metrics for QA consumption, while summary.jsonl captures implementation metadata. QA agents (qa, qa-code) and Senior receive test-results.jsonl via context manifest.
+This is separate from summary.jsonl — test-results.jsonl captures structured test metrics for QA consumption, while summary.jsonl captures implementation metadata. QA agent (qa --mode plan|code) and Senior receive test-results.jsonl via context manifest.
 
 **Escalation State Tracking (mid-step, per D8):**
 
@@ -680,7 +680,7 @@ Note: NO `--scope` flag -- post-plan runs full test suite per architecture D4.
 10. Verify: code-review.jsonl exists with `r: "approve"`.
 11. **EXIT GATE:** Artifact: `code-review.jsonl` per plan (r: "approve"). When team_mode=teammate: Lead waits for code_review_result messages from all dispatched Seniors in the current wave. After all received, Lead verifies each plan has code-review.jsonl with `r: "approve"` in line 1 (via `jq -r .r` equals "approve"). If any plan has changes_requested after cycle 2, Senior escalates to Lead per existing protocol. When team_mode=task: sequential verification unchanged (each plan checked after its Senior completes). State: `steps.code_review = complete`. Commit: `chore(state): code_review complete phase {N}`.
 
-### Step 9: QA (QA Lead + QA Code)
+### Step 9: QA (QA Agent — plan + code modes)
 
 **Guard:** Skip per effort step-skip table (turbo: SKIP) OR `--skip-qa`. Skip Output per template. Commit: `chore(state): qa skipped phase {N}`.
 
@@ -699,17 +699,16 @@ gate_status=$(echo "$result" | jq -r '.gate')
 - On `gate_status=pass`: Proceed to QA agent spawn below.
 - On `gate_status=fail`: BLOCK QA agent spawn. Read gate JSON for failure details: `plans.complete` (incomplete plans), `steps.fl` (failed validation gates), `tst.fl` (test failures). Generate remediation: for incomplete plans, route back to Step 7. For failed gates, identify which step artifacts are missing. For test failures, route to Senior for re-spec. Do NOT spawn QA agents until post-phase gate passes -- this saves LLM cost on obviously-broken phases.
 
-Post-phase gate result is available to QA agents via `{phase-dir}/.qa-gate-results.jsonl`. QA Lead and QA Code can reference prior gate results for incremental verification.
+Post-phase gate result is available to QA agent via `{phase-dir}/.qa-gate-results.jsonl`. QA (both plan and code modes) can reference prior gate results for incremental verification.
 
 1. Update execution state: `"step": "qa"`
 2. **QA executes at full quality.** The orchestrator handles step skipping (turbo/fast skip QA entirely per step-skip table). When QA runs, it always executes at full depth.
-2.5. **Teammate registration (team_mode=teammate only):** Lead registers qa and qa-code as teammates in the department team. QA Lead receives plan.jsonl + summary.jsonl via SendMessage from Lead. QA Code receives summary.jsonl + test-plan.jsonl via SendMessage. QA Lead sends `qa_result` to Lead via SendMessage. QA Code sends `qa_code_result` to Lead via SendMessage. If QA Code result is PARTIAL/FAIL, QA Code also writes gaps.jsonl as a file artifact (not SendMessage -- it is a persistent artifact for remediation). In task mode, this step is skipped (qa/qa-code spawned via Task tool as documented below).
+2.5. **Teammate registration (team_mode=teammate only):** Lead registers qa as a teammate in the department team. QA receives plan.jsonl + summary.jsonl + test-plan.jsonl via SendMessage from Lead. QA sends `qa_result` (plan mode) and `qa_code_result` (code mode) to Lead via SendMessage. If QA code mode result is PARTIAL/FAIL, QA also writes gaps.jsonl as a file artifact (not SendMessage -- it is a persistent artifact for remediation). In task mode, this step is skipped (qa spawned via Task tool as documented below).
 3. Compile context:
    - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} qa {phases_dir}`
-   - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} qa-code {phases_dir}`
 
-**QA Lead (plan-level):**
-4. Spawn yolo-qa:
+**QA plan mode (plan-level verification):**
+4. Spawn yolo-qa with `--mode plan`:
    - model: "${QA_MODEL}"
    - Provide: plan.jsonl files, summary.jsonl files, compiled context
    - Tier: {tier}
@@ -720,30 +719,30 @@ Post-phase gate result is available to QA agents via `{phase-dir}/.qa-gate-resul
    > ```
    > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-qa.toon). See D4 in architecture for soft enforcement details.
 
-5. QA Lead produces verification.jsonl. Commits: `docs({phase}): verification results`
+5. QA (plan mode) produces verification.jsonl. Commits: `docs({phase}): verification results`
 
-**QA Code (code-level):**
-6. Spawn yolo-qa-code:
-   - model: "${QA_CODE_MODEL}"
+**QA code mode (code-level verification):**
+6. Spawn yolo-qa with `--mode code`:
+   - model: "${QA_MODEL}"
    - Provide: summary.jsonl (for file list), test-plan.jsonl (for TDD compliance), compiled context
    - Tier: {tier}
 
    > **Tool permissions:** When spawning agents, resolve project-type-specific tool permissions:
    > ```bash
-   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "qa-code" --project-dir ".")
+   > TOOL_PERMS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tool-permissions.sh --role "qa" --project-dir ".")
    > ```
-   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-qa-code.toon). See D4 in architecture for soft enforcement details.
+   > Include resolved `disallowed_tools` from the output in the agent's compiled context (.ctx-qa.toon). See D4 in architecture for soft enforcement details.
 
-7. QA Code runs TDD compliance (Phase 0), tests, lint, patterns. For shell/bats projects: `bash scripts/test-summary.sh` (single invocation, outputs `PASS (N tests)` or `FAIL (F/N failed)` with details — never invoke bats directly). Produces qa-code.jsonl. Commits: `docs({phase}): code quality review`
+7. QA (code mode) runs TDD compliance (Phase 0), tests, lint, patterns. For shell/bats projects: `bash scripts/test-summary.sh` (single invocation, outputs `PASS (N tests)` or `FAIL (F/N failed)` with details — never invoke bats directly). Produces qa-code.jsonl. Commits: `docs({phase}): code quality review`
 
 **Result handling:**
 - Both PASS → Manual QA (if enabled) → Step 10 (or Step 11 if security disabled)
 - QA Lead FAIL → remediation plan → Lead assigns → Senior re-specs → Dev fixes → re-verify (max 2 cycles)
-- QA Code PARTIAL/FAIL → **remediation loop:**
-  1. QA Code writes `gaps.jsonl` with `st: "open"` entries (critical/major findings).
+- QA (code mode) PARTIAL/FAIL → **remediation loop:**
+  1. QA (code mode) writes `gaps.jsonl` with `st: "open"` entries (critical/major findings).
   2. Lead assigns gaps to Dev (via Senior re-spec if needed).
   3. Dev reads gaps.jsonl, fixes each `st: "open"` gap, marks `st: "fixed"` with commit hash.
-  4. QA Code re-verifies (re-run Phase 0-3 checks on modified files).
+  4. QA (code mode) re-verifies (re-run Phase 0-3 checks on modified files).
   5. Max 2 remediation cycles. After cycle 2:
      - Still FAIL → Lead escalates to Senior for architectural review.
      - 3rd failure → Lead escalates to Architect to re-evaluate design.
@@ -768,7 +767,7 @@ If `config.approval_gates.manual_qa` is true AND QA step is not skipped per step
     - Major/minor failure → Lead assigns to Senior for re-spec → Dev fixes
     - After fix → re-run manual QA for failed items only
 12. If all PASS (automated + manual) → proceed to Step 10.
-13. **EXIT GATE:** Verify `{phase-dir}/verification.jsonl` exists with valid JSONL (`jq empty`). Verify `{phase-dir}/qa-code.jsonl` exists with valid JSONL. Update `.execution-state.json`: set `steps.qa.status` to `"complete"`, `steps.qa.completed_at` to ISO timestamp, `steps.qa.artifact` to `"{phase-dir}/verification.jsonl"`. Commit: `chore(state): qa complete phase {N}`.
+13. **EXIT GATE:** Verify `{phase-dir}/verification.jsonl` exists with valid JSONL (`jq empty`). Verify `{phase-dir}/qa-code.jsonl` exists with valid JSONL (produced by QA code mode). Update `.execution-state.json`: set `steps.qa.status` to `"complete"`, `steps.qa.completed_at` to ISO timestamp, `steps.qa.artifact` to `"{phase-dir}/verification.jsonl"`. Commit: `chore(state): qa complete phase {N}`.
 
 ### Step 8.5: Documentation (optional — Documenter Agent)
 
@@ -846,7 +845,7 @@ If `config.approval_gates.manual_qa` is true AND QA step is not skipped per step
    - critique.jsonl: all findings addressed or deferred?
    - code-review.jsonl: all approved? TDD compliance?
    - verification.jsonl: PASS or PARTIAL (with accepted gaps)?
-   - qa-code.jsonl: PASS? TDD coverage?
+   - qa-code.jsonl (from QA code mode): PASS? TDD coverage?
    - docs.jsonl (if produced): any warnings? Coverage gaps?
    - security-audit.jsonl: PASS or WARN?
 3. Decision:
@@ -997,7 +996,7 @@ After delivery presentation (item 6), the user responds with one of three action
 | 7. Implementation | `implementation` | enriched `plan.jsonl` + `test-plan.jsonl` (if step 6 ran) | `{plan_id}.summary.jsonl` per plan | `{type}({phase}-{plan}): {task}` per task | NONE (mandatory) |
 | 8. Code Review | `code_review` | `{plan_id}.summary.jsonl` for each plan | `code-review.jsonl` with `r: "approve"` | `docs({phase}): code review {NN-MM}` | NONE (mandatory) |
 | 8.5. Documentation | `documentation` | `code-review.jsonl` with `r: "approve"` | `docs.jsonl` (if produced) | `docs({phase}): documentation` | `documenter='never'`, step-skip (turbo, fast) |
-| 9. QA | `qa` | `code-review.jsonl` with `r: "approve"` | `verification.jsonl` + `qa-code.jsonl` | `docs({phase}): verification results` | `--skip-qa`, step-skip (turbo) |
+| 9. QA | `qa` | `code-review.jsonl` with `r: "approve"` | `verification.jsonl` + `qa-code.jsonl` (from QA code mode) | `docs({phase}): verification results` | `--skip-qa`, step-skip (turbo) |
 | 10. Security | `security` | `verification.jsonl` OR step 9 skipped | `security-audit.jsonl` | `docs({phase}): security audit` | `--skip-security`, step-skip (turbo, fast), config `security_audit` != true |
 | 11. Sign-off | `signoff` | `security-audit.jsonl` OR step 10 skipped + `code-review.jsonl` approved | `.execution-state.json` complete + ROADMAP.md | `chore(state): phase {N} complete` | NONE (mandatory) |
 | 11.5. Integration Gate | `integration_gate` | `steps.signoff.status` = `"complete"` | `.execution-state.json` updated (integration_gate complete) | `chore(state): integration_gate complete phase {N}` | `multi_dept=false` AND `integration_gate.enabled=false` |
@@ -1151,8 +1150,8 @@ If an escalation remains at one level longer than `escalation.timeout_seconds` (
           then register specialists as teammates."
      2. Lead calls TeamCreate: spawnTeam(name="yolo-{dept}", description="{Dept} team for phase {N}")
      3. Lead registers core specialists (architect, senior, dev) as teammates at creation
-     4. Additional specialists on-demand: tester at step 6, qa+qa-code at step 9, security at step 10 (backend only)
-     5. Full rosters: Backend 7 (incl security), Frontend 6, UI/UX 6
+     4. Additional specialists on-demand: tester at step 6, qa at step 9 (runs plan + code modes), security at step 10 (backend only)
+     5. Full rosters: Backend 6 (incl security), Frontend 5, UI/UX 5
      6. Lead coordinates via SendMessage within team
      7. On completion: Lead sends shutdown_request to all teammates, then writes department_result
    ```
@@ -1214,7 +1213,7 @@ If an escalation remains at one level longer than `escalation.timeout_seconds` (
 **Teammate mode per-department 11-step:** When `team_mode=teammate`, the per-department 11-step workflow is identical in logic but uses SendMessage for intra-team coordination instead of Task tool spawning. The Lead creates the team via spawnTeam and registers specialists on-demand:
 - **Team creation:** Lead registers architect, senior, dev as teammates
 - **Step 6:** Lead registers tester as teammate. Tester sends test_plan_result to Senior (not Lead) via SendMessage.
-- **Step 9:** Lead registers qa + qa-code as teammates. Both send results to Lead via SendMessage. QA Code writes gaps.jsonl as file artifact if PARTIAL/FAIL.
+- **Step 9:** Lead registers qa as teammate. QA runs plan mode then code mode, sending results to Lead via SendMessage. QA writes gaps.jsonl as file artifact if code mode result is PARTIAL/FAIL.
 - **Step 10 (backend only):** Lead registers security as teammate. Security sends security_audit to Lead via SendMessage. FE/UX teams skip this step.
 - **Shutdown:** On department completion, Lead sends shutdown_request to all registered teammates. Each teammate commits pending artifacts and sends shutdown_response. Lead then writes .dept-status-{dept}.json (file-based, for cross-department gate) and sends department_result.
 See `references/teammate-api-patterns.md` ## Team Lifecycle for spawnTeam and shutdown patterns. See ## Registering Teammates for the full step-to-role mapping.
