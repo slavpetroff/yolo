@@ -367,6 +367,27 @@ Gate decision:
 4. Build remaining plans list. If `--plan=NN`, filter to that plan.
 5. Partially-complete plans: note resume-from task number.
 6. **Crash recovery:** If `.yolo-planning/.execution-state.json` exists with `"status": "running"`, reconcile plan statuses with summary.jsonl state.
+6.5. **[sqlite] DB-aware crash recovery (when `db_available=true`):**
+   When resuming after a crash, use the DB task queue for precise state recovery instead of file-based heuristics:
+   ```bash
+   if [ "$db_available" = "true" ]; then
+     # Detect orphaned tasks (in_progress but agent crashed)
+     ORPHANS=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/check-phase-status.sh" \
+       --phase "${PHASE_NUM}" --db "$DB_PATH" --json 2>/dev/null \
+       | jq -r '.tasks[] | select(.status == "in_progress")')
+     # Release orphaned tasks back to pending with retry context
+     for orphan_id in $(echo "$ORPHANS" | jq -r '.task_id'); do
+       bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/release-task.sh" \
+         --task "$orphan_id" --reason "agent_crash_recovery" --db "$DB_PATH" 2>/dev/null || true
+     done
+     # Skip already-complete tasks on retry (DB state is authoritative)
+     COMPLETE_COUNT=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/check-phase-status.sh" \
+       --phase "${PHASE_NUM}" --db "$DB_PATH" --json 2>/dev/null \
+       | jq -r '.completed')
+     echo "○ DB recovery: ${COMPLETE_COUNT} tasks complete, $(echo "$ORPHANS" | jq -s 'length') orphans released"
+   fi
+   ```
+   **[file]** When `db_available=false`, existing file-based crash recovery (steps 3+6 above) applies unchanged.
 7. **Write execution state** to `.yolo-planning/.execution-state.json`:
    ```json
    {
@@ -663,6 +684,43 @@ If `timed_out > 0`: auto-escalate each timed-out entry to the next level per ## 
 **Resolution handling:** When `escalation_resolution` is received (forwarded down the chain):
 1. Update escalation entry: `status: "resolved"`, `resolved_at: "{ISO8601}"`, `resolution: "{decision text}"`
 2. Commit: `chore(state): escalation resolved phase {N}`
+
+**[sqlite] DB-Aware Error Recovery (when `db_available=true`):**
+
+When a task fails during implementation:
+1. **Release task on failure:** Call `release-task.sh` to return the task to pending with retry context, replacing the file-based gaps.jsonl retry_context pattern:
+   ```bash
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/release-task.sh" \
+     --task "$TASK_ID" --plan "$PLAN_ID" \
+     --reason "$FAILURE_REASON" --db "$DB_PATH"
+   ```
+   The task returns to `pending` state with failure context preserved for the next attempt.
+
+2. **Orphan detection:** Periodically check for tasks stuck in `in_progress` state beyond the configured timeout (default 300s). Uses `check-phase-status.sh` to detect orphaned tasks from crashed agents:
+   ```bash
+   ORPHANS=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/check-phase-status.sh" \
+     --phase "${PHASE_NUM}" --db "$DB_PATH" --json \
+     | jq '[.tasks[] | select(.status == "in_progress")]')
+   ORPHAN_COUNT=$(echo "$ORPHANS" | jq 'length')
+   if [ "$ORPHAN_COUNT" -gt 0 ]; then
+     echo "⚠ ${ORPHAN_COUNT} orphaned task(s) detected — releasing to pending"
+     echo "$ORPHANS" | jq -r '.[].task_id' | while read -r tid; do
+       bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/release-task.sh" \
+         --task "$tid" --reason "orphan_timeout" --db "$DB_PATH"
+     done
+   fi
+   ```
+
+3. **Skip-already-complete on retry:** When re-entering Step 7 after a crash or error, the DB task queue automatically provides only pending/unblocked tasks via `next-task.sh`. Already-completed tasks are skipped without summary.jsonl existence checks.
+
+4. **Escalation DB path:** Write escalation entries to DB alongside escalation.jsonl:
+   ```bash
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/db/append-finding.sh" \
+     --type escalation --plan "${PLAN_ID}" --phase "${PHASE_NUM}" \
+     --data "$escalation_json" --db "$DB_PATH" 2>/dev/null || true
+   ```
+
+**[file]** When `db_available=false`, existing error recovery behavior applies: gaps.jsonl for retry context, summary.jsonl existence for completion checks, and file-based escalation tracking.
 
 **Summary verification gate (mandatory):**
 When team_mode=teammate: Lead-written summary.jsonl is verified (Lead is sole writer). Lead checks `jq empty {phase-dir}/{plan_id}.summary.jsonl` after writing.
