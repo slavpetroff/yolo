@@ -691,15 +691,15 @@ validate_naming() {
         ERRORS=()
         VALID=true
 
-        # Glob-based discovery (replaces find — milestones have depth ≤4)
+        # Glob-based discovery (milestones have depth ≤4)
+        # Note: * must be OUTSIDE double quotes to glob — cannot use a variable
         local -a _ms_glob=()
-        local _d _mgf
-        for _d in "" "/*" "/*/*" "/*/*/*"; do
-          for _mgf in "${milestones_dir}${_d}"/*.plan.jsonl \
-                     "${milestones_dir}${_d}"/*.summary.jsonl \
-                     "${milestones_dir}${_d}"/reqs.jsonl; do
-            [[ -f "$_mgf" ]] && _ms_glob+=("$_mgf")
-          done
+        local _mgf
+        for _mgf in "$milestones_dir"/*.plan.jsonl "$milestones_dir"/*.summary.jsonl "$milestones_dir"/reqs.jsonl \
+                    "$milestones_dir"/*/*.plan.jsonl "$milestones_dir"/*/*.summary.jsonl "$milestones_dir"/*/reqs.jsonl \
+                    "$milestones_dir"/*/*/*.plan.jsonl "$milestones_dir"/*/*/*.summary.jsonl "$milestones_dir"/*/*/reqs.jsonl \
+                    "$milestones_dir"/*/*/*/*.plan.jsonl "$milestones_dir"/*/*/*/*.summary.jsonl "$milestones_dir"/*/*/*/reqs.jsonl; do
+          [[ -f "$_mgf" ]] && _ms_glob+=("$_mgf")
         done
         if [[ ${#_ms_glob[@]} -gt 0 ]]; then
           while IFS= read -r f; do
