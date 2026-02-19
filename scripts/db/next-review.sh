@@ -33,11 +33,12 @@ if [[ -n "$PHASE" ]]; then
   PHASE_FILTER="AND p.phase = '$PHASE'"
 fi
 
-# Set pragmas (suppress output)
-sqlite3 -batch "$DB" "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;" >/dev/null
-
 # Find complete tasks with no matching code_review entry
 RESULTS=$(sqlite3 -batch "$DB" <<SQL
+.output /dev/null
+PRAGMA busy_timeout=5000;
+PRAGMA journal_mode=WAL;
+.output stdout
 SELECT t.task_id, p.plan_num, t.action, t.status, t.completed_at
 FROM tasks t
 JOIN plans p ON t.plan_id = p.rowid

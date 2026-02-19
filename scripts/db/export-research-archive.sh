@@ -23,8 +23,8 @@ FILE="${FILE:-.vbw-planning/research-archive.jsonl}"
 require_db "$DB"
 
 sqlite3 -batch -json \
-  -cmd "PRAGMA journal_mode=WAL;" \
   -cmd "PRAGMA busy_timeout=5000;" \
+  -cmd "PRAGMA journal_mode=WAL;" \
   "$DB" \
   "SELECT q, finding, conf, phase, dt, src FROM research_archive ORDER BY rowid;" \
   | jq -c '.[]' > "$FILE"

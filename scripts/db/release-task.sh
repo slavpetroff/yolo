@@ -33,11 +33,12 @@ fi
 require_db "$DB"
 
 # Release: UPDATE only if status is 'in_progress', check changes()
-CHANGES=$(sqlite3 -batch "$DB" <<SQL | tail -1
-PRAGMA journal_mode=WAL;
+CHANGES=$(sqlite3 -batch "$DB" <<SQL
+.output /dev/null
 PRAGMA busy_timeout=5000;
+PRAGMA journal_mode=WAL;
 PRAGMA foreign_keys=ON;
-
+.output stdout
 UPDATE tasks
 SET status = 'pending',
     assigned_to = NULL,
@@ -58,9 +59,10 @@ fi
 # Optionally store retry reason in gaps table
 if [[ -n "$REASON" ]]; then
   sqlite3 -batch "$DB" <<SQL
-PRAGMA journal_mode=WAL;
+.output /dev/null
 PRAGMA busy_timeout=5000;
-
+PRAGMA journal_mode=WAL;
+.output stdout
 INSERT INTO gaps (id, sev, desc, st, res, phase, created_at)
 SELECT
   'retry-${TASK}-' || strftime('%s', 'now'),

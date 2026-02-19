@@ -40,12 +40,14 @@ if [[ -n "$PLAN" ]]; then
   PLAN_FILTER="AND p.plan_num = '$PLAN'"
 fi
 
-# Set pragmas (suppress output)
-sqlite3 -batch "$DB" "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;" >/dev/null
-
 # Atomic claim: find first pending task with all deps complete, update it
 # Uses a single UPDATE with subquery to prevent race conditions
 RESULT=$(sqlite3 -batch "$DB" <<SQL
+.output /dev/null
+PRAGMA busy_timeout=5000;
+PRAGMA journal_mode=WAL;
+PRAGMA foreign_keys=ON;
+.output stdout
 UPDATE tasks
 SET status = 'in_progress',
     assigned_to = '$AGENT',

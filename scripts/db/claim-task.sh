@@ -33,11 +33,12 @@ fi
 require_db "$DB"
 
 # Atomic claim: UPDATE only if status is 'pending', check changes()
-CHANGES=$(sqlite3 -batch "$DB" <<SQL | tail -1
-PRAGMA journal_mode=WAL;
+CHANGES=$(sqlite3 -batch "$DB" <<SQL
+.output /dev/null
 PRAGMA busy_timeout=5000;
+PRAGMA journal_mode=WAL;
 PRAGMA foreign_keys=ON;
-
+.output stdout
 UPDATE tasks
 SET status = 'in_progress',
     assigned_to = '$AGENT',

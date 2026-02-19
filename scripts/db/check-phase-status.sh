@@ -32,11 +32,12 @@ fi
 
 require_db "$DB"
 
-# Set pragmas (suppress output)
-sqlite3 -batch "$DB" "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;" >/dev/null
-
 # Query aggregate stats for the phase
 STATS=$(sqlite3 -batch -separator '|' "$DB" <<SQL
+.output /dev/null
+PRAGMA busy_timeout=5000;
+PRAGMA journal_mode=WAL;
+.output stdout
 SELECT
   count(DISTINCT p.plan_num) AS total_plans,
   count(DISTINCT CASE WHEN s.status = 'complete' THEN p.plan_num END) AS completed_plans,
@@ -73,6 +74,10 @@ fi
 
 # Per-plan breakdown
 PLAN_BREAKDOWN=$(sqlite3 -batch -separator '|' "$DB" <<SQL
+.output /dev/null
+PRAGMA busy_timeout=5000;
+PRAGMA journal_mode=WAL;
+.output stdout
 SELECT
   p.plan_num,
   count(t.rowid) AS total,

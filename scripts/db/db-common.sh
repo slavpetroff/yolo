@@ -44,8 +44,8 @@ sql_query() {
   local db="$1" sql="$2"
   sqlite3 -batch "$db" <<EOF
 .output /dev/null
-PRAGMA journal_mode=WAL;
 PRAGMA busy_timeout=5000;
+PRAGMA journal_mode=WAL;
 .output stdout
 .mode list
 .headers off
@@ -59,8 +59,8 @@ sql_exec() {
   local db="$1" sql="$2"
   sqlite3 -batch "$db" <<EOF
 .output /dev/null
-PRAGMA journal_mode=WAL;
 PRAGMA busy_timeout=5000;
+PRAGMA journal_mode=WAL;
 PRAGMA foreign_keys=ON;
 .output stdout
 BEGIN;

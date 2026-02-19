@@ -52,8 +52,8 @@ while IFS= read -r line; do
   src_esc=$(printf '%s' "$src" | sed "s/'/''/g")
 
   sqlite3 -batch "$DB" <<EOSQL > /dev/null
-PRAGMA journal_mode=WAL;
 PRAGMA busy_timeout=5000;
+PRAGMA journal_mode=WAL;
 INSERT OR IGNORE INTO research_archive (q, finding, conf, phase, dt, src)
 VALUES ('$q_esc', '$finding_esc', '$conf_esc', '$phase_esc', '$dt_esc', '$src_esc');
 EOSQL

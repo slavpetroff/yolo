@@ -64,8 +64,8 @@ SQL="SELECT * FROM (
 
 results=$(sqlite3 -batch -separator $'\x1f' "$DB" <<EOSQL 2>/dev/null || true
 .output /dev/null
-PRAGMA journal_mode=WAL;
 PRAGMA busy_timeout=5000;
+PRAGMA journal_mode=WAL;
 .output stdout
 $SQL
 EOSQL
