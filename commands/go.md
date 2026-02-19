@@ -436,6 +436,36 @@ If `planning_dir_exists=false`: STOP "YOLO is not set up yet. Run /yolo:init to 
 This mode delegates to protocol files. Before reading:
 
 1. **Parse arguments:** Phase number (auto-detect if omitted), --effort, --skip-qa, --skip-security, --plan=NN.
+
+1.5. **Effort step-skip dispatch (MANDATORY — controls which steps execute):**
+
+   Effort level controls which workflow steps execute, NOT agent quality. All agents execute at full quality regardless of effort level.
+
+   | Step | turbo | fast | balanced | thorough |
+   |------|-------|------|----------|----------|
+   | 1: Critique | SKIP | run | run | run |
+   | 2: Research (Scout) | SKIP | run | run | run |
+   | 3: Architecture | run | run | run | run |
+   | 4: Planning | run | run | run | run |
+   | 5: Design Review | run | run | run | run |
+   | 6: Test Authoring (RED) | SKIP | run | run | run |
+   | 7: Implementation | run | run | run | run |
+   | 8: Code Review | run | run | run | run + extra validation |
+   | 8.5: Documentation | SKIP | SKIP | run | run |
+   | 9: QA | SKIP | run | run | run |
+   | 10: Security | SKIP | SKIP | run | run |
+   | 11: Sign-off | run | run | run | run |
+
+   For each skipped step, write to `.yolo-planning/.execution-state.json`:
+   ```json
+   {"step":"{step_name}","status":"skipped","reason":"effort={level}"}
+   ```
+   Display: `○ {Step Name} skipped (effort={level})`
+
+   **thorough extra validation:** At Step 8 (Code Review), Senior runs additional checks: full requirement traceability, architecture conformance audit, cross-plan consistency verification.
+
+   **Explicit flag overrides:** `--skip-qa` and `--skip-security` are additive to effort-based skips. If effort=balanced (QA runs) but `--skip-qa` is set, QA is skipped. Effort never ADDS steps that flags remove.
+
 2. **Run execute guards:**
    - Not initialized: STOP "YOLO is not set up yet. Run /yolo:init to get started."
    - No `*.plan.jsonl` files in phase dir: STOP "Phase {N} has no plans. Run `/yolo:go --plan {N}` first."
