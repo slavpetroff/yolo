@@ -10,3 +10,10 @@ pub mod validate_frontmatter;
 pub mod validate_contract;
 pub mod validate_message;
 pub mod validate_schema;
+
+// Security hooks (dev-05)
+pub mod security_filter;
+
+// Skill/blocker hook modules (dev-07)
+pub mod skill_hook_dispatch;
+pub mod blocker_notify;
