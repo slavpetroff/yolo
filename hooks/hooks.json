@@ -1,77 +1,27 @@
 {
-  "description": "YOLO quality gates and continuous verification — hybrid native Rust + bash hooks",
-  "_note": "Migrated hooks route through `yolo hook <event>` (native Rust dispatcher). Unmigrated hooks still use hook-wrapper.sh for graceful degradation. The Rust dispatcher handles: security-filter (PreToolUse), validate-summary + skill-hook-dispatch (PostToolUse), agent-start + agent-health (SubagentStart/Stop/TeammateIdle), compaction-instructions (PreCompact), post-compact + map-staleness (SessionStart), prompt-preflight (UserPromptSubmit), session-stop (Stop), notification-log (Notification), blocker-notify (TaskCompleted). Bash-only hooks: validate-frontmatter, validate-commit, bash-guard, file-guard, state-updater, qa-gate, task-verify, session-start.",
+  "description": "YOLO quality gates and continuous verification — all hooks route through native Rust dispatcher (`yolo hook <event>`)",
+  "_note": "All hooks are handled by the native Rust dispatcher at $HOME/.cargo/bin/yolo. Each event routes to one `yolo hook <EventName>` command which internally dispatches to all relevant handlers (security-filter, validate-summary, skill-hook-dispatch, agent-start, agent-stop, agent-health, compaction-instructions, post-compact, map-staleness, prompt-preflight, session-stop, notification-log, blocker-notify, validate-frontmatter, bash-guard, file-guard, state-updater, qa-gate, task-verify). The bash hook-wrapper.sh is deprecated — it forwards to the Rust dispatcher for backward compatibility.",
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "yolo hook post-tool-use",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" validate-frontmatter.sh; exit 0'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" validate-commit.sh; exit 0'",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" state-updater.sh; exit 0'",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Read|Glob|Grep|Write|Edit|Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "yolo hook pre-tool-use",
+            "command": "$HOME/.cargo/bin/yolo hook PreToolUse",
             "timeout": 5
           }
         ]
-      },
+      }
+    ],
+    "PostToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Write|Edit|Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" bash-guard.sh; exit 0'",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" file-guard.sh; exit 0'",
-            "timeout": 5
+            "command": "$HOME/.cargo/bin/yolo hook PostToolUse",
+            "timeout": 15
           }
         ]
       }
@@ -82,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "yolo hook subagent-start",
+            "command": "$HOME/.cargo/bin/yolo hook SubagentStart",
             "timeout": 3
           }
         ]
@@ -94,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "yolo hook subagent-stop",
+            "command": "$HOME/.cargo/bin/yolo hook SubagentStop",
             "timeout": 15
           }
         ]
@@ -106,13 +56,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" qa-gate.sh; exit 0'",
+            "command": "$HOME/.cargo/bin/yolo hook TeammateIdle",
             "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "yolo hook teammate-idle",
-            "timeout": 5
           }
         ]
       }
@@ -123,13 +68,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" task-verify.sh; exit 0'",
+            "command": "$HOME/.cargo/bin/yolo hook TaskCompleted",
             "timeout": 15
-          },
-          {
-            "type": "command",
-            "command": "yolo hook task-completed",
-            "timeout": 5
           }
         ]
       }
@@ -139,17 +79,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" session-start.sh; exit 0'",
+            "command": "$HOME/.cargo/bin/yolo hook SessionStart",
             "timeout": 10
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "yolo hook session-start",
-            "timeout": 5
           }
         ]
       }
@@ -159,7 +90,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "yolo hook pre-compact",
+            "command": "$HOME/.cargo/bin/yolo hook PreCompact",
             "timeout": 10
           }
         ]
@@ -170,7 +101,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "yolo hook stop",
+            "command": "$HOME/.cargo/bin/yolo hook Stop",
             "timeout": 5
           }
         ]
@@ -181,7 +112,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "yolo hook user-prompt-submit",
+            "command": "$HOME/.cargo/bin/yolo hook UserPromptSubmit",
             "timeout": 3
           }
         ]
@@ -192,7 +123,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "yolo hook notification",
+            "command": "$HOME/.cargo/bin/yolo hook Notification",
             "timeout": 3
           }
         ]
