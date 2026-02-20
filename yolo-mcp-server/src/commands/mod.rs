@@ -22,6 +22,7 @@ pub mod session_start;
 pub mod state_updater;
 pub mod statusline;
 pub mod suggest_next;
+pub mod tmux_watchdog;
 pub mod token_baseline;
 pub mod token_budget;
 pub mod lock_lite;
