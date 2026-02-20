@@ -8,18 +8,18 @@
 | Phase | Status | Plans | Tasks | Commits |
 |-------|--------|-------|-------|---------|
 | 1 | Complete | 4 | 18 | 16 |
-| 2 | Pending | 0 | 0 | 0 |
-| 3 | Pending | 0 | 0 | 0 |
-| 4 | Pending | 0 | 0 | 0 |
+| 2 | Complete | 17 | 80 | 71 |
+| 3 | Superseded | - | - | - |
+| 4 | Superseded | - | - | - |
 | 5 | Pending | 0 | 0 | 0 |
 
 ---
 
 ## Phase List
 - [x] [Phase 1: Core CLI Commands](#phase-1-core-cli-commands)
-- [ ] [Phase 2: Hook Migration](#phase-2-hook-migration)
-- [ ] [Phase 3: Internal Shell-out Elimination](#phase-3-internal-shell-out-elimination)
-- [ ] [Phase 4: Feature & Validation Scripts](#phase-4-feature-validation-scripts)
+- [x] [Phase 2: Hook Migration](#phase-2-hook-migration)
+- [x] [Phase 3: Internal Shell-out Elimination](#phase-3-internal-shell-out-elimination) _(superseded by Phase 2)_
+- [x] [Phase 4: Feature & Validation Scripts](#phase-4-feature-validation-scripts) _(superseded by Phase 2)_
 - [ ] [Phase 5: Cleanup & Verification](#phase-5-cleanup-verification)
 
 ---
