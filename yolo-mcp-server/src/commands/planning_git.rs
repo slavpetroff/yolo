@@ -122,6 +122,33 @@ fn sync_root_ignore(cwd: &Path, mode: &str) {
     }
 }
 
+/// Check if current branch has an upstream tracking branch.
+fn has_upstream(cwd: &Path) -> bool {
+    Command::new("git")
+        .args(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"])
+        .current_dir(cwd)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
+/// Push to remote.
+fn git_push(cwd: &Path) -> Result<(), String> {
+    let output = Command::new("git")
+        .arg("push")
+        .current_dir(cwd)
+        .output()
+        .map_err(|e| format!("git push failed: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("git push failed: {}", stderr));
+    }
+    Ok(())
+}
+
 fn handle_sync_ignore(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let default_config = ".yolo-planning/config.json".to_string();
     let config_file = args.get(3).unwrap_or(&default_config);
@@ -141,11 +168,85 @@ fn handle_sync_ignore(args: &[String], cwd: &Path) -> Result<(String, i32), Stri
     Ok(("".to_string(), 0))
 }
 
+fn handle_commit_boundary(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
+    let action = args.get(3).ok_or_else(|| {
+        "Usage: yolo planning-git commit-boundary <action> [CONFIG_FILE]".to_string()
+    })?;
+    let default_config = ".yolo-planning/config.json".to_string();
+    let config_file = args.get(4).unwrap_or(&default_config);
+    let config_path = cwd.join(config_file);
+
+    if !is_git_repo(cwd) {
+        return Ok(("".to_string(), 0));
+    }
+
+    let (tracking, auto_push) = read_config(&config_path);
+
+    if tracking != "commit" {
+        return Ok(("".to_string(), 0));
+    }
+
+    ensure_transient_ignore(cwd);
+
+    // git add .yolo-planning
+    let planning_dir = cwd.join(".yolo-planning");
+    if planning_dir.is_dir() {
+        let _ = Command::new("git")
+            .args(["add", ".yolo-planning"])
+            .current_dir(cwd)
+            .output();
+    }
+
+    // git add CLAUDE.md (if exists)
+    let claude_md = cwd.join("CLAUDE.md");
+    if claude_md.exists() {
+        let _ = Command::new("git")
+            .args(["add", "CLAUDE.md"])
+            .current_dir(cwd)
+            .output();
+    }
+
+    // Check if there are staged changes
+    let diff_result = Command::new("git")
+        .args(["diff", "--cached", "--quiet"])
+        .current_dir(cwd)
+        .status();
+
+    match diff_result {
+        Ok(status) if status.success() => {
+            // No staged changes
+            return Ok(("".to_string(), 0));
+        }
+        _ => {}
+    }
+
+    // Commit
+    let commit_msg = format!("chore(yolo): {}", action);
+    let commit_result = Command::new("git")
+        .args(["commit", "-m", &commit_msg])
+        .current_dir(cwd)
+        .output()
+        .map_err(|e| format!("git commit failed: {}", e))?;
+
+    if !commit_result.status.success() {
+        let stderr = String::from_utf8_lossy(&commit_result.stderr);
+        return Err(format!("git commit failed: {}", stderr));
+    }
+
+    // Push if auto_push=always and branch has upstream
+    if auto_push == "always" && has_upstream(cwd) {
+        git_push(cwd)?;
+    }
+
+    Ok(("".to_string(), 0))
+}
+
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let subcommand = args.get(2).map(|s| s.as_str()).unwrap_or("");
 
     match subcommand {
         "sync-ignore" => handle_sync_ignore(args, cwd),
+        "commit-boundary" => handle_commit_boundary(args, cwd),
         "" => Err("Usage: yolo planning-git sync-ignore [CONFIG_FILE] | commit-boundary <action> [CONFIG_FILE] | push-after-phase [CONFIG_FILE]".to_string()),
         other => Err(format!("Unknown subcommand: {}\nUsage: yolo planning-git sync-ignore [CONFIG_FILE] | commit-boundary <action> [CONFIG_FILE] | push-after-phase [CONFIG_FILE]", other)),
     }
@@ -264,6 +365,112 @@ mod tests {
         assert_eq!(code, 0);
         assert_eq!(output, "");
     }
+
+    // --- commit-boundary tests ---
+
+    #[test]
+    fn test_commit_boundary_non_commit_mode_is_noop() {
+        let dir = tempdir().unwrap();
+        setup_git_repo(dir.path());
+        write_config(dir.path(), "manual", "never");
+
+        let args = vec![
+            "yolo".to_string(),
+            "planning-git".to_string(),
+            "commit-boundary".to_string(),
+            "plan phase 1".to_string(),
+        ];
+        let (_, code) = execute(&args, dir.path()).unwrap();
+        assert_eq!(code, 0);
+    }
+
+    #[test]
+    fn test_commit_boundary_commit_mode_stages_and_commits() {
+        let dir = tempdir().unwrap();
+        setup_git_repo(dir.path());
+        write_config(dir.path(), "commit", "never");
+
+        // Create a file in .yolo-planning to commit
+        fs::write(dir.path().join(".yolo-planning").join("STATE.md"), "# State\n").unwrap();
+
+        let args = vec![
+            "yolo".to_string(),
+            "planning-git".to_string(),
+            "commit-boundary".to_string(),
+            "plan phase 1".to_string(),
+        ];
+        let (_, code) = execute(&args, dir.path()).unwrap();
+        assert_eq!(code, 0);
+
+        // Verify a commit was made
+        let log = Command::new("git")
+            .args(["log", "--oneline", "-1"])
+            .current_dir(dir.path())
+            .output()
+            .unwrap();
+        let log_str = String::from_utf8_lossy(&log.stdout);
+        assert!(log_str.contains("chore(yolo): plan phase 1"));
+    }
+
+    #[test]
+    fn test_commit_boundary_no_staged_changes_is_noop() {
+        let dir = tempdir().unwrap();
+        setup_git_repo(dir.path());
+        write_config(dir.path(), "commit", "never");
+
+        // Write the transient ignore first, then commit everything so
+        // the next commit-boundary has nothing new to stage.
+        ensure_transient_ignore(dir.path());
+        Command::new("git").args(["add", ".yolo-planning"]).current_dir(dir.path()).output().unwrap();
+        Command::new("git").args(["commit", "-m", "add planning"]).current_dir(dir.path()).output().unwrap();
+
+        let args = vec![
+            "yolo".to_string(),
+            "planning-git".to_string(),
+            "commit-boundary".to_string(),
+            "should not commit".to_string(),
+        ];
+        let (_, code) = execute(&args, dir.path()).unwrap();
+        assert_eq!(code, 0);
+
+        // Verify last commit is NOT our action
+        let log = Command::new("git")
+            .args(["log", "--oneline", "-1"])
+            .current_dir(dir.path())
+            .output()
+            .unwrap();
+        let log_str = String::from_utf8_lossy(&log.stdout);
+        assert!(!log_str.contains("should not commit"));
+    }
+
+    #[test]
+    fn test_commit_boundary_missing_action_errors() {
+        let dir = tempdir().unwrap();
+        setup_git_repo(dir.path());
+
+        let args = vec![
+            "yolo".to_string(),
+            "planning-git".to_string(),
+            "commit-boundary".to_string(),
+        ];
+        let result = execute(&args, dir.path());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_commit_boundary_non_git_repo_returns_ok() {
+        let dir = tempdir().unwrap();
+        let args = vec![
+            "yolo".to_string(),
+            "planning-git".to_string(),
+            "commit-boundary".to_string(),
+            "some action".to_string(),
+        ];
+        let (_, code) = execute(&args, dir.path()).unwrap();
+        assert_eq!(code, 0);
+    }
+
+    // --- routing tests ---
 
     #[test]
     fn test_missing_subcommand_errors() {
