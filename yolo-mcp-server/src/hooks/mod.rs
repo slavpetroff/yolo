@@ -24,3 +24,9 @@ pub mod prompt_preflight;
 // Skill/blocker hook modules (dev-07)
 pub mod skill_hook_dispatch;
 pub mod blocker_notify;
+
+// Compaction, session, and notification hooks (dev-06)
+pub mod compaction_instructions;
+pub mod notification_log;
+pub mod post_compact;
+pub mod session_stop;

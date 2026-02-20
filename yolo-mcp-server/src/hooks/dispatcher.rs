@@ -1,5 +1,6 @@
-use std::path::Path;
-
+use super::agent_health;
+use super::agent_start;
+use super::agent_stop;
 use super::types::{HookEvent, HookInput, HookOutput};
 use super::utils;
 
@@ -45,17 +46,41 @@ pub fn dispatch(event: &HookEvent, stdin_json: &str) -> (String, i32) {
 }
 
 /// Route an event to its handler function.
-/// Each handler will be implemented in subsequent plans by other dev agents.
-/// For now, unimplemented handlers return Ok(empty) — graceful no-op.
+/// Lifecycle hooks (SubagentStart/Stop, TeammateIdle) are wired to native Rust handlers.
+/// Other events delegate to stubs until migrated by other dev agents.
 fn route_event(event: &HookEvent, input: &HookInput) -> Result<HookOutput, String> {
+    let planning_dir = find_planning_dir();
+
     match event {
         HookEvent::SessionStart => handle_stub("SessionStart", input),
         HookEvent::PreToolUse => handle_stub("PreToolUse", input),
         HookEvent::PostToolUse => handle_stub("PostToolUse", input),
         HookEvent::PreCompact => handle_stub("PreCompact", input),
-        HookEvent::SubagentStart => handle_stub("SubagentStart", input),
-        HookEvent::SubagentStop => handle_stub("SubagentStop", input),
-        HookEvent::TeammateIdle => handle_stub("TeammateIdle", input),
+        HookEvent::SubagentStart => {
+            if let Some(ref pd) = planning_dir {
+                let start_result = agent_start::handle(input, pd);
+                let _ = agent_health::cmd_start(input, pd);
+                start_result
+            } else {
+                Ok(HookOutput::empty())
+            }
+        }
+        HookEvent::SubagentStop => {
+            if let Some(ref pd) = planning_dir {
+                let stop_result = agent_stop::handle(input, pd);
+                let _ = agent_health::cmd_stop(input, pd);
+                stop_result
+            } else {
+                Ok(HookOutput::empty())
+            }
+        }
+        HookEvent::TeammateIdle => {
+            if let Some(ref pd) = planning_dir {
+                agent_health::cmd_idle(input, pd)
+            } else {
+                Ok(HookOutput::empty())
+            }
+        }
         HookEvent::TaskCompleted => handle_stub("TaskCompleted", input),
         HookEvent::UserPromptSubmit => handle_stub("UserPromptSubmit", input),
         HookEvent::Notification => handle_stub("Notification", input),
@@ -105,13 +130,8 @@ mod tests {
 
         let stdin = r#"{"tool_name":"Bash"}"#;
         for event in events {
-            let (output, code) = dispatch(&event, stdin);
+            let (_output, code) = dispatch(&event, stdin);
             assert_eq!(code, 0, "Event {:?} should return exit 0", event);
-            assert!(
-                output.is_empty(),
-                "Stub for {:?} should produce empty output",
-                event
-            );
         }
     }
 
