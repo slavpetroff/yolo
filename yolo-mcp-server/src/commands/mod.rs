@@ -5,6 +5,7 @@ pub mod bootstrap_roadmap;
 pub mod bootstrap_state;
 pub mod detect_stack;
 pub mod hard_gate;
+pub mod log_event;
 pub mod infer_project_context;
 pub mod list_todos;
 pub mod metrics_report;
