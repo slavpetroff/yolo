@@ -173,7 +173,7 @@ Open Claude Code and run these two commands inside the Claude Code session, **on
 **Step 1:** Add the marketplace
 
 ```
-/plugin marketplace add yidakee/vibe-better-with-claude-code-yolo
+/plugin marketplace add slavpetroff/yolo
 ```
 
 **Step 2:** Install the plugin
@@ -196,8 +196,8 @@ YOLO includes a Rust-powered MCP server and CLI that handle hooks, commands, val
 
 ```bash
 # Clone the repo (if you haven't already)
-git clone https://github.com/yidakee/vibe-better-with-claude-code-yolo.git
-cd vibe-better-with-claude-code-yolo
+git clone https://github.com/slavpetroff/yolo.git
+cd yolo
 
 # Run the installer — builds from source, registers with Claude Code
 bash install-yolo-mcp.sh
@@ -982,8 +982,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on local development, proj
 
 ## Contributors
 
-<a href="https://github.com/yidakee/vibe-better-with-claude-code-yolo/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=yidakee/vibe-better-with-claude-code-yolo" />
+<a href="https://github.com/slavpetroff/yolo/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=slavpetroff/yolo" />
 </a>
 
 <br>
@@ -992,4 +992,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on local development, proj
 
 MIT -- see [LICENSE](LICENSE) for details.
 
-Built by [Tiago Serôdio](https://github.com/yidakee).
+Built by [Slav Petroff](https://github.com/slavpetroff).

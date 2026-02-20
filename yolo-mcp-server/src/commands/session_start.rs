@@ -263,7 +263,7 @@ fn check_for_updates(script_dir: &Path) -> String {
 
     if fetch {
         let client = Client::builder().timeout(Duration::from_secs(3)).build().unwrap();
-        if let Ok(res) = client.get("https://raw.githubusercontent.com/yidakee/vibe-better-with-claude-code-yolo/main/.claude-plugin/plugin.json").send() {
+        if let Ok(res) = client.get("https://raw.githubusercontent.com/slavpetroff/yolo/main/.claude-plugin/plugin.json").send() {
             if let Ok(content) = res.text() {
                 if let Ok(val) = serde_json::from_str::<Value>(&content) {
                     if let Some(v) = val.get("version").and_then(|v| v.as_str()) {

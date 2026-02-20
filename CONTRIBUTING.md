@@ -13,8 +13,8 @@ Thanks for considering a contribution. YOLO is a Claude Code plugin, so the conv
 Clone the repo, build the MCP server & CLI, and load it as a local plugin:
 
 ```bash
-git clone https://github.com/yidakee/vibe-better-with-claude-code-yolo.git
-cd vibe-better-with-claude-code-yolo
+git clone https://github.com/slavpetroff/yolo.git
+cd yolo
 bash install-yolo-mcp.sh    # Build Rust binaries + register MCP server
 claude --plugin-dir .
 ```
@@ -132,7 +132,7 @@ yolo install-hooks
 
 ## Reporting Bugs
 
-Use the [bug report template](https://github.com/yidakee/vibe-better-with-claude-code-yolo/issues/new?template=bug_report.md). Include your Claude Code version, the command that failed, and any error output.
+Use the [bug report template](https://github.com/slavpetroff/yolo/issues/new?template=bug_report.md). Include your Claude Code version, the command that failed, and any error output.
 
 ## License
 

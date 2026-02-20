@@ -34,7 +34,7 @@ If `--check`: display version banner with installed version and STOP.
 ### Step 3: Check for update
 
 ```bash
-curl -sf --max-time 5 "https://raw.githubusercontent.com/yidakee/vibe-better-with-claude-code-yolo/main/VERSION"
+curl -sf --max-time 5 "https://raw.githubusercontent.com/slavpetroff/yolo/main/VERSION"
 ```
 Store as `remote_version`. Curl fails → STOP: "⚠ Could not reach GitHub to check for updates."
 If remote == old: display "✓ Already at latest (v{old_version}). Refreshing cache..." Continue to Step 4 for clean cache refresh.
