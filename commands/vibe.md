@@ -374,7 +374,7 @@ FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
 3. Compute summary: from ROADMAP (phases), SUMMARY.md files (tasks/commits/deviations), REQUIREMENTS.md (satisfied count).
 4. **Rolling summary (conditional):** If `v3_rolling_summary=true` in config:
    ```bash
-   yolo compile-rolling-summary \
+   yolo rolling-summary \
      .yolo-planning/phases .yolo-planning/ROLLING-CONTEXT.md 2>/dev/null || true
    ```
    Compiles final rolling context before artifacts move to milestones/. Fail-open.
