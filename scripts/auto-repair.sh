@@ -91,7 +91,7 @@ while [ "$ATTEMPT" -lt "$MAX_RETRIES" ]; do
   esac
 
   # Re-run gate check
-  GATE_RESULT=$(bash "${SCRIPT_DIR}/hard-gate.sh" "$GATE_TYPE" "$PHASE" "$PLAN" "$TASK" "$CONTRACT_PATH" 2>/dev/null) || true
+  GATE_RESULT=$(yolo hard-gate "$GATE_TYPE" "$PHASE" "$PLAN" "$TASK" "$CONTRACT_PATH" 2>/dev/null) || true
   GATE_STATUS=$(echo "$GATE_RESULT" | jq -r '.result // "fail"' 2>/dev/null || echo "fail")
 
   if [ "$GATE_STATUS" = "pass" ]; then

@@ -4,6 +4,8 @@ use std::path::PathBuf;
 
 pub mod state_updater;
 pub mod statusline;
+pub mod hard_gate;
+pub mod session_start;
 
 pub fn generate_report(total_calls: i64, compile_calls: i64) -> String {
     let mut out = String::new();
@@ -40,7 +42,7 @@ pub fn generate_report(total_calls: i64, compile_calls: i64) -> String {
     out
 }
 
-pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<String, String> {
+pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), String> {
     if args.len() < 2 {
         return Err("Usage: yolo <command> [args...]".to_string());
     }
@@ -59,20 +61,28 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<String, String> {
             let compile_query = "SELECT COUNT(*) FROM tool_usage WHERE tool_name = 'compile_context'";
             let compile_calls: i64 = conn.query_row(compile_query, [], |row| row.get(0)).unwrap_or(0);
 
-            Ok(generate_report(total_calls, compile_calls))
+            Ok((generate_report(total_calls, compile_calls), 0))
         }
         "update-state" => {
             if args.len() < 3 {
                 return Err("Usage: yolo update-state <file_path>".to_string());
             }
-            state_updater::update_state(&args[2])
+            state_updater::update_state(&args[2]).map(|s| (s, 0))
         }
         "statusline" => {
-            statusline::render_statusline(&db_path)
+            statusline::render_statusline(&db_path).map(|s| (s, 0))
         }
         "fetch-limits" => {
             let _ = statusline::execute_fetch_limits();
-            Ok("".to_string())
+            Ok("".to_string()).map(|s| (s, 0))
+        }
+        "hard-gate" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            hard_gate::execute_gate(&args, &cwd)
+        }
+        "session-start" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            session_start::execute_session_start(&cwd)
         }
         _ => Err(format!("Unknown command: {}", args[1]))
     }
@@ -86,7 +96,12 @@ fn main() {
     let db_path = PathBuf::from(".yolo-telemetry.db");
 
     match run_cli(args, db_path) {
-        Ok(report) => print!("{}", report),
+        Ok((report, exit_code)) => {
+            print!("{}", report);
+            if exit_code != 0 {
+                std::process::exit(exit_code);
+            }
+        },
         Err(e) => {
             eprintln!("{}", e);
             std::process::exit(1);
@@ -128,8 +143,9 @@ mod tests {
         ).unwrap();
         conn.execute("INSERT INTO tool_usage (tool_name) VALUES ('compile_context')", []).unwrap();
         
-        let report = run_cli(vec!["yolo".into(), "report".into()], path.clone()).unwrap();
+        let (report, code) = run_cli(vec!["yolo".into(), "report".into()], path.clone()).unwrap();
         assert!(report.contains("Total Intercepted Tool Calls: 1"));
+        assert_eq!(code, 0);
 
         let _ = std::fs::remove_file(&path);
     }
