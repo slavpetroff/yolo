@@ -50,3 +50,8 @@ pub mod help_output;
 pub mod doctor_cleanup;
 pub mod auto_repair;
 pub mod rollout_stage;
+pub mod pre_push_hook;
+pub mod verify_init_todo;
+pub mod verify_vibe;
+pub mod verify_claude_bootstrap;
+pub mod verify;
