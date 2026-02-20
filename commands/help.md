@@ -27,11 +27,31 @@ Display the output above verbatim. Do not reformat, summarize, or add commentary
 
 ### With arg: Display specific command details
 
-Read `${CLAUDE_PLUGIN_ROOT}/commands/{name}.md` (strip `yolo:` prefix if present). Display:
+You can get detailed help for any command by passing its name:
+
+```
+/yolo:help init
+/yolo:help vibe
+/yolo:help config
+/yolo:help status
+```
+
+The `yolo:` prefix is optional — `/yolo:help init` and `/yolo:help yolo:init` both work.
+
+Run the help-output command with the subcommand argument:
+
+```
+!`yolo help-output ${CLAUDE_PLUGIN_ROOT} $ARGUMENTS`
+```
+
+Display the output above verbatim. If the output says "Unknown command", show it as-is.
+
+The per-command help includes:
 - **Name** and **description** from frontmatter
 - **Category** from frontmatter
 - **Usage:** `/yolo:{name} {argument-hint}`
-- **Arguments:** list from argument-hint with brief explanation
-- **Related:** suggest 1-2 related commands based on category
+- **Flags:** available options and their descriptions
+- **Examples:** common usage patterns
+- **Related:** 1-2 related commands from the same category
 
-If command not found: "⚠ Unknown command: {name}. Run /yolo:help for all commands."
+If command not found: "Unknown command: {name}. Run /yolo:help for all commands."
