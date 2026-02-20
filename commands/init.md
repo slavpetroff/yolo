@@ -80,7 +80,7 @@ AskUserQuestion text: "○ YOLO includes a custom status line showing phase prog
 If approved, set `statusLine` to:
 
 ```json
-{"type": "command", "command": "bash -c 'f=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/yolo-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"$f\" ] && exec bash \"$f\"'"}
+{"type": "command", "command": "$HOME/.cargo/bin/yolo statusline"}
 ```
 
 Object format with `type`+`command` is **required** — plain string fails silently.
@@ -170,7 +170,7 @@ jq '.planning_tracking = "'"$PLANNING_TRACKING"'" | .auto_push = "'"$AUTO_PUSH"'
 Then align git ignore behavior with config:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/planning-git.sh sync-ignore .yolo-planning/config.json
+"$HOME/.cargo/bin/yolo" planning-git sync-ignore .yolo-planning/config.json
 ```
 
 ### Step 1.5: Install git hooks
@@ -214,7 +214,7 @@ Set GSD_ISOLATION_ENABLED=true for Step 3.5.
 - Store SOURCE_FILE_COUNT. Check for test files, CI/CD, Docker, monorepo indicators.
 - Add Codebase Profile to STATE.md.
 
-**2b.** Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/detect-stack.sh "$(pwd)"`. Save full JSON. Display: `✓ Stack: {comma-separated detected_stack items}`
+**2b.** Run `"$HOME/.cargo/bin/yolo" detect-stack "$(pwd)"`. Save full JSON. Display: `✓ Stack: {comma-separated detected_stack items}`
 
 **2c. Codebase mapping (adaptive):**
 
@@ -379,7 +379,7 @@ Run inference scripts based on the detected scenario, display results, and confi
 
 **6b. Brownfield branch** (SCENARIO=BROWNFIELD):
 
-- Run inference: `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo infer .yolo-planning/codebase/ "$(pwd)"`
+- Run inference: `"$HOME/.cargo/bin/yolo" infer .yolo-planning/codebase/ "$(pwd)"`
 - Capture JSON output to `.yolo-planning/inference.json` via Bash
 - Parse the JSON and display inferred fields:
 
@@ -398,7 +398,7 @@ Run inference scripts based on the detected scenario, display results, and confi
 
 - Run GSD inference: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/infer-gsd-summary.sh .yolo-planning/gsd-archive/`
 - Capture JSON output to `.yolo-planning/gsd-inference.json` via Bash
-- If `.yolo-planning/codebase/` exists, also run: `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo infer .yolo-planning/codebase/ "$(pwd)"`
+- If `.yolo-planning/codebase/` exists, also run: `"$HOME/.cargo/bin/yolo" infer .yolo-planning/codebase/ "$(pwd)"`
   - Capture to `.yolo-planning/inference.json`
 - Display merged results:
 
@@ -437,12 +437,12 @@ Write the final confirmed/corrected data to `.yolo-planning/inference.json` for 
 
 ### Step 7: Bootstrap execution
 
-<!-- Bootstrap scripts expect specific argument formats — see each script's usage header -->
-<!-- bootstrap-project.sh: OUTPUT_PATH NAME DESCRIPTION -->
-<!-- bootstrap-requirements.sh: OUTPUT_PATH DISCOVERY_JSON_PATH (discovery.json: {answered[], inferred[]}) -->
-<!-- bootstrap-roadmap.sh: OUTPUT_PATH PROJECT_NAME PHASES_JSON (phases.json: [{name, goal, requirements[], success_criteria[]}]) -->
-<!-- bootstrap-state.sh: OUTPUT_PATH PROJECT_NAME MILESTONE_NAME PHASE_COUNT -->
-<!-- bootstrap-claude.sh: OUTPUT_PATH PROJECT_NAME CORE_VALUE [EXISTING_PATH] -->
+<!-- Bootstrap commands expect specific argument formats — see each subcommand's implementation -->
+<!-- yolo bootstrap project: OUTPUT_PATH NAME DESCRIPTION -->
+<!-- yolo bootstrap requirements: OUTPUT_PATH DISCOVERY_JSON_PATH (discovery.json: {answered[], inferred[]}) -->
+<!-- yolo bootstrap roadmap: OUTPUT_PATH PROJECT_NAME PHASES_JSON (phases.json: [{name, goal, requirements[], success_criteria[]}]) -->
+<!-- yolo bootstrap state: OUTPUT_PATH PROJECT_NAME MILESTONE_NAME PHASE_COUNT -->
+<!-- yolo bootstrap CLAUDE.md: OUTPUT_PATH PROJECT_NAME CORE_VALUE [EXISTING_PATH] -->
 <!-- Temporary JSON files (discovery.json, phases.json, inference.json) are cleaned up in 7g -->
 
 Generate all project-defining files using confirmed data from Step 6 or discovery questions.
@@ -471,7 +471,7 @@ If SKIP_INFERENCE=false (confirmed/corrected inference data):
 
 **7b. Generate PROJECT.md:**
 
-- Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-project.sh .yolo-planning/PROJECT.md "$NAME" "$DESCRIPTION"`
+- Run: `"$HOME/.cargo/bin/yolo" bootstrap project .yolo-planning/PROJECT.md "$NAME" "$DESCRIPTION"`
 - Display: `✓ PROJECT.md`
 
 **7c. Generate REQUIREMENTS.md:**
@@ -479,7 +479,7 @@ If SKIP_INFERENCE=false (confirmed/corrected inference data):
 - Create `.yolo-planning/discovery.json` with format: `{"answered": [...], "inferred": [...]}`
   - `answered`: array of requirement strings from user answers
   - `inferred`: array of `{"text": "...", "priority": "Must-have"}` from inference features
-- Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-requirements.sh .yolo-planning/REQUIREMENTS.md .yolo-planning/discovery.json`
+- Run: `"$HOME/.cargo/bin/yolo" bootstrap requirements .yolo-planning/REQUIREMENTS.md .yolo-planning/discovery.json`
 - Display: `✓ REQUIREMENTS.md`
 
 **7d. Generate ROADMAP.md:**
@@ -488,20 +488,20 @@ If SKIP_INFERENCE=false (confirmed/corrected inference data):
   - Build from user-provided phase names/goals
   - Link requirements from discovery data
   - Generate success criteria from phase goals
-- Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-roadmap.sh .yolo-planning/ROADMAP.md "$NAME" .yolo-planning/phases.json`
+- Run: `"$HOME/.cargo/bin/yolo" bootstrap roadmap .yolo-planning/ROADMAP.md "$NAME" .yolo-planning/phases.json`
 - Display: `✓ ROADMAP.md`
 
 **7e. Generate STATE.md:**
 
 - Determine MILESTONE_NAME: use NAME or first milestone from GSD inference
 - Determine PHASE_COUNT from phases.json length
-- Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-state.sh .yolo-planning/STATE.md "$NAME" "$MILESTONE_NAME" "$PHASE_COUNT"`
+- Run: `"$HOME/.cargo/bin/yolo" bootstrap state .yolo-planning/STATE.md "$NAME" "$MILESTONE_NAME" "$PHASE_COUNT"`
 - Display: `✓ STATE.md`
 
 **7f. Generate/update CLAUDE.md:**
 
 - If root CLAUDE.md exists: pass it as EXISTING_PATH to preserve non-YOLO content
-- Run: `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo bootstrap CLAUDE.md "$NAME" "$DESCRIPTION" "CLAUDE.md"`
+- Run: `"$HOME/.cargo/bin/yolo" bootstrap CLAUDE.md "$NAME" "$DESCRIPTION" "CLAUDE.md"`
   - If CLAUDE.md does not exist yet, omit the last argument
 - Display: `✓ CLAUDE.md`
 
@@ -515,7 +515,7 @@ If SKIP_INFERENCE=false (confirmed/corrected inference data):
 - Run:
 
   ```bash
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/planning-git.sh commit-boundary "bootstrap project files" .yolo-planning/config.json
+  "$HOME/.cargo/bin/yolo" planning-git commit-boundary "bootstrap project files" .yolo-planning/config.json
   ```
 
 - Behavior:
