@@ -5,7 +5,6 @@
 #   - .watchdog-pid (tmux watchdog PID)
 #   - .watchdog.log (tmux watchdog logs)
 #   - .snapshots/ — agent state snapshots (covered by .yolo-planning/ exclusion)
-.yolo-planning/
 .planning/
 
 # Dependencies

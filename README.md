@@ -25,7 +25,7 @@ _At least do it properly._
 
 ## YOLO Token Efficiency vs Stock Opus 4.6 Agent Teams
 
-Every new capability is shell-only — 85 scripts run as bash subprocesses at zero model token cost. The codebase grew 64% since v1.20.0 while per-request overhead _dropped_ 17%. 783 bats tests validate the stack.
+Every new capability runs as native Rust — a single CLI binary handles hooks, commands, and validation at zero model token cost. The codebase grew 64% since v1.20.0 while per-request overhead _dropped_ 17%. 852 tests validate the stack.
 
 **Analysis reports:** [v1.21.30](docs/yolo-1-21-30-full-spec-token-analysis.md) | [v1.20.0](docs/yolo-1-20-0-full-spec-token-analysis.md) | [v1.10.7](docs/yolo-1-10-7-context-compiler-token-analysis.md) | [v1.10.2](docs/yolo-1-10-2-vs-stock-agent-teams-token-analysis.md) | [v1.0.99](docs/yolo-1-0-99-vs-stock-teams-token-analysis.md)
 
@@ -70,7 +70,7 @@ This project exists to make AI coding better for everyone, and "everyone" means 
 
 ## What Is This
 
-> **Platform:** macOS and Linux only. Windows is not supported natively — all hooks, scripts, and context blocks require bash. If you're on Windows, run Claude Code inside [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+> **Platform:** macOS and Linux only. Windows is not supported natively — hooks and context blocks require a Unix environment. If you're on Windows, run Claude Code inside [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
 
 Inspired by **[Ralph](https://github.com/frankbria/ralph-claude-code)** and **[Get Shit Done](https://github.com/glittercowboy/get-shit-done)**, however, an entirely new architecture.
 
@@ -122,7 +122,7 @@ Most Claude Code plugins were built for the subagent era, one main session spawn
 
 - **Platform-enforced tool permissions.** Each agent has `tools`/`disallowedTools` in their YAML frontmatter -- 4 of 7 agents have platform-enforced deny lists. Scout and QA literally cannot write files. Sensitive file access (`.env`, credentials) is intercepted by the `security-filter` hook. `disallowedTools` is enforced by Claude Code itself, not by instructions an agent might ignore during compaction.
 
-- **Database safety guard.** A PreToolUse hook (`bash-guard.sh`) intercepts every Bash command before it reaches the shell and blocks known destructive patterns -- `migrate:fresh`, `db:drop`, `TRUNCATE TABLE`, `FLUSHALL`, and 40+ patterns across Laravel, Rails, Django, Prisma, Knex, Sequelize, TypeORM, Drizzle, Diesel, SQLx, Ecto, raw SQL clients, Redis, MongoDB, and Docker volumes. All five agents with Bash access (Dev, QA, Lead, Debugger, Docs) are filtered equally. Override with `YOLO_ALLOW_DESTRUCTIVE=1` env var or `bash_guard=false` in config. Extend with `.yolo-planning/destructive-commands.local.txt` for project-specific patterns. See **[Database Safety Guard](docs/database-safety-guard.md)** for the full design, flowchart, and pattern list.
+- **Database safety guard.** A PreToolUse hook (`bash-guard`) intercepts every Bash command before it reaches the shell and blocks known destructive patterns -- `migrate:fresh`, `db:drop`, `TRUNCATE TABLE`, `FLUSHALL`, and 40+ patterns across Laravel, Rails, Django, Prisma, Knex, Sequelize, TypeORM, Drizzle, Diesel, SQLx, Ecto, raw SQL clients, Redis, MongoDB, and Docker volumes. All five agents with Bash access (Dev, QA, Lead, Debugger, Docs) are filtered equally. Override with `YOLO_ALLOW_DESTRUCTIVE=1` env var or `bash_guard=false` in config. Extend with `.yolo-planning/destructive-commands.local.txt` for project-specific patterns. See **[Database Safety Guard](docs/database-safety-guard.md)** for the full design, flowchart, and pattern list.
 
 - **Structured handoff schemas.** Agents communicate via JSON-structured SendMessage with typed schemas (`scout_findings`, `dev_progress`, `dev_blocker`, `qa_result`, `debugger_report`). No more hoping the receiving agent can parse free-form markdown. Schema definitions live in a single reference document with backward-compatible fallback to plain text.
 
@@ -138,7 +138,7 @@ Agent Teams are [experimental with known limitations](https://code.claude.com/do
 
 - **Shutdown coordination.** YOLO defines `shutdown_request`/`shutdown_response` schemas in the typed communication protocol. After phase work completes, the orchestrator sends `shutdown_request` to every teammate, waits for acknowledgment, then calls `TeamDelete`. All 7 team-participating agents (Dev, QA, Scout, Lead, Debugger, Docs, Architect) have explicit shutdown handlers — respond, finish in-progress work, stop. No lingering agents consuming API credits in tmux panes.
 
-- **File conflicts.** Plans decompose work into tasks with explicit file ownership. Dev teammates operate on disjoint file sets by design, enforced at runtime by the `file-guard.sh` hook that blocks writes to files not declared in the active plan.
+- **File conflicts.** Plans decompose work into tasks with explicit file ownership. Dev teammates operate on disjoint file sets by design, enforced at runtime by the `file-guard` hook that blocks writes to files not declared in the active plan.
 
 Agent Teams ship with seven known limitations. YOLO addresses all of them. The eighth... that you're using AI to write software doesn't need a fix. It needs an intervention.
 
@@ -206,7 +206,7 @@ Claude Code will ask permission before file writes, bash commands, etc. You appr
 claude --dangerously-skip-permissions
 ```
 
-No permission prompts. No interruptions. Agents run uninterrupted until the work is done or your API budget isn't. YOLO's built-in security controls (read-only agents can't write, `security-filter.sh` blocks `.env` and credentials, QA gates on every task) still apply. The platform just stops asking "are you sure?" every time an agent wants to create a file.
+No permission prompts. No interruptions. Agents run uninterrupted until the work is done or your API budget isn't. YOLO's built-in security controls (read-only agents can't write, `security-filter` blocks `.env` and credentials, QA gates on every task) still apply. The platform just stops asking "are you sure?" every time an agent wants to create a file.
 
 This is how most vibe coders run it. The agents work longer, the flow stays unbroken, and you get to pretend you're supervising while scrolling Twitter.
 
@@ -673,7 +673,7 @@ Every setting below lives in `.yolo-planning/config.json` and can be changed wit
 
 - **`prefer_teams`** — Controls when YOLO creates Agent Teams (multiple color-coded agents working together) vs spawning a single subagent. `always` creates teams for every operation — maximum agent visibility but higher token cost. `when_parallel` (and `auto`, which behaves identically) creates teams only when parallelism adds value: 2+ plans in execute, Scout needed in planning, ambiguous bugs in debug. Use `always` unless you're optimizing for token cost.
 - **`max_tasks_per_plan`** — Maximum number of tasks the Lead agent should include in a single plan. Communicated to agents via session context. Lower values (2–3) produce more focused, easier-to-verify plans. Higher values (5–7) reduce planning overhead but increase blast radius per plan. Not enforced by a hard gate — it's an advisory constraint.
-- **`context_compiler`** — When `true`, runs `compile-context.sh` to produce role-specific `.context-{role}.md` files so each agent gets curated context (Lead gets requirements, Dev gets phase goal + conventions, QA gets verification targets). When `false`, agents read project files directly without curation. Leave this on unless you're debugging context issues.
+- **`context_compiler`** — When `true`, runs `yolo compile-context` to produce role-specific `.context-{role}.md` files so each agent gets curated context (Lead gets requirements, Dev gets phase goal + conventions, QA gets verification targets). When `false`, agents read project files directly without curation. Leave this on unless you're debugging context issues.
 - **`plain_summary`** — When `true`, appends 2–4 plain-English sentences after QA completes in Execute mode, summarizing what happened in the phase without jargon. When `false`, output shows only the structured QA result.
 
 ### Skills and discovery
@@ -739,9 +739,9 @@ Toggle any flag with:
 
 ### V3 runtime flags
 
-- **`v3_delta_context`** — When enabled, `compile-context.sh` includes a "Changed Files (Delta)" section and code slices from recently modified files in each agent's compiled context. Without this, agents only see the full project context and may miss what changed between phases. Useful when iterating on existing code where knowing _what just changed_ matters more than the full codebase picture. Adds ~225–375 tokens per compiled context.
+- **`v3_delta_context`** — When enabled, `yolo compile-context` includes a "Changed Files (Delta)" section and code slices from recently modified files in each agent's compiled context. Without this, agents only see the full project context and may miss what changed between phases. Useful when iterating on existing code where knowing _what just changed_ matters more than the full codebase picture. Adds ~225–375 tokens per compiled context.
 
-- **`v3_context_cache`** — Caches the compiled context index (`context-index.json`) between runs so `compile-context.sh` can skip recomputation when project files haven't changed. In large codebases (thousands of files), this avoids redundant shell work on every agent invocation. Has no effect if you're actively changing lots of files between runs — the cache invalidates and rebuilds anyway.
+- **`v3_context_cache`** — Caches the compiled context index (`context-index.json`) between runs so `yolo compile-context` can skip recomputation when project files haven't changed. In large codebases (thousands of files), this avoids redundant shell work on every agent invocation. Has no effect if you're actively changing lots of files between runs — the cache invalidates and rebuilds anyway.
 
 - **`v3_plan_research_persist`** — During planning, Scout researches the phase and returns structured findings. The orchestrating command writes these to a `RESEARCH.md` file in the phase directory (Scout has `disallowedTools: Write` and cannot write files itself). This makes planning decisions traceable — you can see _what Scout found_ that informed the Lead's plan. Skipped when effort is set to `turbo` (which bypasses Scout entirely). Enable this if you want an audit trail of why plans look the way they do.
 
@@ -751,7 +751,7 @@ Toggle any flag with:
 
 - **`v3_lock_lite`** — Enables lightweight file locks so Dev teammates can claim ownership of specific files during parallel execution. Prevents two teammates from writing to the same file simultaneously. Most useful with high `max_tasks_per_plan` values and `prefer_teams=always`. If your tasks rarely touch overlapping files, this adds overhead without much benefit. Superseded by `v3_lease_locks` if both are enabled.
 
-- **`v3_validation_gates`** — Adds pre-task and post-task validation checks around execution steps. Without this, validation only happens at phase boundaries (QA after all tasks complete). With this enabled, each task gets entry/exit checks using dynamic gate policies from `resolve-gate-policy.sh`. Catches issues _during_ execution rather than discovering them all at the end. Pairs well with `v2_hard_gates` for strict enforcement.
+- **`v3_validation_gates`** — Adds pre-task and post-task validation checks around execution steps. Without this, validation only happens at phase boundaries (QA after all tasks complete). With this enabled, each task gets entry/exit checks using dynamic gate policies from `yolo resolve-gate-policy`. Catches issues _during_ execution rather than discovering them all at the end. Pairs well with `v2_hard_gates` for strict enforcement.
 
 - **`v3_smart_routing`** — Routes tasks to agents based on task complexity analysis rather than using the same agent configuration for every task. Simple tasks may get routed to lighter agents; complex tasks get the full treatment. Reduces cost on straightforward work without sacrificing quality on hard problems. Most impactful when a phase mixes trivial and complex tasks.
 
@@ -777,7 +777,7 @@ Toggle any flag with:
 
 - **`v2_role_isolation`** — Enforces file-write boundaries based on agent role. Scout becomes strictly read-only (blocked from any writes). All roles are restricted to writing within `.yolo-planning/` for planning artifacts. Blocked writes are logged to stderr. Strengthens the platform-level `disallowedTools` enforcement with file-path-level granularity. Recommended for any project where you want guarantees that Scout/QA aren't accidentally modifying source code.
 
-- **`v2_two_phase_completion`** — Tasks require two steps to complete: first register the output artifact (via `artifact-registry.sh`), then mark the task done (via `two-phase-complete.sh`). Prevents agents from claiming "done" without producing verifiable output. **Requires `v3_event_log=true`**. Most useful when tasks are completing without proper deliverables — this forces proof of work.
+- **`v2_two_phase_completion`** — Tasks require two steps to complete: first register the output artifact (via `yolo artifact-registry`), then mark the task done (via `yolo two-phase-complete`). Prevents agents from claiming "done" without producing verifiable output. **Requires `v3_event_log=true`**. Most useful when tasks are completing without proper deliverables — this forces proof of work.
 
 - **`v2_token_budgets`** — Enables per-agent token budget tracking and context truncation. Each agent gets a budget based on its role and the active model profile. When an agent approaches its budget, context is truncated to stay within limits. Useful for controlling costs on large projects where agents might consume excessive tokens. Without this, agents use as much context as they need with no ceiling.
 
@@ -789,7 +789,7 @@ Some flags require other flags to be enabled first. YOLO warns at session start 
 - `v2_hard_gates` requires `v2_hard_contracts=true` — strict gates need strict contracts to enforce against.
 - `v2_two_phase_completion` requires `v3_event_log=true` — artifact registration is tracked via events.
 
-For implementation details, see `references/execute-protocol.md` and script-level checks in `scripts/session-start.sh`.
+For implementation details, see `references/execute-protocol.md` and session-start checks in `yolo-mcp-server/src/hooks/session_start.rs`.
 
 <br>
 
@@ -906,7 +906,7 @@ agents/            7 agent definitions with native tool permissions
 commands/          24 slash commands (commands/*.md)
 config/            Default settings and stack-to-skill mappings
 hooks/             Plugin hooks for continuous verification
-scripts/           Hook handler scripts (security, validation, QA gates)
+yolo-mcp-server/   Rust CLI and MCP server (hooks, commands, validation)
 references/        Brand vocabulary, verification protocol, effort profiles, handoff schemas
 templates/         Artifact templates (PLAN.md, SUMMARY.md, etc.)
 assets/            Images and static files

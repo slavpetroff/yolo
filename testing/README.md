@@ -10,8 +10,8 @@ Run all checks:
 
 Run individual checks:
 
-- `bash scripts/verify-init-todo.sh`
-- `bash scripts/verify-claude-bootstrap.sh`
+- `yolo verify-init-todo`
+- `yolo verify-claude-bootstrap`
 - `bash testing/verify-bash-scripts-contract.sh`
 - `bash testing/verify-commands-contract.sh`
 

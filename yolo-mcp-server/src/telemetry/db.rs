@@ -65,14 +65,13 @@ impl TelemetryDb {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
 
     #[test]
     fn test_telemetry_db_creation_and_insertion() {
-        let db_path = PathBuf::from(".test-telemetry.db");
-        
+        let db_path = std::env::temp_dir().join(format!("yolo-test-telemetry-{}.db", std::process::id()));
+
         // Clean up from previous failed test if necessary
-        let _ = fs::remove_file(&db_path);
+        let _ = std::fs::remove_file(&db_path);
 
         let db = TelemetryDb::new(db_path.clone()).expect("Failed to create test DB");
 
@@ -93,6 +92,6 @@ mod tests {
         assert_eq!(count, 1);
 
         // Clean up
-        let _ = fs::remove_file(&db_path);
+        let _ = std::fs::remove_file(&db_path);
     }
 }

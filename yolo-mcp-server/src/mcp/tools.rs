@@ -146,19 +146,26 @@ mod tests {
     async fn test_compile_context_returns_content() {
         let state = Arc::new(ToolState::new());
         let params = Some(json!({"phase": 4}));
-        
-        // Create dummy directory and file to ensure fs::read_to_string succeeds inside the tool
-        let _ = fs::create_dir_all(".yolo-planning/codebase").await;
-        let _ = fs::write(".yolo-planning/codebase/ARCHITECTURE.md", "DUMMY ARCH CONTENT").await;
-        
+
+        // Use a temp dir to avoid race conditions with parallel tests
+        let tmp = std::env::temp_dir().join(format!("yolo-test-compile-ctx-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".yolo-planning/codebase")).unwrap();
+        std::fs::write(tmp.join(".yolo-planning/codebase/ARCHITECTURE.md"), "DUMMY ARCH CONTENT").unwrap();
+
+        let orig_dir = std::env::current_dir().unwrap();
+        // Safety: set_current_dir is not unsafe, but affects the process-wide cwd
+        let _ = std::env::set_current_dir(&tmp);
+
         let result = handle_tool_call("compile_context", params, state).await;
         let content_arr = result.get("content").unwrap().as_array().unwrap();
         let text = content_arr[0].get("text").unwrap().as_str().unwrap();
-        
+
         assert!(text.contains("GLOBAL PROJECT STATE"));
-        assert!(text.contains("DUMMY ARCH CONTENT")); // Verifies line 36 was covered
-        
-        let _ = fs::remove_dir_all(".yolo-planning").await;
+        assert!(text.contains("DUMMY ARCH CONTENT"));
+
+        let _ = std::env::set_current_dir(&orig_dir);
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 
     #[tokio::test]

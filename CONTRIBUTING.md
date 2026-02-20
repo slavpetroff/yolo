@@ -15,7 +15,7 @@ Clone the repo, install the git hooks, and load it as a local plugin:
 ```bash
 git clone https://github.com/yidakee/vibe-better-with-claude-code-yolo.git
 cd vibe-better-with-claude-code-yolo
-bash scripts/install-hooks.sh
+yolo install-hooks
 claude --plugin-dir .
 ```
 
@@ -29,7 +29,7 @@ agents/            7 agent definitions with native tool permissions
 commands/          24 slash commands (commands/*.md)
 config/            Default settings and stack-to-skill mappings
 hooks/             Plugin hooks (hooks.json)
-scripts/           Hook handler scripts
+yolo-mcp-server/   Rust CLI and MCP server (hooks, commands, validation)
 references/        Brand vocabulary, verification protocol, effort profiles
 templates/         Artifact templates (PLAN.md, SUMMARY.md, etc.)
 assets/            Images and static files
@@ -39,7 +39,7 @@ Key conventions:
 
 - **Commands** live in `commands/*.md`. Use explicit prefixed names in frontmatter (e.g., `name: yolo:init`) so commands show as `/yolo:*`.
 - **Agents** in `agents/` use YAML frontmatter for tool permissions enforced by the platform.
-- **Hooks** in `hooks/hooks.json` self-resolve scripts via `ls | sort -V | tail -1` against the plugin cache (they do not use `CLAUDE_PLUGIN_ROOT`).
+- **Hooks** in `hooks/hooks.json` dispatch through the `yolo` Rust CLI binary (`yolo hook <Event>`).
 
 ## Making Changes
 
@@ -53,7 +53,7 @@ Key conventions:
 
 Good candidates:
 
-- Bug fixes in hook scripts or commands
+- Bug fixes in hooks or commands
 - New slash commands that fit the lifecycle model (init, vibe, verify, release)
 - Improvements to agent definitions or tool permissions
 - Stack-to-skill mappings in `config/`
@@ -91,7 +91,7 @@ All four **must** match at all times.
 To bump the version (maintainer only):
 
 ```bash
-bash scripts/bump-version.sh
+yolo bump-version
 git add VERSION .claude-plugin/plugin.json .claude-plugin/marketplace.json marketplace.json
 git commit -m "chore: bump version to $(cat VERSION)"
 ```
@@ -99,7 +99,7 @@ git commit -m "chore: bump version to $(cat VERSION)"
 To verify that all four files are in sync locally:
 
 ```bash
-scripts/bump-version.sh --verify
+yolo bump-version --verify
 ```
 
 This exits `0` if all versions match and `1` with a diff report if they diverge.
@@ -119,14 +119,14 @@ The hook only blocks pushes if the 4 version files have mismatched values. Use `
 **Install the hook after cloning:**
 
 ```bash
-bash scripts/install-hooks.sh
+yolo install-hooks
 ```
 
 > **Note:** If you use YOLO, the hook is auto-installed by `/yolo:init` and on session start. Manual installation is only needed for contributors not using YOLO.
 
 ## Code Style
 
-- Shell scripts: bash, no external dependencies beyond `jq` and `git`
+- Rust CLI: hooks and commands implemented in `yolo-mcp-server/`
 - Markdown commands: YAML frontmatter with single-line `description` field
 - No prettier on `.md` files with frontmatter (use `.prettierignore`)
 

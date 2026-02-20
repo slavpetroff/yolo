@@ -1,4 +1,4 @@
-<!-- This template is populated by scripts/bootstrap/bootstrap-requirements.sh -->
+<!-- This template is populated by the yolo bootstrap-requirements command -->
 <!-- Domain Context section appears only when domain research was conducted -->
 
 # {Project Name} Requirements

@@ -11,7 +11,7 @@ Loaded on demand by /yolo:vibe Execute mode. Not a user-facing command.
 5. Partially-complete plans: note resume-from task number.
 6. **Crash recovery:** If `.yolo-planning/.execution-state.json` exists with `"status": "running"`, update plan statuses to match current SUMMARY.md state.
    - **V3 Event Recovery (REQ-17):** If `v3_event_recovery=true` in config, attempt event-sourced recovery first:
-     `RECOVERED=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/recover-state.sh {phase} 2>/dev/null || echo "{}")`
+     `RECOVERED=$("$HOME/.cargo/bin/yolo" recover-state {phase} 2>/dev/null || echo "{}")`
      If non-empty and has `plans` array, use recovered state as the baseline instead of the stale execution-state.json. This provides more accurate status when execution-state.json was not written (crash before flush).
      6b. **Generate correlation_id:** Generate a UUID for this phase execution:
    - If `.yolo-planning/.execution-state.json` already exists and has `correlation_id` (crash-resume):
@@ -33,23 +33,23 @@ Loaded on demand by /yolo:vibe Execute mode. Not a user-facing command.
 Set completed plans (with SUMMARY.md) to `"complete"`, others to `"pending"`.
 
 7b. **Export correlation_id:** Set `YOLO_CORRELATION_ID={CORRELATION_ID}` in the execution environment
-so log-event.sh can fall back to it if .execution-state.json is temporarily unavailable.
+so yolo log-event can fall back to it if .execution-state.json is temporarily unavailable.
 Log a confirmation: `◆ Correlation ID: {CORRELATION_ID}`
 
 1. **V3 Event Log (REQ-16):** If `v3_event_log=true` in config:
-   - Log phase start: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh phase_start {phase} 2>/dev/null || true`
+   - Log phase start: `"$HOME/.cargo/bin/yolo" log-event phase_start {phase} 2>/dev/null || true`
 
 2. **V3 Snapshot Resume (REQ-18):** If `v3_snapshot_resume=true` in config:
    - On crash recovery (execution-state.json exists with `"status": "running"`): attempt restore:
-     `SNAPSHOT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/snapshot-resume.sh restore {phase} {preferred-role} 2>/dev/null || echo "")`
+     `SNAPSHOT=$("$HOME/.cargo/bin/yolo" snapshot-resume restore {phase} {preferred-role} 2>/dev/null || echo "")`
    - If snapshot found, log: `✓ Snapshot found: ${SNAPSHOT}` — use snapshot's `recent_commits` to cross-reference git log for more reliable resume-from detection.
 
 3. **V3 Schema Validation (REQ-17):** If `v3_schema_validation=true` in config:
 
 - Validate each PLAN.md frontmatter before execution:
-  `VALID=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-schema.sh plan {plan_path} 2>/dev/null || echo "valid")`
+  `VALID=$("$HOME/.cargo/bin/yolo" validate-schema plan {plan_path} 2>/dev/null || echo "valid")`
 - If `invalid`: log warning `⚠ Plan {NN-MM} schema: ${VALID}` — continue execution (advisory only).
-- Log to metrics: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/collect-metrics.sh schema_check {phase} {plan} result=$VALID 2>/dev/null || true`
+- Log to metrics: `"$HOME/.cargo/bin/yolo" collect-metrics schema_check {phase} {plan} result=$VALID 2>/dev/null || true`
 
 1. **Cross-phase deps (PWR-04):** For each plan with `cross_phase_deps`:
 
@@ -88,14 +88,14 @@ When team should NOT be created (1 plan with when_parallel/auto, or turbo, or sm
 - Before creating agent teams, assess each plan:
 
   ```bash
-  RISK=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/assess-plan-risk.sh {plan_path} 2>/dev/null || echo "medium")
+  RISK=$("$HOME/.cargo/bin/yolo" assess-plan-risk {plan_path} 2>/dev/null || echo "medium")
   TASK_COUNT=$(grep -c '^### Task [0-9]' {plan_path} 2>/dev/null || echo "0")
   ```
 
 - If `RISK=low` AND `TASK_COUNT<=3` AND effort is not `thorough`: force turbo execution for this plan (no team, direct implementation). Log routing decision:
-  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/collect-metrics.sh smart_route {phase} {plan} risk=$RISK tasks=$TASK_COUNT routed=turbo 2>/dev/null || true`
+  `"$HOME/.cargo/bin/yolo" collect-metrics smart_route {phase} {plan} risk=$RISK tasks=$TASK_COUNT routed=turbo 2>/dev/null || true`
 - Otherwise: proceed with normal team delegation. Log:
-  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/collect-metrics.sh smart_route {phase} {plan} risk=$RISK tasks=$TASK_COUNT routed=team 2>/dev/null || true`
+  `"$HOME/.cargo/bin/yolo" collect-metrics smart_route {phase} {plan} risk=$RISK tasks=$TASK_COUNT routed=team 2>/dev/null || true`
 - On script error: fall back to configured effort level.
 
 **Delegation directive (all except Turbo):**
@@ -109,17 +109,17 @@ You are the team LEAD. NEVER implement tasks yourself.
 **V3 Monorepo Routing (REQ-17):** If `v3_monorepo_routing=true` in config:
 
 - Before context compilation, detect relevant package paths:
-  `PACKAGES=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/route-monorepo.sh {phase_dir} 2>/dev/null || echo "[]")`
+  `PACKAGES=$("$HOME/.cargo/bin/yolo" route-monorepo {phase_dir} 2>/dev/null || echo "[]")`
 - If non-empty array (not `[]`): pass package paths to context compilation for scoped file inclusion.
-  Log: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/collect-metrics.sh monorepo_route {phase} packages=$PACKAGES 2>/dev/null || true`
+  Log: `"$HOME/.cargo/bin/yolo" collect-metrics monorepo_route {phase} packages=$PACKAGES 2>/dev/null || true`
 - If empty or error: proceed with default (full repo) context compilation.
 
-**Control Plane Coordination (REQ-05):** If `${CLAUDE_PLUGIN_ROOT}/scripts/control-plane.sh` exists:
+**Control Plane Coordination (REQ-05):** If `"$HOME/.cargo/bin/yolo" control-plane` exists:
 
 - **Once per plan (before first task):** Run the `full` action to generate contract and compile context:
 
   ```bash
-  CP_RESULT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/control-plane.sh full {phase} {plan} 1 \
+  CP_RESULT=$("$HOME/.cargo/bin/yolo" control-plane full {phase} {plan} 1 \
     --plan-path={plan_path} --role=dev --phase-dir={phase-dir} 2>/dev/null || echo '{"action":"full","steps":[]}')
   ```
 
@@ -128,7 +128,7 @@ You are the team LEAD. NEVER implement tasks yourself.
 - **Before each task:** Run the `pre-task` action:
 
   ```bash
-  CP_RESULT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/control-plane.sh pre-task {phase} {plan} {task} \
+  CP_RESULT=$("$HOME/.cargo/bin/yolo" control-plane pre-task {phase} {plan} {task} \
     --plan-path={plan_path} --task-id={phase}-{plan}-T{task} \
     --claimed-files={files_from_task} 2>/dev/null || echo '{"action":"pre-task","steps":[]}')
   ```
@@ -138,35 +138,35 @@ You are the team LEAD. NEVER implement tasks yourself.
 - **After each task:** Run the `post-task` action:
 
   ```bash
-  CP_RESULT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/control-plane.sh post-task {phase} {plan} {task} \
+  CP_RESULT=$("$HOME/.cargo/bin/yolo" control-plane post-task {phase} {plan} {task} \
     --task-id={phase}-{plan}-T{task} 2>/dev/null || echo '{"action":"post-task","steps":[]}')
   ```
 
-- If `control-plane.sh` does NOT exist: fall through to the individual script calls below (backward compatibility).
-- On any `control-plane.sh` error: fall through to individual script calls (fail-open).
+- If `yolo control-plane` does NOT exist: fall through to the individual script calls below (backward compatibility).
+- On any `yolo control-plane` error: fall through to individual script calls (fail-open).
 
 The existing individual script call sections (V3 Contract-Lite, V2 Hard Gates, Context compilation, Token Budgets) remain unchanged below as the fallback path.
 
-**Context compilation (REQ-11):** If control-plane.sh `full` action was used above and returned a `context_path`, use that path directly. Otherwise, if `config_context_compiler=true` from Context block above, before creating Dev tasks run:
-`bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} dev {phases_dir} {plan_path}`
+**Context compilation (REQ-11):** If yolo control-plane `full` action was used above and returned a `context_path`, use that path directly. Otherwise, if `config_context_compiler=true` from Context block above, before creating Dev tasks run:
+`"$HOME/.cargo/bin/yolo" compile-context {phase} dev {phases_dir} {plan_path}`
 This produces `{phase-dir}/.context-dev.md` with phase goal and conventions.
-The plan_path argument enables skill bundling: compile-context.sh reads skills_used from the plan's frontmatter and bundles referenced SKILL.md content into .context-dev.md. If the plan has no skills_used, this is a no-op.
+The plan_path argument enables skill bundling: yolo compile-context reads skills_used from the plan's frontmatter and bundles referenced SKILL.md content into .context-dev.md. If the plan has no skills_used, this is a no-op.
 If compilation fails, proceed without it — Dev reads files directly.
 
-**V2 Token Budgets (REQ-12):** If control-plane.sh `compile` or `full` action was used and included token budget enforcement, skip this step. Otherwise, if `v2_token_budgets=true` in config:
+**V2 Token Budgets (REQ-12):** If yolo control-plane `compile` or `full` action was used and included token budget enforcement, skip this step. Otherwise, if `v2_token_budgets=true` in config:
 
 - After context compilation, enforce per-role token budgets. When `v3_contract_lite=true` or `v2_hard_contracts=true`, pass the contract path and task number for per-task budget computation:
 
   ```bash
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/token-budget.sh dev {phase-dir}/.context-dev.md {contract_path} {task_number} > {phase-dir}/.context-dev.md.tmp && mv {phase-dir}/.context-dev.md.tmp {phase-dir}/.context-dev.md
+  "$HOME/.cargo/bin/yolo" token-budget dev {phase-dir}/.context-dev.md {contract_path} {task_number} > {phase-dir}/.context-dev.md.tmp && mv {phase-dir}/.context-dev.md.tmp {phase-dir}/.context-dev.md
   ```
 
-  Where `{contract_path}` is `.yolo-planning/.contracts/{phase}-{plan}.json` (generated by generate-contract.sh in Step 3) and `{task_number}` is the current task being executed (1-based). When no contract is available, omit the contract_path and task_number arguments (per-role fallback).
+  Where `{contract_path}` is `.yolo-planning/.contracts/{phase}-{plan}.json` (generated by yolo generate-contract in Step 3) and `{task_number}` is the current task being executed (1-based). When no contract is available, omit the contract_path and task_number arguments (per-role fallback).
 
 - Role caps defined in `config/token-budgets.json`: Lead/Architect (500), Dev/Debugger (800).
 - Per-task budgets use contract metadata (must_haves, allowed_paths, depends_on) to compute a complexity score, which maps to a tier multiplier applied to the role's base budget.
 - Overage logged to metrics as `token_overage` event with role, lines truncated, and budget_source (task or role).
-- **Escalation:** When overage occurs, token-budget.sh emits a `token_cap_escalated` event and reduces the remaining budget for subsequent tasks in the plan. The budget reduction state is stored in `.yolo-planning/.token-state/{phase}-{plan}.json`. Escalation is advisory only -- execution continues regardless.
+- **Escalation:** When overage occurs, yolo token-budget emits a `token_cap_escalated` event and reduces the remaining budget for subsequent tasks in the plan. The budget reduction state is stored in `.yolo-planning/.token-state/{phase}-{plan}.json`. Escalation is advisory only -- execution continues regardless.
 - **Cleanup:** At phase end, clean up token state: `rm -f .yolo-planning/.token-state/*.json 2>/dev/null || true`
 - Truncation uses tail strategy (keep most recent context).
 - When `v2_token_budgets=false`: no truncation (pass through).
@@ -211,13 +211,13 @@ Spawn Dev teammates and assign tasks. Platform enforces execution ordering via t
 - **Per plan:** Assess risk and resolve gate policy:
 
   ```bash
-  RISK=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/assess-plan-risk.sh {plan_path} 2>/dev/null || echo "medium")
-  GATE_POLICY=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-gate-policy.sh {effort} $RISK {autonomy} 2>/dev/null || echo '{}')
+  RISK=$("$HOME/.cargo/bin/yolo" assess-plan-risk {plan_path} 2>/dev/null || echo "medium")
+  GATE_POLICY=$("$HOME/.cargo/bin/yolo" resolve-gate-policy {effort} $RISK {autonomy} 2>/dev/null || echo '{}')
   ```
 
 - Extract policy fields: `approval_required`, `communication_level`, `two_phase`
 - Use these to override the static tables below for this plan
-- Log to metrics: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/collect-metrics.sh gate_policy {phase} {plan} risk=$RISK approval=$APPROVAL 2>/dev/null || true`
+- Log to metrics: `"$HOME/.cargo/bin/yolo" collect-metrics gate_policy {phase} {plan} risk=$RISK approval=$APPROVAL 2>/dev/null || true`
 - On script error: fall back to static tables below
 
 **Plan approval gate (effort-gated, autonomy-gated):**
@@ -251,7 +251,7 @@ Use targeted `message` not `broadcast`. Reserve broadcast for critical blocking 
 **V2 Typed Protocol (REQ-04, REQ-05):** If `v2_typed_protocol=true` in config:
 
 - **On message receive** (from any teammate): validate before processing:
-  `VALID=$(echo "$MESSAGE_JSON" | bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-message.sh 2>/dev/null || echo '{"valid":true}')`
+  `VALID=$(echo "$MESSAGE_JSON" | "$HOME/.cargo/bin/yolo" validate-message 2>/dev/null || echo '{"valid":true}')`
   If `valid=false`: log rejection, send error back to sender with `errors` array. Do not process the message.
 - **On message send** (before sending): agents should construct messages using full V2 envelope (id, type, phase, task, author_role, timestamp, schema_version, payload, confidence). Reference `${CLAUDE_PLUGIN_ROOT}/references/handoff-schemas.md` for schema details.
 - **Backward compatibility:** When `v2_typed_protocol=false`, validation is skipped. Old-format messages accepted.
@@ -266,53 +266,53 @@ Hooks handle continuous verification: PostToolUse validates SUMMARY.md, TaskComp
 
 **V3 Event Log — plan lifecycle (REQ-16):** If `v3_event_log=true` in config:
 
-- At plan start: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh plan_start {phase} {plan} 2>/dev/null || true`
-- At agent spawn: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh agent_spawn {phase} {plan} role=dev model=$DEV_MODEL 2>/dev/null || true`
-- At agent shutdown: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh agent_shutdown {phase} {plan} role=dev 2>/dev/null || true`
-- At plan complete: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh plan_end {phase} {plan} status=complete 2>/dev/null || true`
-- At plan failure: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh plan_end {phase} {plan} status=failed 2>/dev/null || true`
-- On error: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh error {phase} {plan} message={error_summary} 2>/dev/null || true`
+- At plan start: `"$HOME/.cargo/bin/yolo" log-event plan_start {phase} {plan} 2>/dev/null || true`
+- At agent spawn: `"$HOME/.cargo/bin/yolo" log-event agent_spawn {phase} {plan} role=dev model=$DEV_MODEL 2>/dev/null || true`
+- At agent shutdown: `"$HOME/.cargo/bin/yolo" log-event agent_shutdown {phase} {plan} role=dev 2>/dev/null || true`
+- At plan complete: `"$HOME/.cargo/bin/yolo" log-event plan_end {phase} {plan} status=complete 2>/dev/null || true`
+- At plan failure: `"$HOME/.cargo/bin/yolo" log-event plan_end {phase} {plan} status=failed 2>/dev/null || true`
+- On error: `"$HOME/.cargo/bin/yolo" log-event error {phase} {plan} message={error_summary} 2>/dev/null || true`
 
 **V2 Full Event Types (REQ-09, REQ-10):** If `v3_event_log=true` in config, emit all 13 V2 event types at correct lifecycle points.
 
-> **Naming convention:** Event types (`shutdown_sent`/`shutdown_received`) log _what happened_ — the orchestrator sent or received a message. Message types (`shutdown_request`/`shutdown_response`) define _what was communicated_ — the typed payload in SendMessage. Events are emitted by `log-event.sh`; messages are validated by `validate-message.sh`.
+> **Naming convention:** Event types (`shutdown_sent`/`shutdown_received`) log _what happened_ — the orchestrator sent or received a message. Message types (`shutdown_request`/`shutdown_response`) define _what was communicated_ — the typed payload in SendMessage. Events are emitted by `yolo log-event`; messages are validated by `yolo validate-message`.
 
-- `phase_planned`: at plan completion (after Lead writes PLAN.md): `log-event.sh phase_planned {phase}`
-- `task_created`: when task is defined in plan: `log-event.sh task_created {phase} {plan} task_id={id}`
-- `task_claimed`: when Dev starts a task: `log-event.sh task_claimed {phase} {plan} task_id={id} role=dev`
-- `task_started`: when task execution begins: `log-event.sh task_started {phase} {plan} task_id={id}`
-- `artifact_written`: after writing/modifying a file: `log-event.sh artifact_written {phase} {plan} path={file} task_id={id}`
-  - Also register in artifact registry: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/artifact-registry.sh register {file} {event_id} {phase} {plan}`
-- `gate_passed` / `gate_failed`: already emitted by hard-gate.sh
-- `task_completed_candidate`: emitted by two-phase-complete.sh
-- `task_completed_confirmed`: emitted by two-phase-complete.sh after validation
-- `task_blocked`: already emitted by auto-repair.sh
-- `task_reassigned`: when task is re-assigned to different agent: `log-event.sh task_reassigned {phase} {plan} task_id={id} from={old} to={new}`
-- `shutdown_sent`: when orchestrator sends shutdown_request to teammates: `log-event.sh shutdown_sent {phase} team={team_name} targets={count}`
-- `shutdown_received`: when orchestrator has collected all shutdown_response messages: `log-event.sh shutdown_received {phase} team={team_name} approved={count} rejected={count}`
+- `phase_planned`: at plan completion (after Lead writes PLAN.md): `yolo log-event phase_planned {phase}`
+- `task_created`: when task is defined in plan: `yolo log-event task_created {phase} {plan} task_id={id}`
+- `task_claimed`: when Dev starts a task: `yolo log-event task_claimed {phase} {plan} task_id={id} role=dev`
+- `task_started`: when task execution begins: `yolo log-event task_started {phase} {plan} task_id={id}`
+- `artifact_written`: after writing/modifying a file: `yolo log-event artifact_written {phase} {plan} path={file} task_id={id}`
+  - Also register in artifact registry: `"$HOME/.cargo/bin/yolo" artifact-registry register {file} {event_id} {phase} {plan}`
+- `gate_passed` / `gate_failed`: already emitted by yolo hard-gate
+- `task_completed_candidate`: emitted by yolo two-phase-complete
+- `task_completed_confirmed`: emitted by yolo two-phase-complete after validation
+- `task_blocked`: already emitted by yolo auto-repair
+- `task_reassigned`: when task is re-assigned to different agent: `yolo log-event task_reassigned {phase} {plan} task_id={id} from={old} to={new}`
+- `shutdown_sent`: when orchestrator sends shutdown_request to teammates: `yolo log-event shutdown_sent {phase} team={team_name} targets={count}`
+- `shutdown_received`: when orchestrator has collected all shutdown_response messages: `yolo log-event shutdown_received {phase} team={team_name} approved={count} rejected={count}`
 
 **V3 Snapshot — per-plan checkpoint (REQ-18):** If `v3_snapshot_resume=true` in config:
 
 - After each plan completes (SUMMARY.md verified):
-  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/snapshot-resume.sh save {phase} .yolo-planning/.execution-state.json {agent-role} {trigger} 2>/dev/null || true`
+  `"$HOME/.cargo/bin/yolo" snapshot-resume save {phase} .yolo-planning/.execution-state.json {agent-role} {trigger} 2>/dev/null || true`
 - This captures execution state + recent git context for crash recovery. The optional `{agent-role}` and `{trigger}` arguments add metadata to the snapshot for role-filtered restore.
 
 **V3 Metrics instrumentation (REQ-09):** If `v3_metrics=true` in config:
 
-- At phase start: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/collect-metrics.sh execute_phase_start {phase} plan_count={N} effort={effort}`
-- At each plan completion: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/collect-metrics.sh execute_plan_complete {phase} {plan} task_count={N} commit_count={N}`
-- At phase end: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/collect-metrics.sh execute_phase_complete {phase} plans_completed={N} total_tasks={N} total_commits={N} deviations={N}`
+- At phase start: `"$HOME/.cargo/bin/yolo" collect-metrics execute_phase_start {phase} plan_count={N} effort={effort}`
+- At each plan completion: `"$HOME/.cargo/bin/yolo" collect-metrics execute_plan_complete {phase} {plan} task_count={N} commit_count={N}`
+- At phase end: `"$HOME/.cargo/bin/yolo" collect-metrics execute_phase_complete {phase} plans_completed={N} total_tasks={N} total_commits={N} deviations={N}`
   All metrics calls should be `2>/dev/null || true` — never block execution.
 
 **V3 Contract-Lite (REQ-10):** If `v3_contract_lite=true` in config:
 
 - **Once per plan (before first task):** Generate contract sidecar:
-  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/generate-contract.sh {plan_path} 2>/dev/null || true`
+  `"$HOME/.cargo/bin/yolo" generate-contract {plan_path} 2>/dev/null || true`
   This produces `.yolo-planning/.contracts/{phase}-{plan}.json` with allowed_paths and must_haves.
 - **Before each task:** Validate task start:
-  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-contract.sh start {contract_path} {task_number} 2>/dev/null || true`
+  `"$HOME/.cargo/bin/yolo" validate-contract start {contract_path} {task_number} 2>/dev/null || true`
 - **After each task:** Validate modified files against contract:
-  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-contract.sh end {contract_path} {task_number} {modified_files...} 2>/dev/null || true`
+  `"$HOME/.cargo/bin/yolo" validate-contract end {contract_path} {task_number} {modified_files...} 2>/dev/null || true`
   Where `{modified_files}` comes from `git diff --name-only HEAD~1` after the task's commit.
 - Violations are advisory only (logged to metrics, not blocking).
 
@@ -321,46 +321,46 @@ Hooks handle continuous verification: PostToolUse validates SUMMARY.md, TaskComp
 - **Pre-task gate sequence (before each task starts):**
   1. `contract_compliance` gate: `"$HOME/.cargo/bin/yolo" hard-gate contract_compliance {phase} {plan} {task} {contract_path}`
   2. **Lease acquisition** (V2 control plane): acquire exclusive file lease before protected_file check:
-     - If `v3_lease_locks=true`: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh acquire {task_id} --ttl=300 {claimed_files...}`
-     - Else if `v3_lock_lite=true`: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lock-lite.sh acquire {task_id} {claimed_files...}`
+     - If `v3_lease_locks=true`: `"$HOME/.cargo/bin/yolo" lease-lock acquire {task_id} --ttl=300 {claimed_files...}`
+     - Else if `v3_lock_lite=true`: `"$HOME/.cargo/bin/yolo" lock-lite acquire {task_id} {claimed_files...}`
      - Lease conflict → auto-repair attempt (wait + re-acquire), then escalate blocker if unresolved.
   3. `protected_file` gate: `"$HOME/.cargo/bin/yolo" hard-gate protected_file {phase} {plan} {task} {contract_path}`
   - If any gate fails (exit 2): attempt auto-repair:
-    `REPAIR=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/auto-repair.sh {gate_type} {phase} {plan} {task} {contract_path})`
+    `REPAIR=$("$HOME/.cargo/bin/yolo" auto-repair {gate_type} {phase} {plan} {task} {contract_path})`
   - If `repaired=true`: re-run the failed gate to confirm, then proceed.
   - If `repaired=false`: emit blocker, halt task execution. Send Lead a message with the failure evidence and next action from the blocker event.
 - **Post-task gate sequence (after each task commit):**
   1. `required_checks` gate: `"$HOME/.cargo/bin/yolo" hard-gate required_checks {phase} {plan} {task} {contract_path}`
   2. `commit_hygiene` gate: `"$HOME/.cargo/bin/yolo" hard-gate commit_hygiene {phase} {plan} {task} {contract_path}`
   3. **Lease release**: release file lease after task completes:
-     - If `v3_lease_locks=true`: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh release {task_id}`
-     - Else if `v3_lock_lite=true`: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lock-lite.sh release {task_id}`
+     - If `v3_lease_locks=true`: `"$HOME/.cargo/bin/yolo" lease-lock release {task_id}`
+     - Else if `v3_lock_lite=true`: `"$HOME/.cargo/bin/yolo" lock-lite release {task_id}`
   - Gate failures trigger auto-repair with same flow as pre-task.
 - **Post-plan gate (after all tasks complete, before marking plan done):**
   1. `artifact_persistence` gate: `"$HOME/.cargo/bin/yolo" hard-gate artifact_persistence {phase} {plan} {task} {contract_path}`
   2. `verification_threshold` gate: `"$HOME/.cargo/bin/yolo" hard-gate verification_threshold {phase} {plan} {task} {contract_path}`
   - These gates fire AFTER SUMMARY.md verification but BEFORE updating execution-state.json to "complete".
 - **YOLO mode:** Hard gates ALWAYS fire regardless of autonomy level. YOLO only skips confirmation prompts.
-- **Fallback:** If hard-gate.sh or auto-repair.sh errors (not a gate fail, but a script error), log to metrics and continue (fail-open on script errors, hard-stop only on gate verdicts).
+- **Fallback:** If yolo hard-gate or yolo auto-repair errors (not a gate fail, but a script error), log to metrics and continue (fail-open on script errors, hard-stop only on gate verdicts).
 
 **V3 Lock-Lite (REQ-11):** If `v3_lock_lite=true` in config:
 
 - **Before each task:** Acquire lock with claimed files:
-  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lock-lite.sh acquire {task_id} {claimed_files...} 2>/dev/null || true`
+  `"$HOME/.cargo/bin/yolo" lock-lite acquire {task_id} {claimed_files...} 2>/dev/null || true`
   Where `{task_id}` is `{phase}-{plan}-T{N}` and `{claimed_files}` from the task's **Files:** list.
 - **After each task (or on failure):** Release lock:
-  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lock-lite.sh release {task_id} 2>/dev/null || true`
+  `"$HOME/.cargo/bin/yolo" lock-lite release {task_id} 2>/dev/null || true`
 - Conflicts are advisory only (logged to metrics, not blocking).
 - Lock cleanup: at phase end, `rm -f .yolo-planning/.locks/*.lock 2>/dev/null || true`.
 
 **V3 Lease Locks (REQ-17):** If `v3_lease_locks=true` in config:
 
-- Use `lease-lock.sh` instead of `lock-lite.sh` for all lock operations above:
-  - Acquire: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh acquire {task_id} --ttl=300 {claimed_files...} 2>/dev/null || true`
-  - Release: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh release {task_id} 2>/dev/null || true`
+- Use `yolo lease-lock` instead of `yolo lock-lite` for all lock operations above:
+  - Acquire: `"$HOME/.cargo/bin/yolo" lease-lock acquire {task_id} --ttl=300 {claimed_files...} 2>/dev/null || true`
+  - Release: `"$HOME/.cargo/bin/yolo" lease-lock release {task_id} 2>/dev/null || true`
 - **During long-running tasks** (>2 minutes estimated): renew lease periodically:
-  `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh renew {task_id} 2>/dev/null || true`
-- Check for expired leases before acquiring: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh check {task_id} {claimed_files...} 2>/dev/null || true`
+  `"$HOME/.cargo/bin/yolo" lease-lock renew {task_id} 2>/dev/null || true`
+- Check for expired leases before acquiring: `"$HOME/.cargo/bin/yolo" lease-lock check {task_id} {claimed_files...} 2>/dev/null || true`
 - If both `v3_lease_locks` and `v3_lock_lite` are true, lease-lock takes precedence.
 
 ### Step 3b: V2 Two-Phase Completion (REQ-09)
@@ -370,7 +370,7 @@ Hooks handle continuous verification: PostToolUse validates SUMMARY.md, TaskComp
 After each task commit (and after post-task gates pass), run two-phase completion:
 
 ```bash
-RESULT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/two-phase-complete.sh {task_id} {phase} {plan} {contract_path} {evidence...})
+RESULT=$("$HOME/.cargo/bin/yolo" two-phase-complete {task_id} {phase} {plan} {contract_path} {evidence...})
 ```
 
 - If `result=confirmed`: proceed to next task.
@@ -378,7 +378,7 @@ RESULT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/two-phase-complete.sh {task_id} {pha
 - Artifact registration: after each file write during task execution, register the artifact:
 
   ```bash
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/artifact-registry.sh register {file_path} {event_id} {phase} {plan}
+  "$HOME/.cargo/bin/yolo" artifact-registry register {file_path} {event_id} {phase} {plan}
   ```
 
 - When `v2_two_phase_completion=false`: skip (direct task completion as before).
@@ -422,9 +422,9 @@ Note: "Run inline" means the execute-protocol agent runs the verify protocol dir
 **HARD GATE — Shutdown before ANY output or state updates:** If team was created (based on prefer_teams decision), you MUST shut down the team BEFORE updating state, presenting results, or asking the user anything. This is blocking and non-negotiable:
 
 1. Send `shutdown_request` via SendMessage to EVERY active teammate (excluding yourself — the orchestrator controls the sequence, not the lead agent) — do not skip any
-2. Log event: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh shutdown_sent {phase} team={team_name} targets={count} 2>/dev/null || true`
+2. Log event: `"$HOME/.cargo/bin/yolo" log-event shutdown_sent {phase} team={team_name} targets={count} 2>/dev/null || true`
 3. Wait for each `shutdown_response` with `approved: true`. If a teammate rejects, re-request immediately (max 3 attempts per teammate — if still rejected after 3 attempts, log a warning and proceed with TeamDelete).
-4. Log event: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh shutdown_received {phase} team={team_name} approved={count} rejected={count} 2>/dev/null || true`
+4. Log event: `"$HOME/.cargo/bin/yolo" log-event shutdown_received {phase} team={team_name} approved={count} rejected={count} 2>/dev/null || true`
 5. Call TeamDelete for team "yolo-phase-{NN}"
 6. Only THEN proceed to state updates and user-facing output below
    Failure to shut down leaves agents running in the background, consuming API credits (visible as hanging panes in tmux, invisible but still costly without tmux). If no team was created: skip shutdown sequence.
@@ -438,7 +438,7 @@ Note: "Run inline" means the execute-protocol agent runs the verify protocol dir
 - After TeamDelete (team fully shut down), before phase_end event log:
 
   ```bash
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-rolling-summary.sh \
+  "$HOME/.cargo/bin/yolo" compile-rolling-summary \
     .yolo-planning/phases .yolo-planning/ROLLING-CONTEXT.md 2>/dev/null || true
   ```
 
@@ -449,7 +449,7 @@ Note: "Run inline" means the execute-protocol agent runs the verify protocol dir
 
 **V3 Event Log — phase end (REQ-16):** If `v3_event_log=true` in config:
 
-- `bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-event.sh phase_end {phase} plans_completed={N} total_tasks={N} 2>/dev/null || true`
+- `"$HOME/.cargo/bin/yolo" log-event phase_end {phase} plans_completed={N} total_tasks={N} 2>/dev/null || true`
 
 **V2 Observability Report (REQ-14):** After phase completion, if `v3_metrics=true` or `v3_event_log=true`:
 

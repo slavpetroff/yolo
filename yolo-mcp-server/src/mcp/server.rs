@@ -192,12 +192,15 @@ async fn handle_notification(notif: Notification) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
+
+    fn temp_db_path(name: &str) -> std::path::PathBuf {
+        std::env::temp_dir().join(format!("yolo-test-{}-{}.db", name, std::process::id()))
+    }
 
     #[tokio::test]
     async fn test_handle_initialize() {
-        let db_path = std::path::PathBuf::from(".test-main-init.db");
-        let _ = fs::remove_file(&db_path);
+        let db_path = temp_db_path("init");
+        let _ = std::fs::remove_file(&db_path);
         let telemetry = Arc::new(TelemetryDb::new(db_path.clone()).unwrap());
         let tool_state = Arc::new(ToolState::new());
 
@@ -211,13 +214,13 @@ mod tests {
         let response = handle_request(req, telemetry, tool_state).await;
         let result = response.result.unwrap();
         assert_eq!(result.get("serverInfo").unwrap().get("name").unwrap().as_str().unwrap(), "yolo-expert-mcp");
-        let _ = fs::remove_file(&db_path);
+        let _ = std::fs::remove_file(&db_path);
     }
 
     #[tokio::test]
     async fn test_handle_tools_list() {
-        let db_path = std::path::PathBuf::from(".test-main-list.db");
-        let _ = fs::remove_file(&db_path);
+        let db_path = temp_db_path("list");
+        let _ = std::fs::remove_file(&db_path);
         let telemetry = Arc::new(TelemetryDb::new(db_path.clone()).unwrap());
         let tool_state = Arc::new(ToolState::new());
 
@@ -232,13 +235,13 @@ mod tests {
         let result = response.result.unwrap();
         let tools = result.get("tools").unwrap().as_array().unwrap();
         assert!(tools.len() > 0);
-        let _ = fs::remove_file(&db_path);
+        let _ = std::fs::remove_file(&db_path);
     }
 
     #[tokio::test]
     async fn test_handle_tools_call() {
-        let db_path = std::path::PathBuf::from(".test-main-call.db");
-        let _ = fs::remove_file(&db_path);
+        let db_path = temp_db_path("call");
+        let _ = std::fs::remove_file(&db_path);
         let telemetry = Arc::new(TelemetryDb::new(db_path.clone()).unwrap());
         let tool_state = Arc::new(ToolState::new());
 
@@ -255,13 +258,13 @@ mod tests {
         let response = handle_request(req, telemetry, tool_state).await;
         let result = response.result.unwrap();
         assert_eq!(result.get("isError").unwrap().as_bool().unwrap(), true);
-        let _ = fs::remove_file(&db_path);
+        let _ = std::fs::remove_file(&db_path);
     }
 
     #[tokio::test]
     async fn test_handle_unknown_method() {
-        let db_path = std::path::PathBuf::from(".test-main-unknown.db");
-        let _ = fs::remove_file(&db_path);
+        let db_path = temp_db_path("unknown");
+        let _ = std::fs::remove_file(&db_path);
         let telemetry = Arc::new(TelemetryDb::new(db_path.clone()).unwrap());
         let tool_state = Arc::new(ToolState::new());
 
@@ -275,7 +278,7 @@ mod tests {
         let response = handle_request(req, telemetry, tool_state).await;
         assert!(response.error.is_some());
         assert_eq!(response.error.unwrap().code, -32601);
-        let _ = fs::remove_file(&db_path);
+        let _ = std::fs::remove_file(&db_path);
     }
 
     #[tokio::test]
@@ -297,8 +300,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_run_server() {
-        let db_path = std::path::PathBuf::from(".test-main-loop.db");
-        let _ = fs::remove_file(&db_path);
+        let db_path = temp_db_path("loop");
+        let _ = std::fs::remove_file(&db_path);
         let telemetry = Arc::new(TelemetryDb::new(db_path.clone()).unwrap());
         let tool_state = Arc::new(ToolState::new());
 
@@ -318,6 +321,6 @@ mod tests {
         assert!(output.contains("yolo-expert-mcp"));
         assert!(output.contains("-32700"));
 
-        let _ = fs::remove_file(&db_path);
+        let _ = std::fs::remove_file(&db_path);
     }
 }

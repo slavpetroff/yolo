@@ -3,13 +3,13 @@ set -e
 
 echo "Installing YOLO Expert MCP Server..."
 
-# Build the release binary
+# Build and install the binaries globally
 cd yolo-mcp-server || exit 1
-cargo build --release --bins
+cargo install --path .
 cd ..
 
-SERVER_PATH="$(pwd)/yolo-mcp-server/target/release/yolo-mcp-server"
-CLI_PATH="$(pwd)/yolo-mcp-server/target/release/yolo"
+SERVER_PATH="$HOME/.cargo/bin/yolo-mcp-server"
+CLI_PATH="$HOME/.cargo/bin/yolo"
 
 # Inform the user how to install it
 echo "------------------------------------------------------------"
@@ -28,7 +28,6 @@ echo "  }"
 echo "}"
 echo ""
 echo "--- TELEMETRY CLI ---"
-echo "To view your caching ROI and token savings:"
-echo "    alias yolo=\"$CLI_PATH\""
+echo "To view your caching ROI and token savings, run:"
 echo "    yolo report"
 echo "------------------------------------------------------------"
