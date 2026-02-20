@@ -27,6 +27,7 @@ pub mod token_baseline;
 pub mod token_budget;
 pub mod lock_lite;
 pub mod lease_lock;
+pub mod two_phase_complete;
 pub mod generate_contract;
 pub mod contract_revision;
 pub mod assess_plan_risk;
