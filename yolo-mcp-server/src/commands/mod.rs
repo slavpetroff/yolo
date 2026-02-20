@@ -45,3 +45,4 @@ pub mod infer_gsd_summary;
 pub mod cache_context;
 pub mod cache_nuke;
 pub mod delta_files;
+pub mod bump_version;
