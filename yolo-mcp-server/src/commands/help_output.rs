@@ -449,6 +449,9 @@ fn format_help(entries: &[CommandEntry], version: Option<&str>) -> String {
         }
     }
 
+    // Troubleshooting section
+    format_troubleshooting(&mut out);
+
     // Footer
     out.push_str("  /yolo:help <command>                      Details on a specific command\n");
     out.push_str("  /yolo:config                              View and change settings\n");
@@ -456,6 +459,18 @@ fn format_help(entries: &[CommandEntry], version: Option<&str>) -> String {
     out.push_str("  Getting Started: /yolo:init → /yolo:vibe → /yolo:vibe --archive\n");
 
     out
+}
+
+/// Format the troubleshooting section with common errors and recovery steps.
+fn format_troubleshooting(out: &mut String) {
+    out.push_str("  Troubleshooting — Common Issues\n");
+    out.push_str("  ──────────────────────────────────────────────────────────────────────\n");
+    out.push_str("  \"Not initialized\"              Run /yolo:init to set up the project\n");
+    out.push_str("  \"No plans found\"               Run /yolo:vibe to create a plan\n");
+    out.push_str("  \"MCP server not responding\"     Run yolo install-mcp or check claude mcp list\n");
+    out.push_str("  \"Build failed\"                  Check Rust toolchain: rustc --version\n");
+    out.push_str("  \"Config migration failed\"       Verify .yolo-planning/config.json is valid JSON\n");
+    out.push('\n');
 }
 
 /// Format a single category section.
@@ -570,6 +585,19 @@ mod tests {
         let output = format_help(&entries, None);
         assert!(output.contains("YOLO Help"));
         assert!(!output.contains("— v"));
+    }
+
+    #[test]
+    fn test_format_help_includes_troubleshooting() {
+        let entries = vec![];
+        let output = format_help(&entries, None);
+        assert!(output.contains("Troubleshooting"));
+        assert!(output.contains("Not initialized"));
+        assert!(output.contains("/yolo:init"));
+        assert!(output.contains("No plans found"));
+        assert!(output.contains("MCP server not responding"));
+        assert!(output.contains("Build failed"));
+        assert!(output.contains("Config migration failed"));
     }
 
     #[test]
