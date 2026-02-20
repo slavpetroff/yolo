@@ -16,7 +16,7 @@ Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/
 
 Pre-computed state (via phase-detect.sh):
 ```
-!`${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}/yolo-mcp-server/target/release/yolo phase-detect 2>/dev/null || echo "phase_detect_error=true"`
+!`"$HOME/.cargo/bin/yolo" phase-detect 2>/dev/null || echo "phase_detect_error=true"`
 ```
 
 Config:
@@ -109,7 +109,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 **Steps:**
 - **B1: PROJECT.md** -- If $ARGUMENTS provided (excluding flags), use as description. Otherwise ask name + core purpose. Then call:
   ```
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-project.sh .yolo-planning/PROJECT.md "$NAME" "$DESCRIPTION"
+  "$HOME/.cargo/bin/yolo" bootstrap project .yolo-planning/PROJECT.md "$NAME" "$DESCRIPTION"
   ```
 - **B1.5: Discovery Depth** -- Read `discovery_questions` and `active_profile` from config. Map profile to depth:
 
@@ -138,28 +138,28 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
     Record answers to `.yolo-planning/discovery.json` with `{"answered":[],"inferred":[],"deferred":[]}`.
   - **After discovery (all depths):** Call:
     ```
-    bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-requirements.sh .yolo-planning/REQUIREMENTS.md .yolo-planning/discovery.json .yolo-planning/domain-research.md
+    "$HOME/.cargo/bin/yolo" bootstrap requirements .yolo-planning/REQUIREMENTS.md .yolo-planning/discovery.json .yolo-planning/domain-research.md
     ```
 
 - **B3: ROADMAP.md** -- Suggest 3-5 phases from requirements. If `.yolo-planning/codebase/META.md` exists, read PATTERNS.md, ARCHITECTURE.md, and CONCERNS.md (whichever exist) from `.yolo-planning/codebase/`. Each phase: name, goal, mapped reqs, success criteria. Write phases JSON to temp file, then call:
   ```
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-roadmap.sh .yolo-planning/ROADMAP.md "$PROJECT_NAME" /tmp/yolo-phases.json
+  "$HOME/.cargo/bin/yolo" bootstrap roadmap .yolo-planning/ROADMAP.md "$PROJECT_NAME" /tmp/yolo-phases.json
   ```
   Script handles ROADMAP.md generation and phase directory creation.
 - **B4: STATE.md** -- Extract project name, milestone name, and phase count from earlier steps. Call:
   ```
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-state.sh .yolo-planning/STATE.md "$PROJECT_NAME" "$MILESTONE_NAME" "$PHASE_COUNT"
+  "$HOME/.cargo/bin/yolo" bootstrap state .yolo-planning/STATE.md "$PROJECT_NAME" "$MILESTONE_NAME" "$PHASE_COUNT"
   ```
   Script handles today's date, Phase 1 status, empty decisions, and 0% progress.
 - **B5: Brownfield summary** -- If BROWNFIELD=true AND no codebase/: count files by ext, check tests/CI/Docker/monorepo, add Codebase Profile to STATE.md.
 - **B6: CLAUDE.md** -- Extract project name and core value from PROJECT.md. If root CLAUDE.md exists, pass it as EXISTING_PATH for section preservation. Call:
   ```
-  ${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo bootstrap CLAUDE.md "$PROJECT_NAME" "$CORE_VALUE" [CLAUDE.md]
+  "$HOME/.cargo/bin/yolo" bootstrap CLAUDE.md "$PROJECT_NAME" "$CORE_VALUE" [CLAUDE.md]
   ```
   Script handles: new file generation (heading + core value + YOLO sections), existing file preservation (replaces only YOLO-managed sections: Active Context, YOLO Rules, Installed Skills, Project Conventions, Commands, Plugin Isolation; preserves all other content). Omit the fourth argument if no existing CLAUDE.md. Max 200 lines.
 - **B7: Planning commit boundary (conditional)** -- Run:
    ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/scripts/planning-git.sh commit-boundary "bootstrap project files" .yolo-planning/config.json
+   "$HOME/.cargo/bin/yolo" planning-git commit-boundary "bootstrap project files" .yolo-planning/config.json
    ```
    Behavior: `planning_tracking=commit` commits `.yolo-planning/` + `CLAUDE.md` if changed. Other modes no-op.
 - **B8: Transition** -- Display "Bootstrap complete. Transitioning to scoping..." Re-evaluate state, route to next match.
@@ -184,7 +184,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 **Steps:**
 1. Determine target phase from $ARGUMENTS or auto-detection.
 2. Read `${CLAUDE_PLUGIN_ROOT}/references/discussion-engine.md` and follow its protocol for the target phase.
-3. Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next vibe`.
+3. Run `"$HOME/.cargo/bin/yolo" suggest-next vibe`.
 
 ### Mode: Assumptions
 
@@ -195,7 +195,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 1. Load context: ROADMAP.md, REQUIREMENTS.md, PROJECT.md, STATE.md, CONTEXT.md (if exists), codebase signals.
 2. Generate 5-10 assumptions by impact: scope (included/excluded), technical (implied approaches), ordering (sequencing), dependency (prior phases), user preference (defaults without stated preference).
 3. Gather feedback per assumption: "Confirm, correct, or expand?" Confirm=proceed, Correct=user provides answer, Expand=user adds nuance.
-4. Present grouped by status (confirmed/corrected/expanded). This mode does NOT write files. For persistence: "Run `/yolo:vibe --discuss {N}` to capture as CONTEXT.md." Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next vibe`.
+4. Present grouped by status (confirmed/corrected/expanded). This mode does NOT write files. For persistence: "Run `/yolo:vibe --discuss {N}` to capture as CONTEXT.md." Run `"$HOME/.cargo/bin/yolo" suggest-next vibe`.
 
 ### Mode: Plan
 
@@ -216,8 +216,8 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 6. **Other efforts:**
    - Resolve Lead model:
      ```bash
-     LEAD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-       LEAD_MAX_TURNS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-max-turns.sh lead .yolo-planning/config.json "{effort}")
+     LEAD_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+       LEAD_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns lead .yolo-planning/config.json "{effort}")
      if [ $? -ne 0 ]; then
        echo "$LEAD_MODEL" >&2
        exit 1
@@ -264,7 +264,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
    ```
 9. **Planning commit boundary (conditional):**
    ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/scripts/planning-git.sh commit-boundary "plan phase {N}" .yolo-planning/config.json
+   "$HOME/.cargo/bin/yolo" planning-git commit-boundary "plan phase {N}" .yolo-planning/config.json
    ```
    Behavior: `planning_tracking=commit` commits planning artifacts if changed. `auto_push=always` pushes when upstream exists.
 10. **Pre-chain verification:** Before auto-chaining or presenting results, confirm the planning team was fully shut down (step 6 HARD GATE completed). If you skipped the gate or are unsure after compaction, send `shutdown_request` to any teammates that may still be active and call TeamDelete before continuing. NEVER enter Execute mode with a prior planning team still alive.
@@ -388,14 +388,14 @@ FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
    This extracts project-level sections (Todos, Decisions, Skills, Blockers, Codebase Profile) from the archived STATE.md and writes a fresh root STATE.md. Milestone-specific sections (Current Phase, Activity Log, Phase Status) stay in the archive only. Fail-open: if the script fails, warn but continue.
 6. Planning commit boundary (conditional):
    ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/scripts/planning-git.sh commit-boundary "archive milestone {SLUG}" .yolo-planning/config.json
+   "$HOME/.cargo/bin/yolo" planning-git commit-boundary "archive milestone {SLUG}" .yolo-planning/config.json
    ```
    Run this BEFORE branch merge/tag so shipped planning state is committed.
 7. Git branch merge: if `milestone/{SLUG}` branch exists, merge --no-ff. Conflict -> abort, warn. No branch -> skip.
 8. Git tag: unless --no-tag, `git tag -a {tag} -m "Shipped milestone: {name}"`. Default: `milestone/{SLUG}`.
 9. Update ACTIVE: remaining milestones -> set ACTIVE to first. None -> remove ACTIVE.
 10. Regenerate CLAUDE.md: update Active Context, remove shipped refs. Preserve non-YOLO content — only replace YOLO-managed sections, keep user's own sections intact.
-11. Present: Phase Banner with metrics (phases, tasks, commits, requirements, deviations), archive path, tag, branch status, memory status. Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next vibe`.
+11. Present: Phase Banner with metrics (phases, tasks, commits, requirements, deviations), archive path, tag, branch status, memory status. Run `"$HOME/.cargo/bin/yolo" suggest-next vibe`.
 
 ### Pure-Vibe Phase Loop
 
@@ -419,4 +419,4 @@ Per-mode output:
 
 Rules: Phase Banner (double-line box), ◆ running, ✓ complete, ✗ failed, ○ skipped, Metrics Block, Next Up Block, no ANSI color codes.
 
-Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next vibe {result}` for Next Up suggestions.
+Run `"$HOME/.cargo/bin/yolo" suggest-next vibe {result}` for Next Up suggestions.
