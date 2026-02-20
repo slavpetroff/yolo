@@ -10,6 +10,7 @@ pub mod log_event;
 pub mod infer_project_context;
 pub mod list_todos;
 pub mod metrics_report;
+pub mod migrate_config;
 pub mod phase_detect;
 pub mod planning_git;
 pub mod resolve_model;
