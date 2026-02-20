@@ -3,6 +3,7 @@ pub mod bootstrap_project;
 pub mod bootstrap_requirements;
 pub mod bootstrap_roadmap;
 pub mod bootstrap_state;
+pub mod collect_metrics;
 pub mod detect_stack;
 pub mod hard_gate;
 pub mod log_event;
