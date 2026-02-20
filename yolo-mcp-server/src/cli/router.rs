@@ -320,6 +320,70 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
                 Err(e) => Err(e),
             }
         }
+        "compile-context" => {
+            if args.len() < 4 {
+                return Err("Usage: yolo compile-context <phase> <role> <phases_dir> [plan_path]".to_string());
+            }
+            let phase = &args[2];
+            let role = &args[3];
+            let phases_dir = std::path::Path::new(&args[4]);
+            let plan_path = args.get(5).map(|s| s.as_str());
+
+            let planning_dir = PathBuf::from(".yolo-planning");
+            let files_to_read = vec![
+                planning_dir.join("codebase").join("ARCHITECTURE.md"),
+                planning_dir.join("codebase").join("STACK.md"),
+                planning_dir.join("codebase").join("CONVENTIONS.md"),
+                planning_dir.join("ROADMAP.md"),
+                planning_dir.join("REQUIREMENTS.md"),
+            ];
+
+            let mut context = format!("--- COMPILED CONTEXT (phase={}, role={}) ---\n", phase, role);
+
+            for path in &files_to_read {
+                if path.exists() {
+                    if let Ok(content) = std::fs::read_to_string(path) {
+                        context.push_str(&format!("\n# {}\n{}\n", path.display(), content));
+                    }
+                }
+            }
+
+            // Include plan file if provided
+            if let Some(pp) = plan_path {
+                let pp_path = std::path::Path::new(pp);
+                if pp_path.exists() {
+                    if let Ok(content) = std::fs::read_to_string(pp_path) {
+                        context.push_str(&format!("\n# Plan: {}\n{}\n", pp, content));
+                    }
+                }
+            }
+
+            // Try to include phase-specific plan files from phases_dir
+            if phases_dir.is_dir() {
+                if let Ok(entries) = std::fs::read_dir(phases_dir) {
+                    for entry in entries.flatten() {
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        if name.ends_with("-PLAN.md") || name.ends_with(".plan.jsonl") {
+                            if let Ok(content) = std::fs::read_to_string(entry.path()) {
+                                context.push_str(&format!("\n# {}\n{}\n", name, content));
+                            }
+                        }
+                    }
+                }
+            }
+
+            context.push_str("\n--- END COMPILED CONTEXT ---\n");
+
+            // Write to .context-{role}.md in phases_dir
+            let output_path = phases_dir.join(format!(".context-{}.md", role));
+            match std::fs::write(&output_path, &context) {
+                Ok(_) => Ok((format!("Wrote {}", output_path.display()), 0)),
+                Err(_) => {
+                    // Fall back to stdout
+                    Ok((context, 0))
+                }
+            }
+        }
         "migrate-orphaned-state" => {
             if args.len() < 3 {
                 return Err("Usage: yolo migrate-orphaned-state <planning_dir>".to_string());
