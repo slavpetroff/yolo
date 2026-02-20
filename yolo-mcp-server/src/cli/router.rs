@@ -3,7 +3,7 @@ use std::env;
 use std::io::Read;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
-use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, log_event, collect_metrics, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo};
+use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, log_event, collect_metrics, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary};
 use crate::hooks;
 pub fn generate_report(total_calls: i64, compile_calls: i64) -> String {
     let mut out = String::new();
@@ -168,6 +168,38 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
         "route-monorepo" => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             route_monorepo::execute(&args, &cwd)
+        }
+        "snapshot-resume" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            snapshot_resume::execute(&args[2..].to_vec(), &cwd)
+        }
+        "persist-state" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            persist_state::execute(&args[2..].to_vec(), &cwd)
+        }
+        "recover-state" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            recover_state::execute(&args[2..].to_vec(), &cwd)
+        }
+        "rolling-summary" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            compile_rolling_summary::execute(&args[2..].to_vec(), &cwd)
+        }
+        "gsd-index" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            generate_gsd_index::execute(&args, &cwd)
+        }
+        "incidents" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            generate_incidents::execute(&args, &cwd)
+        }
+        "artifact" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            artifact_registry::execute(&args, &cwd)
+        }
+        "gsd-summary" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            infer_gsd_summary::execute(&args, &cwd)
         }
         "hook" => {
             if args.len() < 3 {
