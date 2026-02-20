@@ -1,20 +1,16 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "yolo-marketplace",
+  "description": "YOLO — development lifecycle plugin for Claude Code",
   "owner": {
     "name": "Stanislav Petrov",
     "email": "slavpetroff@gmail.com"
   },
-  "metadata": {
-    "description": "Yolo — development lifecycle plugin"
-  },
   "plugins": [
     {
       "name": "yolo",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/slavpetroff/yolo"
-      },
-      "description": "Development lifecycle plugin, continuous verification",
+      "source": "./",
+      "description": "Development lifecycle plugin — 24 commands, 7 agents, continuous verification",
       "version": "2.1.0",
       "license": "MIT",
       "keywords": [

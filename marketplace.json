@@ -1,11 +1,10 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "yolo-marketplace",
+  "description": "YOLO — development lifecycle plugin for Claude Code",
   "owner": {
-    "name": "Tiago Serôdio",
-    "email": "t.serodio@gmail.com"
-  },
-  "metadata": {
-    "description": "Vibe Better With Claude Code — development lifecycle plugin"
+    "name": "Stanislav Petrov",
+    "email": "slavpetroff@gmail.com"
   },
   "plugins": [
     {
