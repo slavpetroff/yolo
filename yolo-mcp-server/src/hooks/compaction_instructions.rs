@@ -79,7 +79,7 @@ fn write_compaction_marker() {
 
 /// Save agent state snapshot (mirrors bash snapshot-resume.sh save).
 /// Best-effort: failures are logged but do not affect exit code.
-fn save_snapshot(input: &Value, agent_name: &str, matcher: &str) {
+fn save_snapshot(_input: &Value, agent_name: &str, matcher: &str) {
     let planning = Path::new(".yolo-planning");
     let exec_state_path = planning.join(".execution-state.json");
     if !exec_state_path.is_file() {

@@ -1,9 +1,16 @@
+use serde_json::Value;
+
 use super::agent_health;
 use super::agent_start;
 use super::agent_stop;
 use super::blocker_notify;
+use super::compaction_instructions;
+use super::notification_log;
+use super::post_compact;
 use super::prompt_preflight;
 use super::security_filter;
+use super::map_staleness;
+use super::session_stop;
 use super::skill_hook_dispatch;
 use super::validate_summary;
 use super::types::{HookEvent, HookInput, HookOutput};
@@ -51,13 +58,12 @@ pub fn dispatch(event: &HookEvent, stdin_json: &str) -> (String, i32) {
 }
 
 /// Route an event to its handler function.
-/// Lifecycle hooks (SubagentStart/Stop, TeammateIdle) are wired to native Rust handlers.
-/// Other events delegate to stubs until migrated by other dev agents.
+/// All hook events are wired to native Rust handlers.
 fn route_event(event: &HookEvent, input: &HookInput) -> Result<HookOutput, String> {
     let planning_dir = find_planning_dir();
 
     match event {
-        HookEvent::SessionStart => handle_stub("SessionStart", input),
+        HookEvent::SessionStart => handle_session_start(input),
         HookEvent::PreToolUse => {
             // Security filter runs first — exit 2 = block
             let sf_result = security_filter::handle(input)?;
@@ -67,7 +73,7 @@ fn route_event(event: &HookEvent, input: &HookInput) -> Result<HookOutput, Strin
             Ok(HookOutput::empty())
         }
         HookEvent::PostToolUse => handle_post_tool_use(input),
-        HookEvent::PreCompact => handle_stub("PreCompact", input),
+        HookEvent::PreCompact => handle_pre_compact(input),
         HookEvent::SubagentStart => {
             if let Some(ref pd) = planning_dir {
                 let start_result = agent_start::handle(input, pd);
@@ -95,8 +101,8 @@ fn route_event(event: &HookEvent, input: &HookInput) -> Result<HookOutput, Strin
         }
         HookEvent::TaskCompleted => handle_task_completed(input),
         HookEvent::UserPromptSubmit => prompt_preflight::handle(input),
-        HookEvent::Notification => handle_stub("Notification", input),
-        HookEvent::Stop => handle_stub("Stop", input),
+        HookEvent::Notification => handle_notification(input),
+        HookEvent::Stop => handle_stop(input),
     }
 }
 
@@ -131,8 +137,57 @@ fn handle_task_completed(input: &HookInput) -> Result<HookOutput, String> {
     Ok(HookOutput::empty())
 }
 
+/// Convert a (Value, i32) handler result to HookOutput.
+fn value_to_hook_output(value: &Value, exit_code: i32) -> HookOutput {
+    if value.is_null() {
+        return HookOutput { stdout: String::new(), exit_code };
+    }
+    let stdout = serde_json::to_string(value).unwrap_or_default();
+    HookOutput { stdout, exit_code }
+}
+
+/// SessionStart handler: detects compact-triggered sessions and runs post_compact.
+/// For non-compact sessions, runs map_staleness check.
+fn handle_session_start(input: &HookInput) -> Result<HookOutput, String> {
+    // Check if this is a compact-triggered session start
+    let is_compact = input.data.get("compact")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+        || input.data.get("reason")
+            .and_then(|v| v.as_str())
+            .map(|r| r == "compact")
+            .unwrap_or(false);
+
+    if is_compact {
+        let (output, code) = post_compact::handle_post_compact(&input.data);
+        return Ok(value_to_hook_output(&output, code));
+    }
+
+    // Non-compact session: check codebase map staleness
+    map_staleness::handle(input, true)
+}
+
+/// PreCompact handler: inject agent-specific summarization priorities.
+fn handle_pre_compact(input: &HookInput) -> Result<HookOutput, String> {
+    let (output, code) = compaction_instructions::handle_pre_compact(&input.data);
+    Ok(value_to_hook_output(&output, code))
+}
+
+/// Notification handler: log notification metadata.
+fn handle_notification(input: &HookInput) -> Result<HookOutput, String> {
+    let (output, code) = notification_log::handle_notification(&input.data);
+    Ok(value_to_hook_output(&output, code))
+}
+
+/// Stop handler: log session metrics and clean up transient files.
+fn handle_stop(input: &HookInput) -> Result<HookOutput, String> {
+    let (output, code) = session_stop::handle_stop(&input.data);
+    Ok(value_to_hook_output(&output, code))
+}
+
 /// Stub handler for events not yet migrated.
 /// Returns empty output with exit 0 — no-op passthrough.
+#[allow(dead_code)]
 fn handle_stub(_event_name: &str, _input: &HookInput) -> Result<HookOutput, String> {
     Ok(HookOutput::empty())
 }
@@ -259,7 +314,7 @@ mod tests {
     }
 
     #[test]
-    fn test_route_event_stub_returns_empty() {
+    fn test_route_event_stop_returns_ok() {
         let input = HookInput {
             data: serde_json::json!({"test": true}),
         };
@@ -267,7 +322,6 @@ mod tests {
         assert!(result.is_ok());
         let output = result.unwrap();
         assert_eq!(output.exit_code, 0);
-        assert!(output.stdout.is_empty());
     }
 
     #[test]
@@ -289,5 +343,44 @@ mod tests {
         let stdin = r#"{}"#;
         let (_output, code) = dispatch(&HookEvent::TaskCompleted, stdin);
         assert_eq!(code, 0, "TaskCompleted with empty input should exit 0");
+    }
+
+    #[test]
+    fn test_pre_compact_returns_priorities() {
+        let stdin = r#"{"agent_name": "yolo-dev-1", "matcher": "auto"}"#;
+        let (output, code) = dispatch(&HookEvent::PreCompact, stdin);
+        assert_eq!(code, 0);
+        assert!(output.contains("Compaction priorities:"));
+        assert!(output.contains("commit hashes"));
+    }
+
+    #[test]
+    fn test_notification_exits_0() {
+        let stdin = r#"{"notification_type": "info", "message": "test msg", "title": "Test"}"#;
+        let (_output, code) = dispatch(&HookEvent::Notification, stdin);
+        assert_eq!(code, 0, "Notification should always exit 0");
+    }
+
+    #[test]
+    fn test_stop_exits_0() {
+        let stdin = r#"{"cost_usd": 0.42, "duration_ms": 30000, "model": "claude-opus-4-6"}"#;
+        let (_output, code) = dispatch(&HookEvent::Stop, stdin);
+        assert_eq!(code, 0, "Stop should always exit 0");
+    }
+
+    #[test]
+    fn test_session_start_non_compact_empty() {
+        let stdin = r#"{}"#;
+        let (output, code) = dispatch(&HookEvent::SessionStart, stdin);
+        assert_eq!(code, 0);
+        assert!(output.is_empty(), "Non-compact SessionStart should be empty");
+    }
+
+    #[test]
+    fn test_session_start_compact_returns_context() {
+        let stdin = r#"{"compact": true}"#;
+        let (output, code) = dispatch(&HookEvent::SessionStart, stdin);
+        assert_eq!(code, 0);
+        assert!(output.contains("Context was compacted"));
     }
 }

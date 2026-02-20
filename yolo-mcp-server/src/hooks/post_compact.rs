@@ -93,7 +93,7 @@ fn role_reread_files(role: &str) -> &'static str {
 
 /// Attempt to restore the most recent snapshot for the current phase/role.
 /// Returns context string to append, or empty string.
-fn restore_snapshot(planning: &Path, role: &str) -> String {
+fn restore_snapshot(planning: &Path, _role: &str) -> String {
     let exec_state_path = planning.join(".execution-state.json");
     if !exec_state_path.is_file() {
         return String::new();

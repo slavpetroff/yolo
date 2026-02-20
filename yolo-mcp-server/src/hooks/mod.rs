@@ -30,3 +30,6 @@ pub mod compaction_instructions;
 pub mod notification_log;
 pub mod post_compact;
 pub mod session_stop;
+
+// Cache/delta hooks (dev-10)
+pub mod map_staleness;
