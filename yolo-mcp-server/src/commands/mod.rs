@@ -48,3 +48,5 @@ pub mod delta_files;
 pub mod bump_version;
 pub mod help_output;
 pub mod doctor_cleanup;
+pub mod auto_repair;
+pub mod rollout_stage;
