@@ -468,4 +468,78 @@ mod tests {
     fn test_count_plan_files_nonexistent_dir() {
         assert_eq!(count_plan_files(Path::new("/nonexistent/dir")), 0);
     }
+
+    #[test]
+    fn test_is_expanded_yolo_prompt_with_extra_fields() {
+        let prompt = "---\ntitle: My Command\nname: yolo:vibe\nversion: 1\n---\nBody";
+        assert!(is_expanded_yolo_prompt(prompt));
+    }
+
+    #[test]
+    fn test_is_expanded_yolo_prompt_name_with_spaces() {
+        let prompt = "---\nname:   yolo:status  \n---\n";
+        assert!(is_expanded_yolo_prompt(prompt));
+    }
+
+    #[test]
+    fn test_is_expanded_yolo_prompt_non_yolo_name() {
+        let prompt = "---\nname: some-other-plugin:cmd\n---\n";
+        assert!(!is_expanded_yolo_prompt(prompt));
+    }
+
+    #[test]
+    fn test_gsd_isolation_yolo_prefix_case_insensitive() {
+        let tmp = TempDir::new().unwrap();
+        let planning = tmp.path().join(PLANNING_DIR);
+        fs::create_dir_all(&planning).unwrap();
+        fs::write(planning.join(".gsd-isolation"), "").unwrap();
+
+        // /yolo: at start of a line (case insensitive check via starts_with + to_lowercase)
+        handle_gsd_isolation(&planning, "/Yolo:vibe");
+        // lowercase check only — /Yolo: won't match with to_lowercase().starts_with("/yolo:")
+        // Actually it will because we lowercase the trimmed line
+        assert!(planning.join(".yolo-session").exists());
+    }
+
+    #[test]
+    fn test_check_archive_in_progress_status() {
+        let tmp = TempDir::new().unwrap();
+        let planning = tmp.path().join(PLANNING_DIR);
+        fs::create_dir_all(&planning).unwrap();
+
+        let state_path = planning.join("STATE.md");
+        fs::write(&state_path, "# State\nstatus: in progress\n").unwrap();
+
+        let warning = check_archive_incomplete(&planning);
+        assert!(warning.is_some());
+        assert!(warning.unwrap().contains("1 incomplete"));
+    }
+
+    #[test]
+    fn test_check_archive_no_state_file() {
+        let tmp = TempDir::new().unwrap();
+        let planning = tmp.path().join(PLANNING_DIR);
+        fs::create_dir_all(&planning).unwrap();
+        // No STATE.md created
+
+        let warning = check_archive_incomplete(&planning);
+        assert!(warning.is_none());
+    }
+
+    #[test]
+    fn test_check_execute_no_state_file() {
+        let tmp = TempDir::new().unwrap();
+        let planning = tmp.path().join(PLANNING_DIR);
+        fs::create_dir_all(&planning).unwrap();
+        // No STATE.md
+
+        let warning = check_execute_without_plans(&planning);
+        assert!(warning.is_none());
+    }
+
+    #[test]
+    fn test_extract_prompt_prefers_prompt_over_content() {
+        let data = json!({ "prompt": "from prompt", "content": "from content" });
+        assert_eq!(extract_prompt(&data), "from prompt");
+    }
 }

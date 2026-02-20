@@ -352,4 +352,70 @@ mod tests {
         let result = handle(&input).unwrap();
         assert_eq!(result.exit_code, 2); // .env should be blocked
     }
+
+    #[test]
+    fn test_allow_env_in_directory_name() {
+        // A directory named .env-config should not be blocked (the pattern targets files)
+        // But .env.local IS blocked by \.env\. pattern
+        let input = make_input(json!({ "file_path": "/project/src/environment.rs" }));
+        let result = handle(&input).unwrap();
+        assert_eq!(result.exit_code, 0);
+    }
+
+    #[test]
+    fn test_block_nested_credentials() {
+        let input = make_input(json!({ "file_path": "/project/config/credentials.json" }));
+        let result = handle(&input).unwrap();
+        assert_eq!(result.exit_code, 2);
+    }
+
+    #[test]
+    fn test_block_service_account_with_env() {
+        let input = make_input(json!({ "file_path": "/project/service-account-staging.json" }));
+        let result = handle(&input).unwrap();
+        assert_eq!(result.exit_code, 2);
+    }
+
+    #[test]
+    fn test_allow_json_that_is_not_sensitive() {
+        let input = make_input(json!({ "file_path": "/project/package.json" }));
+        let result = handle(&input).unwrap();
+        assert_eq!(result.exit_code, 0);
+    }
+
+    #[test]
+    fn test_gsd_isolation_with_active_agent_marker() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let yolo_dir = tmp.path().join(".yolo-planning");
+        fs::create_dir_all(&yolo_dir).unwrap();
+        fs::write(yolo_dir.join(".active-agent"), "agent").unwrap();
+
+        let planning_path = format!("{}/.planning/intel/index.md", tmp.path().display());
+        let input = make_input(json!({ "file_path": planning_path }));
+        let result = handle(&input).unwrap();
+        assert_eq!(result.exit_code, 2);
+    }
+
+    #[test]
+    fn test_yolo_planning_not_blocked() {
+        // .yolo-planning/ paths should NEVER trigger GSD isolation
+        let tmp = tempfile::TempDir::new().unwrap();
+        let yolo_dir = tmp.path().join(".yolo-planning");
+        fs::create_dir_all(&yolo_dir).unwrap();
+        fs::write(yolo_dir.join(".yolo-session"), "session").unwrap();
+
+        let yolo_path = format!("{}/.yolo-planning/state.json", tmp.path().display());
+        let input = make_input(json!({ "file_path": yolo_path }));
+        let result = handle(&input).unwrap();
+        assert_eq!(result.exit_code, 0);
+    }
+
+    #[test]
+    fn test_tool_input_null_value() {
+        let input = HookInput {
+            data: json!({ "tool_input": null }),
+        };
+        let result = handle(&input).unwrap();
+        assert_eq!(result.exit_code, 2); // fail-closed
+    }
 }
