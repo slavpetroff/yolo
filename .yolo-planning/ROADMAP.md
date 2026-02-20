@@ -7,12 +7,12 @@
 ## Progress
 | Phase | Status | Plans | Tasks | Commits |
 |-------|--------|-------|-------|----------|
-| 1 | Pending | 0 | 0 | 0 |
+| 1 | Complete | 3/3 | 12 | 12 |
 
 ---
 
 ## Phase List
-- [ ] [Phase 1: General Improvements](#phase-1-general-improvements)
+- [x] [Phase 1: General Improvements](#phase-1-general-improvements)
 
 ---
 
