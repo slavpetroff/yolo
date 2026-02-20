@@ -1,20 +1,7 @@
 use rusqlite::Connection;
 use std::env;
 use std::path::PathBuf;
-
-pub mod state_updater;
-pub mod statusline;
-pub mod hard_gate;
-pub mod session_start;
-pub mod metrics_report;
-pub mod token_baseline;
-pub mod bootstrap_claude;
-pub mod suggest_next;
-pub mod list_todos;
-pub mod phase_detect;
-pub mod detect_stack;
-pub mod infer_project_context;
-
+use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, bootstrap_claude, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context};
 pub fn generate_report(total_calls: i64, compile_calls: i64) -> String {
     let mut out = String::new();
     out.push_str("============================================================\n");
@@ -129,26 +116,6 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
     }
 }
 
-
-
-#[cfg(not(tarpaulin_include))]
-fn main() {
-    let args: Vec<String> = env::args().collect();
-    let db_path = PathBuf::from(".yolo-telemetry.db");
-
-    match run_cli(args, db_path) {
-        Ok((report, exit_code)) => {
-            print!("{}", report);
-            if exit_code != 0 {
-                std::process::exit(exit_code);
-            }
-        },
-        Err(e) => {
-            eprintln!("{}", e);
-            std::process::exit(1);
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {

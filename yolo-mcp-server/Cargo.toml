@@ -21,7 +21,7 @@ path = "src/main.rs"
 
 [[bin]]
 name = "yolo"
-path = "src/cli.rs"
+path = "src/main.rs"
 
 [dev-dependencies]
 tempfile = "3.25.0"
