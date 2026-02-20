@@ -190,6 +190,29 @@ To update later, inside Claude Code:
 /yolo:update
 ```
 
+### MCP Server & CLI (Optional)
+
+YOLO includes a Rust-powered MCP server and CLI that handle hooks, commands, validation, and telemetry natively. To install:
+
+```bash
+# Clone the repo (if you haven't already)
+git clone https://github.com/yidakee/vibe-better-with-claude-code-yolo.git
+cd vibe-better-with-claude-code-yolo
+
+# Run the installer — builds from source, registers with Claude Code
+bash install-yolo-mcp.sh
+```
+
+This single command:
+1. Builds the Rust binaries (`yolo` CLI + `yolo-mcp-server`)
+2. Installs them to `~/.cargo/bin/`
+3. Registers the MCP server with Claude Code (user scope — all projects)
+4. Verifies everything works
+
+**Prerequisites:** [Rust toolchain](https://rustup.rs/) (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`). No other dependencies.
+
+To uninstall: `bash install-yolo-mcp.sh --uninstall`
+
 ### Running YOLO
 
 **Option A: Supervised mode** (recommended for the cautious)

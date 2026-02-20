@@ -10,16 +10,16 @@ Thanks for considering a contribution. YOLO is a Claude Code plugin, so the conv
 
 ## Local Development
 
-Clone the repo, install the git hooks, and load it as a local plugin:
+Clone the repo, build the MCP server & CLI, and load it as a local plugin:
 
 ```bash
 git clone https://github.com/yidakee/vibe-better-with-claude-code-yolo.git
 cd vibe-better-with-claude-code-yolo
-yolo install-hooks
+bash install-yolo-mcp.sh    # Build Rust binaries + register MCP server
 claude --plugin-dir .
 ```
 
-The pre-push hook checks version file consistency (see Version Management below). All `/yolo:*` commands will be available. Restart Claude Code to pick up changes.
+The installer builds both `yolo` (CLI) and `yolo-mcp-server` binaries, registers the MCP server with Claude Code, and verifies the installation. The pre-push hook checks version file consistency (see Version Management below). All `/yolo:*` commands will be available. Restart Claude Code to pick up changes.
 
 ## Project Structure
 
