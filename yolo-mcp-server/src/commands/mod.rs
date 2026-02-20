@@ -46,3 +46,5 @@ pub mod cache_context;
 pub mod cache_nuke;
 pub mod delta_files;
 pub mod bump_version;
+pub mod help_output;
+pub mod doctor_cleanup;

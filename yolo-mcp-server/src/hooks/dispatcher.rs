@@ -505,7 +505,7 @@ mod tests {
     #[test]
     fn test_e2e_post_tool_use_summary_md_write() {
         // PostToolUse with SUMMARY.md write should trigger validate_summary
-        let stdin = r#"{"tool_name":"Write","tool_input":{"file_path":"/project/.yolo-planning/phases/01/SUMMARY.md","content":"# Summary\nPhase complete"}}"#;
+        let stdin = r##"{"tool_name":"Write","tool_input":{"file_path":"/project/.yolo-planning/phases/01/SUMMARY.md","content":"# Summary\nPhase complete"}}"##;
         let (_output, code) = dispatch(&HookEvent::PostToolUse, stdin);
         assert_eq!(code, 0, "PostToolUse with SUMMARY.md write should be advisory (exit 0)");
     }
