@@ -11,7 +11,7 @@
 | 2 | Complete | 17 | 80 | 71 |
 | 3 | Superseded | - | - | - |
 | 4 | Superseded | - | - | - |
-| 5 | Pending | 0 | 0 | 0 |
+| 5 | Planned | 5 | 22 | 0 |
 
 ---
 
