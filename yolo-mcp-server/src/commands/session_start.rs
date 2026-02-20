@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
-use sysinfo::{System, Pid};
+use sysinfo::System;
 use reqwest::blocking::Client;
 use std::time::Duration;
 
@@ -42,13 +42,11 @@ pub fn execute_session_start(cwd: &Path) -> Result<(String, i32), String> {
         let _ = fs::remove_file(&cm_path);
     }
 
-    // 3. Config migration
+    // 3. Config migration (native Rust)
     let config_path = planning_dir.join("config.json");
     if planning_dir.exists() && config_path.exists() {
-        let migrate_sh = script_dir.join("migrate-config.sh");
-        if migrate_sh.exists() {
-            let _ = Command::new("bash").arg(&migrate_sh).arg(&config_path).output();
-        }
+        let defaults_path = cwd.join("config").join("defaults.json");
+        let _ = super::migrate_config::migrate_config(&config_path, &defaults_path);
     }
 
     // 4. CLAUDE.md migration
@@ -69,8 +67,8 @@ pub fn execute_session_start(cwd: &Path) -> Result<(String, i32), String> {
     // 5. Todos hierarchy migration
     flatten_todos_migration(&planning_dir);
 
-    // 6. Orphaned state migration
-    migrate_orphaned_state(&planning_dir, &script_dir);
+    // 6. Orphaned state migration (native Rust)
+    let _ = super::migrate_orphaned_state::migrate_orphaned_state(&planning_dir);
 
     // 7. Config Cache & Warnings
     let (config_cache_done, flag_warnings) = write_config_cache_and_validate(&planning_dir);
@@ -87,24 +85,22 @@ pub fn execute_session_start(cwd: &Path) -> Result<(String, i32), String> {
     // 11. Cache cleanup and syncing
     cleanup_and_sync_cache(&claude_dir);
 
-    // 12. Hook installation & Watchdogs
-    #[cfg(not(tarpaulin_include))]
+    // 12. Hook installation & stale team cleanup (native Rust)
+    let _ = super::install_hooks::install_hooks();
     {
-        let _ = Command::new("bash").arg(script_dir.join("install-hooks.sh")).output();
-        if script_dir.join("clean-stale-teams.sh").exists() {
-            let _ = Command::new("bash").arg(script_dir.join("clean-stale-teams.sh")).output();
-        }
+        let log_file = planning_dir.join(".hook-errors.log");
+        super::clean_stale_teams::clean_stale_teams(&claude_dir, &log_file);
     }
     
     // 13. Reconcile execution state & Orphan Agents
     let state_msg = reconcile_execution_state(&planning_dir);
     
-    #[cfg(not(tarpaulin_include))]
     cleanup_orphaned_agents(&planning_dir);
 
-    // 14. Tmux watchdog
-    #[cfg(not(tarpaulin_include))]
-    run_watchdog(&planning_dir, &script_dir);
+    // 14. Tmux watchdog (native Rust)
+    if let Some(session) = super::tmux_watchdog::get_tmux_session() {
+        let _ = super::tmux_watchdog::spawn_watchdog(&planning_dir, &session);
+    }
 
     // 15. Determine Next Action & Build Context
     let ctx = build_context(&cwd, &planning_dir, &state_msg);
@@ -155,15 +151,6 @@ fn flatten_todos_migration(planning_dir: &Path) {
     }
 }
 
-fn migrate_orphaned_state(planning_dir: &Path, script_dir: &Path) {
-    if planning_dir.exists() && !planning_dir.join("STATE.md").exists() && !planning_dir.join("ACTIVE").exists() {
-        let sh = script_dir.join("migrate-orphaned-state.sh");
-        if sh.exists() {
-            let _ = Command::new("bash").arg(sh).arg(planning_dir).output();
-        }
-    }
-}
-
 fn write_config_cache_and_validate(planning_dir: &Path) -> (bool, String) {
     let mut config_val: Value = json!({});
     let mut warnings = String::new();
@@ -175,13 +162,8 @@ fn write_config_cache_and_validate(planning_dir: &Path) -> (bool, String) {
         }
     }
 
-    // Write Cache
-    let uid = {
-        let out = Command::new("id").arg("-u").output()
-            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-            .unwrap_or_else(|_| "0".to_string());
-        out
-    };
+    // Write Cache (native uid)
+    let uid = unsafe { libc::getuid() };
     let cache_path = format!("/tmp/yolo-config-cache-{}", uid);
     let get_str = |key: &str, def: &str| -> String {
         config_val.get(key).and_then(|v| v.as_str()).unwrap_or(def).to_string()
@@ -246,12 +228,7 @@ fn check_first_run(claude_dir: &Path) -> String {
 }
 
 fn check_for_updates(script_dir: &Path) -> String {
-    let uid = {
-        let out = Command::new("id").arg("-u").output()
-            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-            .unwrap_or_else(|_| "0".to_string());
-        out
-    };
+    let uid = unsafe { libc::getuid() };
     let cache_path = format!("/tmp/yolo-update-check-{}", uid);
     let mut local_ver = "0.0.0".to_string();
     let mut remote_ver = "0.0.0".to_string();
@@ -540,7 +517,6 @@ fn reconcile_execution_state(planning_dir: &Path) -> String {
     msg
 }
 
-#[cfg(not(tarpaulin_include))]
 fn cleanup_orphaned_agents(planning_dir: &Path) {
     if !planning_dir.exists() {
         return;
@@ -597,44 +573,6 @@ fn cleanup_orphaned_agents(planning_dir: &Path) {
                 let _ = writeln!(f, "[{}] Orphan claude process PID={} survived SIGTERM, sending SIGKILL", ts, pid);
             });
             process.kill_with(sysinfo::Signal::Kill);
-        }
-    }
-}
-
-#[cfg(not(tarpaulin_include))]
-fn run_watchdog(planning_dir: &Path, script_dir: &Path) {
-    if let Ok(tmux) = env::var("TMUX") {
-        if !tmux.is_empty() && planning_dir.exists() {
-            let pid_file = planning_dir.join(".watchdog-pid");
-            let mut spawn = true;
-            
-            if pid_file.exists() {
-                if let Ok(content) = fs::read_to_string(&pid_file) {
-                    if let Ok(pid_u32) = content.trim().parse::<u32>() {
-                        let mut sys = System::new();
-                        sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
-                        if sys.process(Pid::from_u32(pid_u32)).is_some() {
-                            spawn = false;
-                        } else {
-                            let _ = fs::remove_file(&pid_file);
-                        }
-                    }
-                }
-            }
-
-            if spawn {
-                let wd = script_dir.join("tmux-watchdog.sh");
-                if wd.exists() {
-                    if let Ok(out) = Command::new("tmux").arg("display-message").arg("-p").arg("#S").output() {
-                        let session = String::from_utf8_lossy(&out.stdout).trim().to_string();
-                        if !session.is_empty() {
-                            if let Ok(child) = Command::new("bash").arg(wd).arg(session).spawn() {
-                                let _ = fs::write(pid_file, child.id().to_string());
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -863,28 +801,108 @@ mod tests {
         let plan_dir = dir.path().join(".yolo-planning");
         fs::create_dir(&plan_dir).unwrap();
         fs::create_dir(plan_dir.join("phases")).unwrap();
-        
+
         let es = plan_dir.join(".execution-state.json");
         fs::write(&es, json!({
             "status": "running",
             "phase": "1",
             "plans": [{}, {}]
         }).to_string()).unwrap();
-        
+
         let phase_dir = plan_dir.join("phases").join("1-Test");
         fs::create_dir(&phase_dir).unwrap();
         fs::write(phase_dir.join("1-PLAN.md"), "").unwrap();
         fs::write(phase_dir.join("1-SUMMARY.md"), "").unwrap();
-        
+
         // Only 1 summary, but 2 plans => interrupted
         let msg = reconcile_execution_state(&plan_dir);
         assert!(msg.contains("interrupted (1/2 plans)"));
-        
+
         // Now add 2nd summary => complete
         fs::write(phase_dir.join("2-PLAN.md"), "").unwrap();
         fs::write(phase_dir.join("2-SUMMARY.md"), "").unwrap();
-        
+
         let msg2 = reconcile_execution_state(&plan_dir);
         assert!(msg2.contains("Build state: complete (recovered)"));
+    }
+
+    #[test]
+    fn test_native_config_migration_integration() {
+        // Verify session_start's config migration path uses native module
+        let dir = tempdir().unwrap();
+        let plan_dir = dir.path().join(".yolo-planning");
+        fs::create_dir(&plan_dir).unwrap();
+        let config_dir = dir.path().join("config");
+        fs::create_dir(&config_dir).unwrap();
+
+        let defaults = json!({"effort": "balanced", "auto_push": "never"});
+        fs::write(config_dir.join("defaults.json"), defaults.to_string()).unwrap();
+
+        let config = json!({"agent_teams": true});
+        let config_path = plan_dir.join("config.json");
+        fs::write(&config_path, config.to_string()).unwrap();
+
+        // Call the native migration
+        let result = super::super::migrate_config::migrate_config(
+            &config_path,
+            &config_dir.join("defaults.json"),
+        );
+        assert!(result.is_ok());
+
+        let migrated: Value =
+            serde_json::from_str(&fs::read_to_string(&config_path).unwrap()).unwrap();
+        assert_eq!(migrated["prefer_teams"], "always");
+        assert!(migrated.get("agent_teams").is_none());
+        assert_eq!(migrated["effort"], "balanced");
+    }
+
+    #[test]
+    fn test_native_orphaned_state_integration() {
+        let dir = tempdir().unwrap();
+        let plan_dir = dir.path().join("planning");
+        let ms = plan_dir.join("milestones").join("v1");
+        fs::create_dir_all(&ms).unwrap();
+        fs::write(
+            ms.join("STATE.md"),
+            "# State\n\n**Project:** TestApp\n\n## Todos\n- Fix bug\n",
+        )
+        .unwrap();
+
+        let result = super::super::migrate_orphaned_state::migrate_orphaned_state(&plan_dir);
+        assert!(result.unwrap());
+        assert!(plan_dir.join("STATE.md").exists());
+
+        let content = fs::read_to_string(plan_dir.join("STATE.md")).unwrap();
+        assert!(content.contains("TestApp"));
+        assert!(content.contains("Fix bug"));
+    }
+
+    #[test]
+    fn test_build_context_no_project() {
+        let dir = tempdir().unwrap();
+        let plan_dir = dir.path().join(".yolo-planning");
+        fs::create_dir(&plan_dir).unwrap();
+
+        let ctx = build_context(dir.path(), &plan_dir, "");
+        assert!(ctx.contains("YOLO project detected"));
+        assert!(ctx.contains("Next: /yolo:init"));
+    }
+
+    #[test]
+    fn test_build_context_with_project_no_phases() {
+        let dir = tempdir().unwrap();
+        let plan_dir = dir.path().join(".yolo-planning");
+        fs::create_dir(&plan_dir).unwrap();
+        fs::write(plan_dir.join("PROJECT.md"), "# My Project").unwrap();
+
+        let ctx = build_context(dir.path(), &plan_dir, "");
+        assert!(ctx.contains("needs scoping"));
+    }
+
+    #[test]
+    fn test_uid_is_native() {
+        // Verify libc::getuid works (replaces Command::new("id"))
+        let uid = unsafe { libc::getuid() };
+        assert!(uid < 100_000); // sanity check
     }
 }
