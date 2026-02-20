@@ -103,15 +103,12 @@ pub fn complete(
     // Phase 2: Validate
     let mut errors = Vec::new();
 
-    // Check must_haves
-    let must_haves: Vec<&str> = contract.get("must_haves")
+    // must_haves are documented requirements — the agent self-reports evidence.
+    // We verify evidence is non-empty (done above). The must_haves check is soft.
+    let _must_haves: Vec<&str> = contract.get("must_haves")
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect())
         .unwrap_or_default();
-
-    // must_haves are documented requirements — we check that evidence mentions them
-    // (In practice, the agent self-reports. We just verify evidence is non-empty.)
-    // The must_haves check is a soft check — presence is enough.
 
     // Check files_modified against allowed_paths
     let allowed_paths: Vec<&str> = contract.get("allowed_paths")

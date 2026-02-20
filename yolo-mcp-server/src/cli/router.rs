@@ -3,7 +3,7 @@ use std::env;
 use std::io::Read;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
-use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, log_event, collect_metrics, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary, cache_context, cache_nuke, delta_files};
+use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, token_budget, lock_lite, lease_lock, two_phase_complete, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, log_event, collect_metrics, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary, cache_context, cache_nuke, delta_files};
 use crate::hooks;
 pub fn generate_report(total_calls: i64, compile_calls: i64) -> String {
     let mut out = String::new();
@@ -200,6 +200,38 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
         "gsd-summary" => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             infer_gsd_summary::execute(&args, &cwd)
+        }
+        "cache-context" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            cache_context::execute(&args, &cwd)
+        }
+        "cache-nuke" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            cache_nuke::execute(&args, &cwd)
+        }
+        "delta-files" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            delta_files::execute(&args, &cwd)
+        }
+        "map-staleness" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            hooks::map_staleness::execute(&args, &cwd)
+        }
+        "token-budget" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            token_budget::execute(&args, &cwd)
+        }
+        "lock" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            lock_lite::execute(&args, &cwd)
+        }
+        "lease-lock" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            lease_lock::execute(&args, &cwd)
+        }
+        "two-phase-complete" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            two_phase_complete::execute(&args, &cwd)
         }
         "hook" => {
             if args.len() < 3 {
