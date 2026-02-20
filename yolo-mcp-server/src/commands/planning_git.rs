@@ -241,12 +241,31 @@ fn handle_commit_boundary(args: &[String], cwd: &Path) -> Result<(String, i32), 
     Ok(("".to_string(), 0))
 }
 
+fn handle_push_after_phase(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
+    let default_config = ".yolo-planning/config.json".to_string();
+    let config_file = args.get(3).unwrap_or(&default_config);
+    let config_path = cwd.join(config_file);
+
+    if !is_git_repo(cwd) {
+        return Ok(("".to_string(), 0));
+    }
+
+    let (_, auto_push) = read_config(&config_path);
+
+    if auto_push == "after_phase" && has_upstream(cwd) {
+        git_push(cwd)?;
+    }
+
+    Ok(("".to_string(), 0))
+}
+
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let subcommand = args.get(2).map(|s| s.as_str()).unwrap_or("");
 
     match subcommand {
         "sync-ignore" => handle_sync_ignore(args, cwd),
         "commit-boundary" => handle_commit_boundary(args, cwd),
+        "push-after-phase" => handle_push_after_phase(args, cwd),
         "" => Err("Usage: yolo planning-git sync-ignore [CONFIG_FILE] | commit-boundary <action> [CONFIG_FILE] | push-after-phase [CONFIG_FILE]".to_string()),
         other => Err(format!("Unknown subcommand: {}\nUsage: yolo planning-git sync-ignore [CONFIG_FILE] | commit-boundary <action> [CONFIG_FILE] | push-after-phase [CONFIG_FILE]", other)),
     }
@@ -465,6 +484,35 @@ mod tests {
             "planning-git".to_string(),
             "commit-boundary".to_string(),
             "some action".to_string(),
+        ];
+        let (_, code) = execute(&args, dir.path()).unwrap();
+        assert_eq!(code, 0);
+    }
+
+    // --- push-after-phase tests ---
+
+    #[test]
+    fn test_push_after_phase_never_mode_is_noop() {
+        let dir = tempdir().unwrap();
+        setup_git_repo(dir.path());
+        write_config(dir.path(), "manual", "never");
+
+        let args = vec![
+            "yolo".to_string(),
+            "planning-git".to_string(),
+            "push-after-phase".to_string(),
+        ];
+        let (_, code) = execute(&args, dir.path()).unwrap();
+        assert_eq!(code, 0);
+    }
+
+    #[test]
+    fn test_push_after_phase_non_git_repo_returns_ok() {
+        let dir = tempdir().unwrap();
+        let args = vec![
+            "yolo".to_string(),
+            "planning-git".to_string(),
+            "push-after-phase".to_string(),
         ];
         let (_, code) = execute(&args, dir.path()).unwrap();
         assert_eq!(code, 0);
