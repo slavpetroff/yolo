@@ -4,7 +4,7 @@ trap 'exit 0' EXIT
 # Pre-compute all project state for implement.md and other commands.
 # Output: key=value pairs on stdout, one per line. Exit 0 always.
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 
 # --- jq availability ---
 JQ_AVAILABLE=false

@@ -15,7 +15,7 @@ create_state_with_todos() {
   local path="$1"
   mkdir -p "$(dirname "$path")"
   cat > "$path" <<'EOF'
-# VBW State
+# YOLO State
 
 **Project:** Test
 **Status:** Active
@@ -32,7 +32,7 @@ EOF
 
 @test "reads todos from root STATE.md (no ACTIVE)" {
   cd "$TEST_TEMP_DIR"
-  create_state_with_todos ".vbw-planning/STATE.md"
+  create_state_with_todos ".yolo-planning/STATE.md"
 
   run bash "$SCRIPTS_DIR/list-todos.sh"
   [ "$status" -eq 0 ]
@@ -44,16 +44,16 @@ EOF
 
 @test "reads todos from milestone-scoped STATE.md via ACTIVE" {
   cd "$TEST_TEMP_DIR"
-  mkdir -p .vbw-planning/milestones/m1
-  create_state_with_todos ".vbw-planning/milestones/m1/STATE.md"
-  echo "m1" > .vbw-planning/ACTIVE
+  mkdir -p .yolo-planning/milestones/m1
+  create_state_with_todos ".yolo-planning/milestones/m1/STATE.md"
+  echo "m1" > .yolo-planning/ACTIVE
 
   run bash "$SCRIPTS_DIR/list-todos.sh"
   [ "$status" -eq 0 ]
 
   local state_path
   state_path=$(echo "$output" | jq -r '.state_path')
-  [ "$state_path" = ".vbw-planning/milestones/m1/STATE.md" ]
+  [ "$state_path" = ".yolo-planning/milestones/m1/STATE.md" ]
 
   local count
   count=$(echo "$output" | jq -r '.count')
@@ -62,8 +62,8 @@ EOF
 
 @test "falls back to milestones/ when no ACTIVE and no root STATE.md" {
   cd "$TEST_TEMP_DIR"
-  mkdir -p .vbw-planning/milestones/default
-  create_state_with_todos ".vbw-planning/milestones/default/STATE.md"
+  mkdir -p .yolo-planning/milestones/default
+  create_state_with_todos ".yolo-planning/milestones/default/STATE.md"
 
   run bash "$SCRIPTS_DIR/list-todos.sh"
   [ "$status" -eq 0 ]
@@ -72,12 +72,12 @@ EOF
   state_path=$(echo "$output" | jq -r '.state_path')
   status_val=$(echo "$output" | jq -r '.status')
   [ "$status_val" = "ok" ]
-  [ "$state_path" = ".vbw-planning/milestones/default/STATE.md" ]
+  [ "$state_path" = ".yolo-planning/milestones/default/STATE.md" ]
 }
 
 @test "errors when no STATE.md exists anywhere" {
   cd "$TEST_TEMP_DIR"
-  mkdir -p .vbw-planning/milestones
+  mkdir -p .yolo-planning/milestones
 
   run bash "$SCRIPTS_DIR/list-todos.sh"
   [ "$status" -eq 0 ]
@@ -89,8 +89,8 @@ EOF
 
 @test "priority filter works with milestone fallback" {
   cd "$TEST_TEMP_DIR"
-  mkdir -p .vbw-planning/milestones/default
-  create_state_with_todos ".vbw-planning/milestones/default/STATE.md"
+  mkdir -p .yolo-planning/milestones/default
+  create_state_with_todos ".yolo-planning/milestones/default/STATE.md"
 
   run bash "$SCRIPTS_DIR/list-todos.sh" high
   [ "$status" -eq 0 ]

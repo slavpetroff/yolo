@@ -92,7 +92,7 @@ run_task_verify() {
   cd "$TEST_TEMP_DIR"
   # Commit that does NOT match the subject at all
   add_commit "docs: update README"
-  rm -f "$TEST_TEMP_DIR/.vbw-planning/.task-verify-seen"
+  rm -f "$TEST_TEMP_DIR/.yolo-planning/.task-verify-seen"
 
   run run_task_verify "Implement quantum flux capacitor"
   [ "$status" -eq 2 ]
@@ -102,7 +102,7 @@ run_task_verify() {
   cd "$TEST_TEMP_DIR"
   # Commit that does NOT match the subject
   add_commit "docs: update README"
-  rm -f "$TEST_TEMP_DIR/.vbw-planning/.task-verify-seen"
+  rm -f "$TEST_TEMP_DIR/.yolo-planning/.task-verify-seen"
 
   # First attempt — blocks
   run run_task_verify "Implement quantum flux capacitor"
@@ -116,7 +116,7 @@ run_task_verify() {
 @test "circuit breaker is per-subject — different subject still blocks" {
   cd "$TEST_TEMP_DIR"
   add_commit "docs: update README"
-  rm -f "$TEST_TEMP_DIR/.vbw-planning/.task-verify-seen"
+  rm -f "$TEST_TEMP_DIR/.yolo-planning/.task-verify-seen"
 
   # Block first subject
   run run_task_verify "Implement quantum flux capacitor"
@@ -133,7 +133,7 @@ run_task_verify() {
 
 @test "no recent commits blocks with exit 2" {
   cd "$TEST_TEMP_DIR"
-  rm -f "$TEST_TEMP_DIR/.vbw-planning/.task-verify-seen"
+  rm -f "$TEST_TEMP_DIR/.yolo-planning/.task-verify-seen"
   # The initial commit is recent enough, but doesn't match
   run run_task_verify "Implement something entirely different"
   [ "$status" -eq 2 ]
@@ -163,9 +163,9 @@ run_task_verify() {
   [ "$status" -eq 0 ]
 }
 
-@test "role-only subject with vbw prefix bypasses check" {
+@test "role-only subject with yolo prefix bypasses check" {
   cd "$TEST_TEMP_DIR"
-  run run_task_verify "vbw-dev"
+  run run_task_verify "yolo-dev"
   [ "$status" -eq 0 ]
 }
 
@@ -176,9 +176,9 @@ run_task_verify() {
   [ "$status" -eq 0 ]
 }
 
-@test "no .vbw-planning dir allows (non-VBW context)" {
+@test "no .yolo-planning dir allows (non-YOLO context)" {
   cd "$TEST_TEMP_DIR"
-  rm -rf .vbw-planning
+  rm -rf .yolo-planning
   run run_task_verify "anything"
   [ "$status" -eq 0 ]
 }

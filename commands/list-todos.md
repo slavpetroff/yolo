@@ -1,22 +1,22 @@
 ---
-name: vbw:list-todos
+name: yolo:list-todos
 category: supporting
 description: List pending todos from STATE.md and select one to act on.
 argument-hint: [priority filter]
 allowed-tools: Read, Edit, Bash, AskUserQuestion
 ---
 
-# VBW List Todos $ARGUMENTS
+# YOLO List Todos $ARGUMENTS
 
 ## Context
 
 Working directory: `!`pwd``
-Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/vbw-marketplace/vbw/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
-Active milestone: `!`cat .vbw-planning/ACTIVE 2>/dev/null || echo "No active milestone (single-milestone mode)"``
+Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
+Active milestone: `!`cat .yolo-planning/ACTIVE 2>/dev/null || echo "No active milestone (single-milestone mode)"``
 
 ## Guard
 
-1. **Not initialized** (no .vbw-planning/ dir): STOP "Run /vbw:init first."
+1. **Not initialized** (no .yolo-planning/ dir): STOP "Run /yolo:init first."
 
 ## Steps
 
@@ -41,19 +41,19 @@ Active milestone: `!`cat .vbw-planning/ACTIVE 2>/dev/null || echo "No active mil
    - header: "Action"
    - question: "What would you like to do with this todo?"
    - options:
-     - "/vbw:fix — Quick fix, one commit, no ceremony"
-     - "/vbw:debug — Investigate with scientific method"
-     - "/vbw:vibe — Full lifecycle (plan → execute → verify)"
-     - "/vbw:research — Research only, no code changes"
+     - "/yolo:fix — Quick fix, one commit, no ceremony"
+     - "/yolo:debug — Investigate with scientific method"
+     - "/yolo:vibe — Full lifecycle (plan → execute → verify)"
+     - "/yolo:research — Research only, no code changes"
      - "Remove — Delete from todo list"
      - "Back — Return to list"
 
 7. **Execute action:** Use the `section` and `state_path` values from the script output for edit operations.
-   - **/vbw:fix, /vbw:debug, /vbw:vibe, /vbw:research:** Remove the `line` value from the todo section in STATE.md. If no todos remain, replace with "None." Log to `## Recent Activity` with format `- {YYYY-MM-DD}: Picked up todo via /vbw:{command}: {text}`. Then display:
+   - **/yolo:fix, /yolo:debug, /yolo:vibe, /yolo:research:** Remove the `line` value from the todo section in STATE.md. If no todos remain, replace with "None." Log to `## Recent Activity` with format `- {YYYY-MM-DD}: Picked up todo via /yolo:{command}: {text}`. Then display:
      ```text
      ✓ Todo picked up.
 
-     ➜ Run: /vbw:{command} {todo text}
+     ➜ Run: /yolo:{command} {todo text}
      ```
      Do NOT execute the command. STOP after displaying the suggested command.
    - **Remove:** Remove the `line` value from the todo section in STATE.md. If no todos remain, replace with "None." Log to `## Recent Activity` with format `- {YYYY-MM-DD}: Removed todo: {text}`. Confirm: "✓ Todo removed." Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh list-todos` and display.
@@ -61,4 +61,4 @@ Active milestone: `!`cat .vbw-planning/ACTIVE 2>/dev/null || echo "No active mil
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — ✓ success, ➜ Next Up, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — ✓ success, ➜ Next Up, no ANSI.

@@ -5,8 +5,8 @@ set -u
 INPUT=$(cat)
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // .tool_input.command // ""')
 
-# Only check SUMMARY.md files in .vbw-planning/
-if ! echo "$FILE_PATH" | grep -qE '\.vbw-planning/.*SUMMARY\.md$'; then
+# Only check SUMMARY.md files in .yolo-planning/
+if ! echo "$FILE_PATH" | grep -qE '\.yolo-planning/.*SUMMARY\.md$'; then
   exit 0
 fi
 

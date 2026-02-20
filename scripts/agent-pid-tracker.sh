@@ -1,17 +1,17 @@
 #!/bin/bash
 set -euo pipefail
-# agent-pid-tracker.sh — Track active VBW agent PIDs for cleanup on tmux detach
+# agent-pid-tracker.sh — Track active YOLO agent PIDs for cleanup on tmux detach
 #
 # Usage:
 #   agent-pid-tracker.sh register <pid>
 #   agent-pid-tracker.sh unregister <pid>
 #   agent-pid-tracker.sh list
 #
-# Stores newline-delimited PIDs in .vbw-planning/.agent-pids
+# Stores newline-delimited PIDs in .yolo-planning/.agent-pids
 # Uses mkdir-based file locking (macOS-compatible, no flock needed)
 
-PID_FILE=".vbw-planning/.agent-pids"
-LOCK_DIR="/tmp/vbw-agent-pid-lock"
+PID_FILE=".yolo-planning/.agent-pids"
+LOCK_DIR="/tmp/yolo-agent-pid-lock"
 
 # --- File locking helpers ---
 acquire_lock() {
@@ -43,7 +43,7 @@ cmd_register() {
   acquire_lock || return 1
   trap release_lock EXIT
 
-  # Create .vbw-planning if missing
+  # Create .yolo-planning if missing
   mkdir -p "$(dirname "$PID_FILE")"
 
   # Append PID if not already present

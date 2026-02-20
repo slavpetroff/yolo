@@ -7,11 +7,11 @@ set -u
 # --- Override checks (fast path) ---
 
 # Env var override
-[ "${VBW_ALLOW_DESTRUCTIVE:-0}" = "1" ] && exit 0
+[ "${YOLO_ALLOW_DESTRUCTIVE:-0}" = "1" ] && exit 0
 
 # Config override: bash_guard=false disables entirely
-if command -v jq >/dev/null 2>&1 && [ -f ".vbw-planning/config.json" ]; then
-  GUARD=$(jq -r '.bash_guard // true' .vbw-planning/config.json 2>/dev/null)
+if command -v jq >/dev/null 2>&1 && [ -f ".yolo-planning/config.json" ]; then
+  GUARD=$(jq -r '.bash_guard // true' .yolo-planning/config.json 2>/dev/null)
   [ "$GUARD" = "false" ] && exit 0
 fi
 
@@ -33,7 +33,7 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || exit
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
 DEFAULT_PATTERNS="$PLUGIN_ROOT/config/destructive-commands.txt"
-LOCAL_PATTERNS=".vbw-planning/destructive-commands.local.txt"
+LOCAL_PATTERNS=".yolo-planning/destructive-commands.local.txt"
 
 # Build combined pattern from all sources
 PATTERNS=""
@@ -55,19 +55,19 @@ if echo "$COMMAND" | grep -iqE "$PATTERNS"; then
   # Extract which pattern matched (for logging)
   MATCHED=$(echo "$COMMAND" | grep -ioE "$PATTERNS" | head -1)
   echo "Blocked: destructive command detected ($MATCHED)" >&2
-  echo "Hint: Use VBW_ALLOW_DESTRUCTIVE=1 to override, or run outside VBW." >&2
+  echo "Hint: Use YOLO_ALLOW_DESTRUCTIVE=1 to override, or run outside YOLO." >&2
   echo "See: config/destructive-commands.txt for the full blocklist." >&2
 
   # Event logging (best-effort, non-blocking)
-  if [ -d ".vbw-planning" ]; then
+  if [ -d ".yolo-planning" ]; then
     PREVIEW=$(echo "$COMMAND" | head -c 40)
-    AGENT="${VBW_ACTIVE_AGENT:-unknown}"
+    AGENT="${YOLO_ACTIVE_AGENT:-unknown}"
     TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%s")
     # Escape double quotes in preview for valid JSON
     PREVIEW=$(echo "$PREVIEW" | sed 's/"/\\"/g')
     MATCHED_ESC=$(echo "$MATCHED" | sed 's/"/\\"/g')
     printf '{"event":"bash_guard_block","command_preview":"%s","pattern_matched":"%s","agent":"%s","timestamp":"%s"}\n' \
-      "$PREVIEW" "$MATCHED_ESC" "$AGENT" "$TS" >> ".vbw-planning/.event-log.jsonl" 2>/dev/null
+      "$PREVIEW" "$MATCHED_ESC" "$AGENT" "$TS" >> ".yolo-planning/.event-log.jsonl" 2>/dev/null
   fi
 
   exit 2

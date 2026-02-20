@@ -8,11 +8,11 @@ INPUT=$(cat)
 # Clean up cost tracking files and compaction marker (stale after compaction)
 # Preserve .active-agent and .active-agent-count — agents may still be running
 # after compaction. These are cleaned up by agent-stop.sh and session-stop.sh.
-rm -f .vbw-planning/.cost-ledger.json .vbw-planning/.compaction-marker 2>/dev/null
+rm -f .yolo-planning/.cost-ledger.json .yolo-planning/.compaction-marker 2>/dev/null
 
 # Try to identify agent role from input context
 ROLE=""
-for pattern in vbw-lead vbw-dev vbw-qa vbw-scout vbw-debugger vbw-architect vbw-docs; do
+for pattern in yolo-lead yolo-dev yolo-qa yolo-scout yolo-debugger yolo-architect yolo-docs; do
   if echo "$INPUT" | grep -qi "$pattern"; then
     ROLE="$pattern"
     break
@@ -34,22 +34,22 @@ next_task_from_completed() {
 }
 
 case "$ROLE" in
-  vbw-lead)
+  yolo-lead)
     FILES="STATE.md, ROADMAP.md, config.json, and current phase plans"
     ;;
-  vbw-dev)
+  yolo-dev)
     FILES="your assigned plan file, SUMMARY.md template, and relevant source files"
     ;;
-  vbw-qa)
+  yolo-qa)
     FILES="SUMMARY.md files under review, verification criteria, and gap reports"
     ;;
-  vbw-scout)
+  yolo-scout)
     FILES="research notes, REQUIREMENTS.md, and any scout-specific findings"
     ;;
-  vbw-debugger)
+  yolo-debugger)
     FILES="reproduction steps, hypothesis log, and related source files"
     ;;
-  vbw-architect)
+  yolo-architect)
     FILES="REQUIREMENTS.md, ROADMAP.md, phase structure, and architecture decisions"
     ;;
   *)
@@ -60,8 +60,8 @@ esac
 # --- Restore agent state snapshot ---
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SNAPSHOT_CONTEXT=""
-if [ -f ".vbw-planning/.execution-state.json" ] && [ -f "$SCRIPT_DIR/snapshot-resume.sh" ]; then
-  SNAP_PHASE=$(jq -r '.phase // ""' ".vbw-planning/.execution-state.json" 2>/dev/null)
+if [ -f ".yolo-planning/.execution-state.json" ] && [ -f "$SCRIPT_DIR/snapshot-resume.sh" ]; then
+  SNAP_PHASE=$(jq -r '.phase // ""' ".yolo-planning/.execution-state.json" 2>/dev/null)
   if [ -n "$SNAP_PHASE" ]; then
     SNAP_PATH=$(bash "$SCRIPT_DIR/snapshot-resume.sh" restore "$SNAP_PHASE" "${ROLE:-}" 2>/dev/null) || SNAP_PATH=""
     if [ -n "$SNAP_PATH" ] && [ -f "$SNAP_PATH" ]; then
@@ -87,18 +87,18 @@ if [ -f ".vbw-planning/.execution-state.json" ] && [ -f "$SCRIPT_DIR/snapshot-re
       SNAP_IN_PROGRESS_TASK=$(jq -r '.execution_state.current_task_id // ""' "$SNAP_PATH" 2>/dev/null)
       SNAP_LAST_COMPLETED_TASK=""
       SNAP_NEXT_TASK=""
-      if [ -n "$SNAP_PLAN" ] && [ "$SNAP_PLAN" != "unknown" ] && [ -f ".vbw-planning/.events/event-log.jsonl" ] && command -v jq >/dev/null 2>&1; then
+      if [ -n "$SNAP_PLAN" ] && [ "$SNAP_PLAN" != "unknown" ] && [ -f ".yolo-planning/.events/event-log.jsonl" ] && command -v jq >/dev/null 2>&1; then
         PLAN_NUM=$(plan_id_to_num "$SNAP_PLAN")
         if [ -n "$PLAN_NUM" ] && [[ "$PLAN_NUM" =~ ^[0-9]+$ ]] && [ "$PLAN_NUM" -gt 0 ]; then
           LAST_STARTED_TASK=$(jq -r --argjson phase "$SNAP_PHASE" --argjson plan "$PLAN_NUM" '
             select(.event == "task_started" and .phase == $phase and (.plan // 0) == $plan)
             | .data.task_id // empty
-          ' ".vbw-planning/.events/event-log.jsonl" 2>/dev/null | tail -1)
+          ' ".yolo-planning/.events/event-log.jsonl" 2>/dev/null | tail -1)
 
           LAST_COMPLETED_TASK=$(jq -r --argjson phase "$SNAP_PHASE" --argjson plan "$PLAN_NUM" '
             select(.event == "task_completed_confirmed" and .phase == $phase and (.plan // 0) == $plan)
             | .data.task_id // empty
-          ' ".vbw-planning/.events/event-log.jsonl" 2>/dev/null | tail -1)
+          ' ".yolo-planning/.events/event-log.jsonl" 2>/dev/null | tail -1)
 
           if [ -z "$SNAP_IN_PROGRESS_TASK" ] && [ -n "$LAST_STARTED_TASK" ] && [ "$LAST_STARTED_TASK" != "$LAST_COMPLETED_TASK" ]; then
             SNAP_IN_PROGRESS_TASK="$LAST_STARTED_TASK"
@@ -124,7 +124,7 @@ if [ -f ".vbw-planning/.execution-state.json" ] && [ -f "$SCRIPT_DIR/snapshot-re
         SNAPSHOT_CONTEXT="${SNAPSHOT_CONTEXT} Recent commits: ${SNAP_COMMITS}."
       fi
       TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%d %H:%M:%S")
-      echo "[$TIMESTAMP] Snapshot restored: $SNAP_PATH phase=$SNAP_PHASE" >> ".vbw-planning/.hook-errors.log" 2>/dev/null || true
+      echo "[$TIMESTAMP] Snapshot restored: $SNAP_PATH phase=$SNAP_PHASE" >> ".yolo-planning/.hook-errors.log" 2>/dev/null || true
     fi
   fi
 fi

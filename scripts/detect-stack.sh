@@ -1,6 +1,6 @@
 #!/bin/bash
 # detect-stack.sh — Detect project tech stack and recommend skills
-# Called by /vbw:init Step 3 and /vbw:skills to avoid 50+ inline tool calls.
+# Called by /yolo:init Step 3 and /yolo:skills to avoid 50+ inline tool calls.
 # Reads stack-mappings.json, checks project files, outputs JSON.
 #
 # Usage: bash detect-stack.sh [project-dir]

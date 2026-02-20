@@ -1,5 +1,5 @@
 ---
-name: vbw:profile
+name: yolo:profile
 category: supporting
 disable-model-invocation: true
 description: Switch between work profiles or create custom ones. Profiles change effort, autonomy, and verification in one go.
@@ -7,18 +7,18 @@ argument-hint: "[profile-name | save | delete <name>]"
 allowed-tools: Read, Write, Edit
 ---
 
-# VBW Profile $ARGUMENTS
+# YOLO Profile $ARGUMENTS
 
 ## Context
 
 Config:
 ```
-!`cat .vbw-planning/config.json 2>/dev/null || echo "No config found -- run /vbw:init first"`
+!`cat .yolo-planning/config.json 2>/dev/null || echo "No config found -- run /yolo:init first"`
 ```
 
 ## Guard
 
-If no .vbw-planning/ dir: STOP "Run /vbw:init first." (check `.vbw-planning/config.json`)
+If no .yolo-planning/ dir: STOP "Run /yolo:init first." (check `.yolo-planning/config.json`)
 
 ## Built-in Profiles
 
@@ -58,4 +58,4 @@ Built-in: "⚠ Cannot delete built-in profile." Not found: "⚠ Profile not foun
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — single-line box, ✓ success, ⚠ errors, ➜ transitions, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — single-line box, ✓ success, ⚠ errors, ➜ transitions, no ANSI.

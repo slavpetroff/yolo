@@ -5,10 +5,10 @@ load test_helper
 setup() {
   setup_temp_dir
   create_test_config
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/phases/03-test-phase"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/phases/03-test-phase"
 
   # Create a sample PLAN.md
-  cat > "$TEST_TEMP_DIR/.vbw-planning/phases/03-test-phase/03-01-PLAN.md" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/phases/03-test-phase/03-01-PLAN.md" <<'EOF'
 ---
 phase: 3
 plan: 1
@@ -40,44 +40,44 @@ teardown() {
 
 @test "generate-contract.sh exits 0 when v3_contract_lite=false" {
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/03-test-phase/03-01-PLAN.md"
+  run bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/03-test-phase/03-01-PLAN.md"
   [ "$status" -eq 0 ]
-  [ ! -d ".vbw-planning/.contracts" ]
+  [ ! -d ".yolo-planning/.contracts" ]
 }
 
 @test "generate-contract.sh creates contract JSON when flag=true" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_contract_lite = true' ".vbw-planning/config.json" > ".vbw-planning/config.tmp" && mv ".vbw-planning/config.tmp" ".vbw-planning/config.json"
+  jq '.v3_contract_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  run bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/03-test-phase/03-01-PLAN.md"
+  run bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/03-test-phase/03-01-PLAN.md"
   [ "$status" -eq 0 ]
-  [ -f ".vbw-planning/.contracts/3-1.json" ]
+  [ -f ".yolo-planning/.contracts/3-1.json" ]
 }
 
 @test "generate-contract.sh contract has correct must_haves" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_contract_lite = true' ".vbw-planning/config.json" > ".vbw-planning/config.tmp" && mv ".vbw-planning/config.tmp" ".vbw-planning/config.json"
+  jq '.v3_contract_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/03-test-phase/03-01-PLAN.md"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/03-test-phase/03-01-PLAN.md"
 
-  run jq -r '.must_haves | length' ".vbw-planning/.contracts/3-1.json"
+  run jq -r '.must_haves | length' ".yolo-planning/.contracts/3-1.json"
   [ "$output" = "2" ]
 
-  run jq -r '.must_haves[0]' ".vbw-planning/.contracts/3-1.json"
+  run jq -r '.must_haves[0]' ".yolo-planning/.contracts/3-1.json"
   [ "$output" = "Feature A implemented" ]
 }
 
 @test "generate-contract.sh contract has allowed_paths from task Files" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_contract_lite = true' ".vbw-planning/config.json" > ".vbw-planning/config.tmp" && mv ".vbw-planning/config.tmp" ".vbw-planning/config.json"
+  jq '.v3_contract_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/03-test-phase/03-01-PLAN.md"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/03-test-phase/03-01-PLAN.md"
 
   # Should include files from both tasks
-  run jq -r '.allowed_paths | length' ".vbw-planning/.contracts/3-1.json"
+  run jq -r '.allowed_paths | length' ".yolo-planning/.contracts/3-1.json"
   [ "$output" -ge 3 ]
 
-  run jq -r '.allowed_paths[]' ".vbw-planning/.contracts/3-1.json"
+  run jq -r '.allowed_paths[]' ".yolo-planning/.contracts/3-1.json"
   echo "$output" | grep -q "scripts/feature-a.sh"
   echo "$output" | grep -q "config/settings.json"
   echo "$output" | grep -q "tests/feature-b.bats"
@@ -85,11 +85,11 @@ teardown() {
 
 @test "generate-contract.sh contract has correct task_count" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_contract_lite = true' ".vbw-planning/config.json" > ".vbw-planning/config.tmp" && mv ".vbw-planning/config.tmp" ".vbw-planning/config.json"
+  jq '.v3_contract_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/03-test-phase/03-01-PLAN.md"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/03-test-phase/03-01-PLAN.md"
 
-  run jq -r '.task_count' ".vbw-planning/.contracts/3-1.json"
+  run jq -r '.task_count' ".yolo-planning/.contracts/3-1.json"
   [ "$output" = "2" ]
 }
 
@@ -101,51 +101,51 @@ teardown() {
 
 @test "validate-contract.sh start mode passes for valid task" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_contract_lite = true' ".vbw-planning/config.json" > ".vbw-planning/config.tmp" && mv ".vbw-planning/config.tmp" ".vbw-planning/config.json"
+  jq '.v3_contract_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/03-test-phase/03-01-PLAN.md"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/03-test-phase/03-01-PLAN.md"
 
-  run bash "$SCRIPTS_DIR/validate-contract.sh" start ".vbw-planning/.contracts/3-1.json" 1
+  run bash "$SCRIPTS_DIR/validate-contract.sh" start ".yolo-planning/.contracts/3-1.json" 1
   [ "$status" -eq 0 ]
 }
 
 @test "validate-contract.sh start mode logs violation for out-of-range task" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_contract_lite = true' ".vbw-planning/config.json" > ".vbw-planning/config.tmp" && mv ".vbw-planning/config.tmp" ".vbw-planning/config.json"
-  jq '.v3_metrics = true' ".vbw-planning/config.json" > ".vbw-planning/config.tmp" && mv ".vbw-planning/config.tmp" ".vbw-planning/config.json"
+  jq '.v3_contract_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
+  jq '.v3_metrics = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/03-test-phase/03-01-PLAN.md"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/03-test-phase/03-01-PLAN.md"
 
-  run bash "$SCRIPTS_DIR/validate-contract.sh" start ".vbw-planning/.contracts/3-1.json" 99
+  run bash "$SCRIPTS_DIR/validate-contract.sh" start ".yolo-planning/.contracts/3-1.json" 99
   [ "$status" -eq 0 ]
 
   # Should have logged a scope_violation metric
-  [ -f ".vbw-planning/.metrics/run-metrics.jsonl" ]
-  grep -q "scope_violation" ".vbw-planning/.metrics/run-metrics.jsonl"
+  [ -f ".yolo-planning/.metrics/run-metrics.jsonl" ]
+  grep -q "scope_violation" ".yolo-planning/.metrics/run-metrics.jsonl"
 }
 
 @test "validate-contract.sh end mode passes for in-scope files" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_contract_lite = true' ".vbw-planning/config.json" > ".vbw-planning/config.tmp" && mv ".vbw-planning/config.tmp" ".vbw-planning/config.json"
+  jq '.v3_contract_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/03-test-phase/03-01-PLAN.md"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/03-test-phase/03-01-PLAN.md"
 
-  run bash "$SCRIPTS_DIR/validate-contract.sh" end ".vbw-planning/.contracts/3-1.json" 1 "scripts/feature-a.sh"
+  run bash "$SCRIPTS_DIR/validate-contract.sh" end ".yolo-planning/.contracts/3-1.json" 1 "scripts/feature-a.sh"
   [ "$status" -eq 0 ]
 }
 
 @test "validate-contract.sh end mode logs violation for out-of-scope files" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_contract_lite = true' ".vbw-planning/config.json" > ".vbw-planning/config.tmp" && mv ".vbw-planning/config.tmp" ".vbw-planning/config.json"
-  jq '.v3_metrics = true' ".vbw-planning/config.json" > ".vbw-planning/config.tmp" && mv ".vbw-planning/config.tmp" ".vbw-planning/config.json"
+  jq '.v3_contract_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
+  jq '.v3_metrics = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/03-test-phase/03-01-PLAN.md"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/03-test-phase/03-01-PLAN.md"
 
-  run bash "$SCRIPTS_DIR/validate-contract.sh" end ".vbw-planning/.contracts/3-1.json" 1 "some/random/file.txt"
+  run bash "$SCRIPTS_DIR/validate-contract.sh" end ".yolo-planning/.contracts/3-1.json" 1 "some/random/file.txt"
   [ "$status" -eq 0 ]
 
   # Should have logged a scope_violation metric
-  [ -f ".vbw-planning/.metrics/run-metrics.jsonl" ]
-  grep -q "scope_violation" ".vbw-planning/.metrics/run-metrics.jsonl"
-  grep -q "out_of_scope" ".vbw-planning/.metrics/run-metrics.jsonl"
+  [ -f ".yolo-planning/.metrics/run-metrics.jsonl" ]
+  grep -q "scope_violation" ".yolo-planning/.metrics/run-metrics.jsonl"
+  grep -q "out_of_scope" ".yolo-planning/.metrics/run-metrics.jsonl"
 }

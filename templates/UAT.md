@@ -1,13 +1,13 @@
 ---
-phase: {phase-id}
-plan_count: {N}
-status: {in_progress|complete|issues_found}
-started: {YYYY-MM-DD}
-completed: {YYYY-MM-DD}
-total_tests: {N}
-passed: {N}
-skipped: {N}
-issues: {N}
+phase: { phase-id }
+plan_count: { N }
+status: { in_progress|complete|issues_found }
+started: { YYYY-MM-DD }
+completed: { YYYY-MM-DD }
+total_tests: { N }
+passed: { N }
+skipped: { N }
+issues: { N }
 ---
 
 {one-line-summary}
@@ -23,7 +23,7 @@ issues: {N}
 - **Issue:** {if result=issue}
   - Description: {issue-description}
   - Severity: {critical|major|minor}
-  - Fix: /vbw:fix "{suggested-fix-description}"
+  - Fix: /yolo:fix "{suggested-fix-description}"
 
 ## Summary
 

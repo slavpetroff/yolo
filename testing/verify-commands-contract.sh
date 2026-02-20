@@ -5,7 +5,7 @@ set -euo pipefail
 #
 # Checks each commands/*.md file for:
 # - YAML frontmatter
-# - name matches file basename (plugin auto-prefixes vbw:)
+# - name matches file basename (plugin auto-prefixes yolo:)
 # - single-line non-empty description
 # - allowed-tools field present
 # - `${CLAUDE_PLUGIN_ROOT}/...` references resolve to real files/dirs
@@ -56,8 +56,8 @@ for file in "$COMMANDS_DIR"/*.md; do
   fi
 
   NAME_VALUE="$(printf '%s\n' "$FRONTMATTER" | sed -n 's/^name:[[:space:]]*//p' | head -1)"
-  # Strip vbw: prefix if present — plugin auto-prefixes the namespace
-  NAME_STEM="${NAME_VALUE#vbw:}"
+  # Strip yolo: prefix if present — plugin auto-prefixes the namespace
+  NAME_STEM="${NAME_VALUE#yolo:}"
 
   if [ -z "$NAME_VALUE" ]; then
     fail "$base: missing name field"
@@ -116,7 +116,7 @@ for file in "$COMMANDS_DIR"/*.md; do
 
   # This command is milestone-aware — check for mitigation
   has_context_interp=false
-  if grep -q 'cat \.vbw-planning/ACTIVE' "$file" 2>/dev/null; then
+  if grep -q 'cat \.yolo-planning/ACTIVE' "$file" 2>/dev/null; then
     has_context_interp=true
   fi
 
@@ -129,7 +129,7 @@ for file in "$COMMANDS_DIR"/*.md; do
   if $has_context_interp || $has_bash; then
     pass "$base: milestone-aware command has ACTIVE context or Bash access"
   else
-    fail "$base: milestone-aware command has NO way to read .vbw-planning/ACTIVE (needs context interpolation or Bash in allowed-tools)"
+    fail "$base: milestone-aware command has NO way to read .yolo-planning/ACTIVE (needs context interpolation or Bash in allowed-tools)"
   fi
 done
 

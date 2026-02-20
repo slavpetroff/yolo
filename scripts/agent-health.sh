@@ -1,6 +1,6 @@
 #!/bin/bash
 set -u
-# agent-health.sh — Track VBW agent health and recover from failures
+# agent-health.sh — Track YOLO agent health and recover from failures
 #
 # Usage:
 #   agent-health.sh start     # SubagentStart hook: Create health file
@@ -8,7 +8,7 @@ set -u
 #   agent-health.sh stop      # SubagentStop hook: Clean up health file
 #   agent-health.sh cleanup   # Stop hook: Remove all health tracking
 
-HEALTH_DIR=".vbw-planning/.agent-health"
+HEALTH_DIR=".yolo-planning/.agent-health"
 
 orphan_recovery() {
   local role="$1"
@@ -61,8 +61,8 @@ cmd_start() {
   pid=$(echo "$input" | jq -r '.pid // ""' 2>/dev/null)
   role=$(echo "$input" | jq -r '.agent_type // .agent_name // .name // ""' 2>/dev/null)
 
-  # Normalize role (strip prefixes like vbw:, @, etc.)
-  role=$(echo "$role" | sed -E 's/^@?vbw[:-]//i' | tr '[:upper:]' '[:lower:]')
+  # Normalize role (strip prefixes like yolo:, @, etc.)
+  role=$(echo "$role" | sed -E 's/^@?yolo[:-]//i' | tr '[:upper:]' '[:lower:]')
 
   # Skip if no role extracted
   if [ -z "$role" ] || [ -z "$pid" ]; then
@@ -106,7 +106,7 @@ cmd_idle() {
 
   # Extract role from hook JSON
   role=$(echo "$input" | jq -r '.agent_type // .agent_name // .name // ""' 2>/dev/null)
-  role=$(echo "$role" | sed -E 's/^@?vbw[:-]//i' | tr '[:upper:]' '[:lower:]')
+  role=$(echo "$role" | sed -E 's/^@?yolo[:-]//i' | tr '[:upper:]' '[:lower:]')
 
   if [ -z "$role" ]; then
     exit 0
@@ -170,7 +170,7 @@ cmd_stop() {
 
   # Extract role from hook JSON
   role=$(echo "$input" | jq -r '.agent_type // .agent_name // .name // ""' 2>/dev/null)
-  role=$(echo "$role" | sed -E 's/^@?vbw[:-]//i' | tr '[:upper:]' '[:lower:]')
+  role=$(echo "$role" | sed -E 's/^@?yolo[:-]//i' | tr '[:upper:]' '[:lower:]')
 
   if [ -z "$role" ]; then
     exit 0

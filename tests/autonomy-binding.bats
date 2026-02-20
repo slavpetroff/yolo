@@ -5,10 +5,10 @@ load test_helper
 setup() {
   setup_temp_dir
   create_test_config
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.contracts"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.events"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.metrics"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/phases/01-test"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.contracts"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.events"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.metrics"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/phases/01-test"
 }
 
 teardown() {
@@ -16,7 +16,7 @@ teardown() {
 }
 
 create_valid_contract() {
-  cat > "$TEST_TEMP_DIR/.vbw-planning/.contracts/1-1.json" << 'CONTRACT'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/.contracts/1-1.json" << 'CONTRACT'
 {
   "phase_id": "phase-1",
   "plan_id": "phase-1-plan-1",
@@ -35,18 +35,18 @@ create_valid_contract() {
 }
 CONTRACT
   # Compute and store hash
-  HASH=$(jq 'del(.contract_hash)' "$TEST_TEMP_DIR/.vbw-planning/.contracts/1-1.json" | shasum -a 256 | cut -d' ' -f1)
-  jq --arg h "$HASH" '.contract_hash = $h' "$TEST_TEMP_DIR/.vbw-planning/.contracts/1-1.json" > "$TEST_TEMP_DIR/.vbw-planning/.contracts/1-1.json.tmp" \
-    && mv "$TEST_TEMP_DIR/.vbw-planning/.contracts/1-1.json.tmp" "$TEST_TEMP_DIR/.vbw-planning/.contracts/1-1.json"
+  HASH=$(jq 'del(.contract_hash)' "$TEST_TEMP_DIR/.yolo-planning/.contracts/1-1.json" | shasum -a 256 | cut -d' ' -f1)
+  jq --arg h "$HASH" '.contract_hash = $h' "$TEST_TEMP_DIR/.yolo-planning/.contracts/1-1.json" > "$TEST_TEMP_DIR/.yolo-planning/.contracts/1-1.json.tmp" \
+    && mv "$TEST_TEMP_DIR/.yolo-planning/.contracts/1-1.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/.contracts/1-1.json"
 }
 
 @test "hard-gate: includes autonomy field in pass output" {
   cd "$TEST_TEMP_DIR"
   jq '.v2_hard_gates = true | .v2_hard_contracts = true | .v3_event_log = true' \
-    .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+    .yolo-planning/config.json > .yolo-planning/config.json.tmp \
+    && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   create_valid_contract
-  run bash "$SCRIPTS_DIR/hard-gate.sh" contract_compliance 1 1 1 "$TEST_TEMP_DIR/.vbw-planning/.contracts/1-1.json"
+  run bash "$SCRIPTS_DIR/hard-gate.sh" contract_compliance 1 1 1 "$TEST_TEMP_DIR/.yolo-planning/.contracts/1-1.json"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.autonomy'
   AUTONOMY=$(echo "$output" | jq -r '.autonomy')
@@ -65,10 +65,10 @@ CONTRACT
 @test "hard-gate: autonomy value matches config" {
   cd "$TEST_TEMP_DIR"
   jq '.v2_hard_gates = true | .v2_hard_contracts = true | .v3_event_log = true | .autonomy = "yolo"' \
-    .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+    .yolo-planning/config.json > .yolo-planning/config.json.tmp \
+    && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   create_valid_contract
-  run bash "$SCRIPTS_DIR/hard-gate.sh" contract_compliance 1 1 1 "$TEST_TEMP_DIR/.vbw-planning/.contracts/1-1.json"
+  run bash "$SCRIPTS_DIR/hard-gate.sh" contract_compliance 1 1 1 "$TEST_TEMP_DIR/.yolo-planning/.contracts/1-1.json"
   [ "$status" -eq 0 ]
   AUTONOMY=$(echo "$output" | jq -r '.autonomy')
   [ "$AUTONOMY" = "yolo" ]
@@ -77,10 +77,10 @@ CONTRACT
 @test "hard-gate: gate fires regardless of autonomy=yolo" {
   cd "$TEST_TEMP_DIR"
   jq '.v2_hard_gates = true | .v2_hard_contracts = true | .v3_event_log = true | .autonomy = "yolo"' \
-    .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+    .yolo-planning/config.json > .yolo-planning/config.json.tmp \
+    && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   # Create contract with wrong hash to trigger failure
-  cat > "$TEST_TEMP_DIR/.vbw-planning/.contracts/1-1.json" << 'CONTRACT'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/.contracts/1-1.json" << 'CONTRACT'
 {
   "phase_id": "phase-1",
   "plan_id": "phase-1-plan-1",
@@ -99,7 +99,7 @@ CONTRACT
   "contract_hash": "tampered_hash_value"
 }
 CONTRACT
-  run bash "$SCRIPTS_DIR/hard-gate.sh" contract_compliance 1 1 1 "$TEST_TEMP_DIR/.vbw-planning/.contracts/1-1.json"
+  run bash "$SCRIPTS_DIR/hard-gate.sh" contract_compliance 1 1 1 "$TEST_TEMP_DIR/.yolo-planning/.contracts/1-1.json"
   [ "$status" -eq 2 ]
   echo "$output" | jq -e '.result == "fail"'
   echo "$output" | jq -e '.autonomy == "yolo"'

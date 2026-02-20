@@ -13,7 +13,7 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // ""' 2>/dev/null) || 
 
 # Exempt planning artifacts — these are always allowed
 case "$FILE_PATH" in
-  *.vbw-planning/*|*SUMMARY.md|*VERIFICATION.md|*STATE.md|*CLAUDE.md|*.execution-state.json)
+  *.yolo-planning/*|*SUMMARY.md|*VERIFICATION.md|*STATE.md|*CLAUDE.md|*.execution-state.json)
     exit 0
     ;;
 esac
@@ -22,7 +22,7 @@ esac
 find_project_root() {
   local dir="$PWD"
   while [ "$dir" != "/" ]; do
-    if [ -d "$dir/.vbw-planning/phases" ]; then
+    if [ -d "$dir/.yolo-planning/phases" ]; then
       echo "$dir"
       return 0
     fi
@@ -32,7 +32,7 @@ find_project_root() {
 }
 
 PROJECT_ROOT=$(find_project_root) || exit 0
-PHASES_DIR="$PROJECT_ROOT/.vbw-planning/phases"
+PHASES_DIR="$PROJECT_ROOT/.yolo-planning/phases"
 [ ! -d "$PHASES_DIR" ] && exit 0
 
 # Normalize path helper
@@ -48,14 +48,14 @@ normalize_path() {
 NORM_TARGET=$(normalize_path "$FILE_PATH")
 
 # --- V2 forbidden_paths check from active contract ---
-CONFIG_PATH="$PROJECT_ROOT/.vbw-planning/config.json"
+CONFIG_PATH="$PROJECT_ROOT/.yolo-planning/config.json"
 V2_HARD=false
 if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
   V2_HARD=$(jq -r '.v2_hard_contracts // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
 fi
 
 if [ "$V2_HARD" = "true" ]; then
-  CONTRACT_DIR="$PROJECT_ROOT/.vbw-planning/.contracts"
+  CONTRACT_DIR="$PROJECT_ROOT/.yolo-planning/.contracts"
   if [ -d "$CONTRACT_DIR" ]; then
     # Find active contract: match the first plan without a SUMMARY
     # zsh compat: if no PLAN files exist, glob literal fails -f test and is skipped
@@ -113,12 +113,12 @@ if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
 fi
 
 if [ "$V2_ROLE_ISO" = "true" ]; then
-  AGENT_ROLE="${VBW_AGENT_ROLE:-}"
+  AGENT_ROLE="${YOLO_AGENT_ROLE:-}"
   if [ -n "$AGENT_ROLE" ]; then
     case "$AGENT_ROLE" in
       lead|architect|qa)
-        # Planning roles can only write to .vbw-planning/ (already exempted above, so reaching here means non-planning path)
-        echo "Blocked: role '${AGENT_ROLE}' cannot write outside .vbw-planning/ (v2_role_isolation)" >&2
+        # Planning roles can only write to .yolo-planning/ (already exempted above, so reaching here means non-planning path)
+        echo "Blocked: role '${AGENT_ROLE}' cannot write outside .yolo-planning/ (v2_role_isolation)" >&2
         exit 2
         ;;
       scout)

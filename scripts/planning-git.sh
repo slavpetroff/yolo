@@ -29,13 +29,13 @@ read_config() {
 }
 
 ensure_transient_ignore() {
-  local planning_dir=".vbw-planning"
+  local planning_dir=".yolo-planning"
   local ignore_file="$planning_dir/.gitignore"
 
   [ -d "$planning_dir" ] || return 0
 
   cat > "$ignore_file" <<'EOF'
-# VBW transient runtime artifacts
+# YOLO transient runtime artifacts
 .execution-state.json
 .execution-state.json.tmp
 .context-*.md
@@ -44,7 +44,7 @@ ensure_transient_ignore() {
 .token-state/
 
 # Session & agent tracking
-.vbw-session
+.yolo-session
 .active-agent
 .active-agent-count
 .active-agent-count.lock/
@@ -91,12 +91,12 @@ sync_root_ignore() {
 
   if [ "$mode" = "ignore" ]; then
     if [ ! -f "$root_ignore" ]; then
-      printf '.vbw-planning/\n' > "$root_ignore"
+      printf '.yolo-planning/\n' > "$root_ignore"
       return 0
     fi
 
-    if ! grep -qx '\.vbw-planning/' "$root_ignore"; then
-      printf '\n.vbw-planning/\n' >> "$root_ignore"
+    if ! grep -qx '\.yolo-planning/' "$root_ignore"; then
+      printf '\n.yolo-planning/\n' >> "$root_ignore"
     fi
     return 0
   fi
@@ -104,7 +104,7 @@ sync_root_ignore() {
   if [ "$mode" = "commit" ] && [ -f "$root_ignore" ]; then
     local tmp
     tmp=$(mktemp)
-    awk '$0 != ".vbw-planning/"' "$root_ignore" > "$tmp"
+    awk '$0 != ".yolo-planning/"' "$root_ignore" > "$tmp"
     mv "$tmp" "$root_ignore"
   fi
 }
@@ -128,7 +128,7 @@ fi
 
 case "$COMMAND" in
   sync-ignore)
-    CONFIG_FILE="${ARG2:-.vbw-planning/config.json}"
+    CONFIG_FILE="${ARG2:-.yolo-planning/config.json}"
 
     if ! is_git_repo; then
       exit 0
@@ -144,7 +144,7 @@ case "$COMMAND" in
 
   commit-boundary)
     ACTION="${ARG2:-}"
-    CONFIG_FILE="${ARG3:-.vbw-planning/config.json}"
+    CONFIG_FILE="${ARG3:-.yolo-planning/config.json}"
 
     if [ -z "$ACTION" ]; then
       echo "Usage: planning-git.sh commit-boundary <action> [CONFIG_FILE]" >&2
@@ -163,8 +163,8 @@ case "$COMMAND" in
 
     ensure_transient_ignore
 
-    if [ -d ".vbw-planning" ]; then
-      git add .vbw-planning
+    if [ -d ".yolo-planning" ]; then
+      git add .yolo-planning
     fi
 
     if [ -f "CLAUDE.md" ]; then
@@ -175,12 +175,12 @@ case "$COMMAND" in
       exit 0
     fi
 
-    git commit -m "chore(vbw): $ACTION"
+    git commit -m "chore(yolo): $ACTION"
     push_if_configured "$CFG_AUTO_PUSH"
     ;;
 
   push-after-phase)
-    CONFIG_FILE="${ARG2:-.vbw-planning/config.json}"
+    CONFIG_FILE="${ARG2:-.yolo-planning/config.json}"
 
     if ! is_git_repo; then
       exit 0

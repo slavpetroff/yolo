@@ -1,9 +1,9 @@
 #!/bin/bash
 set -u
-# Stop hook: Log session metrics to .vbw-planning/.session-log.jsonl
+# Stop hook: Log session metrics to .yolo-planning/.session-log.jsonl
 # Non-blocking, fail-open (always exit 0)
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 
 # Guard: only log if planning directory exists
 if [ ! -d "$PLANNING_DIR" ]; then
@@ -51,9 +51,9 @@ if [ -f "$PLANNING_DIR/.cost-ledger.json" ]; then
 fi
 
 # Clean up transient agent markers and stale lock dir.
-# Keep .vbw-session so plain-text follow-ups in an active VBW flow remain
-# unblocked across assistant turns. .vbw-session is cleared by explicit
-# non-VBW slash commands in prompt-preflight.sh (and stale markers are ignored
+# Keep .yolo-session so plain-text follow-ups in an active YOLO flow remain
+# unblocked across assistant turns. .yolo-session is cleared by explicit
+# non-YOLO slash commands in prompt-preflight.sh (and stale markers are ignored
 # by security-filter.sh after 24h).
 rmdir "$PLANNING_DIR/.active-agent-count.lock" 2>/dev/null || true
 rm -f "$PLANNING_DIR/.active-agent" "$PLANNING_DIR/.active-agent-count" "$PLANNING_DIR/.agent-panes" "$PLANNING_DIR/.task-verify-seen" 2>/dev/null

@@ -1,56 +1,43 @@
 ---
-name: vbw:research
+name: yolo:research
 category: advanced
 description: Run standalone research by spawning Scout agent(s) for web searches and documentation lookups.
 argument-hint: <research-topic> [--parallel]
 allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch
 ---
 
-# VBW Research: $ARGUMENTS
+# YOLO Research: $ARGUMENTS
 
 ## Context
 
 Working directory: `!`pwd``
-Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/vbw-marketplace/vbw/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
+Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
 
 Current project:
 ```
-!`cat .vbw-planning/PROJECT.md 2>/dev/null || echo "No project found"`
+!`cat .yolo-planning/PROJECT.md 2>/dev/null || echo "No project found"`
 ```
 
 ## Guard
 
-- No $ARGUMENTS: STOP "Usage: /vbw:research <topic> [--parallel]"
+- No $ARGUMENTS: STOP "Usage: /yolo:research <topic> [--parallel]"
 
 ## Steps
 
 1. **Parse:** Topic (required). --parallel: spawn multiple Scouts on sub-topics.
-2. **Scope:** Single question = 1 Scout. Multi-faceted or --parallel = 2-4 sub-topics.
-3. **Spawn Scout:**
-   - Resolve Scout model:
-     ```bash
-    RESEARCH_EFFORT=$(jq -r '.effort // "balanced"' .vbw-planning/config.json 2>/dev/null)
-     SCOUT_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh scout .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-     if [ $? -ne 0 ]; then echo "$SCOUT_MODEL" >&2; exit 1; fi
-    SCOUT_MAX_TURNS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-max-turns.sh scout .vbw-planning/config.json "$RESEARCH_EFFORT")
-    if [ $? -ne 0 ]; then echo "$SCOUT_MAX_TURNS" >&2; exit 1; fi
-     ```
-   - Display: `◆ Spawning Scout (${SCOUT_MODEL})...`
-  - Spawn vbw-scout as subagent(s) via Task tool. **Add `model: "${SCOUT_MODEL}"` and `maxTurns: ${SCOUT_MAX_TURNS}` parameters.**
-```
-Research: {topic or sub-topic}.
-Project context: {tech stack, constraints from PROJECT.md if relevant}.
-Return structured findings.
-```
-  - Parallel: up to 4 simultaneous Tasks, each with same `model: "${SCOUT_MODEL}"` and `maxTurns: ${SCOUT_MAX_TURNS}`.
-4. **Synthesize:** Single: present directly. Parallel: merge, note contradictions, rank by confidence.
-5. **Persist:** Ask "Save findings? (y/n)". If yes: write to .vbw-planning/phases/{phase-dir}/RESEARCH.md or .vbw-planning/RESEARCH.md.
+2. **Scope:** Determine the key facets of the question.
+3. **Research:**
+   - Investigate the topic using your `WebFetch` tool for external knowledge, or codebase search tools for internal knowledge.
+   - Do NOT spawn any subagents. Conduct the research directly in this context.
+   - Focus on structured findings with clear headings.
+4. **Synthesize:** Present your findings directly.
+5. **Persist:** Ask "Save findings? (y/n)". If yes: write to .yolo-planning/phases/{phase-dir}/RESEARCH.md or .yolo-planning/RESEARCH.md.
 ```
 ➜ Next Up
-  /vbw:vibe --plan {N} -- Plan using research findings
-  /vbw:vibe --discuss {N} -- Discuss phase approach
+  /yolo:vibe --plan {N} -- Plan using research findings
+  /yolo:vibe --discuss {N} -- Discuss phase approach
 ```
 
 ## Output Format
 
-Per @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md: single-line box for findings, ✓ high / ○ medium / ⚠ low confidence, Next Up Block, no ANSI.
+Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md: single-line box for findings, ✓ high / ○ medium / ⚠ low confidence, Next Up Block, no ANSI.

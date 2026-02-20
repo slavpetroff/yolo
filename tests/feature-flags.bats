@@ -19,14 +19,14 @@ teardown() {
 }
 
 @test "V3 flags default to false in test config" {
-  run jq -r '.v3_context_cache' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.v3_context_cache' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "false" ]
 }
 
 @test "V3 flags can be toggled to true" {
-  jq '.v3_context_cache = true' "$TEST_TEMP_DIR/.vbw-planning/config.json" > "$TEST_TEMP_DIR/.vbw-planning/config.tmp" && mv "$TEST_TEMP_DIR/.vbw-planning/config.tmp" "$TEST_TEMP_DIR/.vbw-planning/config.json"
-  run jq -r '.v3_context_cache' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  jq '.v3_context_cache = true' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.tmp" && mv "$TEST_TEMP_DIR/.yolo-planning/config.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
+  run jq -r '.v3_context_cache' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "true" ]
 }

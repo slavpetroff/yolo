@@ -1,5 +1,5 @@
 {
-  "name": "vbw-marketplace",
+  "name": "yolo-marketplace",
   "owner": {
     "name": "Tiago Serôdio",
     "email": "t.serodio@gmail.com"
@@ -9,7 +9,7 @@
   },
   "plugins": [
     {
-      "name": "vbw",
+      "name": "yolo",
       "source": "./",
       "description": "Development lifecycle plugin — 24 commands, 7 agents, continuous verification",
       "version": "1.21.31",

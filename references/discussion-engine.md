@@ -8,9 +8,9 @@ Replaces the three competing discussion subsystems (Bootstrap Discovery, Phase D
 
 All resolve to this protocol:
 
-- `/vbw:vibe` — auto-detects discussion need from state
-- `/vbw:vibe --discuss [N]` — explicit flag, targets phase N
-- `/vbw:discuss [N]` — standalone command
+- `/yolo:vibe` — auto-detects discussion need from state
+- `/yolo:vibe --discuss [N]` — explicit flag, targets phase N
+- `/yolo:discuss [N]` — standalone command
 
 ## Step 1: Calibrate
 
@@ -19,23 +19,25 @@ Read conversation signals to determine user sophistication. This is NOT a questi
 - Language in prior messages (jargon vs plain language)
 - Project description complexity
 - Config profile (yolo/prototype/default/production)
-- Whether they typed `/vbw:discuss` vs `/vbw:vibe`
+- Whether they typed `/yolo:discuss` vs `/yolo:vibe`
 
 Two modes, silently selected:
 
-| Mode | Signals | Question style | Depth |
-|------|---------|---------------|-------|
-| **Builder** | Plain language, vibe keywords, prototype/yolo profile | Scenario-based, no jargon, cause-and-effect | Concrete situations |
-| **Architect** | Technical terms, specific requirements, production profile | Direct, uses domain terms, trade-off framing | Design decisions |
+| Mode          | Signals                                                    | Question style                               | Depth               |
+| ------------- | ---------------------------------------------------------- | -------------------------------------------- | ------------------- |
+| **Builder**   | Plain language, vibe keywords, prototype/yolo profile      | Scenario-based, no jargon, cause-and-effect  | Concrete situations |
+| **Architect** | Technical terms, specific requirements, production profile | Direct, uses domain terms, trade-off framing | Design decisions    |
 
 Same gray area, two modes:
 
 **Builder:** "When someone's internet drops while they're writing a post, what should happen?"
+
 - "Save what they wrote and try again later"
 - "Show a warning and let them retry"
 - "Let me explain..."
 
 **Architect:** "Offline write strategy for post creation?"
+
 - "Queue locally, sync on reconnect (optimistic)"
 - "Block submission, show connectivity state (pessimistic)"
 - "Let me explain..."
@@ -57,11 +59,11 @@ For bootstrap context (no phases yet): generate gray areas from the project desc
 
 Profile depth controls gray area count:
 
-| Profile | Gray Areas |
-|---------|-----------|
-| prototype | 2-3 |
-| default | 3-5 |
-| production | 4-6 |
+| Profile    | Gray Areas |
+| ---------- | ---------- |
+| prototype  | 2-3        |
+| default    | 3-5        |
+| production | 4-6        |
 
 Present gray areas as a multi-select using AskUserQuestion: "Which areas should we discuss?"
 No "skip all" option — if the user ran discuss, give them real choices.
@@ -71,6 +73,7 @@ No "skip all" option — if the user ran discuss, give them real choices.
 For each selected area, have a natural conversation. Not a form. Not a fixed number of questions.
 
 The rhythm:
+
 1. Open with a framing question for the area (use AskUserQuestion).
 2. Each answer informs the next question — follow the thread.
 3. After 3-4 exchanges, check: "Anything else about [area], or move on?"
@@ -78,13 +81,15 @@ The rhythm:
 
 **Scope awareness** (simple, not a subsystem):
 If the user mentions something outside the phase boundary:
+
 > "[Feature] sounds like its own phase. I'll note it. Back to [current area]..."
-One line. Captured in Deferred Ideas. No feature extraction pipeline.
+> One line. Captured in Deferred Ideas. No feature extraction pipeline.
 
 **Vague answer handling** (natural, not mechanical):
 If the user says something vague like "I want it to be fast", just ask a follow-up:
+
 > "Fast in what way — page loads, search results, or handling lots of users at once?"
-No disambiguation subsystem. Just good conversation.
+> No disambiguation subsystem. Just good conversation.
 
 ## Step 4: Capture
 
@@ -97,20 +102,26 @@ Gathered: YYYY-MM-DD
 Calibration: builder | architect
 
 ## Phase Boundary
+
 [What this phase delivers — scope anchor from ROADMAP.md]
 
 ## Decisions
+
 ### [Gray Area 1]
+
 - [Decision or preference]
 - [Follow-up detail if captured]
 
 ### [Gray Area 2]
+
 - [Decision or preference]
 
 ### Open (Claude's discretion)
+
 [Areas where user said "you decide" or was indifferent]
 
 ## Deferred Ideas
+
 [Out-of-scope ideas captured during discussion. Empty if none.]
 ```
 
@@ -147,13 +158,13 @@ Also append to `discovery.json` using this schema:
 
 ## Config Interaction
 
-| Config | Effect |
-|--------|--------|
-| `active_profile=yolo` | Skip discussion entirely |
-| `active_profile=prototype` | 2-3 gray areas, quick explore |
-| `active_profile=default` | 3-5 gray areas, standard depth |
+| Config                      | Effect                           |
+| --------------------------- | -------------------------------- |
+| `active_profile=yolo`       | Skip discussion entirely         |
+| `active_profile=prototype`  | 2-3 gray areas, quick explore    |
+| `active_profile=default`    | 3-5 gray areas, standard depth   |
 | `active_profile=production` | 4-6 gray areas, thorough explore |
-| `discovery_questions=false` | Skip discussion entirely |
+| `discovery_questions=false` | Skip discussion entirely         |
 
 ## Design Principles
 

@@ -18,24 +18,24 @@ teardown() {
 
 create_event_log() {
   local count="$1"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.events"
-  > "$TEST_TEMP_DIR/.vbw-planning/.events/event-log.jsonl"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.events"
+  > "$TEST_TEMP_DIR/.yolo-planning/.events/event-log.jsonl"
   for i in $(seq 1 "$count"); do
-    echo "{\"ts\":\"2026-01-0${i}T00:00:00Z\",\"event_id\":\"evt-${i}\",\"event\":\"phase_end\",\"phase\":${i}}" >> "$TEST_TEMP_DIR/.vbw-planning/.events/event-log.jsonl"
+    echo "{\"ts\":\"2026-01-0${i}T00:00:00Z\",\"event_id\":\"evt-${i}\",\"event\":\"phase_end\",\"phase\":${i}}" >> "$TEST_TEMP_DIR/.yolo-planning/.events/event-log.jsonl"
   done
 }
 
 create_error_event_log() {
   local clean="$1"
   local error="$2"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.events"
-  > "$TEST_TEMP_DIR/.vbw-planning/.events/event-log.jsonl"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.events"
+  > "$TEST_TEMP_DIR/.yolo-planning/.events/event-log.jsonl"
   for i in $(seq 1 "$clean"); do
-    echo "{\"ts\":\"2026-01-0${i}T00:00:00Z\",\"event_id\":\"evt-${i}\",\"event\":\"phase_end\",\"phase\":${i}}" >> "$TEST_TEMP_DIR/.vbw-planning/.events/event-log.jsonl"
+    echo "{\"ts\":\"2026-01-0${i}T00:00:00Z\",\"event_id\":\"evt-${i}\",\"event\":\"phase_end\",\"phase\":${i}}" >> "$TEST_TEMP_DIR/.yolo-planning/.events/event-log.jsonl"
   done
   for i in $(seq 1 "$error"); do
     local idx=$((clean + i))
-    echo "{\"ts\":\"2026-01-0${idx}T00:00:00Z\",\"event_id\":\"evt-err-${i}\",\"event\":\"phase_end\",\"phase\":${idx},\"data\":{\"error\":\"failed\"}}" >> "$TEST_TEMP_DIR/.vbw-planning/.events/event-log.jsonl"
+    echo "{\"ts\":\"2026-01-0${idx}T00:00:00Z\",\"event_id\":\"evt-err-${i}\",\"event\":\"phase_end\",\"phase\":${idx},\"data\":{\"error\":\"failed\"}}" >> "$TEST_TEMP_DIR/.yolo-planning/.events/event-log.jsonl"
   done
 }
 
@@ -81,9 +81,9 @@ run_rollout() {
   [ "$status" -eq 0 ]
   # Check config was updated
   local val_event val_metrics val_delta
-  val_event=$(jq -r '.v3_event_log' "$TEST_TEMP_DIR/.vbw-planning/config.json")
-  val_metrics=$(jq -r '.v3_metrics' "$TEST_TEMP_DIR/.vbw-planning/config.json")
-  val_delta=$(jq -r '.v3_delta_context' "$TEST_TEMP_DIR/.vbw-planning/config.json")
+  val_event=$(jq -r '.v3_event_log' "$TEST_TEMP_DIR/.yolo-planning/config.json")
+  val_metrics=$(jq -r '.v3_metrics' "$TEST_TEMP_DIR/.yolo-planning/config.json")
+  val_delta=$(jq -r '.v3_delta_context' "$TEST_TEMP_DIR/.yolo-planning/config.json")
   [ "$val_event" = "true" ]
   [ "$val_metrics" = "true" ]
   [ "$val_delta" = "false" ]
@@ -95,11 +95,11 @@ run_rollout() {
   run_rollout advance --stage=2
   [ "$status" -eq 0 ]
   local val_event val_metrics val_delta val_cache val_routing
-  val_event=$(jq -r '.v3_event_log' "$TEST_TEMP_DIR/.vbw-planning/config.json")
-  val_metrics=$(jq -r '.v3_metrics' "$TEST_TEMP_DIR/.vbw-planning/config.json")
-  val_delta=$(jq -r '.v3_delta_context' "$TEST_TEMP_DIR/.vbw-planning/config.json")
-  val_cache=$(jq -r '.v3_context_cache' "$TEST_TEMP_DIR/.vbw-planning/config.json")
-  val_routing=$(jq -r '.v3_smart_routing' "$TEST_TEMP_DIR/.vbw-planning/config.json")
+  val_event=$(jq -r '.v3_event_log' "$TEST_TEMP_DIR/.yolo-planning/config.json")
+  val_metrics=$(jq -r '.v3_metrics' "$TEST_TEMP_DIR/.yolo-planning/config.json")
+  val_delta=$(jq -r '.v3_delta_context' "$TEST_TEMP_DIR/.yolo-planning/config.json")
+  val_cache=$(jq -r '.v3_context_cache' "$TEST_TEMP_DIR/.yolo-planning/config.json")
+  val_routing=$(jq -r '.v3_smart_routing' "$TEST_TEMP_DIR/.yolo-planning/config.json")
   [ "$val_event" = "true" ]
   [ "$val_metrics" = "true" ]
   [ "$val_delta" = "true" ]
@@ -129,8 +129,8 @@ run_rollout() {
   echo "$output" | jq -e '.flags_enabled | length == 2'
   # Config should still have false values
   local val_event val_metrics
-  val_event=$(jq -r '.v3_event_log' "$TEST_TEMP_DIR/.vbw-planning/config.json")
-  val_metrics=$(jq -r '.v3_metrics' "$TEST_TEMP_DIR/.vbw-planning/config.json")
+  val_event=$(jq -r '.v3_event_log' "$TEST_TEMP_DIR/.yolo-planning/config.json")
+  val_metrics=$(jq -r '.v3_metrics' "$TEST_TEMP_DIR/.yolo-planning/config.json")
   [ "$val_event" = "false" ]
   [ "$val_metrics" = "false" ]
 }
@@ -150,7 +150,7 @@ run_rollout() {
 # --- Test 9: exits 0 when config missing ---
 
 @test "rollout-stage: exits 0 when config missing" {
-  rm -f "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  rm -f "$TEST_TEMP_DIR/.yolo-planning/config.json"
   run_rollout check
   [ "$status" -eq 0 ]
 }
@@ -163,10 +163,10 @@ run_rollout() {
   [ "$status" -eq 0 ]
   # With 1 phase, only stage 1 is eligible (stage 2 needs 2)
   local val_event val_metrics val_delta val_cache
-  val_event=$(jq -r '.v3_event_log' "$TEST_TEMP_DIR/.vbw-planning/config.json")
-  val_metrics=$(jq -r '.v3_metrics' "$TEST_TEMP_DIR/.vbw-planning/config.json")
-  val_delta=$(jq -r '.v3_delta_context' "$TEST_TEMP_DIR/.vbw-planning/config.json")
-  val_cache=$(jq -r '.v3_context_cache' "$TEST_TEMP_DIR/.vbw-planning/config.json")
+  val_event=$(jq -r '.v3_event_log' "$TEST_TEMP_DIR/.yolo-planning/config.json")
+  val_metrics=$(jq -r '.v3_metrics' "$TEST_TEMP_DIR/.yolo-planning/config.json")
+  val_delta=$(jq -r '.v3_delta_context' "$TEST_TEMP_DIR/.yolo-planning/config.json")
+  val_cache=$(jq -r '.v3_context_cache' "$TEST_TEMP_DIR/.yolo-planning/config.json")
   [ "$val_event" = "true" ]
   [ "$val_metrics" = "true" ]
   [ "$val_delta" = "false" ]

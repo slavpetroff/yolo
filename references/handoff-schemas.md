@@ -1,4 +1,4 @@
-# VBW Typed Communication Protocol
+# YOLO Typed Communication Protocol
 
 V2 inter-agent messages use strict JSON schemas. Every message includes a mandatory envelope. Machine-readable definitions at `config/schemas/message-schemas.json`.
 
@@ -7,10 +7,10 @@ V2 inter-agent messages use strict JSON schemas. Every message includes a mandat
 ```json
 {
   "id": "uuid-v4",
-  "type": "scout_findings|plan_contract|execution_update|blocker_report|qa_verdict|approval_request|approval_response|shutdown_request|shutdown_response",
+  "type": "plan_contract|execution_update|blocker_report|approval_request|approval_response|shutdown_request|shutdown_response",
   "phase": 1,
   "task": "1-1-T3",
-  "author_role": "lead|dev|qa|scout|debugger|architect|docs",
+  "author_role": "lead|dev|debugger|architect|docs",
   "timestamp": "2026-02-12T10:00:00Z",
   "schema_version": "2.0",
   "payload": {},
@@ -20,49 +20,20 @@ V2 inter-agent messages use strict JSON schemas. Every message includes a mandat
 
 ## Role Authorization Matrix
 
-| Message Type | Allowed Senders | Typical Receivers |
-|---|---|---|
-| scout_findings | scout | lead, architect |
-| plan_contract | lead, architect | dev, qa, scout |
-| execution_update | dev, docs | lead |
-| blocker_report | dev, docs | lead |
-| debugger_report | debugger | lead |
-| qa_verdict | qa | lead |
-| approval_request | dev, lead | lead, architect |
-| approval_response | lead, architect | dev, lead |
-| shutdown_request | lead (orchestrator) | dev, qa, scout, lead, debugger, docs |
-| shutdown_response | dev, qa, scout, lead, debugger, docs | lead (orchestrator) |
+| Message Type      | Allowed Senders           | Typical Receivers         |
+| ----------------- | ------------------------- | ------------------------- |
+| plan_contract     | lead, architect           | dev                       |
+| execution_update  | dev, docs                 | lead                      |
+| blocker_report    | dev, docs                 | lead                      |
+| debugger_report   | debugger                  | lead                      |
+| approval_request  | dev, lead                 | lead, architect           |
+| approval_response | lead, architect           | dev, lead                 |
+| shutdown_request  | lead (orchestrator)       | dev, lead, debugger, docs |
+| shutdown_response | dev, lead, debugger, docs | lead (orchestrator)       |
 
 Unauthorized sender -> message rejected (v2_typed_protocol=true) or logged (false).
 
-## `scout_findings` (Scout -> Lead/Architect)
-
-Research findings from a Scout investigating a specific domain.
-
-```json
-{
-  "id": "abc-123",
-  "type": "scout_findings",
-  "phase": 1,
-  "task": "1-1-T1",
-  "author_role": "scout",
-  "timestamp": "2026-02-12T10:00:00Z",
-  "schema_version": "2.0",
-  "confidence": "high",
-  "payload": {
-    "domain": "tech-stack|architecture|quality|concerns",
-    "documents": [
-      {"name": "STACK.md", "content": "## Tech Stack\n..."}
-    ],
-    "cross_cutting": [
-      {"target_domain": "architecture", "finding": "...", "relevance": "high|medium|low"}
-    ],
-    "confidence_rationale": "Brief justification"
-  }
-}
-```
-
-## `plan_contract` (Lead/Architect -> Dev/QA/Scout)
+## `plan_contract` (Lead/Architect -> Dev)
 
 Issued plan contract defining task scope and constraints.
 
@@ -114,7 +85,7 @@ Task progress or completion update from Dev or Docs.
     "concerns": ["Interface changed — downstream plans may need update"],
     "evidence": "All tests pass",
     "pre_existing_issues": [
-      {"test": "testName", "file": "path/to/file", "error": "failure message"}
+      { "test": "testName", "file": "path/to/file", "error": "failure message" }
     ]
   }
 }
@@ -142,11 +113,12 @@ Escalation when agent is blocked and cannot proceed.
     "attempted": ["Checked git log for 1-1 commits — none found"],
     "severity": "blocking|degraded|informational",
     "pre_existing_issues": [
-      {"test": "testName", "file": "path/to/file", "error": "failure message"}
+      { "test": "testName", "file": "path/to/file", "error": "failure message" }
     ]
   }
 }
 ```
+
 If no pre-existing issues were found, omit the field or pass an empty array.
 
 ## `debugger_report` (Debugger -> Lead)
@@ -165,47 +137,21 @@ Diagnostic investigation report from the Debugger agent. Used in Teammate Mode w
   "confidence": "high",
   "payload": {
     "hypothesis": "Race condition in sync handler causes intermittent auth failure",
-    "evidence_for": ["Thread dump shows concurrent access at auth.js:42", "Failure rate correlates with load"],
+    "evidence_for": [
+      "Thread dump shows concurrent access at auth.js:42",
+      "Failure rate correlates with load"
+    ],
     "evidence_against": ["Single-threaded test passes consistently"],
     "confidence": "high",
     "recommended_fix": "Add mutex lock around credential refresh in auth.js:40-50",
     "pre_existing_issues": [
-      {"test": "testName", "file": "path/to/file", "error": "failure message"}
+      { "test": "testName", "file": "path/to/file", "error": "failure message" }
     ]
   }
 }
 ```
+
 If no pre-existing issues were found, omit the field or pass an empty array.
-
-## `qa_verdict` (QA -> Lead)
-
-Structured verification results.
-
-```json
-{
-  "id": "qa-345",
-  "type": "qa_verdict",
-  "phase": 1,
-  "task": "1-1-T1",
-  "author_role": "qa",
-  "timestamp": "2026-02-12T10:15:00Z",
-  "schema_version": "2.0",
-  "confidence": "high",
-  "payload": {
-    "tier": "quick|standard|deep",
-    "result": "PASS|FAIL|PARTIAL",
-    "checks": {"passed": 18, "failed": 2, "total": 20},
-    "failures": [
-      {"check": "Link integrity", "expected": "All resolve", "actual": "broken ref", "evidence": "line 42"}
-    ],
-    "body": "## Must-Have Checks\n...",
-    "recommendations": ["Fix broken cross-reference before shipping"],
-    "pre_existing_issues": [
-      {"test": "testName", "file": "path/to/file", "error": "failure message"}
-    ]
-  }
-}
-```
 
 ## `approval_request` (Dev/Lead -> Lead/Architect)
 
@@ -271,7 +217,7 @@ Graceful termination signal sent by the orchestrator after phase/plan work is co
   "confidence": "high",
   "payload": {
     "reason": "phase_complete|plan_complete|user_abort",
-    "team_name": "vbw-phase-01"
+    "team_name": "yolo-phase-01"
   }
 }
 ```
@@ -310,6 +256,7 @@ Old-format messages (without full envelope) are accepted when `v2_typed_protocol
 **Note:** `shutdown_request` and `shutdown_response` were introduced in v2.0. When `v2_typed_protocol=false`, validate-message.sh short-circuits to valid (no schema check), so shutdown messages pass through without rejection. Agents running in V1 mode will not recognize these types and should treat unrecognized messages as plain markdown.
 
 When receiving messages, agents should:
+
 1. Try to parse as V2 typed message (full envelope)
 2. Fall back to V1 format (simple type + payload)
 3. Fall back to plain markdown on parse failure

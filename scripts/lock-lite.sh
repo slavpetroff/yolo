@@ -4,7 +4,7 @@ set -u
 # lock-lite.sh <action> <task-id> [claimed-files...]
 # Lightweight file ownership locks for multi-agent conflict prevention.
 # action: acquire (create lock), release (remove lock), check (detect conflicts)
-# Lock files: .vbw-planning/.locks/{task-id}.lock (JSON)
+# Lock files: .yolo-planning/.locks/{task-id}.lock (JSON)
 # Fail-open: exit 0 always. Conflicts are logged to metrics, never blocking.
 
 if [ $# -lt 2 ]; then
@@ -16,7 +16,7 @@ ACTION="$1"
 TASK_ID="$2"
 shift 2
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 CONFIG_PATH="${PLANNING_DIR}/config.json"
 LOCKS_DIR="${PLANNING_DIR}/.locks"
 LOCK_FILE="${LOCKS_DIR}/${TASK_ID}.lock"

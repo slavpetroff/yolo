@@ -7,7 +7,7 @@ set -u
 # Final cleanup happens in session-stop.sh.
 
 INPUT=$(cat)
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 COUNT_FILE="$PLANNING_DIR/.active-agent-count"
 LOCK_DIR="$PLANNING_DIR/.active-agent-count.lock"
 

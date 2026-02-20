@@ -9,8 +9,8 @@ setup() {
   # Enable all Phase 6 flags
   cd "$TEST_TEMP_DIR"
   jq '.v3_lease_locks = true | .v3_lock_lite = true | .v3_event_recovery = true | .v3_monorepo_routing = true | .v3_event_log = true' \
-    .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
-    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+    .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+    mv .yolo-planning/config.json.tmp .yolo-planning/config.json
 }
 
 teardown() {
@@ -24,33 +24,33 @@ teardown() {
   run bash "$SCRIPTS_DIR/lease-lock.sh" acquire test-task --ttl=60 file1.sh file2.sh
   [ "$status" -eq 0 ]
   [ "$output" = "acquired" ]
-  [ -f ".vbw-planning/.locks/test-task.lock" ]
+  [ -f ".yolo-planning/.locks/test-task.lock" ]
   # Verify TTL fields
-  jq -e '.ttl == 60' .vbw-planning/.locks/test-task.lock
-  jq -e '.expires_at > 0' .vbw-planning/.locks/test-task.lock
-  jq -e '.files | length == 2' .vbw-planning/.locks/test-task.lock
+  jq -e '.ttl == 60' .yolo-planning/.locks/test-task.lock
+  jq -e '.expires_at > 0' .yolo-planning/.locks/test-task.lock
+  jq -e '.files | length == 2' .yolo-planning/.locks/test-task.lock
 }
 
 @test "lease-lock: renew extends lease" {
   cd "$TEST_TEMP_DIR"
   bash "$SCRIPTS_DIR/lease-lock.sh" acquire test-task --ttl=60 file1.sh
-  OLD_EXPIRES=$(jq '.expires_at' .vbw-planning/.locks/test-task.lock)
+  OLD_EXPIRES=$(jq '.expires_at' .yolo-planning/.locks/test-task.lock)
   sleep 1
   run bash "$SCRIPTS_DIR/lease-lock.sh" renew test-task
   [ "$status" -eq 0 ]
   [ "$output" = "renewed" ]
-  NEW_EXPIRES=$(jq '.expires_at' .vbw-planning/.locks/test-task.lock)
+  NEW_EXPIRES=$(jq '.expires_at' .yolo-planning/.locks/test-task.lock)
   [ "$NEW_EXPIRES" -ge "$OLD_EXPIRES" ]
 }
 
 @test "lease-lock: check detects expired locks" {
   cd "$TEST_TEMP_DIR"
   # Create a lock that's already expired
-  mkdir -p .vbw-planning/.locks
+  mkdir -p .yolo-planning/.locks
   PAST_EPOCH=$(($(date -u +%s) - 100))
   jq -n --argjson exp "$PAST_EPOCH" \
     '{"task_id":"old-task","pid":"1","timestamp":"2026-01-01T00:00:00Z","files":["shared.sh"],"ttl":60,"expires_at":$exp}' \
-    > .vbw-planning/.locks/old-task.lock
+    > .yolo-planning/.locks/old-task.lock
 
   run bash "$SCRIPTS_DIR/lease-lock.sh" check new-task shared.sh
   [ "$status" -eq 0 ]
@@ -58,7 +58,7 @@ teardown() {
   [[ "$output" == *"clear"* ]]
   [[ "$output" == *"expired"* ]]
   # Expired lock file should be removed
-  [ ! -f ".vbw-planning/.locks/old-task.lock" ]
+  [ ! -f ".yolo-planning/.locks/old-task.lock" ]
 }
 
 @test "lease-lock: release removes lock" {
@@ -67,13 +67,13 @@ teardown() {
   run bash "$SCRIPTS_DIR/lease-lock.sh" release test-task
   [ "$status" -eq 0 ]
   [ "$output" = "released" ]
-  [ ! -f ".vbw-planning/.locks/test-task.lock" ]
+  [ ! -f ".yolo-planning/.locks/test-task.lock" ]
 }
 
 @test "lease-lock: exits 0 when both flags disabled" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_lease_locks = false | .v3_lock_lite = false' .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
-    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_lease_locks = false | .v3_lock_lite = false' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+    mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   run bash "$SCRIPTS_DIR/lease-lock.sh" acquire test-task file1.sh
   [ "$status" -eq 0 ]
   [ -z "$output" ]
@@ -81,8 +81,8 @@ teardown() {
 
 @test "lease-lock: exits non-zero on conflict when v2_hard_gates=true" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_lease_locks = true | .v2_hard_gates = true' .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
-    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_lease_locks = true | .v2_hard_gates = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+    mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   bash "$SCRIPTS_DIR/lease-lock.sh" acquire other-task file1.sh >/dev/null 2>&1
   run bash "$SCRIPTS_DIR/lease-lock.sh" acquire new-task file1.sh
   [ "$status" -eq 1 ]
@@ -91,8 +91,8 @@ teardown() {
 
 @test "lease-lock: exits 0 on conflict when v2_hard_gates=false" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_lease_locks = true | .v2_hard_gates = false' .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
-    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_lease_locks = true | .v2_hard_gates = false' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+    mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   bash "$SCRIPTS_DIR/lease-lock.sh" acquire other-task file1.sh >/dev/null 2>&1
   run bash "$SCRIPTS_DIR/lease-lock.sh" acquire new-task file1.sh
   [ "$status" -eq 0 ]
@@ -101,8 +101,8 @@ teardown() {
 
 @test "lease-lock: query returns lock info" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_lease_locks = true' .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
-    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_lease_locks = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+    mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   bash "$SCRIPTS_DIR/lease-lock.sh" acquire test-task file1.sh >/dev/null
   run bash "$SCRIPTS_DIR/lease-lock.sh" query test-task
   [ "$status" -eq 0 ]
@@ -112,8 +112,8 @@ teardown() {
 
 @test "lease-lock: query returns no_lock when absent" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_lease_locks = true' .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
-    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_lease_locks = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+    mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   run bash "$SCRIPTS_DIR/lease-lock.sh" query nonexistent
   [ "$status" -eq 0 ]
   [ "$output" = "no_lock" ]
@@ -124,8 +124,8 @@ teardown() {
 @test "recover-state: reconstructs state from event log and summaries" {
   cd "$TEST_TEMP_DIR"
   # Create phase directory with plans and a summary
-  mkdir -p .vbw-planning/phases/05-test-phase
-  cat > .vbw-planning/phases/05-test-phase/05-01-PLAN.md <<'EOF'
+  mkdir -p .yolo-planning/phases/05-test-phase
+  cat > .yolo-planning/phases/05-test-phase/05-01-PLAN.md <<'EOF'
 ---
 phase: 5
 plan: 1
@@ -136,7 +136,7 @@ must_haves: []
 ---
 # Plan 05-01
 EOF
-  cat > .vbw-planning/phases/05-test-phase/05-02-PLAN.md <<'EOF'
+  cat > .yolo-planning/phases/05-test-phase/05-02-PLAN.md <<'EOF'
 ---
 phase: 5
 plan: 2
@@ -148,7 +148,7 @@ must_haves: []
 # Plan 05-02
 EOF
   # Only first plan has a summary
-  cat > .vbw-planning/phases/05-test-phase/05-01-SUMMARY.md <<'EOF'
+  cat > .yolo-planning/phases/05-test-phase/05-01-SUMMARY.md <<'EOF'
 ---
 phase: 5
 plan: 1
@@ -161,11 +161,11 @@ tasks_total: 3
 EOF
 
   # Create event log
-  mkdir -p .vbw-planning/.events
-  echo '{"ts":"2026-01-01T00:00:00Z","event":"phase_start","phase":5}' > .vbw-planning/.events/event-log.jsonl
-  echo '{"ts":"2026-01-01T00:01:00Z","event":"plan_end","phase":5,"plan":1,"data":{"status":"complete"}}' >> .vbw-planning/.events/event-log.jsonl
+  mkdir -p .yolo-planning/.events
+  echo '{"ts":"2026-01-01T00:00:00Z","event":"phase_start","phase":5}' > .yolo-planning/.events/event-log.jsonl
+  echo '{"ts":"2026-01-01T00:01:00Z","event":"plan_end","phase":5,"plan":1,"data":{"status":"complete"}}' >> .yolo-planning/.events/event-log.jsonl
 
-  run bash "$SCRIPTS_DIR/recover-state.sh" 5 .vbw-planning/phases
+  run bash "$SCRIPTS_DIR/recover-state.sh" 5 .yolo-planning/phases
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.phase == 5'
   echo "$output" | jq -e '.status == "running"'
@@ -176,8 +176,8 @@ EOF
 
 @test "recover-state: exits 0 when flag disabled" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_event_recovery = false' .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
-    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_event_recovery = false' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+    mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   run bash "$SCRIPTS_DIR/recover-state.sh" 5
   [ "$status" -eq 0 ]
   [ "$output" = "{}" ]
@@ -194,8 +194,8 @@ EOF
   echo '{}' > apps/web/package.json
 
   # Create a plan referencing files in packages/core
-  mkdir -p .vbw-planning/phases/01-test
-  cat > .vbw-planning/phases/01-test/01-01-PLAN.md <<'EOF'
+  mkdir -p .yolo-planning/phases/01-test
+  cat > .yolo-planning/phases/01-test/01-01-PLAN.md <<'EOF'
 ---
 phase: 1
 plan: 1
@@ -212,7 +212,7 @@ must_haves: []
 - **Files:** `apps/web/app.js`
 EOF
 
-  run bash "$SCRIPTS_DIR/route-monorepo.sh" .vbw-planning/phases/01-test
+  run bash "$SCRIPTS_DIR/route-monorepo.sh" .yolo-planning/phases/01-test
   [ "$status" -eq 0 ]
   echo "$output" | jq -e 'length == 2'
   echo "$output" | jq -e 'any(. == "packages/core")'
@@ -222,8 +222,8 @@ EOF
 @test "route-monorepo: returns empty for non-monorepo" {
   cd "$TEST_TEMP_DIR"
   # No sub-package markers
-  mkdir -p .vbw-planning/phases/01-test
-  cat > .vbw-planning/phases/01-test/01-01-PLAN.md <<'EOF'
+  mkdir -p .yolo-planning/phases/01-test
+  cat > .yolo-planning/phases/01-test/01-01-PLAN.md <<'EOF'
 ---
 phase: 1
 plan: 1
@@ -238,16 +238,16 @@ must_haves: []
 - **Files:** `src/main.js`
 EOF
 
-  run bash "$SCRIPTS_DIR/route-monorepo.sh" .vbw-planning/phases/01-test
+  run bash "$SCRIPTS_DIR/route-monorepo.sh" .yolo-planning/phases/01-test
   [ "$status" -eq 0 ]
   [ "$output" = "[]" ]
 }
 
 @test "route-monorepo: exits 0 when flag disabled" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_monorepo_routing = false' .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
-    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
-  run bash "$SCRIPTS_DIR/route-monorepo.sh" .vbw-planning/phases/01-test
+  jq '.v3_monorepo_routing = false' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+    mv .yolo-planning/config.json.tmp .yolo-planning/config.json
+  run bash "$SCRIPTS_DIR/route-monorepo.sh" .yolo-planning/phases/01-test
   [ "$status" -eq 0 ]
   [ "$output" = "[]" ]
 }

@@ -3,7 +3,7 @@ set -u
 
 # generate-contract.sh <plan-path>
 # Generates a contract sidecar JSON from PLAN.md metadata.
-# Output: .vbw-planning/.contracts/{phase}-{plan}.json
+# Output: .yolo-planning/.contracts/{phase}-{plan}.json
 #
 # V3 Lean (v3_contract_lite): 5 fields (phase, plan, task_count, must_haves, allowed_paths)
 # V2 Full (v2_hard_contracts): 11 fields + contract_hash
@@ -22,7 +22,7 @@ fi
 PLAN_PATH="$1"
 [ ! -f "$PLAN_PATH" ] && exit 0
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 CONFIG_PATH="${PLANNING_DIR}/config.json"
 
 # Check feature flags

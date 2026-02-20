@@ -21,7 +21,7 @@ set -euo pipefail
 #
 # Exit codes: always 0 (fail-open for agent consumption)
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 FILTER="${1:-}"
 
 # --- Resolve STATE.md for todos (project-level data lives at root) ---
@@ -70,7 +70,7 @@ resolve_state_path() {
     return 0
   fi
 
-  echo '{"status":"error","message":"STATE.md not found at '"$state_path"'. Run /vbw:init or check .vbw-planning/ACTIVE."}'
+  echo '{"status":"error","message":"STATE.md not found at '"$state_path"'. Run /yolo:init or check .yolo-planning/ACTIVE."}'
   return 1
 }
 

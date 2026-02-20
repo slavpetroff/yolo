@@ -14,7 +14,7 @@ set -u
 # Logs overage to metrics when v3_metrics=true.
 # Exit: 0 always (budget enforcement must never block).
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 CONFIG_PATH="${PLANNING_DIR}/config.json"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUDGETS_PATH="${SCRIPT_DIR}/../config/token-budgets.json"

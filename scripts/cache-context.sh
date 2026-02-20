@@ -14,9 +14,9 @@ fi
 
 PHASE="$1"
 ROLE="$2"
-CONFIG_PATH="${3:-.vbw-planning/config.json}"
+CONFIG_PATH="${3:-.yolo-planning/config.json}"
 PLAN_PATH="${4:-}"
-CACHE_DIR=".vbw-planning/.cache/context"
+CACHE_DIR=".yolo-planning/.cache/context"
 
 # --- Build hash input from deterministic sources ---
 HASH_INPUT="phase=${PHASE}:role=${ROLE}"
@@ -40,13 +40,13 @@ if command -v git &>/dev/null && git rev-parse --is-inside-work-tree &>/dev/null
 fi
 
 # Codebase mapping fingerprint (roles with mapping hints need cache invalidation)
-if [[ "$ROLE" =~ ^(debugger|dev|qa|lead|architect)$ ]] && [ -d ".vbw-planning/codebase" ]; then
-  MAP_SUM=$(ls -la .vbw-planning/codebase/*.md 2>/dev/null | shasum -a 256 2>/dev/null | cut -d' ' -f1 || echo "nomap")
+if [[ "$ROLE" =~ ^(debugger|dev|qa|lead|architect)$ ]] && [ -d ".yolo-planning/codebase" ]; then
+  MAP_SUM=$(ls -la .yolo-planning/codebase/*.md 2>/dev/null | shasum -a 256 2>/dev/null | cut -d' ' -f1 || echo "nomap")
   HASH_INPUT="${HASH_INPUT}:codebase=${MAP_SUM}"
 fi
 
 # Rolling summary fingerprint (v3_rolling_summary)
-ROLLING_PATH=".vbw-planning/ROLLING-CONTEXT.md"
+ROLLING_PATH=".yolo-planning/ROLLING-CONTEXT.md"
 if command -v jq &>/dev/null && [ -f "$CONFIG_PATH" ]; then
   ROLLING_ENABLED=$(jq -r '.v3_rolling_summary // false' "$CONFIG_PATH" 2>/dev/null || echo "false")
   if [ "$ROLLING_ENABLED" = "true" ] && [ -f "$ROLLING_PATH" ]; then

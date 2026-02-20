@@ -37,7 +37,7 @@ check "TODO-02" "todo command does not reference Pending Todos" test ! "$(grep -
 
 echo ""
 echo "=== Bootstrap Output Contracts ==="
-TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/vbw-init-todo.XXXXXX")"
+TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/yolo-init-todo.XXXXXX")"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 BOOTSTRAP_STATE="$TMP_DIR/STATE.md"

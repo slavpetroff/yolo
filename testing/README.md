@@ -1,6 +1,6 @@
 # Testing Harness
 
-This folder contains verification scripts for VBW that are safe to run locally and in CI.
+This folder contains verification scripts for YOLO that are safe to run locally and in CI.
 
 ## Automated checks
 
@@ -28,8 +28,8 @@ For slash-command behavior, test in a separate sandbox repo (not this plugin rep
 Recommended flow:
 
 1. Start Claude with plugin loaded and model set to haiku.
-2. Run `/vbw:init`.
-3. Run `/vbw:todo "Test todo"`.
-4. Verify `.vbw-planning/STATE.md` contains:
+2. Run `/yolo:init`.
+3. Run `/yolo:todo "Test todo"`.
+4. Verify `.yolo-planning/STATE.md` contains:
    - `## Todos`
    - inserted todo item under `## Todos`

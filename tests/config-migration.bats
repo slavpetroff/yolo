@@ -12,12 +12,12 @@ teardown() {
 
 # Helper: Run the shared migration script
 run_migration() {
-  bash "$SCRIPTS_DIR/migrate-config.sh" "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  bash "$SCRIPTS_DIR/migrate-config.sh" "$TEST_TEMP_DIR/.yolo-planning/config.json"
 }
 
 @test "migration handles empty config" {
   # Create config with only non-flag keys
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced",
   "autonomy": "standard"
@@ -36,24 +36,24 @@ EOF
     has("v2_hard_contracts"), has("v2_hard_gates"), has("v2_typed_protocol"),
     has("v2_role_isolation"), has("v2_two_phase_completion"), has("v2_token_budgets"),
     has("model_overrides"), has("prefer_teams")
-  ] | map(select(.)) | length' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  ] | map(select(.)) | length' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "23" ]
 
   # Verify context_compiler defaults to true
-  run jq -r '.context_compiler' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.context_compiler' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "true" ]
 
   # Verify v3 flags default to false
-  run jq -r '.v3_delta_context' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.v3_delta_context' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "false" ]
 }
 
 @test "migration handles partial config" {
   # Create config with some flags present
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced",
   "context_compiler": false,
@@ -74,20 +74,20 @@ EOF
     has("v2_hard_contracts"), has("v2_hard_gates"), has("v2_typed_protocol"),
     has("v2_role_isolation"), has("v2_two_phase_completion"), has("v2_token_budgets"),
     has("model_overrides"), has("prefer_teams")
-  ] | map(select(.)) | length' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  ] | map(select(.)) | length' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "23" ]
 
   # Verify existing values were preserved
-  run jq -r '.context_compiler' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.context_compiler' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "false" ]
 
-  run jq -r '.v3_delta_context' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.v3_delta_context' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "true" ]
 
-  run jq -r '.v2_hard_contracts' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.v2_hard_contracts' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "true" ]
 }
@@ -97,18 +97,18 @@ EOF
   create_test_config
 
   # Record normalized content
-  BEFORE=$(jq -S . "$TEST_TEMP_DIR/.vbw-planning/config.json")
+  BEFORE=$(jq -S . "$TEST_TEMP_DIR/.yolo-planning/config.json")
 
   run_migration
 
   # Verify no changes (idempotent when all flags present)
-  AFTER=$(jq -S . "$TEST_TEMP_DIR/.vbw-planning/config.json")
+  AFTER=$(jq -S . "$TEST_TEMP_DIR/.yolo-planning/config.json")
   [ "$BEFORE" = "$AFTER" ]
 }
 
 @test "migration is idempotent" {
   # Start with empty config
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced"
 }
@@ -116,11 +116,11 @@ EOF
 
   # Run migration once
   run_migration
-  AFTER_FIRST=$(cat "$TEST_TEMP_DIR/.vbw-planning/config.json")
+  AFTER_FIRST=$(cat "$TEST_TEMP_DIR/.yolo-planning/config.json")
 
   # Run migration again
   run_migration
-  AFTER_SECOND=$(cat "$TEST_TEMP_DIR/.vbw-planning/config.json")
+  AFTER_SECOND=$(cat "$TEST_TEMP_DIR/.yolo-planning/config.json")
 
   # Both runs should produce identical result
   [ "$AFTER_FIRST" = "$AFTER_SECOND" ]
@@ -135,14 +135,14 @@ EOF
     has("v2_hard_contracts"), has("v2_hard_gates"), has("v2_typed_protocol"),
     has("v2_role_isolation"), has("v2_two_phase_completion"), has("v2_token_budgets"),
     has("model_overrides"), has("prefer_teams")
-  ] | map(select(.)) | length' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  ] | map(select(.)) | length' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "23" ]
 }
 
 @test "migration detects malformed JSON" {
   # Create malformed JSON
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced",
   invalid json here
@@ -174,7 +174,7 @@ EOF
 
 @test "migration adds missing prefer_teams with default value" {
   # Create config without prefer_teams
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced",
   "autonomy": "standard"
@@ -184,13 +184,13 @@ EOF
   run_migration
 
   # Verify prefer_teams was added with "always" default
-  run jq -r '.prefer_teams' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.prefer_teams' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "always" ]
 }
 
 @test "migration adds planning_tracking and auto_push defaults" {
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced"
 }
@@ -198,17 +198,17 @@ EOF
 
   run_migration
 
-  run jq -r '.planning_tracking' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.planning_tracking' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "manual" ]
 
-  run jq -r '.auto_push' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.auto_push' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "never" ]
 }
 
 @test "migration preserves existing planning_tracking and auto_push values" {
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced",
   "planning_tracking": "commit",
@@ -218,18 +218,18 @@ EOF
 
   run_migration
 
-  run jq -r '.planning_tracking' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.planning_tracking' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "commit" ]
 
-  run jq -r '.auto_push' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.auto_push' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "after_phase" ]
 }
 
 @test "migration preserves existing prefer_teams value" {
   # Create config with prefer_teams set to "never"
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced",
   "prefer_teams": "never"
@@ -239,13 +239,13 @@ EOF
   run_migration
 
   # Verify prefer_teams value was NOT overwritten
-  run jq -r '.prefer_teams' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.prefer_teams' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "never" ]
 }
 
 @test "migration adds missing agent_max_turns defaults" {
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced"
 }
@@ -253,17 +253,17 @@ EOF
 
   run_migration
 
-  run jq -r '.agent_max_turns.scout' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.agent_max_turns.scout' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "15" ]
 
-  run jq -r '.agent_max_turns.debugger' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.agent_max_turns.debugger' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "80" ]
 }
 
 @test "migration preserves existing agent_max_turns values" {
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced",
   "agent_max_turns": {
@@ -275,17 +275,17 @@ EOF
 
   run_migration
 
-  run jq -r '.agent_max_turns.debugger' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.agent_max_turns.debugger' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "120" ]
 
-  run jq -r '.agent_max_turns.dev' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.agent_max_turns.dev' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "90" ]
 }
 
 @test "migration renames agent_teams to prefer_teams and removes stale key" {
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced",
   "agent_teams": true
@@ -294,17 +294,17 @@ EOF
 
   run_migration
 
-  run jq -r '.prefer_teams' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.prefer_teams' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "always" ]
 
-  run jq -r 'has("agent_teams")' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r 'has("agent_teams")' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "false" ]
 }
 
 @test "migration removes stale agent_teams when prefer_teams already exists" {
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced",
   "prefer_teams": "when_parallel",
@@ -314,17 +314,17 @@ EOF
 
   run_migration
 
-  run jq -r '.prefer_teams' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.prefer_teams' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "when_parallel" ]
 
-  run jq -r 'has("agent_teams")' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r 'has("agent_teams")' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "false" ]
 }
 
 @test "migration maps agent_teams false to prefer_teams auto" {
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced",
   "agent_teams": false
@@ -333,42 +333,42 @@ EOF
 
   run_migration
 
-  run jq -r '.prefer_teams' "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -r '.prefer_teams' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "auto" ]
 }
 
 @test "migration backfills all missing defaults keys" {
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced"
 }
 EOF
 
-  run jq -s '.[0] as $d | .[1] as $c | [$d | keys[] | select($c[.] == null)] | length' "$CONFIG_DIR/defaults.json" "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -s '.[0] as $d | .[1] as $c | [$d | keys[] | select($c[.] == null)] | length' "$CONFIG_DIR/defaults.json" "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   BEFORE_MISSING="$output"
   [ "$BEFORE_MISSING" -gt 0 ]
 
   run_migration
 
-  run jq -s '.[0] as $d | .[1] as $c | [$d | keys[] | select($c[.] == null)] | length' "$CONFIG_DIR/defaults.json" "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -s '.[0] as $d | .[1] as $c | [$d | keys[] | select($c[.] == null)] | length' "$CONFIG_DIR/defaults.json" "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "0" ]
 }
 
 @test "migration --print-added returns number of inserted defaults" {
-  cat > "$TEST_TEMP_DIR/.vbw-planning/config.json" <<'EOF'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced"
 }
 EOF
 
-  run jq -s '.[0] as $d | .[1] as $c | [$d | keys[] | select($c[.] == null)] | length' "$CONFIG_DIR/defaults.json" "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run jq -s '.[0] as $d | .[1] as $c | [$d | keys[] | select($c[.] == null)] | length' "$CONFIG_DIR/defaults.json" "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   EXPECTED_ADDED="$output"
 
-  run bash "$SCRIPTS_DIR/migrate-config.sh" --print-added "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run bash "$SCRIPTS_DIR/migrate-config.sh" --print-added "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "$EXPECTED_ADDED" ]
 }

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# cache-nuke.sh — Wipe ALL VBW caches to prevent stale contamination.
+# cache-nuke.sh — Wipe ALL YOLO caches to prevent stale contamination.
 #
 # Usage:
 #   cache-nuke.sh              # wipe everything
 #   cache-nuke.sh --keep-latest  # keep latest cached plugin version, wipe rest
 #
-# Called by: /vbw:update, session-start.sh
+# Called by: /yolo:update, session-start.sh
 # Output: JSON summary of what was wiped.
 
 set -eo pipefail
@@ -17,7 +17,7 @@ fi
 
 # shellcheck source=resolve-claude-dir.sh
 . "$(dirname "$0")/resolve-claude-dir.sh"
-PLUGIN_CACHE_DIR="$CLAUDE_DIR/plugins/cache/vbw-marketplace/vbw"
+PLUGIN_CACHE_DIR="$CLAUDE_DIR/plugins/cache/yolo-marketplace/yolo"
 UID_TAG="$(id -u)"
 
 wiped_plugin_cache=false
@@ -43,7 +43,7 @@ if [[ -d "$PLUGIN_CACHE_DIR" ]]; then
 fi
 
 # --- 2. Temp caches (statusline + update check) ---
-TEMP_FILES=$(ls /tmp/vbw-*-"${UID_TAG}"-* /tmp/vbw-*-"${UID_TAG}" /tmp/vbw-update-check-"${UID_TAG}" 2>/dev/null || true)
+TEMP_FILES=$(ls /tmp/yolo-*-"${UID_TAG}"-* /tmp/yolo-*-"${UID_TAG}" /tmp/yolo-update-check-"${UID_TAG}" 2>/dev/null || true)
 if [[ -n "$TEMP_FILES" ]]; then
   echo "$TEMP_FILES" | while IFS= read -r f; do rm -f "$f" 2>/dev/null; done
   wiped_temp_caches=true

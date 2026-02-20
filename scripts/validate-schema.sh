@@ -15,7 +15,7 @@ fi
 SCHEMA_TYPE="$1"
 FILE_PATH="$2"
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 CONFIG_PATH="${PLANNING_DIR}/config.json"
 
 # Check feature flag

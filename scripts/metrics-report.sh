@@ -8,7 +8,7 @@ set -u
 # Output: markdown table to stdout.
 # Exit: 0 always.
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 METRICS_FILE="${PLANNING_DIR}/.metrics/run-metrics.jsonl"
 EVENTS_FILE="${PLANNING_DIR}/.events/event-log.jsonl"
 
@@ -21,7 +21,7 @@ if [ ! -f "$METRICS_FILE" ] && [ ! -f "$EVENTS_FILE" ]; then
   exit 0
 fi
 
-echo "# VBW Observability Report"
+echo "# YOLO Observability Report"
 echo ""
 echo "Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "unknown")"
 if [ -n "$FILTER_PHASE" ]; then

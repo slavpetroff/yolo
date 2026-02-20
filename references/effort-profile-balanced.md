@@ -10,35 +10,36 @@
 These are independent settings. You can run Thorough effort on Budget profile (deep workflow, cheap models) or Fast effort on Quality profile (quick workflow, expensive models). Most users: match them (balanced+balanced, thorough+quality, fast+budget).
 
 Configure via:
-- Effort: `/vbw:config effort <level>` or `/vbw:vibe --effort=<level>`
-- Model: `/vbw:config model_profile <profile>`
+
+- Effort: `/yolo:config effort <level>` or `/yolo:vibe --effort=<level>`
+- Model: `/yolo:config model_profile <profile>`
 
 See: @references/model-profiles.md for model profile details.
 
 ## Matrix Row
 
-| Agent | Level | Notes |
-|-------|-------|-------|
-| Lead | high | Solid research, clear decomposition, coverage+feasibility self-review |
-| Architect | high | Complete scope, clear criteria, standard dependency justification |
-| Dev | medium | Focused implementation, standard verification, concise commits |
-| QA | medium | Standard tier (15-25 checks). Content structure, key links, conventions |
-| Scout | medium | Targeted research, one source per finding. Runs on session model (Opus) |
-| Debugger | medium | Focused investigation, rank-order hypotheses, stop on confirmation |
+| Agent     | Level  | Notes                                                                   |
+| --------- | ------ | ----------------------------------------------------------------------- |
+| Lead      | high   | Solid research, clear decomposition, coverage+feasibility self-review   |
+| Architect | high   | Complete scope, clear criteria, standard dependency justification       |
+| Dev       | medium | Focused implementation, standard verification, concise commits          |
+| QA        | medium | Standard tier (15-25 checks). Content structure, key links, conventions |
+| Scout     | medium | Targeted research, one source per finding. Runs on session model (Opus) |
+| Debugger  | medium | Focused investigation, rank-order hypotheses, stop on confirmation      |
 
 ## Plan Approval (EFRT-07)
 
-| Autonomy | Gate |
-|----------|------|
-| cautious | required |
-| standard | OFF |
-| confident / pure-vibe | OFF |
+| Autonomy              | Gate     |
+| --------------------- | -------- |
+| cautious              | required |
+| standard              | OFF      |
+| confident / pure-vibe | OFF      |
 
 ## Effort Parameter Mapping
 
-| Level | Behavior |
-|-------|----------|
-| high | Deep reasoning with focused scope |
+| Level  | Behavior                                       |
+| ------ | ---------------------------------------------- |
+| high   | Deep reasoning with focused scope              |
 | medium | Moderate reasoning depth, standard exploration |
 
 Per-invocation override: `--effort=balanced` overrides config default for one invocation (EFRT-05).

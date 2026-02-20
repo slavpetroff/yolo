@@ -5,7 +5,7 @@ load test_helper
 setup() {
   setup_temp_dir
   create_test_config
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.metrics"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.metrics"
 }
 
 teardown() {
@@ -14,8 +14,8 @@ teardown() {
 
 @test "smart-route: skips scout for turbo effort" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_smart_routing = true' .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_smart_routing = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
+    && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   run bash "$SCRIPTS_DIR/smart-route.sh" scout turbo
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.decision == "skip"'
@@ -24,8 +24,8 @@ teardown() {
 
 @test "smart-route: skips scout for fast effort" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_smart_routing = true' .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_smart_routing = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
+    && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   run bash "$SCRIPTS_DIR/smart-route.sh" scout fast
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.decision == "skip"'
@@ -33,8 +33,8 @@ teardown() {
 
 @test "smart-route: includes scout for thorough effort" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_smart_routing = true' .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_smart_routing = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
+    && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   run bash "$SCRIPTS_DIR/smart-route.sh" scout thorough
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.decision == "include"'
@@ -42,8 +42,8 @@ teardown() {
 
 @test "smart-route: skips architect for non-thorough" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_smart_routing = true' .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_smart_routing = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
+    && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   run bash "$SCRIPTS_DIR/smart-route.sh" architect balanced
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.decision == "skip"'

@@ -5,15 +5,15 @@ load test_helper
 setup() {
   setup_temp_dir
   create_test_config
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.contracts"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.events"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.contracts"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.events"
   # Copy schemas
   mkdir -p "$TEST_TEMP_DIR/config/schemas"
   cp "$CONFIG_DIR/schemas/message-schemas.json" "$TEST_TEMP_DIR/config/schemas/"
   # Enable V2 typed protocol
   jq '.v2_typed_protocol = true | .v3_event_log = true' \
-    "$TEST_TEMP_DIR/.vbw-planning/config.json" > "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" \
-    && mv "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" "$TEST_TEMP_DIR/.vbw-planning/config.json"
+    "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" \
+    && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
 }
 
 teardown() {
@@ -137,7 +137,7 @@ MSG
 @test "validate-message: file reference outside contract rejected" {
   cd "$TEST_TEMP_DIR"
   # Create a contract with limited allowed_paths
-  cat > ".vbw-planning/.contracts/1-1.json" << 'CONTRACT'
+  cat > ".yolo-planning/.contracts/1-1.json" << 'CONTRACT'
 {"phase":1,"plan":1,"task_count":2,"allowed_paths":["src/a.js"],"forbidden_paths":[]}
 CONTRACT
   MSG='{"id":"x","type":"execution_update","phase":1,"task":"1-1-T1","author_role":"dev","timestamp":"2026-01-01","schema_version":"2.0","confidence":"high","payload":{"plan_id":"1-1","task_id":"1-1-T1","status":"complete","commit":"abc","files_modified":["src/unauthorized.js"]}}'
@@ -148,8 +148,8 @@ CONTRACT
 
 @test "validate-message: skip when v2_typed_protocol=false" {
   cd "$TEST_TEMP_DIR"
-  jq '.v2_typed_protocol = false' ".vbw-planning/config.json" > ".vbw-planning/config.json.tmp" \
-    && mv ".vbw-planning/config.json.tmp" ".vbw-planning/config.json"
+  jq '.v2_typed_protocol = false' ".yolo-planning/config.json" > ".yolo-planning/config.json.tmp" \
+    && mv ".yolo-planning/config.json.tmp" ".yolo-planning/config.json"
   run bash "$SCRIPTS_DIR/validate-message.sh" "not even json"
   [ "$status" -eq 0 ]
   [[ "$output" == *"v2_typed_protocol=false"* ]]

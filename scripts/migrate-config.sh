@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -u
 
-# migrate-config.sh — Backfill/rename VBW config keys for brownfield installs.
+# migrate-config.sh — Backfill/rename YOLO config keys for brownfield installs.
 #
 # Usage:
 #   bash scripts/migrate-config.sh [path/to/config.json]
@@ -23,7 +23,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEFAULTS_FILE="$SCRIPT_DIR/../config/defaults.json"
-CONFIG_FILE="${1:-.vbw-planning/config.json}"
+CONFIG_FILE="${1:-.yolo-planning/config.json}"
 
 if [ ! -f "$DEFAULTS_FILE" ]; then
   echo "ERROR: defaults.json not found: $DEFAULTS_FILE" >&2

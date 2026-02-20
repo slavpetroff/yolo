@@ -9,11 +9,11 @@ setup() {
   # Enable all runtime foundation flags
   cd "$TEST_TEMP_DIR"
   jq '.v3_event_log = true | .v3_schema_validation = true | .v3_snapshot_resume = true' \
-    .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
-    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+    .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+    mv .yolo-planning/config.json.tmp .yolo-planning/config.json
 
   # Create sample execution state
-  cat > "$TEST_TEMP_DIR/.vbw-planning/.execution-state.json" <<'STATE'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/.execution-state.json" <<'STATE'
 {
   "phase": 5, "phase_name": "test-phase", "status": "running",
   "started_at": "2026-01-01T00:00:00Z", "wave": 1, "total_waves": 1,
@@ -22,8 +22,8 @@ setup() {
 STATE
 
   # Create sample PLAN.md with valid frontmatter
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/phases/05-test-phase"
-  cat > "$TEST_TEMP_DIR/.vbw-planning/phases/05-test-phase/05-01-PLAN.md" <<'EOF'
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/phases/05-test-phase"
+  cat > "$TEST_TEMP_DIR/.yolo-planning/phases/05-test-phase/05-01-PLAN.md" <<'EOF'
 ---
 phase: 5
 plan: 1
@@ -53,9 +53,9 @@ teardown() {
   cd "$TEST_TEMP_DIR"
   run bash "$SCRIPTS_DIR/log-event.sh" phase_start 5
   [ "$status" -eq 0 ]
-  [ -f ".vbw-planning/.events/event-log.jsonl" ]
+  [ -f ".yolo-planning/.events/event-log.jsonl" ]
   # Verify JSON structure
-  LINE=$(head -1 .vbw-planning/.events/event-log.jsonl)
+  LINE=$(head -1 .yolo-planning/.events/event-log.jsonl)
   echo "$LINE" | jq -e '.event == "phase_start"'
   echo "$LINE" | jq -e '.phase == 5'
 }
@@ -64,27 +64,27 @@ teardown() {
   cd "$TEST_TEMP_DIR"
   bash "$SCRIPTS_DIR/log-event.sh" plan_start 5 1
   bash "$SCRIPTS_DIR/log-event.sh" plan_end 5 1 status=complete
-  LINES=$(wc -l < .vbw-planning/.events/event-log.jsonl | tr -d ' ')
+  LINES=$(wc -l < .yolo-planning/.events/event-log.jsonl | tr -d ' ')
   [ "$LINES" -eq 2 ]
-  LAST=$(tail -1 .vbw-planning/.events/event-log.jsonl)
+  LAST=$(tail -1 .yolo-planning/.events/event-log.jsonl)
   echo "$LAST" | jq -e '.event == "plan_end"'
   echo "$LAST" | jq -e '.data.status == "complete"'
 }
 
 @test "log-event: exits 0 when flag disabled" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_event_log = false' .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
-    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_event_log = false' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+    mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   run bash "$SCRIPTS_DIR/log-event.sh" phase_start 5
   [ "$status" -eq 0 ]
-  [ ! -f ".vbw-planning/.events/event-log.jsonl" ]
+  [ ! -f ".yolo-planning/.events/event-log.jsonl" ]
 }
 
 # --- validate-schema.sh tests ---
 
 @test "validate-schema: returns valid for correct plan frontmatter" {
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/validate-schema.sh" plan ".vbw-planning/phases/05-test-phase/05-01-PLAN.md"
+  run bash "$SCRIPTS_DIR/validate-schema.sh" plan ".yolo-planning/phases/05-test-phase/05-01-PLAN.md"
   [ "$status" -eq 0 ]
   [ "$output" = "valid" ]
 }
@@ -136,9 +136,9 @@ JSON
 
 @test "validate-schema: exits 0 when flag disabled" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_schema_validation = false' .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
-    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
-  run bash "$SCRIPTS_DIR/validate-schema.sh" plan ".vbw-planning/phases/05-test-phase/05-01-PLAN.md"
+  jq '.v3_schema_validation = false' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+    mv .yolo-planning/config.json.tmp .yolo-planning/config.json
+  run bash "$SCRIPTS_DIR/validate-schema.sh" plan ".yolo-planning/phases/05-test-phase/05-01-PLAN.md"
   [ "$status" -eq 0 ]
   [ "$output" = "valid" ]
 }
@@ -189,17 +189,17 @@ JSON
   echo "test" > test.txt && git add test.txt && git commit -q -m "init"
 
   # Save snapshots for two different roles
-  bash "$SCRIPTS_DIR/snapshot-resume.sh" save 5 ".vbw-planning/.execution-state.json" "vbw-qa" "auto"
+  bash "$SCRIPTS_DIR/snapshot-resume.sh" save 5 ".yolo-planning/.execution-state.json" "yolo-qa" "auto"
   sleep 1
-  bash "$SCRIPTS_DIR/snapshot-resume.sh" save 5 ".vbw-planning/.execution-state.json" "vbw-dev" "auto"
+  bash "$SCRIPTS_DIR/snapshot-resume.sh" save 5 ".yolo-planning/.execution-state.json" "yolo-dev" "auto"
 
-  run bash "$SCRIPTS_DIR/snapshot-resume.sh" restore 5 "vbw-qa"
+  run bash "$SCRIPTS_DIR/snapshot-resume.sh" restore 5 "yolo-qa"
   [ "$status" -eq 0 ]
   [ -n "$output" ]
   [ -f "$output" ]
   run jq -r '.agent_role' "$output"
   [ "$status" -eq 0 ]
-  [ "$output" = "vbw-qa" ]
+  [ "$output" = "yolo-qa" ]
 }
 
 @test "post-compact: plan_id_to_num extracts numeric plan number" {
@@ -250,24 +250,24 @@ JSON
   echo "test" > test.txt && git add test.txt && git commit -q -m "init"
 
   # Create 12 snapshots manually
-  mkdir -p .vbw-planning/.snapshots
+  mkdir -p .yolo-planning/.snapshots
   for i in $(seq 1 12); do
     TS=$(printf "20260101T%02d0000" "$i")
     echo '{"snapshot_ts":"'$TS'","phase":5,"execution_state":{},"recent_commits":[]}' \
-      > ".vbw-planning/.snapshots/5-${TS}.json"
+      > ".yolo-planning/.snapshots/5-${TS}.json"
   done
 
   # Save one more (should trigger prune)
   bash "$SCRIPTS_DIR/snapshot-resume.sh" save 5
 
-  SNAP_COUNT=$(ls -1 .vbw-planning/.snapshots/5-*.json 2>/dev/null | wc -l | tr -d ' ')
+  SNAP_COUNT=$(ls -1 .yolo-planning/.snapshots/5-*.json 2>/dev/null | wc -l | tr -d ' ')
   [ "$SNAP_COUNT" -le 10 ]
 }
 
 @test "snapshot-resume: exits 0 when flag disabled" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_snapshot_resume = false' .vbw-planning/config.json > .vbw-planning/config.json.tmp && \
-    mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_snapshot_resume = false' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
+    mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   run bash "$SCRIPTS_DIR/snapshot-resume.sh" save 5
   [ "$status" -eq 0 ]
   [ -z "$output" ]

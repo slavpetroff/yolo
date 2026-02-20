@@ -1,5 +1,5 @@
 #!/bin/bash
-# Shared test helper for VBW bats tests
+# Shared test helper for YOLO bats tests
 
 # Project root (relative to tests/ dir)
 export PROJECT_ROOT="${BATS_TEST_DIRNAME}/.."
@@ -9,7 +9,7 @@ export CONFIG_DIR="${PROJECT_ROOT}/config"
 # Create temp directory for test isolation
 setup_temp_dir() {
   export TEST_TEMP_DIR=$(mktemp -d)
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning"
 }
 
 # Clean up temp directory
@@ -19,7 +19,7 @@ teardown_temp_dir() {
 
 # Create minimal config.json for tests
 create_test_config() {
-  local dir="${1:-.vbw-planning}"
+  local dir="${1:-.yolo-planning}"
   cat > "$TEST_TEMP_DIR/$dir/config.json" <<'CONF'
 {
   "effort": "balanced",

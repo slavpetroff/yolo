@@ -170,15 +170,15 @@ check_absent "REQ-20" "README.md has no '29 commands'" grep -q "29 commands" "$R
 check_absent "REQ-20" "marketplace.json has no '29 commands'" grep -q "29 commands" "$MKT_ROOT"
 check_absent "REQ-20" ".claude-plugin/marketplace.json has no '29 commands'" grep -q "29 commands" "$MKT_PLUGIN"
 
-# REQ-20: No /vbw:implement in key files
-check_absent "REQ-20" "suggest-next.sh has no /vbw:implement" grep -q "/vbw:implement" "$SUGGEST"
-check_absent "REQ-20" "help.md has no /vbw:implement" grep -q "/vbw:implement" "$HELP"
-check_absent "REQ-20" "README.md has no /vbw:implement" grep -q "/vbw:implement" "$README"
-check_absent "REQ-20" "CLAUDE.md has no /vbw:implement" grep -q "/vbw:implement" "$CLAUDE_MD"
+# REQ-20: No /yolo:implement in key files
+check_absent "REQ-20" "suggest-next.sh has no /yolo:implement" grep -q "/yolo:implement" "$SUGGEST"
+check_absent "REQ-20" "help.md has no /yolo:implement" grep -q "/yolo:implement" "$HELP"
+check_absent "REQ-20" "README.md has no /yolo:implement" grep -q "/yolo:implement" "$README"
+check_absent "REQ-20" "CLAUDE.md has no /yolo:implement" grep -q "/yolo:implement" "$CLAUDE_MD"
 
-# REQ-20: Positive checks — key files reference /vbw:vibe
-check "REQ-20" "suggest-next.sh references /vbw:vibe" grep -q "/vbw:vibe" "$SUGGEST"
-check "REQ-20" "help.md references /vbw:vibe" grep -q "/vbw:vibe" "$HELP"
+# REQ-20: Positive checks — key files reference /yolo:vibe
+check "REQ-20" "suggest-next.sh references /yolo:vibe" grep -q "/yolo:vibe" "$SUGGEST"
+check "REQ-20" "help.md references /yolo:vibe" grep -q "/yolo:vibe" "$HELP"
 
 group_end "Command Surface"
 

@@ -18,7 +18,7 @@ teardown() {
 }
 
 @test "detects no planning directory" {
-  rm -rf .vbw-planning
+  rm -rf .yolo-planning
   run bash "$SCRIPTS_DIR/phase-detect.sh"
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "planning_dir_exists=false"
@@ -37,38 +37,38 @@ teardown() {
 }
 
 @test "detects project exists" {
-  echo "# My Project" > .vbw-planning/PROJECT.md
+  echo "# My Project" > .yolo-planning/PROJECT.md
   run bash "$SCRIPTS_DIR/phase-detect.sh"
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "project_exists=true"
 }
 
 @test "detects zero phases" {
-  mkdir -p .vbw-planning/phases
+  mkdir -p .yolo-planning/phases
   run bash "$SCRIPTS_DIR/phase-detect.sh"
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "phase_count=0"
 }
 
 @test "detects phases needing plan" {
-  mkdir -p .vbw-planning/phases/01-test/
+  mkdir -p .yolo-planning/phases/01-test/
   run bash "$SCRIPTS_DIR/phase-detect.sh"
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "next_phase_state=needs_plan_and_execute"
 }
 
 @test "detects phases needing execution" {
-  mkdir -p .vbw-planning/phases/01-test/
-  touch .vbw-planning/phases/01-test/01-01-PLAN.md
+  mkdir -p .yolo-planning/phases/01-test/
+  touch .yolo-planning/phases/01-test/01-01-PLAN.md
   run bash "$SCRIPTS_DIR/phase-detect.sh"
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "next_phase_state=needs_execute"
 }
 
 @test "detects all phases done" {
-  mkdir -p .vbw-planning/phases/01-test/
-  touch .vbw-planning/phases/01-test/01-01-PLAN.md
-  touch .vbw-planning/phases/01-test/01-01-SUMMARY.md
+  mkdir -p .yolo-planning/phases/01-test/
+  touch .yolo-planning/phases/01-test/01-01-PLAN.md
+  touch .yolo-planning/phases/01-test/01-01-SUMMARY.md
   run bash "$SCRIPTS_DIR/phase-detect.sh"
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "next_phase_state=all_done"

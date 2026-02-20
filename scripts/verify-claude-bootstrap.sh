@@ -51,11 +51,11 @@ check "greenfield has core value" grep -q '^\*\*Core value:\*\* Demo core value$
 check "greenfield has Active Context" grep -q '^## Active Context$' "$OUT"
 check "greenfield has Project Conventions" grep -q '^## Project Conventions$' "$OUT"
 check "greenfield has Plugin Isolation" grep -q '^## Plugin Isolation$' "$OUT"
-check_absent "greenfield omits Key Decisions (tracked in .vbw-planning/)" grep -q '^## Key Decisions$' "$OUT"
+check_absent "greenfield omits Key Decisions (tracked in .yolo-planning/)" grep -q '^## Key Decisions$' "$OUT"
 
 # 2) Brownfield preservation + managed section replacement
-mkdir -p "$TMP_DIR/.vbw-planning"
-cat > "$TMP_DIR/.vbw-planning/STATE.md" <<'EOF'
+mkdir -p "$TMP_DIR/.yolo-planning"
+cat > "$TMP_DIR/.yolo-planning/STATE.md" <<'EOF'
 # State
 
 ## Key Decisions
@@ -75,7 +75,7 @@ cat > "$TMP_DIR/existing.md" <<'EOF'
 ## Custom Notes
 Keep this section.
 
-## VBW Rules
+## YOLO Rules
 OLD MANAGED CONTENT SHOULD BE REPLACED
 
 ## Key Decisions
@@ -116,10 +116,10 @@ bash "$BOOTSTRAP" "$TMP_DIR/CLAUDE.md" "Demo Project" "Demo core value" "$TMP_DI
 OUT="$TMP_DIR/CLAUDE.md"
 check "brownfield preserves custom section" grep -q '^## Custom Notes$' "$OUT"
 check "brownfield preserves team section" grep -q '^## Team Notes$' "$OUT"
-check_absent "brownfield strips old managed VBW content" grep -q 'OLD MANAGED CONTENT SHOULD BE REPLACED' "$OUT"
+check_absent "brownfield strips old managed YOLO content" grep -q 'OLD MANAGED CONTENT SHOULD BE REPLACED' "$OUT"
 check_absent "brownfield strips deprecated Key Decisions section" grep -q '^## Key Decisions$' "$OUT"
 check_absent "brownfield strips deprecated Key Decisions content" grep -q 'Use widgets' "$OUT"
-check "brownfield migrates Key Decisions data to STATE.md" grep -q 'Use widgets' "$TMP_DIR/.vbw-planning/STATE.md"
+check "brownfield migrates Key Decisions data to STATE.md" grep -q 'Use widgets' "$TMP_DIR/.yolo-planning/STATE.md"
 check_absent "brownfield strips old managed GSD section" grep -q '^## Codebase Intelligence$' "$OUT"
 
 for header in \
@@ -134,12 +134,12 @@ for header in \
   check_absent "brownfield strips fingerprinted $header" grep -q "^${header}$" "$OUT"
 done
 
-VBW_RULES_COUNT="$(grep -c '^## VBW Rules$' "$OUT")"
-if [ "$VBW_RULES_COUNT" -eq 1 ]; then
-  echo "  PASS  brownfield has one VBW Rules section"
+YOLO_RULES_COUNT="$(grep -c '^## YOLO Rules$' "$OUT")"
+if [ "$YOLO_RULES_COUNT" -eq 1 ]; then
+  echo "  PASS  brownfield has one YOLO Rules section"
   PASS=$((PASS + 1))
 else
-  echo "  FAIL  brownfield has one VBW Rules section (found $VBW_RULES_COUNT)"
+  echo "  FAIL  brownfield has one YOLO Rules section (found $YOLO_RULES_COUNT)"
   FAIL=$((FAIL + 1))
 fi
 
@@ -178,8 +178,8 @@ check_absent "rejects empty PROJECT_NAME" bash "$BOOTSTRAP" "$OUT" "" "Some valu
 check_absent "rejects empty CORE_VALUE" bash "$BOOTSTRAP" "$OUT" "Some Name" ""
 
 # 6) Deprecated section migration: data rows migrate to STATE.md
-mkdir -p "$TMP_DIR/.vbw-planning"
-cat > "$TMP_DIR/.vbw-planning/STATE.md" <<'EOF'
+mkdir -p "$TMP_DIR/.yolo-planning"
+cat > "$TMP_DIR/.yolo-planning/STATE.md" <<'EOF'
 # State
 
 ## Key Decisions
@@ -216,12 +216,12 @@ else
 fi
 
 check_absent "migrated Key Decisions stripped from CLAUDE.md" grep -q '^## Key Decisions$' "$TMP_DIR/CLAUDE.md"
-check "migrated data row appears in STATE.md" grep -q 'Use widgets' "$TMP_DIR/.vbw-planning/STATE.md"
-check_absent "placeholder row removed from STATE.md" grep -q 'No decisions yet' "$TMP_DIR/.vbw-planning/STATE.md"
+check "migrated data row appears in STATE.md" grep -q 'Use widgets' "$TMP_DIR/.yolo-planning/STATE.md"
+check_absent "placeholder row removed from STATE.md" grep -q 'No decisions yet' "$TMP_DIR/.yolo-planning/STATE.md"
 
 # F1/F5: Validate migrated table is contiguous (no blank line between separator and data)
-SEPARATOR_LINE=$(grep -n '^|[-|[:space:]]*|$' "$TMP_DIR/.vbw-planning/STATE.md" | head -1 | cut -d: -f1)
-DATA_LINE=$(grep -n 'Use widgets' "$TMP_DIR/.vbw-planning/STATE.md" | head -1 | cut -d: -f1)
+SEPARATOR_LINE=$(grep -n '^|[-|[:space:]]*|$' "$TMP_DIR/.yolo-planning/STATE.md" | head -1 | cut -d: -f1)
+DATA_LINE=$(grep -n 'Use widgets' "$TMP_DIR/.yolo-planning/STATE.md" | head -1 | cut -d: -f1)
 EXPECTED_DATA_LINE=$((SEPARATOR_LINE + 1))
 if [[ "$DATA_LINE" -eq "$EXPECTED_DATA_LINE" ]]; then
   echo "  PASS  migrated table rows are contiguous (no blank line gap)"
@@ -232,9 +232,9 @@ else
 fi
 
 # F2: Validate blank line before ## Todos after migrated rows
-TODOS_LINE=$(grep -n '^## Todos$' "$TMP_DIR/.vbw-planning/STATE.md" | head -1 | cut -d: -f1)
+TODOS_LINE=$(grep -n '^## Todos$' "$TMP_DIR/.yolo-planning/STATE.md" | head -1 | cut -d: -f1)
 BEFORE_TODOS_LINE=$((TODOS_LINE - 1))
-BEFORE_TODOS_CONTENT=$(sed -n "${BEFORE_TODOS_LINE}p" "$TMP_DIR/.vbw-planning/STATE.md")
+BEFORE_TODOS_CONTENT=$(sed -n "${BEFORE_TODOS_LINE}p" "$TMP_DIR/.yolo-planning/STATE.md")
 if [[ -z "$BEFORE_TODOS_CONTENT" ]]; then
   echo "  PASS  blank line before ## Todos after migration"
   PASS=$((PASS + 1))
@@ -244,7 +244,7 @@ else
 fi
 
 # 7) Deprecated section migration: no migration for empty table
-cat > "$TMP_DIR/.vbw-planning/STATE.md" <<'EOF'
+cat > "$TMP_DIR/.yolo-planning/STATE.md" <<'EOF'
 # State
 
 ## Key Decisions
@@ -276,10 +276,10 @@ else
   echo "  PASS  empty deprecated section does not trigger migration"
   PASS=$((PASS + 1))
 fi
-check "placeholder row preserved in STATE.md for empty table" grep -q 'No decisions yet' "$TMP_DIR/.vbw-planning/STATE.md"
+check "placeholder row preserved in STATE.md for empty table" grep -q 'No decisions yet' "$TMP_DIR/.yolo-planning/STATE.md"
 
 # 7b) Migration preserves section when STATE.md Key Decisions has no table
-cat > "$TMP_DIR/.vbw-planning/STATE.md" <<'EOF'
+cat > "$TMP_DIR/.yolo-planning/STATE.md" <<'EOF'
 # State
 
 ## Key Decisions
@@ -299,7 +299,7 @@ check "section preserved when STATE.md has no table" grep -q '^## Key Decisions$
 check "data preserved when STATE.md has no table" grep -q 'Use widgets' "$TMP_DIR/CLAUDE.md"
 
 # 8) Deprecated section migration: preserves section when STATE.md missing
-rm -rf "$TMP_DIR/.vbw-planning"
+rm -rf "$TMP_DIR/.yolo-planning"
 NOSTATE_OUTPUT="$(bash "$BOOTSTRAP" "$TMP_DIR/CLAUDE.md" "Test Project" "Test value" "$TMP_DIR/with-decisions.md" 2>&1 >/dev/null)"
 if echo "$NOSTATE_OUTPUT" | grep -q 'Warning.*Cannot migrate.*STATE.md not found'; then
   echo "  PASS  migration warns when STATE.md missing"
@@ -312,8 +312,8 @@ check "Key Decisions preserved when STATE.md missing" grep -q '^## Key Decisions
 check "data rows preserved when STATE.md missing" grep -q 'Use widgets' "$TMP_DIR/CLAUDE.md"
 
 # 9) Deprecated section migration: deduplicates rows already in STATE.md
-mkdir -p "$TMP_DIR/.vbw-planning"
-cat > "$TMP_DIR/.vbw-planning/STATE.md" <<'EOF'
+mkdir -p "$TMP_DIR/.yolo-planning"
+cat > "$TMP_DIR/.yolo-planning/STATE.md" <<'EOF'
 # State
 
 ## Key Decisions
@@ -349,7 +349,7 @@ else
   echo "  FAIL  deduplication: only new row migrated (got: $DUP_OUTPUT)"
   FAIL=$((FAIL + 1))
 fi
-WIDGET_COUNT=$(grep -c 'Use widgets' "$TMP_DIR/.vbw-planning/STATE.md")
+WIDGET_COUNT=$(grep -c 'Use widgets' "$TMP_DIR/.yolo-planning/STATE.md")
 if [[ "$WIDGET_COUNT" -eq 1 ]]; then
   echo "  PASS  deduplication: existing row not duplicated"
   PASS=$((PASS + 1))
@@ -357,11 +357,11 @@ else
   echo "  FAIL  deduplication: existing row not duplicated (found $WIDGET_COUNT)"
   FAIL=$((FAIL + 1))
 fi
-check "deduplication: new row added to STATE.md" grep -q 'New decision' "$TMP_DIR/.vbw-planning/STATE.md"
+check "deduplication: new row added to STATE.md" grep -q 'New decision' "$TMP_DIR/.yolo-planning/STATE.md"
 
 # 10) Deprecated section: non-table text preserved as user content
-mkdir -p "$TMP_DIR/.vbw-planning"
-cat > "$TMP_DIR/.vbw-planning/STATE.md" <<'EOF'
+mkdir -p "$TMP_DIR/.yolo-planning"
+cat > "$TMP_DIR/.yolo-planning/STATE.md" <<'EOF'
 # State
 
 ## Key Decisions
@@ -395,11 +395,11 @@ check_absent "mixed: table data row stripped from CLAUDE.md" grep -q 'Use widget
 check "mixed: non-table text preserved in CLAUDE.md" grep -q 'random text' "$TMP_DIR/CLAUDE.md"
 check "mixed: non-table list preserved in CLAUDE.md" grep -q 'random text 2' "$TMP_DIR/CLAUDE.md"
 check "mixed: archived heading wraps orphaned text" grep -q '^## Key Decisions (Archived Notes)$' "$TMP_DIR/CLAUDE.md"
-check "mixed: table data migrated to STATE.md" grep -q 'Use widgets' "$TMP_DIR/.vbw-planning/STATE.md"
+check "mixed: table data migrated to STATE.md" grep -q 'Use widgets' "$TMP_DIR/.yolo-planning/STATE.md"
 
 # 11) Whitespace-normalized deduplication (F5)
-mkdir -p "$TMP_DIR/.vbw-planning"
-cat > "$TMP_DIR/.vbw-planning/STATE.md" <<'EOF'
+mkdir -p "$TMP_DIR/.yolo-planning"
+cat > "$TMP_DIR/.yolo-planning/STATE.md" <<'EOF'
 # State
 
 ## Key Decisions
@@ -437,8 +437,8 @@ else
 fi
 
 # 12) Trailing whitespace on headers still matched (F6)
-mkdir -p "$TMP_DIR/.vbw-planning"
-cat > "$TMP_DIR/.vbw-planning/STATE.md" <<'EOF'
+mkdir -p "$TMP_DIR/.yolo-planning"
+cat > "$TMP_DIR/.yolo-planning/STATE.md" <<'EOF'
 # State
 
 ## Key Decisions
@@ -463,7 +463,7 @@ printf '%s\n' \
 
 bash "$BOOTSTRAP" "$TMP_DIR/CLAUDE.md" "Test Project" "Test value" "$TMP_DIR/trailing-ws.md" 2>/dev/null
 check_absent "trailing whitespace: Key Decisions header still recognized" grep -q '^## Key Decisions' "$TMP_DIR/CLAUDE.md"
-check "trailing whitespace: data migrated to STATE.md" grep -q 'Use widgets' "$TMP_DIR/.vbw-planning/STATE.md"
+check "trailing whitespace: data migrated to STATE.md" grep -q 'Use widgets' "$TMP_DIR/.yolo-planning/STATE.md"
 
 echo ""
 echo "TOTAL: $PASS PASS, $FAIL FAIL"

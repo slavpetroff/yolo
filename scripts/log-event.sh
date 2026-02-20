@@ -2,7 +2,7 @@
 set -u
 
 # log-event.sh <event-type> <phase> [plan] [key=value ...]
-# Appends a structured event to .vbw-planning/.events/event-log.jsonl
+# Appends a structured event to .yolo-planning/.events/event-log.jsonl
 # Each event includes a unique event_id (UUID when uuidgen available, timestamp+random fallback).
 # Exit 0 always — event logging must never block execution.
 #
@@ -24,7 +24,7 @@ if [ $# -lt 2 ]; then
   exit 0
 fi
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 CONFIG_PATH="${PLANNING_DIR}/config.json"
 
 # Check feature flag
@@ -60,7 +60,7 @@ if [ -f "$CONFIG_PATH" ] && command -v jq &>/dev/null; then
 fi
 
 # Resolve correlation_id: env var override → execution-state.json → "" (empty, always present)
-CORRELATION_ID="${VBW_CORRELATION_ID:-}"
+CORRELATION_ID="${YOLO_CORRELATION_ID:-}"
 
 EXEC_STATE="${PLANNING_DIR}/.execution-state.json"
 if [ -z "$CORRELATION_ID" ] && [ -f "$EXEC_STATE" ] && command -v jq &>/dev/null; then

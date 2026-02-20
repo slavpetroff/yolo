@@ -1,10 +1,10 @@
-# VBW Destructive Command Blocklist
+# YOLO Destructive Command Blocklist
 # One regex pattern per line. Case-insensitive matching via grep -iE.
 # Lines starting with # are comments. Empty lines ignored.
 # Patterns match against the full Bash command string.
 #
-# Override: VBW_ALLOW_DESTRUCTIVE=1 env var, or bash_guard=false in config.
-# Extend: .vbw-planning/destructive-commands.local.txt (project-specific)
+# Override: YOLO_ALLOW_DESTRUCTIVE=1 env var, or bash_guard=false in config.
+# Extend: .yolo-planning/destructive-commands.local.txt (project-specific)
 
 # === PHP / Laravel ===
 artisan\s+migrate:(fresh|reset|refresh)

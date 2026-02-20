@@ -5,8 +5,8 @@ load test_helper
 setup() {
   setup_temp_dir
   create_test_config
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/phases/02-test-phase"
-  cat > "$TEST_TEMP_DIR/.vbw-planning/ROADMAP.md" <<'EOF'
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/phases/02-test-phase"
+  cat > "$TEST_TEMP_DIR/.yolo-planning/ROADMAP.md" <<'EOF'
 # Test Roadmap
 ## Phase 2: Test Phase
 **Goal:** Test goal
@@ -21,7 +21,7 @@ teardown() {
   cd "$TEST_TEMP_DIR"
   run bash "$SCRIPTS_DIR/collect-metrics.sh" cache_hit 2 1 role=dev
   [ "$status" -eq 0 ]
-  [ -d ".vbw-planning/.metrics" ]
+  [ -d ".yolo-planning/.metrics" ]
 }
 
 @test "collect-metrics.sh appends valid JSONL" {
@@ -30,29 +30,29 @@ teardown() {
   bash "$SCRIPTS_DIR/collect-metrics.sh" compile_context 2 role=lead duration_ms=100
 
   # Should have 2 lines
-  LINE_COUNT=$(wc -l < ".vbw-planning/.metrics/run-metrics.jsonl" | tr -d ' ')
+  LINE_COUNT=$(wc -l < ".yolo-planning/.metrics/run-metrics.jsonl" | tr -d ' ')
   [ "$LINE_COUNT" -eq 2 ]
 
   # Each line should be valid JSON
   while IFS= read -r line; do
     echo "$line" | jq -e '.' >/dev/null 2>&1
-  done < ".vbw-planning/.metrics/run-metrics.jsonl"
+  done < ".yolo-planning/.metrics/run-metrics.jsonl"
 }
 
 @test "collect-metrics.sh includes key=value data pairs" {
   cd "$TEST_TEMP_DIR"
   bash "$SCRIPTS_DIR/collect-metrics.sh" compile_context 2 role=dev duration_ms=50 delta_files=3
-  run jq -r '.data.role' ".vbw-planning/.metrics/run-metrics.jsonl"
+  run jq -r '.data.role' ".yolo-planning/.metrics/run-metrics.jsonl"
   [ "$output" = "dev" ]
-  run jq -r '.data.delta_files' ".vbw-planning/.metrics/run-metrics.jsonl"
+  run jq -r '.data.delta_files' ".yolo-planning/.metrics/run-metrics.jsonl"
   [ "$output" = "3" ]
 }
 
 @test "compile-context.sh emits metrics when v3_metrics=true" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_metrics = true' ".vbw-planning/config.json" > ".vbw-planning/config.tmp" && mv ".vbw-planning/config.tmp" ".vbw-planning/config.json"
+  jq '.v3_metrics = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  cat > ".vbw-planning/phases/02-test-phase/02-01-PLAN.md" <<'EOF'
+  cat > ".yolo-planning/phases/02-test-phase/02-01-PLAN.md" <<'EOF'
 ---
 phase: 2
 plan: 1
@@ -64,15 +64,15 @@ must_haves: ["test"]
 # Test
 EOF
 
-  bash "$SCRIPTS_DIR/compile-context.sh" 02 dev ".vbw-planning/phases" ".vbw-planning/phases/02-test-phase/02-01-PLAN.md"
-  [ -f ".vbw-planning/.metrics/run-metrics.jsonl" ]
-  grep -q "compile_context" ".vbw-planning/.metrics/run-metrics.jsonl"
+  bash "$SCRIPTS_DIR/compile-context.sh" 02 dev ".yolo-planning/phases" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
+  [ -f ".yolo-planning/.metrics/run-metrics.jsonl" ]
+  grep -q "compile_context" ".yolo-planning/.metrics/run-metrics.jsonl"
 }
 
 @test "compile-context.sh skips metrics when v3_metrics=false" {
   cd "$TEST_TEMP_DIR"
 
-  cat > ".vbw-planning/phases/02-test-phase/02-01-PLAN.md" <<'EOF'
+  cat > ".yolo-planning/phases/02-test-phase/02-01-PLAN.md" <<'EOF'
 ---
 phase: 2
 plan: 1
@@ -84,6 +84,6 @@ must_haves: ["test"]
 # Test
 EOF
 
-  bash "$SCRIPTS_DIR/compile-context.sh" 02 dev ".vbw-planning/phases" ".vbw-planning/phases/02-test-phase/02-01-PLAN.md"
-  [ ! -d ".vbw-planning/.metrics" ]
+  bash "$SCRIPTS_DIR/compile-context.sh" 02 dev ".yolo-planning/phases" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
+  [ ! -d ".yolo-planning/.metrics" ]
 }

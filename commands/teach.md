@@ -1,31 +1,31 @@
 ---
-name: vbw:teach
+name: yolo:teach
 category: supporting
 disable-model-invocation: true
-description: View, add, or manage project conventions. Shows what VBW already knows and warns about conflicts.
+description: View, add, or manage project conventions. Shows what YOLO already knows and warns about conflicts.
 argument-hint: "[\"convention text\" | remove <id> | refresh]"
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
-# VBW Teach $ARGUMENTS
+# YOLO Teach $ARGUMENTS
 
 ## Context
 
 Working directory: `!`pwd``
-Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/vbw-marketplace/vbw/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
+Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
 Conventions:
 ```
-!`cat .vbw-planning/conventions.json 2>/dev/null || echo "No conventions found"`
+!`cat .yolo-planning/conventions.json 2>/dev/null || echo "No conventions found"`
 ```
-Codebase map: `!`ls .vbw-planning/codebase/INDEX.md 2>/dev/null && echo "EXISTS" || echo "NONE"``
+Codebase map: `!`ls .yolo-planning/codebase/INDEX.md 2>/dev/null && echo "EXISTS" || echo "NONE"``
 
 ## Guard
 
-If no .vbw-planning/ dir: STOP "Run /vbw:init first." (check `.vbw-planning/config.json`)
+If no .yolo-planning/ dir: STOP "Run /yolo:init first." (check `.yolo-planning/config.json`)
 
 ## Convention Structure
 
-Stored in `.vbw-planning/conventions.json`:
+Stored in `.yolo-planning/conventions.json`:
 ```json
 {
   "conventions": [{
@@ -36,7 +36,7 @@ Stored in `.vbw-planning/conventions.json`:
 }
 ```
 
-**Sources:** `auto-detected` (from codebase map) | `user-defined` (manual via /vbw:teach)
+**Sources:** `auto-detected` (from codebase map) | `user-defined` (manual via /yolo:teach)
 **Categories:** file-structure | naming | testing | style | tooling | patterns | other
 **Confidence** (auto-detected only): high (80%+) | medium (50-80%) | low (<50%)
 
@@ -44,7 +44,7 @@ Stored in `.vbw-planning/conventions.json`:
 
 ### No arguments: Display known conventions
 
-1. Read `.vbw-planning/conventions.json`. If missing, show empty state with examples (`/vbw:teach refresh` and `/vbw:teach "convention text"`).
+1. Read `.yolo-planning/conventions.json`. If missing, show empty state with examples (`/yolo:teach refresh` and `/yolo:teach "convention text"`).
 2. Display conventions grouped by category. Tag: `[auto . {confidence}]` or `[user]`. Show totals.
 3. AskUserQuestion: "What would you like to do?" Options: "Add a convention" | "Refresh from codebase" (if map exists) | "Done"
 
@@ -78,7 +78,7 @@ Stored in `.vbw-planning/conventions.json`:
 
 ### `refresh`: Re-run auto-detection
 
-**R1.** If no `.vbw-planning/codebase/`: `⚠ No codebase map found. Run /vbw:map first.`
+**R1.** If no `.yolo-planning/codebase/`: `⚠ No codebase map found. Run /yolo:map first.`
 
 **R2. Extract conventions from map:** Read PATTERNS.md, ARCHITECTURE.md, STACK.md, CONCERNS.md. Rules:
 - Be specific, not generic ("Components use PascalCase" good; "Code should be clean" bad)
@@ -97,4 +97,4 @@ Conventions injected via CLAUDE.md `## Project Conventions` (loaded every sessio
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — single-line box, ✓ success, ⚠ conflicts/warnings, ○ skipped/info, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — single-line box, ✓ success, ⚠ conflicts/warnings, ○ skipped/info, no ANSI.

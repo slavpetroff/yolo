@@ -1,6 +1,6 @@
 {
-  "description": "VBW quality gates and continuous verification",
-  "_note": "All hooks route through hook-wrapper.sh for graceful degradation (DXP-01). The wrapper resolves the target script from the plugin cache first, then falls back to CLAUDE_PLUGIN_ROOT for --plugin-dir installs. Logs failures to .vbw-planning/.hook-errors.log, and always exits 0. No hook can break a session.",
+  "description": "YOLO quality gates and continuous verification",
+  "_note": "All hooks route through hook-wrapper.sh for graceful degradation (DXP-01). The wrapper resolves the target script from the plugin cache first, then falls back to CLAUDE_PLUGIN_ROOT for --plugin-dir installs. Logs failures to .yolo-planning/.hook-errors.log, and always exits 0. No hook can break a session.",
   "hooks": {
     "PostToolUse": [
       {
@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" validate-summary.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" validate-summary.sh; exit 0'",
             "timeout": 15
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" validate-frontmatter.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" validate-frontmatter.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" validate-commit.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" validate-commit.sh; exit 0'",
             "timeout": 10
           }
         ]
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" skill-hook-dispatch.sh PostToolUse; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" skill-hook-dispatch.sh PostToolUse; exit 0'",
             "timeout": 10
           }
         ]
@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" state-updater.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" state-updater.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -60,7 +60,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" bash-guard.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" bash-guard.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -70,7 +70,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" security-filter.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" security-filter.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -80,7 +80,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" skill-hook-dispatch.sh PreToolUse; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" skill-hook-dispatch.sh PreToolUse; exit 0'",
             "timeout": 10
           }
         ]
@@ -90,7 +90,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" file-guard.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" file-guard.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -98,16 +98,16 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "vbw-lead|vbw-dev|vbw-qa|vbw-scout|vbw-debugger|vbw-architect|vbw-docs|vbw:vbw-lead|vbw:vbw-dev|vbw:vbw-qa|vbw:vbw-scout|vbw:vbw-debugger|vbw:vbw-architect|vbw:vbw-docs|lead|dev|qa|scout|debugger|architect|docs|team-lead|team-dev|team-qa|team-scout|team-debugger|team-architect|team-docs",
+        "matcher": "yolo-lead|yolo-dev|yolo-qa|yolo-scout|yolo-debugger|yolo-architect|yolo-docs|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-qa|yolo:yolo-scout|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|lead|dev|qa|scout|debugger|architect|docs|team-lead|team-dev|team-qa|team-scout|team-debugger|team-architect|team-docs",
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" agent-start.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" agent-start.sh; exit 0'",
             "timeout": 3
           },
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" agent-health.sh start; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" agent-health.sh start; exit 0'",
             "timeout": 3
           }
         ]
@@ -115,26 +115,26 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "vbw-lead|vbw-dev|vbw-qa|vbw-scout|vbw-debugger|vbw-architect|vbw-docs|vbw:vbw-lead|vbw:vbw-dev|vbw:vbw-qa|vbw:vbw-scout|vbw:vbw-debugger|vbw:vbw-architect|vbw:vbw-docs|lead|dev|qa|scout|debugger|architect|docs|team-lead|team-dev|team-qa|team-scout|team-debugger|team-architect|team-docs",
+        "matcher": "yolo-lead|yolo-dev|yolo-qa|yolo-scout|yolo-debugger|yolo-architect|yolo-docs|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-qa|yolo:yolo-scout|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|lead|dev|qa|scout|debugger|architect|docs|team-lead|team-dev|team-qa|team-scout|team-debugger|team-architect|team-docs",
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" validate-summary.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" validate-summary.sh; exit 0'",
             "timeout": 15
           }
         ]
       },
       {
-        "matcher": "vbw-lead|vbw-dev|vbw-qa|vbw-scout|vbw-debugger|vbw-architect|vbw-docs|vbw:vbw-lead|vbw:vbw-dev|vbw:vbw-qa|vbw:vbw-scout|vbw:vbw-debugger|vbw:vbw-architect|vbw:vbw-docs|lead|dev|qa|scout|debugger|architect|docs|team-lead|team-dev|team-qa|team-scout|team-debugger|team-architect|team-docs",
+        "matcher": "yolo-lead|yolo-dev|yolo-qa|yolo-scout|yolo-debugger|yolo-architect|yolo-docs|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-qa|yolo:yolo-scout|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|lead|dev|qa|scout|debugger|architect|docs|team-lead|team-dev|team-qa|team-scout|team-debugger|team-architect|team-docs",
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" agent-stop.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" agent-stop.sh; exit 0'",
             "timeout": 3
           },
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" agent-health.sh stop; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" agent-health.sh stop; exit 0'",
             "timeout": 3
           }
         ]
@@ -142,16 +142,16 @@
     ],
     "TeammateIdle": [
       {
-        "matcher": "vbw-lead|vbw-dev|vbw-qa|vbw-scout|vbw-debugger|vbw-architect|vbw-docs|vbw:vbw-lead|vbw:vbw-dev|vbw:vbw-qa|vbw:vbw-scout|vbw:vbw-debugger|vbw:vbw-architect|vbw:vbw-docs|lead|dev|qa|scout|debugger|architect|docs|team-lead|team-dev|team-qa|team-scout|team-debugger|team-architect|team-docs",
+        "matcher": "yolo-lead|yolo-dev|yolo-qa|yolo-scout|yolo-debugger|yolo-architect|yolo-docs|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-qa|yolo:yolo-scout|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|lead|dev|qa|scout|debugger|architect|docs|team-lead|team-dev|team-qa|team-scout|team-debugger|team-architect|team-docs",
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" qa-gate.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" qa-gate.sh; exit 0'",
             "timeout": 30
           },
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" agent-health.sh idle; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" agent-health.sh idle; exit 0'",
             "timeout": 5
           }
         ]
@@ -159,16 +159,16 @@
     ],
     "TaskCompleted": [
       {
-        "matcher": "vbw-lead|vbw-dev|vbw-qa|vbw-scout|vbw-debugger|vbw-architect|vbw-docs|vbw:vbw-lead|vbw:vbw-dev|vbw:vbw-qa|vbw:vbw-scout|vbw:vbw-debugger|vbw:vbw-architect|vbw:vbw-docs|lead|dev|qa|scout|debugger|architect|docs|team-lead|team-dev|team-qa|team-scout|team-debugger|team-architect|team-docs",
+        "matcher": "yolo-lead|yolo-dev|yolo-qa|yolo-scout|yolo-debugger|yolo-architect|yolo-docs|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-qa|yolo:yolo-scout|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|lead|dev|qa|scout|debugger|architect|docs|team-lead|team-dev|team-qa|team-scout|team-debugger|team-architect|team-docs",
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" task-verify.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" task-verify.sh; exit 0'",
             "timeout": 15
           },
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" blocker-notify.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" blocker-notify.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -179,7 +179,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" session-start.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" session-start.sh; exit 0'",
             "timeout": 10
           }
         ]
@@ -188,7 +188,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" map-staleness.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" map-staleness.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -198,7 +198,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" post-compact.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" post-compact.sh; exit 0'",
             "timeout": 5
           }
         ]
@@ -209,7 +209,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" compaction-instructions.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" compaction-instructions.sh; exit 0'",
             "timeout": 10
           }
         ]
@@ -220,12 +220,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" session-stop.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" session-stop.sh; exit 0'",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" agent-health.sh cleanup; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" agent-health.sh cleanup; exit 0'",
             "timeout": 3
           }
         ]
@@ -236,7 +236,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" prompt-preflight.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" prompt-preflight.sh; exit 0'",
             "timeout": 3
           }
         ]
@@ -247,7 +247,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" notification-log.sh; exit 0'",
+            "command": "bash -c 'w=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/hook-wrapper.sh 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1); [ ! -f \"$w\" ] && w=\"${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/hook-wrapper.sh}\"; [ -f \"$w\" ] && exec bash \"$w\" notification-log.sh; exit 0'",
             "timeout": 3
           }
         ]

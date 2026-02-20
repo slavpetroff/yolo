@@ -6,10 +6,10 @@ set -u
 #   register <path> <event_id> [phase] [plan]  -- register artifact with auto-checksum
 #   query <path>                                -- query artifact by path
 #   list [phase]                                -- list all artifacts (optionally filter by phase)
-# Stores in .vbw-planning/.artifacts/registry.jsonl
+# Stores in .yolo-planning/.artifacts/registry.jsonl
 # Gated by v2_two_phase_completion flag
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 CONFIG_PATH="${PLANNING_DIR}/config.json"
 
 # Check feature flag

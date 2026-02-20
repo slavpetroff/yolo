@@ -5,10 +5,10 @@ load test_helper
 setup() {
   setup_temp_dir
   create_test_config
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.contracts"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.events"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.metrics"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/phases/01-test"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.contracts"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.events"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.metrics"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/phases/01-test"
 }
 
 teardown() {
@@ -16,7 +16,7 @@ teardown() {
 }
 
 create_plan_file() {
-  cat > "$TEST_TEMP_DIR/.vbw-planning/phases/01-test/01-01-PLAN.md" << 'PLAN'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/01-01-PLAN.md" << 'PLAN'
 ---
 phase: 1
 plan: 1
@@ -44,13 +44,13 @@ PLAN
 }
 
 enable_v2_contracts() {
-  jq '.v2_hard_contracts = true' "$TEST_TEMP_DIR/.vbw-planning/config.json" > "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" \
-    && mv "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  jq '.v2_hard_contracts = true' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" \
+    && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
 }
 
 enable_v3_lite() {
-  jq '.v3_contract_lite = true' "$TEST_TEMP_DIR/.vbw-planning/config.json" > "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" \
-    && mv "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  jq '.v3_contract_lite = true' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" \
+    && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
 }
 
 # --- generate-contract.sh tests ---
@@ -59,9 +59,9 @@ enable_v3_lite() {
   create_plan_file
   enable_v2_contracts
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/01-test/01-01-PLAN.md"
+  run bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 0 ]
-  CONTRACT=".vbw-planning/.contracts/1-1.json"
+  CONTRACT=".yolo-planning/.contracts/1-1.json"
   [ -f "$CONTRACT" ]
   # Check all fields present
   [ "$(jq -r '.phase_id' "$CONTRACT")" = "phase-1" ]
@@ -85,9 +85,9 @@ enable_v3_lite() {
   create_plan_file
   enable_v3_lite
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/01-test/01-01-PLAN.md"
+  run bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 0 ]
-  CONTRACT=".vbw-planning/.contracts/1-1.json"
+  CONTRACT=".yolo-planning/.contracts/1-1.json"
   [ -f "$CONTRACT" ]
   # V3 lite: only 5 fields
   [ "$(jq -r '.phase' "$CONTRACT")" = "1" ]
@@ -102,20 +102,20 @@ enable_v3_lite() {
   create_plan_file
   enable_v2_contracts
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/01-test/01-01-PLAN.md" >/dev/null
-  HASH1=$(jq -r '.contract_hash' ".vbw-planning/.contracts/1-1.json")
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  HASH1=$(jq -r '.contract_hash' ".yolo-planning/.contracts/1-1.json")
   # Regenerate
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/01-test/01-01-PLAN.md" >/dev/null
-  HASH2=$(jq -r '.contract_hash' ".vbw-planning/.contracts/1-1.json")
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  HASH2=$(jq -r '.contract_hash' ".yolo-planning/.contracts/1-1.json")
   [ "$HASH1" = "$HASH2" ]
 }
 
 @test "generate-contract: no flags enabled exits silently" {
   create_plan_file
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/01-test/01-01-PLAN.md"
+  run bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 0 ]
-  [ ! -f ".vbw-planning/.contracts/1-1.json" ]
+  [ ! -f ".yolo-planning/.contracts/1-1.json" ]
 }
 
 # --- validate-contract.sh tests ---
@@ -124,8 +124,8 @@ enable_v3_lite() {
   create_plan_file
   enable_v2_contracts
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/01-test/01-01-PLAN.md" >/dev/null
-  CONTRACT=".vbw-planning/.contracts/1-1.json"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  CONTRACT=".yolo-planning/.contracts/1-1.json"
   # Tamper with contract (change task_count)
   jq '.task_count = 99' "$CONTRACT" > "${CONTRACT}.tmp" && mv "${CONTRACT}.tmp" "$CONTRACT"
   run bash "$SCRIPTS_DIR/validate-contract.sh" start "$CONTRACT" 1
@@ -137,8 +137,8 @@ enable_v3_lite() {
   create_plan_file
   enable_v2_contracts
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/01-test/01-01-PLAN.md" >/dev/null
-  CONTRACT=".vbw-planning/.contracts/1-1.json"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  CONTRACT=".yolo-planning/.contracts/1-1.json"
   run bash "$SCRIPTS_DIR/validate-contract.sh" start "$CONTRACT" 1
   [ "$status" -eq 0 ]
 }
@@ -147,8 +147,8 @@ enable_v3_lite() {
   create_plan_file
   enable_v2_contracts
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/01-test/01-01-PLAN.md" >/dev/null
-  CONTRACT=".vbw-planning/.contracts/1-1.json"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  CONTRACT=".yolo-planning/.contracts/1-1.json"
   run bash "$SCRIPTS_DIR/validate-contract.sh" end "$CONTRACT" 1 ".env"
   [ "$status" -eq 2 ]
   [[ "$output" == *"forbidden_path"* ]] || [[ "$output" == *"forbidden path"* ]]
@@ -158,8 +158,8 @@ enable_v3_lite() {
   create_plan_file
   enable_v2_contracts
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/01-test/01-01-PLAN.md" >/dev/null
-  CONTRACT=".vbw-planning/.contracts/1-1.json"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  CONTRACT=".yolo-planning/.contracts/1-1.json"
   run bash "$SCRIPTS_DIR/validate-contract.sh" end "$CONTRACT" 1 "secrets/api-key.json"
   [ "$status" -eq 2 ]
   [[ "$output" == *"forbidden_path"* ]] || [[ "$output" == *"forbidden path"* ]]
@@ -169,8 +169,8 @@ enable_v3_lite() {
   create_plan_file
   enable_v2_contracts
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/01-test/01-01-PLAN.md" >/dev/null
-  CONTRACT=".vbw-planning/.contracts/1-1.json"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  CONTRACT=".yolo-planning/.contracts/1-1.json"
   run bash "$SCRIPTS_DIR/validate-contract.sh" end "$CONTRACT" 1 "unrelated/file.js"
   [ "$status" -eq 2 ]
   [[ "$output" == *"out_of_scope"* ]]
@@ -180,8 +180,8 @@ enable_v3_lite() {
   create_plan_file
   enable_v3_lite
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/01-test/01-01-PLAN.md" >/dev/null
-  CONTRACT=".vbw-planning/.contracts/1-1.json"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  CONTRACT=".yolo-planning/.contracts/1-1.json"
   # Out of scope file — should be advisory (exit 0)
   run bash "$SCRIPTS_DIR/validate-contract.sh" end "$CONTRACT" 1 "unrelated/file.js"
   [ "$status" -eq 0 ]
@@ -193,25 +193,25 @@ enable_v3_lite() {
   create_plan_file
   enable_v2_contracts
   # Enable event log for revision events
-  jq '.v3_event_log = true' "$TEST_TEMP_DIR/.vbw-planning/config.json" > "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" \
-    && mv "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  jq '.v3_event_log = true' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" \
+    && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/01-test/01-01-PLAN.md" >/dev/null
-  CONTRACT=".vbw-planning/.contracts/1-1.json"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  CONTRACT=".yolo-planning/.contracts/1-1.json"
   OLD_HASH=$(jq -r '.contract_hash' "$CONTRACT")
 
   # Modify plan (add a task)
-  cat >> ".vbw-planning/phases/01-test/01-01-PLAN.md" << 'EXTRA'
+  cat >> ".yolo-planning/phases/01-test/01-01-PLAN.md" << 'EXTRA'
 
 ### Task 3: Extra task
 **Files:** `src/c.js`
 EXTRA
 
-  run bash "$SCRIPTS_DIR/contract-revision.sh" "$CONTRACT" ".vbw-planning/phases/01-test/01-01-PLAN.md"
+  run bash "$SCRIPTS_DIR/contract-revision.sh" "$CONTRACT" ".yolo-planning/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 0 ]
   [[ "$output" == *"revised:"* ]]
   # Old contract archived
-  [ -f ".vbw-planning/.contracts/1-1.rev1.json" ]
+  [ -f ".yolo-planning/.contracts/1-1.rev1.json" ]
   # New contract has different hash
   NEW_HASH=$(jq -r '.contract_hash' "$CONTRACT")
   [ "$OLD_HASH" != "$NEW_HASH" ]
@@ -221,9 +221,9 @@ EXTRA
   create_plan_file
   enable_v2_contracts
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".vbw-planning/phases/01-test/01-01-PLAN.md" >/dev/null
-  CONTRACT=".vbw-planning/.contracts/1-1.json"
-  run bash "$SCRIPTS_DIR/contract-revision.sh" "$CONTRACT" ".vbw-planning/phases/01-test/01-01-PLAN.md"
+  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  CONTRACT=".yolo-planning/.contracts/1-1.json"
+  run bash "$SCRIPTS_DIR/contract-revision.sh" "$CONTRACT" ".yolo-planning/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 0 ]
   [[ "$output" == *"no_change"* ]]
 }

@@ -4,7 +4,7 @@ set -euo pipefail
 # infer-project-context.sh — Extract project context from codebase mapping files
 #
 # Usage: infer-project-context.sh CODEBASE_DIR [REPO_ROOT]
-#   CODEBASE_DIR  Path to .vbw-planning/codebase/ mapping files
+#   CODEBASE_DIR  Path to .yolo-planning/codebase/ mapping files
 #   REPO_ROOT     Optional, defaults to current directory (for git repo name extraction)
 #
 # Output: Structured JSON to stdout with source attribution per field
@@ -15,7 +15,7 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   echo ""
   echo "Extract project context from codebase mapping files."
   echo ""
-  echo "  CODEBASE_DIR  Path to .vbw-planning/codebase/ mapping files"
+  echo "  CODEBASE_DIR  Path to .yolo-planning/codebase/ mapping files"
   echo "  REPO_ROOT     Optional, defaults to current directory"
   echo ""
   echo "Outputs structured JSON to stdout with source attribution per field."

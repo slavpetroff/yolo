@@ -15,7 +15,7 @@ fi
 
 PHASE_DIR="$1"
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 CONFIG_PATH="${PLANNING_DIR}/config.json"
 
 # Check feature flag
@@ -38,7 +38,7 @@ for marker in $PACKAGE_MARKERS; do
     # Skip root-level markers (not monorepo packages)
     [ "$root" = "." ] && continue
     PACKAGE_ROOTS+=("$root")
-  done < <(find . -maxdepth 4 -name "$marker" -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/.vbw-planning/*' 2>/dev/null)
+  done < <(find . -maxdepth 4 -name "$marker" -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/.yolo-planning/*' 2>/dev/null)
 done
 
 # If no sub-packages found, not a monorepo

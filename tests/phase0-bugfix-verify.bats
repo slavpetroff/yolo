@@ -53,12 +53,12 @@ teardown() {
 # Bug #8: compile-context.sh handles all 6 roles
 # =============================================================================
 
-# Helper: set up minimal .vbw-planning structure for compile-context.sh
+# Helper: set up minimal .yolo-planning structure for compile-context.sh
 setup_compile_context() {
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/phases/01-test"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/phases/01-test"
   create_test_config
 
-  cat > "$TEST_TEMP_DIR/.vbw-planning/ROADMAP.md" <<'ROADMAP'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/ROADMAP.md" <<'ROADMAP'
 ## Phases
 
 ## Phase 1: Test Phase
@@ -74,12 +74,12 @@ setup_compile_context() {
 **Success:** Parser correctly terminates section
 ROADMAP
 
-  cat > "$TEST_TEMP_DIR/.vbw-planning/REQUIREMENTS.md" <<'REQS'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/REQUIREMENTS.md" <<'REQS'
 ## Requirements
 - [REQ-01] Sample requirement for testing
 REQS
 
-  cat > "$TEST_TEMP_DIR/.vbw-planning/STATE.md" <<'STATE'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/STATE.md" <<'STATE'
 ## Status
 Phase: 1 of 1 (Test Phase)
 Status: executing
@@ -98,75 +98,75 @@ STATE
   setup_compile_context
   cd "$TEST_TEMP_DIR"
   for role in lead dev qa scout debugger architect; do
-    run bash "$SCRIPTS_DIR/compile-context.sh" "01" "$role" ".vbw-planning/phases"
+    run bash "$SCRIPTS_DIR/compile-context.sh" "01" "$role" ".yolo-planning/phases"
     [ "$status" -eq 0 ]
-    [ -f ".vbw-planning/phases/01-test/.context-${role}.md" ]
+    [ -f ".yolo-planning/phases/01-test/.context-${role}.md" ]
     # File must be non-empty
-    [ -s ".vbw-planning/phases/01-test/.context-${role}.md" ]
+    [ -s ".yolo-planning/phases/01-test/.context-${role}.md" ]
   done
 }
 
 @test "compile-context.sh scout context includes requirements" {
   setup_compile_context
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "scout" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "scout" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "Research Context" ".vbw-planning/phases/01-test/.context-scout.md"
-  grep -q "Requirements" ".vbw-planning/phases/01-test/.context-scout.md"
+  grep -q "Research Context" ".yolo-planning/phases/01-test/.context-scout.md"
+  grep -q "Requirements" ".yolo-planning/phases/01-test/.context-scout.md"
 }
 
 @test "compile-context.sh debugger context includes activity" {
   setup_compile_context
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "Debug Context" ".vbw-planning/phases/01-test/.context-debugger.md"
-  grep -q "Recent Activity" ".vbw-planning/phases/01-test/.context-debugger.md"
+  grep -q "Debug Context" ".yolo-planning/phases/01-test/.context-debugger.md"
+  grep -q "Recent Activity" ".yolo-planning/phases/01-test/.context-debugger.md"
 }
 
 @test "compile-context.sh architect context includes full requirements" {
   setup_compile_context
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "architect" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "architect" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "Architecture Context" ".vbw-planning/phases/01-test/.context-architect.md"
-  grep -q "Full Requirements" ".vbw-planning/phases/01-test/.context-architect.md"
+  grep -q "Architecture Context" ".yolo-planning/phases/01-test/.context-architect.md"
+  grep -q "Full Requirements" ".yolo-planning/phases/01-test/.context-architect.md"
 }
 
 @test "compile-context.sh extracts goal from ROADMAP" {
   setup_compile_context
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "lead" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "lead" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
   # Goal should be actual text from ROADMAP, not "Not available"
-  grep -q "Test the context compiler" ".vbw-planning/phases/01-test/.context-lead.md"
+  grep -q "Test the context compiler" ".yolo-planning/phases/01-test/.context-lead.md"
   # Success criteria should also be extracted
-  grep -q "All roles produce context files" ".vbw-planning/phases/01-test/.context-lead.md"
+  grep -q "All roles produce context files" ".yolo-planning/phases/01-test/.context-lead.md"
 }
 
 @test "compile-context.sh scout context includes conventions" {
   setup_compile_context
   cd "$TEST_TEMP_DIR"
-  cat > "$TEST_TEMP_DIR/.vbw-planning/conventions.json" <<'CONV'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/conventions.json" <<'CONV'
 {
   "conventions": [
     {"tag": "style", "rule": "Commits follow type(scope): desc format"}
   ]
 }
 CONV
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "scout" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "scout" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "Conventions" ".vbw-planning/phases/01-test/.context-scout.md"
-  grep -q "Commits follow" ".vbw-planning/phases/01-test/.context-scout.md"
+  grep -q "Conventions" ".yolo-planning/phases/01-test/.context-scout.md"
+  grep -q "Commits follow" ".yolo-planning/phases/01-test/.context-scout.md"
 }
 
 @test "compile-context.sh debugger context includes success criteria" {
   setup_compile_context
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "Success Criteria" ".vbw-planning/phases/01-test/.context-debugger.md"
-  grep -q "All roles produce context files" ".vbw-planning/phases/01-test/.context-debugger.md"
+  grep -q "Success Criteria" ".yolo-planning/phases/01-test/.context-debugger.md"
+  grep -q "All roles produce context files" ".yolo-planning/phases/01-test/.context-debugger.md"
 }
 
 # =============================================================================
@@ -175,24 +175,24 @@ CONV
 
 @test "compaction-instructions.sh outputs role-specific priorities" {
   # Dev agent should get commit/file priorities
-  run bash -c 'echo "{\"agent_name\":\"vbw-dev-01\",\"matcher\":\"auto\"}" | bash "'"$SCRIPTS_DIR"'/compaction-instructions.sh"'
+  run bash -c 'echo "{\"agent_name\":\"yolo-dev-01\",\"matcher\":\"auto\"}" | bash "'"$SCRIPTS_DIR"'/compaction-instructions.sh"'
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.hookSpecificOutput.additionalContext' >/dev/null
   echo "$output" | grep -q "commit hashes"
   echo "$output" | grep -q "file paths modified"
 
   # Scout agent should get research priorities
-  run bash -c 'echo "{\"agent_name\":\"vbw-scout-01\",\"matcher\":\"auto\"}" | bash "'"$SCRIPTS_DIR"'/compaction-instructions.sh"'
+  run bash -c 'echo "{\"agent_name\":\"yolo-scout-01\",\"matcher\":\"auto\"}" | bash "'"$SCRIPTS_DIR"'/compaction-instructions.sh"'
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "research findings"
 }
 
 @test "compaction-instructions.sh writes compaction marker" {
   cd "$TEST_TEMP_DIR"
-  mkdir -p .vbw-planning
-  run bash -c 'echo "{\"agent_name\":\"vbw-dev-01\",\"matcher\":\"auto\"}" | bash "'"$SCRIPTS_DIR"'/compaction-instructions.sh"'
+  mkdir -p .yolo-planning
+  run bash -c 'echo "{\"agent_name\":\"yolo-dev-01\",\"matcher\":\"auto\"}" | bash "'"$SCRIPTS_DIR"'/compaction-instructions.sh"'
   [ "$status" -eq 0 ]
-  [ -f ".vbw-planning/.compaction-marker" ]
+  [ -f ".yolo-planning/.compaction-marker" ]
 }
 
 # =============================================================================
@@ -222,12 +222,12 @@ CONV
 # Helper: set up monorepo test structure
 setup_monorepo() {
   cd "$TEST_TEMP_DIR"
-  mkdir -p .vbw-planning/phases/01-test
+  mkdir -p .yolo-planning/phases/01-test
   create_test_config
   # Enable monorepo routing
   local TMP
   TMP=$(mktemp)
-  jq '.v3_monorepo_routing = true' .vbw-planning/config.json > "$TMP" && mv "$TMP" .vbw-planning/config.json
+  jq '.v3_monorepo_routing = true' .yolo-planning/config.json > "$TMP" && mv "$TMP" .yolo-planning/config.json
 }
 
 @test "route-monorepo.sh detects package roots" {
@@ -239,7 +239,7 @@ setup_monorepo() {
   echo '{}' > package.json
 
   # Create PLAN.md referencing packages/core (- **Files:** must start at column 0 for grep)
-  cat > .vbw-planning/phases/01-test/01-01-PLAN.md <<'PLAN'
+  cat > .yolo-planning/phases/01-test/01-01-PLAN.md <<'PLAN'
 ---
 phase: 1
 plan: 1
@@ -249,7 +249,7 @@ title: "Test Plan"
 - **Files:** `packages/core/src/index.ts`
 PLAN
 
-  run bash "$SCRIPTS_DIR/route-monorepo.sh" ".vbw-planning/phases/01-test"
+  run bash "$SCRIPTS_DIR/route-monorepo.sh" ".yolo-planning/phases/01-test"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '. | length > 0' >/dev/null
   echo "$output" | grep -q "packages/core"
@@ -260,7 +260,7 @@ PLAN
   # Only root package.json, no sub-packages
   echo '{}' > package.json
 
-  cat > .vbw-planning/phases/01-test/01-01-PLAN.md <<'PLAN'
+  cat > .yolo-planning/phases/01-test/01-01-PLAN.md <<'PLAN'
 ---
 phase: 1
 plan: 1
@@ -270,7 +270,7 @@ title: "Test Plan"
 - **Files:** `src/index.ts`
 PLAN
 
-  run bash "$SCRIPTS_DIR/route-monorepo.sh" ".vbw-planning/phases/01-test"
+  run bash "$SCRIPTS_DIR/route-monorepo.sh" ".yolo-planning/phases/01-test"
   [ "$status" -eq 0 ]
   [ "$output" = "[]" ]
 }
@@ -284,7 +284,7 @@ PLAN
   echo '{}' > package.json
 
   # PLAN.md referencing both packages (- **Files:** must start at column 0)
-  cat > .vbw-planning/phases/01-test/01-01-PLAN.md <<'PLAN'
+  cat > .yolo-planning/phases/01-test/01-01-PLAN.md <<'PLAN'
 ---
 phase: 1
 plan: 1
@@ -294,7 +294,7 @@ title: "Test Plan"
 - **Files:** `packages/api/main.go`, `packages/worker/src/lib.rs`
 PLAN
 
-  run bash "$SCRIPTS_DIR/route-monorepo.sh" ".vbw-planning/phases/01-test"
+  run bash "$SCRIPTS_DIR/route-monorepo.sh" ".yolo-planning/phases/01-test"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '. | length == 2' >/dev/null
   echo "$output" | grep -q "packages/api"

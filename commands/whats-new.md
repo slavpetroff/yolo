@@ -1,5 +1,5 @@
 ---
-name: vbw:whats-new
+name: yolo:whats-new
 category: advanced
 disable-model-invocation: true
 description: View changelog and recent updates since your installed version.
@@ -7,11 +7,11 @@ argument-hint: "[version]"
 allowed-tools: Read, Glob
 ---
 
-# VBW What's New $ARGUMENTS
+# YOLO What's New $ARGUMENTS
 
 ## Context
 
-Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/vbw-marketplace/vbw/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
+Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
 
 ## Guard
 
@@ -23,8 +23,8 @@ Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/
 2. Read `${CLAUDE_PLUGIN_ROOT}/CHANGELOG.md`, split by `## [` headings.
    - With version arg: show entries newer than that version.
    - No args: show current version's entry.
-3. Display Phase Banner "VBW Changelog" with version context, entries, Next Up (/vbw:help). No entries: "✓ No changelog entry found for v{version}."
+3. Display Phase Banner "YOLO Changelog" with version context, entries, Next Up (/yolo:help). No entries: "✓ No changelog entry found for v{version}."
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — double-line box, ✓ up-to-date, Next Up, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — double-line box, ✓ up-to-date, Next Up, no ANSI.

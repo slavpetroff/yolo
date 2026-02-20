@@ -1,0 +1,21 @@
+[package]
+name = "yolo-mcp-server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.101"
+chrono = "0.4.43"
+reqwest = { version = "0.13.2", features = ["blocking", "json"] }
+rusqlite = "0.38.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+tokio = { version = "1.49.0", features = ["full"] }
+
+[[bin]]
+name = "yolo-mcp-server"
+path = "src/main.rs"
+
+[[bin]]
+name = "yolo"
+path = "src/cli.rs"

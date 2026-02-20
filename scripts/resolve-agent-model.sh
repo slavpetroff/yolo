@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# resolve-agent-model.sh - Model resolution for VBW agents
+# resolve-agent-model.sh - Model resolution for YOLO agents
 #
 # Reads model_profile from config.json, loads preset from model-profiles.json,
 # applies per-agent overrides, and returns the final model string.
 #
 # Usage: resolve-agent-model.sh <agent-name> <config-path> <profiles-path>
 #   agent-name: lead|dev|qa|scout|debugger|architect|docs
-#   config-path: path to .vbw-planning/config.json
+#   config-path: path to .yolo-planning/config.json
 #   profiles-path: path to config/model-profiles.json
 #
 # Returns: stdout = model string (opus|sonnet|haiku), exit 0
 # Errors: stderr = error message, exit 1
 #
 # Integration pattern (from command files):
-#   MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .vbw-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+#   MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
 #   if [ $? -ne 0 ]; then echo "Model resolution failed"; exit 1; fi
 #   # Pass to Task tool: model: "${MODEL}"
 
@@ -32,7 +32,7 @@ PROFILES_PATH="$3"
 # Session-level cache: avoid repeated jq calls for same agent + config
 if [ -f "$CONFIG_PATH" ]; then
   CONFIG_MTIME=$(stat -c %Y "$CONFIG_PATH" 2>/dev/null || stat -f %m "$CONFIG_PATH" 2>/dev/null || echo "0")
-  CACHE_FILE="/tmp/vbw-model-${AGENT}-${CONFIG_MTIME}"
+  CACHE_FILE="/tmp/yolo-model-${AGENT}-${CONFIG_MTIME}"
   if [ -f "$CACHE_FILE" ]; then
     cat "$CACHE_FILE"
     exit 0
@@ -52,7 +52,7 @@ esac
 
 # Validate config file exists
 if [ ! -f "$CONFIG_PATH" ]; then
-  echo "Config not found at $CONFIG_PATH. Run /vbw:init first." >&2
+  echo "Config not found at $CONFIG_PATH. Run /yolo:init first." >&2
   exit 1
 fi
 
@@ -85,7 +85,7 @@ case "$MODEL" in
   opus|sonnet|haiku)
     echo "$MODEL"
     # Cache result for session reuse
-    echo "$MODEL" > "/tmp/vbw-model-${AGENT}-${CONFIG_MTIME:-0}" 2>/dev/null || true
+    echo "$MODEL" > "/tmp/yolo-model-${AGENT}-${CONFIG_MTIME:-0}" 2>/dev/null || true
     ;;
   *)
     echo "Invalid model '$MODEL' for $AGENT. Valid: opus, sonnet, haiku" >&2

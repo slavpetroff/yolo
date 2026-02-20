@@ -15,8 +15,8 @@ if [ -z "$ROOT" ]; then
   exit 0
 fi
 
-# This hook is VBW-specific. Skip entirely if bump-version.sh is absent.
-# Note: checking VERSION alone is insufficient — many non-VBW repos have VERSION files.
+# This hook is YOLO-specific. Skip entirely if bump-version.sh is absent.
+# Note: checking VERSION alone is insufficient — many non-YOLO repos have VERSION files.
 if [ ! -f "$ROOT/scripts/bump-version.sh" ]; then
   exit 0
 fi

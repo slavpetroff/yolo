@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# bootstrap-state.sh — Generate STATE.md for a VBW project
+# bootstrap-state.sh — Generate STATE.md for a YOLO project
 #
 # Usage: bootstrap-state.sh OUTPUT_PATH PROJECT_NAME MILESTONE_NAME PHASE_COUNT
 #   OUTPUT_PATH      Path to write STATE.md
@@ -44,7 +44,7 @@ if [[ -f "$OUTPUT_PATH" ]]; then
 fi
 
 {
-  echo "# VBW State"
+  echo "# YOLO State"
   echo ""
   echo "**Project:** ${PROJECT_NAME}"
   echo "**Milestone:** ${MILESTONE_NAME}"

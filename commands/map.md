@@ -1,5 +1,5 @@
 ---
-name: vbw:map
+name: yolo:map
 category: advanced
 disable-model-invocation: true
 description: Analyze existing codebase with adaptive Scout teammates to produce structured mapping documents.
@@ -7,16 +7,16 @@ argument-hint: [--incremental] [--package=name] [--tier=solo|duo|quad]
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch
 ---
 
-# VBW Map: $ARGUMENTS
+# YOLO Map: $ARGUMENTS
 
 ## Context
 
 Working directory: `!`pwd``
-Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/vbw-marketplace/vbw/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
-Existing mapping: `!`ls .vbw-planning/codebase/ 2>/dev/null || echo "No codebase mapping found"``
+Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
+Existing mapping: `!`ls .yolo-planning/codebase/ 2>/dev/null || echo "No codebase mapping found"``
 META.md:
 ```
-!`cat .vbw-planning/codebase/META.md 2>/dev/null || echo "No META.md found"`
+!`cat .yolo-planning/codebase/META.md 2>/dev/null || echo "No META.md found"`
 ```
 Project files: `!`ls package.json pyproject.toml Cargo.toml go.mod Gemfile build.gradle pom.xml 2>/dev/null || echo "No standard project files found"``
 Git HEAD: `!`git rev-parse HEAD 2>/dev/null || echo "no-git"``
@@ -24,7 +24,7 @@ Agent Teams: `!`echo "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-0}"``
 
 ## Guard
 
-1. **Not initialized** (no .vbw-planning/ dir): STOP "Run /vbw:init first."
+1. **Not initialized** (no .yolo-planning/ dir): STOP "Run /yolo:init first."
 2. **No git:** WARN "Not a git repo -- incremental mapping disabled." Continue in full mode.
 3. **Empty project:** No source files → STOP: "No source code found to map."
 
@@ -40,7 +40,7 @@ Agent Teams: `!`echo "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-0}"``
 
 ### Step 1.5: Size codebase and select tier
 
-Count source files (Glob), excluding: .vbw-planning/, node_modules/, .git/, vendor/, dist/, build/, target/, .next/, __pycache__/, .venv/, coverage/. If --package, scope to that dir. Store SOURCE_FILE_COUNT.
+Count source files (Glob), excluding: .yolo-planning/, node_modules/, .git/, vendor/, dist/, build/, target/, .next/, __pycache__/, .venv/, coverage/. If --package, scope to that dir. Store SOURCE_FILE_COUNT.
 
 | Tier | Files | Strategy | Scouts |
 |------|-------|----------|--------|
@@ -61,7 +61,7 @@ If monorepo + --package: scope to that package.
 
 ### Step 3: Execute mapping (tier-branched)
 
-**Step 3-solo:** Orchestrator analyzes each domain sequentially, writes to `.vbw-planning/codebase/`:
+**Step 3-solo:** Orchestrator analyzes each domain sequentially, writes to `.yolo-planning/codebase/`:
 - Domain 1 (Tech Stack): STACK.md + DEPENDENCIES.md
 - Domain 2 (Architecture): ARCHITECTURE.md + STRUCTURE.md
 - Domain 3 (Quality): CONVENTIONS.md + TESTING.md
@@ -77,7 +77,7 @@ Scout A (Tech + Architecture): analyze tech stack, deps, architecture, structure
 Scout B (Quality + Concerns): analyze quality, conventions, testing, debt, risks. Send 2 scout_findings messages (domain: "quality" with CONVENTIONS.md+TESTING.md, domain: "concerns" with CONCERNS.md). Mode: {MAPPING_MODE}. Schema ref: `${CLAUDE_PLUGIN_ROOT}/references/handoff-schemas.md`
 
 **Scout model (effort-gated):** Fast/Turbo: `Model: haiku`. Thorough/Balanced: inherit session model.
-**Scout turn budget (effort-gated):** Resolve with `bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-max-turns.sh scout .vbw-planning/config.json "{effort}"` and pass `maxTurns: ${SCOUT_MAX_TURNS}` to each Scout TaskCreate.
+**Scout turn budget (effort-gated):** Resolve with `bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-max-turns.sh scout .yolo-planning/config.json "{effort}"` and pass `maxTurns: ${SCOUT_MAX_TURNS}` to each Scout TaskCreate.
 Wait for all findings. Proceed to Step 3.5.
 
 ---
@@ -102,7 +102,7 @@ Use targeted `message` not `broadcast`. Wait for all findings. Display ✓ per s
 
 ### Step 3.5: Write mapping documents from Scout reports
 
-**Skip if solo** (docs already written). Parse each scout_findings JSON message. If parse fails, treat as plain markdown. Write 7 docs to `.vbw-planning/codebase/`: STACK.md, DEPENDENCIES.md, ARCHITECTURE.md, STRUCTURE.md, CONVENTIONS.md, TESTING.md, CONCERNS.md. Verify all 7 exist.
+**Skip if solo** (docs already written). Parse each scout_findings JSON message. If parse fails, treat as plain markdown. Write 7 docs to `.yolo-planning/codebase/`: STACK.md, DEPENDENCIES.md, ARCHITECTURE.md, STRUCTURE.md, CONVENTIONS.md, TESTING.md, CONCERNS.md. Verify all 7 exist.
 
 ### Step 4: Synthesize INDEX.md and PATTERNS.md
 
@@ -116,8 +116,8 @@ Read all 7 docs. Produce:
 
 Write META.md: mapped_at, git_hash, file_count, document list, mode, monorepo flag, mapping_tier.
 
-Display per @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md: Phase Banner (Codebase Mapped, Mode, Tier), ✓ per document, Key Findings (◆), Next Up block.
+Display per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md: Phase Banner (Codebase Mapped, Mode, Tier), ✓ per document, Key Findings (◆), Next Up block.
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — Phase Banner (double-line box), File Checklist (✓), ◆ for findings, ⚠ for warnings, Next Up Block, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — Phase Banner (double-line box), File Checklist (✓), ◆ for findings, ⚠ for warnings, Next Up Block, no ANSI.

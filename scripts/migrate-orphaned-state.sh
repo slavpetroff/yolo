@@ -7,7 +7,7 @@ set -euo pipefail
 # Usage: migrate-orphaned-state.sh PLANNING_DIR
 #
 # Called by session-start.sh during startup. Detects the orphaned state:
-#   - .vbw-planning/ exists
+#   - .yolo-planning/ exists
 #   - No root STATE.md
 #   - No ACTIVE file (milestone is fully shipped)
 #   - At least one milestones/*/STATE.md exists
@@ -19,7 +19,7 @@ set -euo pipefail
 #
 # Exit codes: always 0 (fail-open for session-start)
 
-PLANNING_DIR="${1:-.vbw-planning}"
+PLANNING_DIR="${1:-.yolo-planning}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Guard: directory must exist

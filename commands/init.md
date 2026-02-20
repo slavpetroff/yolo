@@ -1,13 +1,13 @@
 ---
-name: vbw:init
+name: yolo:init
 category: lifecycle
 disable-model-invocation: true
-description: Set up environment, scaffold .vbw-planning, detect project context, and bootstrap project-defining files.
+description: Set up environment, scaffold .yolo-planning, detect project context, and bootstrap project-defining files.
 argument-hint:
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
-# VBW Init
+# YOLO Init
 
 <!-- Full init flow: Steps 0-4 handle environment/scaffold/hooks/mapping/summary -->
 <!-- Steps 5-8 handle auto-bootstrap: detect scenario, run inference (brownfield/GSD), confirm with user, generate project files -->
@@ -15,31 +15,37 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ## Context
 
 Working directory: `!`pwd``
-Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/vbw-marketplace/vbw/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
+Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
 
 Existing state:
+
 ```
-!`ls -la .vbw-planning 2>/dev/null || echo "No .vbw-planning directory"`
+!`ls -la .yolo-planning 2>/dev/null || echo "No .yolo-planning directory"`
 ```
+
 Project files:
+
 ```
 !`ls package.json pyproject.toml Cargo.toml go.mod Gemfile build.gradle pom.xml mix.exs 2>/dev/null || echo "No detected project files"`
 ```
+
 Skills:
+
 ```
 !`ls "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/" 2>/dev/null || echo "No global skills"`
 ```
+
 ```
 !`ls .claude/skills/ 2>/dev/null || echo "No project skills"`
 ```
 
 ## Guard
 
-1. **Already initialized:** If .vbw-planning/config.json exists, STOP: "VBW is already initialized. Use /vbw:config to modify settings or /vbw:vibe to start building."
-2. **jq required:** `command -v jq` via Bash. If missing, STOP: "VBW requires jq. Install: macOS `brew install jq`, Linux `apt install jq`, Manual: https://jqlang.github.io/jq/download/ — then re-run /vbw:init." Do NOT proceed without jq.
+1. **Already initialized:** If .yolo-planning/config.json exists, STOP: "YOLO is already initialized. Use /yolo:config to modify settings or /yolo:vibe to start building."
+2. **jq required:** `command -v jq` via Bash. If missing, STOP: "YOLO requires jq. Install: macOS `brew install jq`, Linux `apt install jq`, Manual: <https://jqlang.github.io/jq/download/> — then re-run /yolo:init." Do NOT proceed without jq.
 3. **Brownfield detection:** Check for existing source files (stop at first match):
    - Git repo: `git ls-files --error-unmatch . 2>/dev/null | head -5` — any output = BROWNFIELD=true
-   - No git: Glob `**/*.*` excluding `.vbw-planning/`, `.claude/`, `node_modules/`, `.git/` — any match = BROWNFIELD=true
+   - No git: Glob `**/*.*` excluding `.yolo-planning/`, `.claude/`, `node_modules/`, `.git/` — any match = BROWNFIELD=true
    - All file types count (shell, config, markdown, C++, Rust, CSS, etc.)
 
 ## Steps
@@ -56,28 +62,32 @@ Skills:
 Read `CLAUDE_DIR/settings.json` (create `{}` if missing).
 
 **0a. Agent Teams:** Check `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` == `"1"`.
+
 - Enabled: display "✓ Agent Teams — enabled", go to 0b
-- Not enabled: AskUserQuestion: "⚠ Agent Teams is not enabled\n\nVBW uses Agent Teams for parallel builds and codebase mapping.\nEnable it now?"
+- Not enabled: AskUserQuestion: "⚠ Agent Teams is not enabled\n\nYOLO uses Agent Teams for parallel builds and codebase mapping.\nEnable it now?"
   - Approved: set to `"1"`. Declined: display "○ Skipped."
 
 **0b. Statusline:** Read `statusLine` (may be string or object with `command` field).
 
 | State | Condition | Action |
 |-------|-----------|--------|
-| HAS_VBW | Value contains `vbw-statusline` | Display "✓ Statusline — installed", skip to 0c |
-| HAS_OTHER | Non-empty, no `vbw-statusline` | AskUserQuestion (mention replacement) |
+| HAS_YOLO | Value contains `yolo-statusline` | Display "✓ Statusline — installed", skip to 0c |
+| HAS_OTHER | Non-empty, no `yolo-statusline` | AskUserQuestion (mention replacement) |
 | EMPTY | Missing/null/empty | AskUserQuestion |
 
-AskUserQuestion text: "○ VBW includes a custom status line showing phase progress, context usage, cost, duration, and more — updated after every response. Install it?" (If HAS_OTHER, mention existing statusline would be replaced.)
+AskUserQuestion text: "○ YOLO includes a custom status line showing phase progress, context usage, cost, duration, and more — updated after every response. Install it?" (If HAS_OTHER, mention existing statusline would be replaced.)
 
 If approved, set `statusLine` to:
+
 ```json
-{"type": "command", "command": "bash -c 'f=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/vbw-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"$f\" ] && exec bash \"$f\"'"}
+{"type": "command", "command": "bash -c 'f=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/yolo-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"$f\" ] && exec bash \"$f\"'"}
 ```
+
 Object format with `type`+`command` is **required** — plain string fails silently.
-If declined: display "○ Skipped. Run /vbw:config to install it later."
+If declined: display "○ Skipped. Run /yolo:config to install it later."
 
 **0c. Write settings.json** if changed (single write). Display summary:
+
 ```
 Environment setup complete:
   {✓ or ○} Agent Teams
@@ -87,12 +97,14 @@ Environment setup complete:
 ### Step 0.5: GSD import (conditional)
 
 **Timing rationale:** Detection happens after environment setup (Step 0) but before scaffold (Step 1) to ensure:
+
 - settings.json writes complete before any directory operations
-- .vbw-planning/gsd-archive/ is created before scaffold creates .vbw-planning/
+- .yolo-planning/gsd-archive/ is created before scaffold creates .yolo-planning/
 - User sees GSD detection early in the init flow
 - Index generation (if implemented) can run after scaffold completes
 
 **Index structure**: The INDEX.json file generated by `scripts/generate-gsd-index.sh` contains:
+
 - `imported_at`: UTC timestamp
 - `gsd_version`: From .planning/config.json (or "unknown")
 - `phases_total`, `phases_complete`: Counts based on SUMMARY file presence
@@ -100,63 +112,65 @@ Environment setup complete:
 - `quick_paths`: Relative paths to key archive files (roadmap, project, phases, config)
 - `phases`: Array of {num, slug, plans, status} per phase directory
 
-See `docs/migration-gsd-to-vbw.md` for full field descriptions and usage examples.
+See `docs/migration-gsd-to-yolo.md` for full field descriptions and usage examples.
 
 **Detection:** Check for .planning/ directory: `[ -d .planning ]`
 
 - **NOT found:** skip silently to Step 1 (no display output)
 - **Found:** proceed with import flow:
   1. Display: "◆ GSD project detected"
-  2. AskUserQuestion: "GSD project detected. Import work history?\n\nThis will copy .planning/ to .vbw-planning/gsd-archive/ for reference.\nYour original .planning/ directory will remain untouched."
+  2. AskUserQuestion: "GSD project detected. Import work history?\n\nThis will copy .planning/ to .yolo-planning/gsd-archive/ for reference.\nYour original .planning/ directory will remain untouched."
      - Options: "Import (Recommended)" / "Skip"
   3. If user declines:
      - Display: "○ GSD import skipped"
      - Proceed to Step 1
   4. If user approves:
-     - Create directory: `mkdir -p .vbw-planning/gsd-archive`
-     - Copy contents: `cp -r .planning/* .vbw-planning/gsd-archive/`
+     - Create directory: `mkdir -p .yolo-planning/gsd-archive`
+     - Copy contents: `cp -r .planning/* .yolo-planning/gsd-archive/`
      - Display: "◆ Generating index..."
      - Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/generate-gsd-index.sh`
-     - Display: "✓ GSD project archived to .vbw-planning/gsd-archive/ (indexed)"
+     - Display: "✓ GSD project archived to .yolo-planning/gsd-archive/ (indexed)"
      - Set GSD_IMPORTED=true flag for later steps
      - Proceed to Step 1
 
 ### Step 1: Scaffold directory
 
-Read each template from `${CLAUDE_PLUGIN_ROOT}/templates/` and write to .vbw-planning/:
+Read each template from `${CLAUDE_PLUGIN_ROOT}/templates/` and write to .yolo-planning/:
 
 | Target | Source |
 |--------|--------|
-| .vbw-planning/PROJECT.md | ${CLAUDE_PLUGIN_ROOT}/templates/PROJECT.md |
-| .vbw-planning/REQUIREMENTS.md | ${CLAUDE_PLUGIN_ROOT}/templates/REQUIREMENTS.md |
-| .vbw-planning/ROADMAP.md | ${CLAUDE_PLUGIN_ROOT}/templates/ROADMAP.md |
-| .vbw-planning/STATE.md | ${CLAUDE_PLUGIN_ROOT}/templates/STATE.md |
-| .vbw-planning/config.json | ${CLAUDE_PLUGIN_ROOT}/config/defaults.json |
+| .yolo-planning/PROJECT.md | ${CLAUDE_PLUGIN_ROOT}/templates/PROJECT.md |
+| .yolo-planning/REQUIREMENTS.md | ${CLAUDE_PLUGIN_ROOT}/templates/REQUIREMENTS.md |
+| .yolo-planning/ROADMAP.md | ${CLAUDE_PLUGIN_ROOT}/templates/ROADMAP.md |
+| .yolo-planning/STATE.md | ${CLAUDE_PLUGIN_ROOT}/templates/STATE.md |
+| .yolo-planning/config.json | ${CLAUDE_PLUGIN_ROOT}/config/defaults.json |
 
-Create `.vbw-planning/phases/`. Ensure config.json includes `"prefer_teams": "always"` and `"model_profile": "quality"`.
+Create `.yolo-planning/phases/`. Ensure config.json includes `"prefer_teams": "always"` and `"model_profile": "quality"`.
 
 AskUserQuestion (single select):
-- "How should VBW planning artifacts be tracked in git?"
+
+- "How should YOLO planning artifacts be tracked in git?"
   - `manual` (default): don't auto-ignore or auto-commit planning files
-  - `ignore`: keep `.vbw-planning/` ignored in root `.gitignore`
-  - `commit`: track `.vbw-planning/` + `CLAUDE.md` at lifecycle boundaries
+  - `ignore`: keep `.yolo-planning/` ignored in root `.gitignore`
+  - `commit`: track `.yolo-planning/` + `CLAUDE.md` at lifecycle boundaries
 
 AskUserQuestion (single select):
-- "When should VBW push commits?"
+
+- "When should YOLO push commits?"
   - `never` (default)
   - `after_phase` (push once after a phase completes)
   - `always` (push after each commit when upstream exists)
 
-Write selected values to `.vbw-planning/config.json`:
+Write selected values to `.yolo-planning/config.json`:
 
 ```bash
-jq '.planning_tracking = "'"$PLANNING_TRACKING"'" | .auto_push = "'"$AUTO_PUSH"'"' .vbw-planning/config.json > .vbw-planning/config.json.tmp && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+jq '.planning_tracking = "'"$PLANNING_TRACKING"'" | .auto_push = "'"$AUTO_PUSH"'"' .yolo-planning/config.json > .yolo-planning/config.json.tmp && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
 ```
 
 Then align git ignore behavior with config:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/planning-git.sh sync-ignore .vbw-planning/config.json
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/planning-git.sh sync-ignore .yolo-planning/config.json
 ```
 
 ### Step 1.5: Install git hooks
@@ -166,60 +180,75 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/planning-git.sh sync-ignore .vbw-planning/con
    - Contains "Installed": `✓ Git hooks installed (pre-push)`
    - Contains "already installed": `✓ Git hooks (already installed)`
 
+### Step 1.6: Install YOLO Expert MCP Server
+
+**CRITICAL: The YOLO architecture requires the Rust MCP server for context generation, testing, and locking.**
+
+1. Run `bash ${CLAUDE_PLUGIN_ROOT}/install-yolo-mcp.sh`
+2. Display: `✓ YOLO Expert MCP Server installed and wired to Claude Code`
+3. Tell the user in the completion summary to restart their terminal or reload Claude Code if it's the first time they are using it.
+
 ### Step 1.7: GSD isolation (conditional)
 
-**1.7a. Detection:** `[ -d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/commands/gsd" ] || [ -d ".planning" ] || [ -d ".vbw-planning/gsd-archive" ]`
+**1.7a. Detection:** `[ -d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/commands/gsd" ] || [ -d ".planning" ] || [ -d ".yolo-planning/gsd-archive" ]`
+
 - None true: GSD_DETECTED=false, display nothing, skip to Step 2
 - Any true: GSD_DETECTED=true, proceed to 1.7b
 
-**1.7b. Consent:** AskUserQuestion: "GSD detected. Enable plugin isolation?\n\nThis adds a PreToolUse hook that prevents GSD commands and agents from\nreading or writing files in .vbw-planning/. VBW commands are unaffected."
+**1.7b. Consent:** AskUserQuestion: "GSD detected. Enable plugin isolation?\n\nThis adds a PreToolUse hook that prevents GSD commands and agents from\nreading or writing files in .yolo-planning/. YOLO commands are unaffected."
 Options: "Enable (Recommended)" / "Skip". If declined: "○ GSD isolation skipped", skip to Step 2.
 
 **1.7c. Create isolation:** If approved:
-1. `echo "enabled" > .vbw-planning/.gsd-isolation`
-2. `echo "session" > .vbw-planning/.vbw-session`
-3. Display: `✓ GSD isolation enabled` + `✓ .vbw-planning/.gsd-isolation (flag)` + `✓ Plugin Isolation section will be added to CLAUDE.md in Step 3.5`
+
+1. `echo "enabled" > .yolo-planning/.gsd-isolation`
+2. `echo "session" > .yolo-planning/.yolo-session`
+3. Display: `✓ GSD isolation enabled` + `✓ .yolo-planning/.gsd-isolation (flag)` + `✓ Plugin Isolation section will be added to CLAUDE.md in Step 3.5`
 
 Set GSD_ISOLATION_ENABLED=true for Step 3.5.
 
 ### Step 2: Brownfield detection + discovery
 
 **2a.** If BROWNFIELD=true:
-- Count source files by extension (Glob), excluding .vbw-planning/, node_modules/, .git/, vendor/, dist/, build/, target/, .next/, __pycache__/, .venv/, coverage/
+
+- Count source files by extension (Glob), excluding .yolo-planning/, node_modules/, .git/, vendor/, dist/, build/, target/, .next/, **pycache**/, .venv/, coverage/
 - Store SOURCE_FILE_COUNT. Check for test files, CI/CD, Docker, monorepo indicators.
 - Add Codebase Profile to STATE.md.
 
 **2b.** Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/detect-stack.sh "$(pwd)"`. Save full JSON. Display: `✓ Stack: {comma-separated detected_stack items}`
 
 **2c. Codebase mapping (adaptive):**
+
 - Greenfield (BROWNFIELD=false): skip. Display: `○ Greenfield — skipping codebase mapping`
 - SOURCE_FILE_COUNT < 200: run map **inline** — read `${CLAUDE_PLUGIN_ROOT}/commands/map.md` and follow directly
 - SOURCE_FILE_COUNT >= 200: run map **inline** (blocking) — display: `◆ Codebase mapping started ({SOURCE_FILE_COUNT} files)`. **Do NOT run in background.** The map MUST complete before proceeding to Step 3.
 
 **2d. find-skills bootstrap:** Check `find_skills_available` from detect-stack JSON.
+
 - `true`: display "✓ Skills.sh registry — available"
-- `false`: AskUserQuestion: "○ Skills.sh Registry\n\nVBW can search the Skills.sh registry (~2000 community skills) to find\nskills matching your project. This requires the find-skills meta-skill.\nInstall it now?" Options: "Install (Recommended)" / "Skip"
+- `false`: AskUserQuestion: "○ Skills.sh Registry\n\nYOLO can search the Skills.sh registry (~2000 community skills) to find\nskills matching your project. This requires the find-skills meta-skill.\nInstall it now?" Options: "Install (Recommended)" / "Skip"
   - Approved: `npx skills add vercel-labs/skills --skill find-skills -g -y`
-  - Declined: "○ Skipped. Run /vbw:skills later to search the registry."
+  - Declined: "○ Skipped. Run /yolo:skills later to search the registry."
 
 ### Step 3: Convergence — augment and search
 
 **3a.** Verify mapping completed. Display `✓ Codebase mapped ({document-count} documents)`. If skipped (greenfield): proceed immediately.
 
-**3b.** If `.vbw-planning/codebase/STACK.md` exists, read it and merge additional stack components into detected_stack[].
+**3b.** If `.yolo-planning/codebase/STACK.md` exists, read it and merge additional stack components into detected_stack[].
 
-**3b2. Auto-detect conventions:** If `.vbw-planning/codebase/PATTERNS.md` exists:
+**3b2. Auto-detect conventions:** If `.yolo-planning/codebase/PATTERNS.md` exists:
+
 - Read PATTERNS.md, ARCHITECTURE.md, STACK.md, CONCERNS.md
 - Extract conventions per `${CLAUDE_PLUGIN_ROOT}/commands/teach.md` (Step R2)
-- Write `.vbw-planning/conventions.json`. Display: `✓ {count} conventions auto-detected from codebase`
+- Write `.yolo-planning/conventions.json`. Display: `✓ {count} conventions auto-detected from codebase`
 
-If greenfield: write `{"conventions": []}`. Display: `○ Conventions — none yet (add with /vbw:teach)`
+If greenfield: write `{"conventions": []}`. Display: `○ Conventions — none yet (add with /yolo:teach)`
 
 **3c. Parallel registry search** (if find-skills available): run `npx skills find "<stack-item>"` for ALL detected_stack items **in parallel** (multiple concurrent Bash calls). Deduplicate against installed skills. If detected_stack empty, search by project type. Display results with `(registry)` tag.
 
 **3d. Unified skill prompt:** Combine curated (from 2b) + registry (from 3c) results into single AskUserQuestion multiSelect. Tag `(curated)` or `(registry)`. Max 4 options + "Skip". Install selected: `npx skills add <skill> -g -y`.
 
 **3e.** Write Skills section to STATE.md (SKIL-05 capability map). Protocol:
+
   1. **Discovery (SKIL-01):** Scan `CLAUDE_DIR/skills/` (global), `.claude/skills/` (project), `.claude/mcp.json` (mcp). Record name, scope, path per skill.
   2. **Stack detection (SKIL-02):** Read `${CLAUDE_PLUGIN_ROOT}/config/stack-mappings.json`. For each category, match `detect` patterns via Glob/file content. Collect `recommended_skills[]`.
   3. **find-skills bootstrap (SKIL-06):** Check `CLAUDE_DIR/skills/find-skills/` or `~/.agents/skills/find-skills/`. If missing + `skill_suggestions=true`: offer install (`npx skills add vercel-labs/skills --skill find-skills -g -y`).
@@ -228,47 +257,50 @@ If greenfield: write `{"conventions": []}`. Display: `○ Conventions — none y
 
 ### Step 3.5: Generate bootstrap CLAUDE.md
 
-VBW needs its rules and state sections in a CLAUDE.md file. /vbw:vibe regenerates later with project content.
+YOLO needs its rules and state sections in a CLAUDE.md file. /yolo:vibe regenerates later with project content.
 
 **Brownfield handling:** Read root `CLAUDE.md` via the Read tool.
-- **Exists:** The user already has a CLAUDE.md. Do NOT overwrite it. Instead, append VBW sections (`## VBW Rules`, `## State`, `## Installed Skills`, `## Project Conventions`, `## Commands`, and optionally `## Plugin Isolation`) to the END of the existing file, separated by a `---` line. Preserve all existing content verbatim. Display `✓ CLAUDE.md (VBW sections appended to existing)`.
+
+- **Exists:** The user already has a CLAUDE.md. Do NOT overwrite it. Instead, append YOLO sections (`## YOLO Rules`, `## State`, `## Installed Skills`, `## Project Conventions`, `## Commands`, and optionally `## Plugin Isolation`) to the END of the existing file, separated by a `---` line. Preserve all existing content verbatim. Display `✓ CLAUDE.md (YOLO sections appended to existing)`.
 - **Does not exist:** Write a new `CLAUDE.md` at project root with the full template below. Display `✓ CLAUDE.md (created)`.
 
 Template for NEW files — write verbatim, substituting `{...}` placeholders:
+
 ```markdown
-# VBW-Managed Project
-This project uses VBW (Vibe Better with Claude Code) for structured development.
-## VBW Rules
-- **Always use VBW commands** for project work. Do not manually edit files in `.vbw-planning/`.
+# YOLO-Managed Project
+This project uses YOLO (Vibe Better with Claude Code) for structured development.
+## YOLO Rules
+- **Always use YOLO commands** for project work. Do not manually edit files in `.yolo-planning/`.
 - **Commit format:** `{type}({scope}): {description}` — types: feat, fix, test, refactor, perf, docs, style, chore.
 - **One commit per task.** Each task in a plan gets exactly one atomic commit.
 - **Never commit secrets.** Do not stage .env, .pem, .key, credentials, or token files.
-- **Plan before building.** Use /vbw:vibe for all lifecycle actions. Plans are the source of truth.
+- **Plan before building.** Use /yolo:vibe for all lifecycle actions. Plans are the source of truth.
 - **Do not fabricate content.** Only use what the user explicitly states in project-defining flows.
 ## State
-- Planning directory: `.vbw-planning/`
-- Project not yet defined — run /vbw:vibe to set up project identity and roadmap.
+- Planning directory: `.yolo-planning/`
+- Project not yet defined — run /yolo:vibe to set up project identity and roadmap.
 ## Installed Skills
 {list from STATE.md Skills section, or "None"}
 ## Project Conventions
 {If conventions.json has entries: "These conventions are enforced during planning and verified during QA." + bulleted list of rules}
-{If none: "None yet. Run /vbw:teach to add project conventions."}
+{If none: "None yet. Run /yolo:teach to add project conventions."}
 ## Commands
-Run /vbw:status for current progress.
-Run /vbw:help for all available commands.
+Run /yolo:status for current progress.
+Run /yolo:help for all available commands.
 {ONLY if GSD_ISOLATION_ENABLED=true — include this section:}
 ## Plugin Isolation
-- GSD agents and commands MUST NOT read, write, glob, grep, or reference any files in `.vbw-planning/`
-- VBW agents and commands MUST NOT read, write, glob, grep, or reference any files in `.planning/`
+- GSD agents and commands MUST NOT read, write, glob, grep, or reference any files in `.yolo-planning/`
+- YOLO agents and commands MUST NOT read, write, glob, grep, or reference any files in `.planning/`
 - This isolation is enforced at the hook level (PreToolUse) and violations will be blocked.
 ```
 
-Sections to append when **existing** CLAUDE.md found (same content, no `# VBW-Managed Project` header):
+Sections to append when **existing** CLAUDE.md found (same content, no `# YOLO-Managed Project` header):
+
 ```markdown
 
 ---
 
-## VBW Rules
+## YOLO Rules
 {same rules as above}
 ## State
 {same state as above}
@@ -280,14 +312,16 @@ Sections to append when **existing** CLAUDE.md found (same content, no `# VBW-Ma
 {same}
 {## Plugin Isolation if applicable}
 ```
-Keep total VBW addition under 40 lines. Add `✓ CLAUDE.md` to summary.
+
+Keep total YOLO addition under 40 lines. Add `✓ CLAUDE.md` to summary.
 
 ### Step 4: Present summary
 
 Display Phase Banner then file checklist (✓ for each created file).
 
 **GSD import status** (conditional):
-- If GSD_IMPORTED=true: Display "✓ GSD project archived ({file count} files, indexed)" where file count = `find .vbw-planning/gsd-archive -type f | wc -l`, then display sub-bullet: "  • Index: .vbw-planning/gsd-archive/INDEX.json"
+
+- If GSD_IMPORTED=true: Display "✓ GSD project archived ({file count} files, indexed)" where file count = `find .yolo-planning/gsd-archive -type f | wc -l`, then display sub-bullet: "  • Index: .yolo-planning/gsd-archive/INDEX.json"
 - If .planning exists but GSD_IMPORTED=false: Display "○ GSD import skipped"
 
 Then show conditional lines for GSD isolation, statusline, codebase mapping, conventions, skills.
@@ -305,21 +339,22 @@ Display transition message: `◆ Infrastructure complete. Defining project...`
 Detect the initialization scenario based on flags set in earlier steps:
 
 1. **GREENFIELD:** BROWNFIELD=false (set in Guard step). No existing codebase to infer from.
-2. **GSD_MIGRATION:** `.vbw-planning/gsd-archive/` directory exists (created in Step 0.5). Has GSD work history to import.
-3. **BROWNFIELD:** BROWNFIELD=true AND `.vbw-planning/codebase/` directory exists (created in Step 2c mapping). Has codebase context to infer from.
-4. **HYBRID:** BROWNFIELD=true but `.vbw-planning/codebase/` does not exist. Edge case — should not occur after Step 2c, but handle gracefully by treating as GREENFIELD.
+2. **GSD_MIGRATION:** `.yolo-planning/gsd-archive/` directory exists (created in Step 0.5). Has GSD work history to import.
+3. **BROWNFIELD:** BROWNFIELD=true AND `.yolo-planning/codebase/` directory exists (created in Step 2c mapping). Has codebase context to infer from.
+4. **HYBRID:** BROWNFIELD=true but `.yolo-planning/codebase/` does not exist. Edge case — should not occur after Step 2c, but handle gracefully by treating as GREENFIELD.
 
 Check conditions in order (GSD_MIGRATION first since a GSD project may also be brownfield):
 
 ```
-if [ -d .vbw-planning/gsd-archive ]; then SCENARIO=GSD_MIGRATION
-elif [ "$BROWNFIELD" = "true" ] && [ -d .vbw-planning/codebase ]; then SCENARIO=BROWNFIELD
+if [ -d .yolo-planning/gsd-archive ]; then SCENARIO=GSD_MIGRATION
+elif [ "$BROWNFIELD" = "true" ] && [ -d .yolo-planning/codebase ]; then SCENARIO=BROWNFIELD
 elif [ "$BROWNFIELD" = "true" ]; then SCENARIO=HYBRID
 else SCENARIO=GREENFIELD
 fi
 ```
 
 Display the detected scenario:
+
 - GREENFIELD: `○ Scenario: Greenfield — new project`
 - BROWNFIELD: `◆ Scenario: Brownfield — existing codebase detected`
 - GSD_MIGRATION: `◆ Scenario: GSD Migration — importing work history`
@@ -337,14 +372,17 @@ No user interaction in this step. Proceed immediately to Step 6.
 Run inference scripts based on the detected scenario, display results, and confirm with the user. Always show inferred data even if fields are null (REQ-03).
 
 **6a. Greenfield branch** (SCENARIO=GREENFIELD or SCENARIO=HYBRID):
+
 - Display: `○ Greenfield — no codebase context to infer`
 - Set SKIP_INFERENCE=true
 - Skip to Step 7 (discovery questions will be asked inline)
 
 **6b. Brownfield branch** (SCENARIO=BROWNFIELD):
-- Run inference: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/infer-project-context.sh .vbw-planning/codebase/ "$(pwd)"`
-- Capture JSON output to `.vbw-planning/inference.json` via Bash
+
+- Run inference: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/infer-project-context.sh .yolo-planning/codebase/ "$(pwd)"`
+- Capture JSON output to `.yolo-planning/inference.json` via Bash
 - Parse the JSON and display inferred fields:
+
   ```
   ◆ Inferred project context:
     Name:         {name.value} (source: {name.source})
@@ -353,14 +391,17 @@ Run inference scripts based on the detected scenario, display results, and confi
     Purpose:      {purpose.value} (source: {purpose.source})
     Features:     {features.value | join(", ")} (source: {features.source})
   ```
+
 - For null fields, display: `{field}: (not detected)` — always show every field
 
 **6c. GSD Migration branch** (SCENARIO=GSD_MIGRATION):
-- Run GSD inference: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/infer-gsd-summary.sh .vbw-planning/gsd-archive/`
-- Capture JSON output to `.vbw-planning/gsd-inference.json` via Bash
-- If `.vbw-planning/codebase/` exists, also run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/infer-project-context.sh .vbw-planning/codebase/ "$(pwd)"`
-  - Capture to `.vbw-planning/inference.json`
+
+- Run GSD inference: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/infer-gsd-summary.sh .yolo-planning/gsd-archive/`
+- Capture JSON output to `.yolo-planning/gsd-inference.json` via Bash
+- If `.yolo-planning/codebase/` exists, also run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/infer-project-context.sh .yolo-planning/codebase/ "$(pwd)"`
+  - Capture to `.yolo-planning/inference.json`
 - Display merged results:
+
   ```
   ◆ Inferred from GSD work history:
     Latest milestone: {latest_milestone.name} ({latest_milestone.status})
@@ -368,6 +409,7 @@ Run inference scripts based on the detected scenario, display results, and confi
     Key decisions:    {key_decisions | join("; ")}
     Current work:     {current_work.phase} ({current_work.status})
   ```
+
 - If codebase inference also ran, display those fields too (same format as 6b)
 - For null fields, display: `{field}: (not detected)` — always show every field
 
@@ -378,6 +420,7 @@ Use AskUserQuestion to confirm inferred data:
 "Does this look right?"
 
 Options:
+
 - **"Yes, looks right"** → Proceed to Step 7 with inferred data as-is
 - **"Close, but needs adjustments"** → Enter correction flow (6e)
 - **"Define from scratch"** → Set SKIP_INFERENCE=true, proceed to Step 7
@@ -390,7 +433,7 @@ For each selected field, use AskUserQuestion to ask the user for the corrected v
 
 After all corrections, display updated summary and proceed to Step 7 with corrected data.
 
-Write the final confirmed/corrected data to `.vbw-planning/inference.json` for Step 7 consumption.
+Write the final confirmed/corrected data to `.yolo-planning/inference.json` for Step 7 consumption.
 
 ### Step 7: Bootstrap execution
 
@@ -409,6 +452,7 @@ Display: `◆ Generating project files...`
 **7a. Gather project data:**
 
 If SKIP_INFERENCE=true (greenfield or user chose "Define from scratch"):
+
 - Use AskUserQuestion to ask discovery questions:
   1. "What is your project name?"
   2. "Describe your project in one sentence."
@@ -417,88 +461,101 @@ If SKIP_INFERENCE=true (greenfield or user chose "Define from scratch"):
 - Store answers for bootstrap script input
 
 If SKIP_INFERENCE=false (confirmed/corrected inference data):
-- Read `.vbw-planning/inference.json` to get confirmed project context
+
+- Read `.yolo-planning/inference.json` to get confirmed project context
 - Extract: NAME from `name.value`, DESCRIPTION from `purpose.value`
-- If GSD_MIGRATION: read `.vbw-planning/gsd-inference.json` for milestone/phase context
+- If GSD_MIGRATION: read `.yolo-planning/gsd-inference.json` for milestone/phase context
 - Use AskUserQuestion to ask any remaining questions not covered by inference:
   1. "What are the key requirements?" (pre-fill from inferred features if available)
   2. "What phases do you envision?" (pre-fill from GSD recent_phases if available)
 
 **7b. Generate PROJECT.md:**
-- Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-project.sh .vbw-planning/PROJECT.md "$NAME" "$DESCRIPTION"`
+
+- Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-project.sh .yolo-planning/PROJECT.md "$NAME" "$DESCRIPTION"`
 - Display: `✓ PROJECT.md`
 
 **7c. Generate REQUIREMENTS.md:**
-- Create `.vbw-planning/discovery.json` with format: `{"answered": [...], "inferred": [...]}`
+
+- Create `.yolo-planning/discovery.json` with format: `{"answered": [...], "inferred": [...]}`
   - `answered`: array of requirement strings from user answers
   - `inferred`: array of `{"text": "...", "priority": "Must-have"}` from inference features
-- Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-requirements.sh .vbw-planning/REQUIREMENTS.md .vbw-planning/discovery.json`
+- Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-requirements.sh .yolo-planning/REQUIREMENTS.md .yolo-planning/discovery.json`
 - Display: `✓ REQUIREMENTS.md`
 
 **7d. Generate ROADMAP.md:**
-- Create `.vbw-planning/phases.json` with format: `[{"name": "...", "goal": "...", "requirements": [...], "success_criteria": [...]}]`
+
+- Create `.yolo-planning/phases.json` with format: `[{"name": "...", "goal": "...", "requirements": [...], "success_criteria": [...]}]`
   - Build from user-provided phase names/goals
   - Link requirements from discovery data
   - Generate success criteria from phase goals
-- Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-roadmap.sh .vbw-planning/ROADMAP.md "$NAME" .vbw-planning/phases.json`
+- Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-roadmap.sh .yolo-planning/ROADMAP.md "$NAME" .yolo-planning/phases.json`
 - Display: `✓ ROADMAP.md`
 
 **7e. Generate STATE.md:**
+
 - Determine MILESTONE_NAME: use NAME or first milestone from GSD inference
 - Determine PHASE_COUNT from phases.json length
-- Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-state.sh .vbw-planning/STATE.md "$NAME" "$MILESTONE_NAME" "$PHASE_COUNT"`
+- Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-state.sh .yolo-planning/STATE.md "$NAME" "$MILESTONE_NAME" "$PHASE_COUNT"`
 - Display: `✓ STATE.md`
 
 **7f. Generate/update CLAUDE.md:**
-- If root CLAUDE.md exists: pass it as EXISTING_PATH to preserve non-VBW content
+
+- If root CLAUDE.md exists: pass it as EXISTING_PATH to preserve non-YOLO content
 - Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-claude.sh CLAUDE.md "$NAME" "$DESCRIPTION" "CLAUDE.md"`
   - If CLAUDE.md does not exist yet, omit the last argument
 - Display: `✓ CLAUDE.md`
 
 **7g. Cleanup temporary files:**
-- Remove `.vbw-planning/discovery.json`, `.vbw-planning/phases.json`, `.vbw-planning/inference.json`, `.vbw-planning/gsd-inference.json` (if they exist)
+
+- Remove `.yolo-planning/discovery.json`, `.yolo-planning/phases.json`, `.yolo-planning/inference.json`, `.yolo-planning/gsd-inference.json` (if they exist)
 - These are intermediate build artifacts, not project state
 
 **7h. Planning commit boundary (conditional):**
+
 - Run:
+
   ```bash
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/planning-git.sh commit-boundary "bootstrap project files" .vbw-planning/config.json
+  bash ${CLAUDE_PLUGIN_ROOT}/scripts/planning-git.sh commit-boundary "bootstrap project files" .yolo-planning/config.json
   ```
+
 - Behavior:
-  - `planning_tracking=commit`: stages `.vbw-planning/` + `CLAUDE.md` and commits if there are changes
+  - `planning_tracking=commit`: stages `.yolo-planning/` + `CLAUDE.md` and commits if there are changes
   - `planning_tracking=manual|ignore`: no-op
   - If `auto_push=always`, pushes when branch has an upstream
 
 ### Step 8: Completion summary
 
-<!-- Final summary replaces old Step 4 auto-launch of /vbw:vibe -->
-<!-- User now has full project-defining files and can run /vbw:vibe when ready -->
+<!-- Final summary replaces old Step 4 auto-launch of /yolo:vibe -->
+<!-- User now has full project-defining files and can run /yolo:vibe when ready -->
 
-Display a Phase Banner (double-line box per @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md) with the title "VBW Initialization Complete".
+Display a Phase Banner (double-line box per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md) with the title "YOLO Initialization Complete".
 
 ```
 ╔══════════════════════════════════════╗
-║   VBW Initialization Complete        ║
+║   YOLO Initialization Complete        ║
 ╚══════════════════════════════════════╝
 ```
 
 **File checklist:** Display all created/updated files:
-- `✓ .vbw-planning/PROJECT.md`
-- `✓ .vbw-planning/REQUIREMENTS.md`
-- `✓ .vbw-planning/ROADMAP.md`
-- `✓ .vbw-planning/STATE.md`
+
+- `✓ .yolo-planning/PROJECT.md`
+- `✓ .yolo-planning/REQUIREMENTS.md`
+- `✓ .yolo-planning/ROADMAP.md`
+- `✓ .yolo-planning/STATE.md`
 - `✓ CLAUDE.md`
-- `✓ .vbw-planning/config.json`
+- `✓ .yolo-planning/config.json`
 - If planning_tracking=commit and changes existed: `✓ Bootstrap planning artifacts committed`
 - If GSD_IMPORTED=true: `✓ GSD project archived`
 - If BROWNFIELD=true: `✓ Codebase mapped`
+- `✓ YOLO Expert MCP Server compiled and ready`
 
 **Next steps:**
+
 ```
-➜ Next: Run /vbw:vibe to start planning your first milestone
-  Or:   Run /vbw:status to review project state
+➜ Next: Run /yolo:vibe to start planning your first milestone
+  Or:   Run /yolo:status to review project state
 ```
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — Phase Banner (double-line box), File Checklist (✓), ○ for pending, Next Up Block, no ANSI color codes.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — Phase Banner (double-line box), File Checklist (✓), ○ for pending, Next Up Block, no ANSI color codes.

@@ -5,11 +5,11 @@ load test_helper
 setup() {
   setup_temp_dir
   create_test_config
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.contracts"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.locks"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.events"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.metrics"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/phases/01-test"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.contracts"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.locks"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.events"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.metrics"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/phases/01-test"
 }
 
 teardown() {
@@ -40,7 +40,7 @@ PLAN
 }
 
 create_roadmap() {
-  cat > "$TEST_TEMP_DIR/.vbw-planning/ROADMAP.md" << 'ROAD'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/ROADMAP.md" << 'ROAD'
 ## Phase 1: Test Phase
 **Goal:** Test goal
 **Reqs:** REQ-01
@@ -53,7 +53,7 @@ enable_flags() {
   cd "$TEST_TEMP_DIR"
   local tmp
   tmp=$(mktemp)
-  jq "$flags" ".vbw-planning/config.json" > "$tmp" && mv "$tmp" ".vbw-planning/config.json"
+  jq "$flags" ".yolo-planning/config.json" > "$tmp" && mv "$tmp" ".yolo-planning/config.json"
 }
 
 # --- No-op tests ---
@@ -109,9 +109,9 @@ enable_flags() {
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.steps[] | select(.name == "lease_acquire") | .status == "pass"'
   # Verify lock file created
-  [ -f ".vbw-planning/.locks/1-1-T1.lock" ]
+  [ -f ".yolo-planning/.locks/1-1-T1.lock" ]
   # Verify it has TTL (lease-lock adds expires_at)
-  jq -e '.expires_at' ".vbw-planning/.locks/1-1-T1.lock"
+  jq -e '.expires_at' ".yolo-planning/.locks/1-1-T1.lock"
 }
 
 @test "control-plane: pre-task uses lock-lite when v3_lock_lite=true and v3_lease_locks=false" {
@@ -121,10 +121,10 @@ enable_flags() {
   run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 1 --plan-path=test-plan.md --task-id=1-1-T1 --claimed-files=src/a.js
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.steps[] | select(.name == "lease_acquire") | .status == "pass"'
-  [ -f ".vbw-planning/.locks/1-1-T1.lock" ]
+  [ -f ".yolo-planning/.locks/1-1-T1.lock" ]
   # lock-lite does NOT have expires_at field
-  ! jq -e '.expires_at' ".vbw-planning/.locks/1-1-T1.lock" 2>/dev/null || \
-    [ "$(jq -r '.expires_at // "none"' .vbw-planning/.locks/1-1-T1.lock)" = "none" ]
+  ! jq -e '.expires_at' ".yolo-planning/.locks/1-1-T1.lock" 2>/dev/null || \
+    [ "$(jq -r '.expires_at // "none"' .yolo-planning/.locks/1-1-T1.lock)" = "none" ]
 }
 
 # --- post-task tests ---
@@ -133,13 +133,13 @@ enable_flags() {
   cd "$TEST_TEMP_DIR"
   enable_flags '.v3_lock_lite = true'
   # Create a lock file first
-  echo '{"task_id":"1-1-T1","pid":"999","timestamp":"2024-01-01T00:00:00Z","files":["a.js"]}' > ".vbw-planning/.locks/1-1-T1.lock"
-  [ -f ".vbw-planning/.locks/1-1-T1.lock" ]
+  echo '{"task_id":"1-1-T1","pid":"999","timestamp":"2024-01-01T00:00:00Z","files":["a.js"]}' > ".yolo-planning/.locks/1-1-T1.lock"
+  [ -f ".yolo-planning/.locks/1-1-T1.lock" ]
   run bash "$SCRIPTS_DIR/control-plane.sh" post-task 1 1 1 --task-id=1-1-T1
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.steps[] | select(.name == "lease_release") | .status == "pass"'
   # Lock file should be removed
-  [ ! -f ".vbw-planning/.locks/1-1-T1.lock" ]
+  [ ! -f ".yolo-planning/.locks/1-1-T1.lock" ]
 }
 
 # --- compile tests ---
@@ -149,17 +149,17 @@ enable_flags() {
   create_roadmap
   cd "$TEST_TEMP_DIR"
   # context_compiler is already true in test config
-  run bash "$SCRIPTS_DIR/control-plane.sh" compile 1 1 1 --role=dev --phase-dir=.vbw-planning/phases/01-test --plan-path=test-plan.md
+  run bash "$SCRIPTS_DIR/control-plane.sh" compile 1 1 1 --role=dev --phase-dir=.yolo-planning/phases/01-test --plan-path=test-plan.md
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.steps[] | select(.name == "context") | .status == "pass"'
-  [ -f ".vbw-planning/phases/01-test/.context-dev.md" ]
+  [ -f ".yolo-planning/phases/01-test/.context-dev.md" ]
 }
 
 @test "control-plane: compile output includes context_path" {
   create_test_plan
   create_roadmap
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/control-plane.sh" compile 1 1 1 --role=dev --phase-dir=.vbw-planning/phases/01-test --plan-path=test-plan.md
+  run bash "$SCRIPTS_DIR/control-plane.sh" compile 1 1 1 --role=dev --phase-dir=.yolo-planning/phases/01-test --plan-path=test-plan.md
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.context_path' | grep -q "context-dev.md"
 }
@@ -171,15 +171,15 @@ enable_flags() {
   create_roadmap
   cd "$TEST_TEMP_DIR"
   enable_flags '.v3_contract_lite = true'
-  run bash "$SCRIPTS_DIR/control-plane.sh" full 1 1 1 --plan-path=test-plan.md --role=dev --phase-dir=.vbw-planning/phases/01-test
+  run bash "$SCRIPTS_DIR/control-plane.sh" full 1 1 1 --plan-path=test-plan.md --role=dev --phase-dir=.yolo-planning/phases/01-test
   [ "$status" -eq 0 ]
   # Contract step should pass
   echo "$output" | jq -e '.steps[] | select(.name == "contract") | .status == "pass"'
   # Context step should pass
   echo "$output" | jq -e '.steps[] | select(.name == "context") | .status == "pass"'
   # Both artifacts exist
-  [ -f ".vbw-planning/.contracts/1-1.json" ]
-  [ -f ".vbw-planning/phases/01-test/.context-dev.md" ]
+  [ -f ".yolo-planning/.contracts/1-1.json" ]
+  [ -f ".yolo-planning/phases/01-test/.context-dev.md" ]
 }
 
 # --- gate failure tests ---
@@ -248,25 +248,25 @@ enable_flags() {
 
   # Step 1: full action (once per plan) — generates contract + compiles context
   run bash "$SCRIPTS_DIR/control-plane.sh" full 1 1 1 \
-    --plan-path=test-plan.md --role=dev --phase-dir=.vbw-planning/phases/01-test
+    --plan-path=test-plan.md --role=dev --phase-dir=.yolo-planning/phases/01-test
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.steps[] | select(.name == "contract") | .status == "pass"'
   echo "$output" | jq -e '.steps[] | select(.name == "context") | .status == "pass"'
-  [ -f ".vbw-planning/.contracts/1-1.json" ]
-  [ -f ".vbw-planning/phases/01-test/.context-dev.md" ]
+  [ -f ".yolo-planning/.contracts/1-1.json" ]
+  [ -f ".yolo-planning/phases/01-test/.context-dev.md" ]
 
   # Step 2: pre-task (before task 1) — acquires lock
   run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 1 \
     --plan-path=test-plan.md --task-id=1-1-T1 --claimed-files=src/a.js
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.steps[] | select(.name == "lease_acquire") | .status == "pass"'
-  [ -f ".vbw-planning/.locks/1-1-T1.lock" ]
+  [ -f ".yolo-planning/.locks/1-1-T1.lock" ]
 
   # Step 3: post-task (after task 1) — releases lock
   run bash "$SCRIPTS_DIR/control-plane.sh" post-task 1 1 1 --task-id=1-1-T1
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.steps[] | select(.name == "lease_release") | .status == "pass"'
-  [ ! -f ".vbw-planning/.locks/1-1-T1.lock" ]
+  [ ! -f ".yolo-planning/.locks/1-1-T1.lock" ]
 }
 
 @test "control-plane: fallback when dependency script missing" {
@@ -285,7 +285,7 @@ enable_flags() {
 
   # full action should still exit 0 (fail-open on missing generate-contract.sh)
   run bash "$TEST_TEMP_DIR/scripts/control-plane.sh" full 1 1 1 \
-    --plan-path=test-plan.md --role=dev --phase-dir=.vbw-planning/phases/01-test
+    --plan-path=test-plan.md --role=dev --phase-dir=.yolo-planning/phases/01-test
   [ "$status" -eq 0 ]
   # Contract step should fail gracefully (not crash)
   # Extract JSON from output (skip stderr lines that appear before JSON)
@@ -304,20 +304,20 @@ enable_flags() {
   # Task 1: pre-task -> post-task
   run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 1 --task-id=1-1-T1 --claimed-files=src/a.js
   [ "$status" -eq 0 ]
-  [ -f ".vbw-planning/.locks/1-1-T1.lock" ]
+  [ -f ".yolo-planning/.locks/1-1-T1.lock" ]
 
   run bash "$SCRIPTS_DIR/control-plane.sh" post-task 1 1 1 --task-id=1-1-T1
   [ "$status" -eq 0 ]
-  [ ! -f ".vbw-planning/.locks/1-1-T1.lock" ]
+  [ ! -f ".yolo-planning/.locks/1-1-T1.lock" ]
 
   # Task 2: pre-task -> post-task (no stale lock from task 1)
   run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 2 --task-id=1-1-T2 --claimed-files=src/b.js
   [ "$status" -eq 0 ]
-  [ -f ".vbw-planning/.locks/1-1-T2.lock" ]
+  [ -f ".yolo-planning/.locks/1-1-T2.lock" ]
   # Task 1 lock should still be gone
-  [ ! -f ".vbw-planning/.locks/1-1-T1.lock" ]
+  [ ! -f ".yolo-planning/.locks/1-1-T1.lock" ]
 
   run bash "$SCRIPTS_DIR/control-plane.sh" post-task 1 1 2 --task-id=1-1-T2
   [ "$status" -eq 0 ]
-  [ ! -f ".vbw-planning/.locks/1-1-T2.lock" ]
+  [ ! -f ".yolo-planning/.locks/1-1-T2.lock" ]
 }

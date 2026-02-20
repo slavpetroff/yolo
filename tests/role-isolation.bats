@@ -5,8 +5,8 @@ load test_helper
 setup() {
   setup_temp_dir
   create_test_config
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/phases/01-test"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.contracts"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/phases/01-test"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.contracts"
 }
 
 teardown() {
@@ -14,7 +14,7 @@ teardown() {
 }
 
 create_plan_with_files() {
-  cat > "$TEST_TEMP_DIR/.vbw-planning/phases/01-test/01-01-PLAN.md" << 'PLAN'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/01-01-PLAN.md" << 'PLAN'
 ---
 phase: 1
 plan: 1
@@ -30,7 +30,7 @@ PLAN
 }
 
 create_contract() {
-  cat > "$TEST_TEMP_DIR/.vbw-planning/.contracts/01-01.json" << 'CONTRACT'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/.contracts/01-01.json" << 'CONTRACT'
 {"phase_id":"phase-1","plan_id":"01-01","phase":1,"plan":1,"objective":"Test","task_ids":["1-1-T1"],"task_count":1,"allowed_paths":["src/allowed.js","src/helper.js"],"forbidden_paths":["secrets/","node_modules/"],"depends_on":[],"must_haves":["Works"],"verification_checks":[],"max_token_budget":50000,"timeout_seconds":300,"contract_hash":"abc123"}
 CONTRACT
 }
@@ -39,8 +39,8 @@ CONTRACT
 
 @test "file-guard: blocks file outside contract allowed_paths" {
   cd "$TEST_TEMP_DIR"
-  jq '.v2_hard_contracts = true' ".vbw-planning/config.json" > ".vbw-planning/config.json.tmp" \
-    && mv ".vbw-planning/config.json.tmp" ".vbw-planning/config.json"
+  jq '.v2_hard_contracts = true' ".yolo-planning/config.json" > ".yolo-planning/config.json.tmp" \
+    && mv ".yolo-planning/config.json.tmp" ".yolo-planning/config.json"
   create_plan_with_files
   create_contract
   INPUT='{"tool_name":"Write","tool_input":{"file_path":"src/unauthorized.js","content":"bad"}}'
@@ -51,8 +51,8 @@ CONTRACT
 
 @test "file-guard: allows file inside contract allowed_paths" {
   cd "$TEST_TEMP_DIR"
-  jq '.v2_hard_contracts = true' ".vbw-planning/config.json" > ".vbw-planning/config.json.tmp" \
-    && mv ".vbw-planning/config.json.tmp" ".vbw-planning/config.json"
+  jq '.v2_hard_contracts = true' ".yolo-planning/config.json" > ".yolo-planning/config.json.tmp" \
+    && mv ".yolo-planning/config.json.tmp" ".yolo-planning/config.json"
   create_plan_with_files
   create_contract
   INPUT='{"tool_name":"Write","tool_input":{"file_path":"src/allowed.js","content":"ok"}}'
@@ -62,19 +62,19 @@ CONTRACT
 
 @test "file-guard: exempts planning artifacts from allowed_paths check" {
   cd "$TEST_TEMP_DIR"
-  jq '.v2_hard_contracts = true' ".vbw-planning/config.json" > ".vbw-planning/config.json.tmp" \
-    && mv ".vbw-planning/config.json.tmp" ".vbw-planning/config.json"
+  jq '.v2_hard_contracts = true' ".yolo-planning/config.json" > ".yolo-planning/config.json.tmp" \
+    && mv ".yolo-planning/config.json.tmp" ".yolo-planning/config.json"
   create_plan_with_files
   create_contract
-  INPUT='{"tool_name":"Write","tool_input":{"file_path":".vbw-planning/phases/01-test/01-01-SUMMARY.md","content":"ok"}}'
+  INPUT='{"tool_name":"Write","tool_input":{"file_path":".yolo-planning/phases/01-test/01-01-SUMMARY.md","content":"ok"}}'
   run bash -c "echo '$INPUT' | bash '$SCRIPTS_DIR/file-guard.sh'"
   [ "$status" -eq 0 ]
 }
 
 @test "file-guard: blocks forbidden_paths even when in allowed_paths" {
   cd "$TEST_TEMP_DIR"
-  jq '.v2_hard_contracts = true' ".vbw-planning/config.json" > ".vbw-planning/config.json.tmp" \
-    && mv ".vbw-planning/config.json.tmp" ".vbw-planning/config.json"
+  jq '.v2_hard_contracts = true' ".yolo-planning/config.json" > ".yolo-planning/config.json.tmp" \
+    && mv ".yolo-planning/config.json.tmp" ".yolo-planning/config.json"
   create_plan_with_files
   create_contract
   INPUT='{"tool_name":"Write","tool_input":{"file_path":"secrets/api-key.json","content":"bad"}}'
@@ -97,8 +97,8 @@ CONTRACT
 
 @test "file-guard: no contract present fails open" {
   cd "$TEST_TEMP_DIR"
-  jq '.v2_hard_contracts = true' ".vbw-planning/config.json" > ".vbw-planning/config.json.tmp" \
-    && mv ".vbw-planning/config.json.tmp" ".vbw-planning/config.json"
+  jq '.v2_hard_contracts = true' ".yolo-planning/config.json" > ".yolo-planning/config.json.tmp" \
+    && mv ".yolo-planning/config.json.tmp" ".yolo-planning/config.json"
   create_plan_with_files
   # No contract file created
   INPUT='{"tool_name":"Write","tool_input":{"file_path":"src/anything.js","content":"ok"}}'
@@ -110,32 +110,32 @@ CONTRACT
 # --- Role isolation in agent YAML ---
 
 @test "agent: lead has V2 role isolation section" {
-  run grep -c "V2 Role Isolation" "$PROJECT_ROOT/agents/vbw-lead.md"
+  run grep -c "V2 Role Isolation" "$PROJECT_ROOT/agents/yolo-lead.md"
   [ "$output" -ge 1 ]
 }
 
 @test "agent: dev has V2 role isolation section" {
-  run grep -c "V2 Role Isolation" "$PROJECT_ROOT/agents/vbw-dev.md"
+  run grep -c "V2 Role Isolation" "$PROJECT_ROOT/agents/yolo-dev.md"
   [ "$output" -ge 1 ]
 }
 
 @test "agent: architect has V2 role isolation section" {
-  run grep -c "V2 Role Isolation" "$PROJECT_ROOT/agents/vbw-architect.md"
+  run grep -c "V2 Role Isolation" "$PROJECT_ROOT/agents/yolo-architect.md"
   [ "$output" -ge 1 ]
 }
 
 @test "agent: qa has V2 role isolation section" {
-  run grep -c "V2 Role Isolation" "$PROJECT_ROOT/agents/vbw-qa.md"
+  run grep -c "V2 Role Isolation" "$PROJECT_ROOT/agents/yolo-qa.md"
   [ "$output" -ge 1 ]
 }
 
 @test "agent: scout has V2 role isolation section" {
-  run grep -c "V2 Role Isolation" "$PROJECT_ROOT/agents/vbw-scout.md"
+  run grep -c "V2 Role Isolation" "$PROJECT_ROOT/agents/yolo-scout.md"
   [ "$output" -ge 1 ]
 }
 
 @test "agent: debugger has V2 role isolation section" {
-  run grep -c "V2 Role Isolation" "$PROJECT_ROOT/agents/vbw-debugger.md"
+  run grep -c "V2 Role Isolation" "$PROJECT_ROOT/agents/yolo-debugger.md"
   [ "$output" -ge 1 ]
 }
 

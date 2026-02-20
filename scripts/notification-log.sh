@@ -3,7 +3,7 @@ set -u
 # Notification hook: Log notification metadata
 # Non-blocking, fail-open (always exit 0)
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 
 # Guard: only log if planning directory exists
 if [ ! -d "$PLANNING_DIR" ]; then

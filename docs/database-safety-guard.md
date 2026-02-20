@@ -1,6 +1,6 @@
 # Database Safety Guard
 
-LLMs with Bash access will occasionally run destructive database commands during verification or debugging — `migrate:fresh`, `db:drop`, `TRUNCATE TABLE` — wiping development data without warning. VBW prevents this with a three-layer defense that works regardless of programming language, framework, or database type.
+LLMs with Bash access will occasionally run destructive database commands during verification or debugging — `migrate:fresh`, `db:drop`, `TRUNCATE TABLE` — wiping development data without warning. YOLO prevents this with a three-layer defense that works regardless of programming language, framework, or database type.
 
 ## How It Works
 
@@ -22,7 +22,7 @@ Agent wants to run: php artisan migrate:fresh --seed
                     +─────────┬──────────+
                               |
                  +────────────v────────────+
-                 | VBW_ALLOW_DESTRUCTIVE=1? |
+                 | YOLO_ALLOW_DESTRUCTIVE=1? |
                  +──┬───────────────────┬──+
                    yes                  no
                     |          +────────v────────+
@@ -45,11 +45,11 @@ The agent gets an error message explaining why the command was blocked and adapt
 
 ## Three Defense Layers
 
-| Layer | Type | When It Fires | Reliability |
-| :--- | :--- | :--- | :--- |
-| `bash-guard.sh` | PreToolUse hook | Before every Bash call | Deterministic (regex match) |
-| Agent prompt rules | Behavioral guidance | When agent reads its instructions | Probabilistic (model compliance) |
-| `forbidden_commands` contract | PostToolUse hard gate | After Bash execution | Deterministic but reactive |
+| Layer                         | Type                  | When It Fires                     | Reliability                      |
+| :---------------------------- | :-------------------- | :-------------------------------- | :------------------------------- |
+| `bash-guard.sh`               | PreToolUse hook       | Before every Bash call            | Deterministic (regex match)      |
+| Agent prompt rules            | Behavioral guidance   | When agent reads its instructions | Probabilistic (model compliance) |
+| `forbidden_commands` contract | PostToolUse hard gate | After Bash execution              | Deterministic but reactive       |
 
 **Layer 1 is the fix.** It blocks destructive commands before they execute, regardless of what the model decides to do. Prompt instructions can't be ignored because the hook runs at the platform level.
 
@@ -61,19 +61,19 @@ The agent gets an error message explaining why the command was blocked and adapt
 
 40+ patterns across every major ecosystem:
 
-| Category | Examples |
-| :--- | :--- |
-| **PHP / Laravel** | `artisan migrate:fresh`, `artisan db:wipe`, `artisan db:seed --force` |
-| **Ruby / Rails** | `rails db:drop`, `rails db:reset`, `rake db:schema:load` |
-| **Python / Django** | `manage.py flush`, `django-admin flush` |
-| **Node.js** | `prisma migrate reset`, `knex migrate:rollback --all`, `sequelize db:drop`, `typeorm schema:drop`, `drizzle-kit push --force` |
-| **Go** | `migrate ... drop` |
-| **Rust** | `diesel database reset`, `diesel migration revert --all`, `sqlx database drop` |
-| **Elixir** | `mix ecto.drop`, `mix ecto.reset`, `mix ecto.rollback --all` |
-| **Raw SQL** | `DROP DATABASE`, `DROP TABLE`, `TRUNCATE` via mysql, psql, sqlite3, mongosh |
-| **Redis** | `redis-cli FLUSHALL`, `redis-cli FLUSHDB` |
-| **Docker** | `docker-compose down -v`, `docker volume rm`, `docker system prune --volumes` |
-| **File system** | `rm *.sqlite3`, `rm *.db`, `rm -rf /var/lib/mysql` |
+| Category            | Examples                                                                                                                      |
+| :------------------ | :---------------------------------------------------------------------------------------------------------------------------- |
+| **PHP / Laravel**   | `artisan migrate:fresh`, `artisan db:wipe`, `artisan db:seed --force`                                                         |
+| **Ruby / Rails**    | `rails db:drop`, `rails db:reset`, `rake db:schema:load`                                                                      |
+| **Python / Django** | `manage.py flush`, `django-admin flush`                                                                                       |
+| **Node.js**         | `prisma migrate reset`, `knex migrate:rollback --all`, `sequelize db:drop`, `typeorm schema:drop`, `drizzle-kit push --force` |
+| **Go**              | `migrate ... drop`                                                                                                            |
+| **Rust**            | `diesel database reset`, `diesel migration revert --all`, `sqlx database drop`                                                |
+| **Elixir**          | `mix ecto.drop`, `mix ecto.reset`, `mix ecto.rollback --all`                                                                  |
+| **Raw SQL**         | `DROP DATABASE`, `DROP TABLE`, `TRUNCATE` via mysql, psql, sqlite3, mongosh                                                   |
+| **Redis**           | `redis-cli FLUSHALL`, `redis-cli FLUSHDB`                                                                                     |
+| **Docker**          | `docker-compose down -v`, `docker volume rm`, `docker system prune --volumes`                                                 |
+| **File system**     | `rm *.sqlite3`, `rm *.db`, `rm -rf /var/lib/mysql`                                                                            |
 
 Safe commands pass through unblocked: `php artisan migrate` (forward migration), `rails db:migrate`, `prisma migrate dev`, `docker-compose down` (without `-v`), `php artisan test`, all read-only queries.
 
@@ -81,15 +81,15 @@ Safe commands pass through unblocked: `php artisan migrate` (forward migration),
 
 When you legitimately need to run destructive commands:
 
-1. **Environment variable** — Start your session with `VBW_ALLOW_DESTRUCTIVE=1`. The guard checks this first and exits immediately. Zero overhead.
+1. **Environment variable** — Start your session with `YOLO_ALLOW_DESTRUCTIVE=1`. The guard checks this first and exits immediately. Zero overhead.
 
-2. **Config toggle** — Set `"bash_guard": false` in `.vbw-planning/config.json` or run `/vbw:config bash_guard false`. Disables the guard for that project entirely.
+2. **Config toggle** — Set `"bash_guard": false` in `.yolo-planning/config.json` or run `/yolo:config bash_guard false`. Disables the guard for that project entirely.
 
 3. **Run it yourself** — The hook only fires inside Claude Code. Open a separate terminal and run the command directly. The guard protects against agents doing it unsupervised, not against you.
 
 ## Extending the Blocklist
 
-Add project-specific patterns to `.vbw-planning/destructive-commands.local.txt`:
+Add project-specific patterns to `.yolo-planning/destructive-commands.local.txt`:
 
 ```
 # Block our custom reset script
@@ -109,4 +109,4 @@ One regex per line, same format as the default `config/destructive-commands.txt`
 
 **~50ms overhead.** One jq parse + one grep per Bash call. Negligible compared to the seconds Bash commands typically take. The 5-second timeout in hooks.json provides a safety ceiling.
 
-**Event logging.** Every blocked command is logged to `.vbw-planning/.event-log.jsonl` with command preview (truncated to 40 chars), matched pattern, agent name, and timestamp. Useful for auditing what agents tried to do.
+**Event logging.** Every blocked command is logged to `.yolo-planning/.event-log.jsonl` with command preview (truncated to 40 chars), matched pattern, agent name, and timestamp. Useful for auditing what agents tried to do.

@@ -4,7 +4,7 @@ load test_helper
 
 setup() {
   setup_temp_dir
-  export HEALTH_DIR="$TEST_TEMP_DIR/.vbw-planning/.agent-health"
+  export HEALTH_DIR="$TEST_TEMP_DIR/.yolo-planning/.agent-health"
 }
 
 teardown() {
@@ -14,7 +14,7 @@ teardown() {
 # Test 1: start creates health file
 @test "agent-health: start creates health file" {
   cd "$TEST_TEMP_DIR"
-  echo '{"pid":"12345","agent_type":"vbw-dev"}' | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
+  echo '{"pid":"12345","agent_type":"yolo-dev"}' | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
   [ -f "$HEALTH_DIR/dev.json" ]
   run jq -r '.pid' "$HEALTH_DIR/dev.json"
   [ "$output" = "12345" ]
@@ -31,10 +31,10 @@ teardown() {
   # For test purposes, we'll use a background sleep process
   sleep 30 &
   SLEEP_PID=$!
-  echo "{\"pid\":\"$SLEEP_PID\",\"agent_type\":\"vbw-qa\"}" | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
+  echo "{\"pid\":\"$SLEEP_PID\",\"agent_type\":\"yolo-qa\"}" | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
 
   # Run idle
-  echo '{"agent_type":"vbw-qa"}' | bash "$SCRIPTS_DIR/agent-health.sh" idle >/dev/null
+  echo '{"agent_type":"yolo-qa"}' | bash "$SCRIPTS_DIR/agent-health.sh" idle >/dev/null
 
   # Check idle count
   run jq -r '.idle_count' "$HEALTH_DIR/qa.json"
@@ -49,15 +49,15 @@ teardown() {
   cd "$TEST_TEMP_DIR"
   sleep 30 &
   SLEEP_PID=$!
-  echo "{\"pid\":\"$SLEEP_PID\",\"agent_type\":\"vbw-scout\"}" | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
+  echo "{\"pid\":\"$SLEEP_PID\",\"agent_type\":\"yolo-scout\"}" | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
 
   # Run idle 3 times
   for i in 1 2 3; do
-    echo '{"agent_type":"vbw-scout"}' | bash "$SCRIPTS_DIR/agent-health.sh" idle >/dev/null
+    echo '{"agent_type":"yolo-scout"}' | bash "$SCRIPTS_DIR/agent-health.sh" idle >/dev/null
   done
 
   # Fourth call should have stuck advisory
-  run bash -c "echo '{\"agent_type\":\"vbw-scout\"}' | bash '$SCRIPTS_DIR/agent-health.sh' idle | jq -r '.hookSpecificOutput.additionalContext'"
+  run bash -c "echo '{\"agent_type\":\"yolo-scout\"}' | bash '$SCRIPTS_DIR/agent-health.sh' idle | jq -r '.hookSpecificOutput.additionalContext'"
   [[ "$output" == *"stuck"* ]]
   [[ "$output" == *"idle_count=4"* ]]
 
@@ -81,10 +81,10 @@ teardown() {
 EOF
 
   # Create health file with dead PID
-  echo '{"pid":"99999","agent_type":"vbw-dev"}' | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
+  echo '{"pid":"99999","agent_type":"yolo-dev"}' | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
 
   # Run idle — should detect dead PID and clear owner
-  run bash -c "echo '{\"agent_type\":\"vbw-dev\"}' | bash '$SCRIPTS_DIR/agent-health.sh' idle | jq -r '.hookSpecificOutput.additionalContext'"
+  run bash -c "echo '{\"agent_type\":\"yolo-dev\"}' | bash '$SCRIPTS_DIR/agent-health.sh' idle | jq -r '.hookSpecificOutput.additionalContext'"
   [[ "$output" == *"Orphan recovery"* ]]
   [[ "$output" == *"task-test"* ]]
 
@@ -101,13 +101,13 @@ EOF
   cd "$TEST_TEMP_DIR"
   sleep 30 &
   SLEEP_PID=$!
-  echo "{\"pid\":\"$SLEEP_PID\",\"agent_type\":\"vbw-qa\"}" | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
+  echo "{\"pid\":\"$SLEEP_PID\",\"agent_type\":\"yolo-qa\"}" | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
 
   # Verify file exists
   [ -f "$HEALTH_DIR/qa.json" ]
 
   # Stop
-  echo '{"agent_type":"vbw-qa"}' | bash "$SCRIPTS_DIR/agent-health.sh" stop >/dev/null
+  echo '{"agent_type":"yolo-qa"}' | bash "$SCRIPTS_DIR/agent-health.sh" stop >/dev/null
 
   # Verify file removed
   [ ! -f "$HEALTH_DIR/qa.json" ]

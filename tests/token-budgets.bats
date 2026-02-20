@@ -5,12 +5,12 @@ load test_helper
 setup() {
   setup_temp_dir
   create_test_config
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.metrics"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.events"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.metrics"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.events"
   # Enable flags
   jq '.v2_token_budgets = true | .v3_metrics = true | .v3_event_log = true' \
-    "$TEST_TEMP_DIR/.vbw-planning/config.json" > "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" \
-    && mv "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" "$TEST_TEMP_DIR/.vbw-planning/config.json"
+    "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" \
+    && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
   # Copy token budgets config
   mkdir -p "$TEST_TEMP_DIR/config"
   cp "$CONFIG_DIR/token-budgets.json" "$TEST_TEMP_DIR/config/"
@@ -72,8 +72,8 @@ generate_chars() {
 
 @test "token-budget: skips when flag disabled" {
   cd "$TEST_TEMP_DIR"
-  jq '.v2_token_budgets = false' ".vbw-planning/config.json" > ".vbw-planning/config.json.tmp" \
-    && mv ".vbw-planning/config.json.tmp" ".vbw-planning/config.json"
+  jq '.v2_token_budgets = false' ".yolo-planning/config.json" > ".yolo-planning/config.json.tmp" \
+    && mv ".yolo-planning/config.json.tmp" ".yolo-planning/config.json"
   generate_chars 12000 > "$TEST_TEMP_DIR/no-truncate.txt"
   run bash "$SCRIPTS_DIR/token-budget.sh" scout "$TEST_TEMP_DIR/no-truncate.txt"
   [ "$status" -eq 0 ]
@@ -85,8 +85,8 @@ generate_chars() {
   cd "$TEST_TEMP_DIR"
   generate_chars 12000 > "$TEST_TEMP_DIR/overage.txt"
   bash "$SCRIPTS_DIR/token-budget.sh" scout "$TEST_TEMP_DIR/overage.txt" >/dev/null 2>&1
-  [ -f ".vbw-planning/.metrics/run-metrics.jsonl" ]
-  run cat ".vbw-planning/.metrics/run-metrics.jsonl"
+  [ -f ".yolo-planning/.metrics/run-metrics.jsonl" ]
+  run cat ".yolo-planning/.metrics/run-metrics.jsonl"
   [[ "$output" == *"token_overage"* ]]
   [[ "$output" == *"scout"* ]]
 }
@@ -165,8 +165,8 @@ generate_chars() {
     > "$TEST_TEMP_DIR/contract.json"
   generate_chars 25000 > "$TEST_TEMP_DIR/source-context.txt"
   bash "$SCRIPTS_DIR/token-budget.sh" dev "$TEST_TEMP_DIR/source-context.txt" "$TEST_TEMP_DIR/contract.json" 1 >/dev/null 2>&1
-  [ -f ".vbw-planning/.metrics/run-metrics.jsonl" ]
-  run cat ".vbw-planning/.metrics/run-metrics.jsonl"
+  [ -f ".yolo-planning/.metrics/run-metrics.jsonl" ]
+  run cat ".yolo-planning/.metrics/run-metrics.jsonl"
   [[ "$output" == *"budget_source"* ]]
   [[ "$output" == *"task"* ]]
 }
@@ -214,9 +214,9 @@ generate_chars() {
 @test "metrics-report: produces summary table with event data" {
   cd "$TEST_TEMP_DIR"
   # Create some event data
-  echo '{"ts":"2026-01-01","event":"task_started","phase":1}' >> ".vbw-planning/.events/event-log.jsonl"
-  echo '{"ts":"2026-01-01","event":"task_completed_confirmed","phase":1}' >> ".vbw-planning/.events/event-log.jsonl"
-  echo '{"ts":"2026-01-01","event":"gate_passed","phase":1}' >> ".vbw-planning/.events/event-log.jsonl"
+  echo '{"ts":"2026-01-01","event":"task_started","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
+  echo '{"ts":"2026-01-01","event":"task_completed_confirmed","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
+  echo '{"ts":"2026-01-01","event":"gate_passed","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
   run bash "$SCRIPTS_DIR/metrics-report.sh"
   [ "$status" -eq 0 ]
   [[ "$output" == *"Summary"* ]]
@@ -226,9 +226,9 @@ generate_chars() {
 
 @test "metrics-report: includes gate failure rate" {
   cd "$TEST_TEMP_DIR"
-  echo '{"ts":"2026-01-01","event":"gate_passed","phase":1}' >> ".vbw-planning/.events/event-log.jsonl"
-  echo '{"ts":"2026-01-01","event":"gate_passed","phase":1}' >> ".vbw-planning/.events/event-log.jsonl"
-  echo '{"ts":"2026-01-01","event":"gate_failed","phase":1}' >> ".vbw-planning/.events/event-log.jsonl"
+  echo '{"ts":"2026-01-01","event":"gate_passed","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
+  echo '{"ts":"2026-01-01","event":"gate_passed","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
+  echo '{"ts":"2026-01-01","event":"gate_failed","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
   run bash "$SCRIPTS_DIR/metrics-report.sh"
   [ "$status" -eq 0 ]
   [[ "$output" == *"Gate Failure Rate"* ]]
@@ -238,10 +238,10 @@ generate_chars() {
 @test "metrics-report: computes median task latency" {
   cd "$TEST_TEMP_DIR"
   # Create matched start/confirm events with real timestamps and task_id data
-  echo '{"ts":"2026-01-01T10:00:00Z","event":"task_started","phase":1,"data":{"task_id":"t1"}}' >> ".vbw-planning/.events/event-log.jsonl"
-  echo '{"ts":"2026-01-01T10:05:00Z","event":"task_completed_confirmed","phase":1,"data":{"task_id":"t1"}}' >> ".vbw-planning/.events/event-log.jsonl"
-  echo '{"ts":"2026-01-01T10:10:00Z","event":"task_started","phase":1,"data":{"task_id":"t2"}}' >> ".vbw-planning/.events/event-log.jsonl"
-  echo '{"ts":"2026-01-01T10:20:00Z","event":"task_completed_confirmed","phase":1,"data":{"task_id":"t2"}}' >> ".vbw-planning/.events/event-log.jsonl"
+  echo '{"ts":"2026-01-01T10:00:00Z","event":"task_started","phase":1,"data":{"task_id":"t1"}}' >> ".yolo-planning/.events/event-log.jsonl"
+  echo '{"ts":"2026-01-01T10:05:00Z","event":"task_completed_confirmed","phase":1,"data":{"task_id":"t1"}}' >> ".yolo-planning/.events/event-log.jsonl"
+  echo '{"ts":"2026-01-01T10:10:00Z","event":"task_started","phase":1,"data":{"task_id":"t2"}}' >> ".yolo-planning/.events/event-log.jsonl"
+  echo '{"ts":"2026-01-01T10:20:00Z","event":"task_completed_confirmed","phase":1,"data":{"task_id":"t2"}}' >> ".yolo-planning/.events/event-log.jsonl"
   run bash "$SCRIPTS_DIR/metrics-report.sh"
   [ "$status" -eq 0 ]
   [[ "$output" == *"Median latency"* ]]
@@ -251,7 +251,7 @@ generate_chars() {
 
 @test "metrics-report: shows profile info in summary" {
   cd "$TEST_TEMP_DIR"
-  echo '{"ts":"2026-01-01","event":"task_started","phase":1}' >> ".vbw-planning/.events/event-log.jsonl"
+  echo '{"ts":"2026-01-01","event":"task_started","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
   run bash "$SCRIPTS_DIR/metrics-report.sh"
   [ "$status" -eq 0 ]
   [[ "$output" == *"effort=balanced"* ]]

@@ -28,7 +28,7 @@ teardown() {
 
 @test "research-warn: JSON schema validation - flag disabled" {
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/.vbw-planning"
+  run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/.yolo-planning"
   [ "$status" -eq 0 ]
 
   # Validate JSON schema: must have check, result, reason keys
@@ -39,9 +39,9 @@ teardown() {
 
 @test "research-warn: JSON schema validation - turbo effort" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_plan_research_persist = true | .effort = "turbo"' .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
-  run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/.vbw-planning"
+  jq '.v3_plan_research_persist = true | .effort = "turbo"' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
+    && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
+  run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/.yolo-planning"
   [ "$status" -eq 0 ]
 
   # Validate JSON schema
@@ -52,8 +52,8 @@ teardown() {
 
 @test "research-warn: JSON schema validation - missing RESEARCH.md" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_plan_research_persist = true | .effort = "balanced"' .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_plan_research_persist = true | .effort = "balanced"' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
+    && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   mkdir -p "$TEST_TEMP_DIR/phase-dir"
   run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/phase-dir"
   [ "$status" -eq 0 ]
@@ -67,8 +67,8 @@ teardown() {
 
 @test "research-warn: JSON schema validation - RESEARCH.md exists" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_plan_research_persist = true | .effort = "thorough"' .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_plan_research_persist = true | .effort = "thorough"' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
+    && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   mkdir -p "$TEST_TEMP_DIR/phase-dir"
   echo "# Research" > "$TEST_TEMP_DIR/phase-dir/02-01-RESEARCH.md"
   run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/phase-dir"
@@ -101,15 +101,15 @@ teardown() {
 ROADMAP
 
   # Use tracked template as fixture source to avoid dependence on local runtime
-  # .vbw-planning state in the plugin source repository.
+  # .yolo-planning state in the plugin source repository.
   cp "$PROJECT_ROOT/templates/RESEARCH.md" "$TEMP_PHASES/01-test-phase/01-RESEARCH.md"
 
   # Temporarily override CLAUDE_DIR to use isolated planning dir
   ORIG_CLAUDE_DIR="$CLAUDE_DIR"
   export CLAUDE_DIR="$TEST_TEMP_DIR"
 
-  # Create isolated .vbw-planning symlink in temp dir
-  ln -s "$TEMP_PLANNING" "$TEST_TEMP_DIR/.vbw-planning"
+  # Create isolated .yolo-planning symlink in temp dir
+  ln -s "$TEMP_PLANNING" "$TEST_TEMP_DIR/.yolo-planning"
 
   # Run compile-context.sh for phase 01, role lead
   cd "$TEST_TEMP_DIR"
@@ -134,8 +134,8 @@ ROADMAP
   cd "$TEST_TEMP_DIR"
 
   # Setup temp config with v3_plan_research_persist=false (default in defaults.json)
-  jq '.v3_plan_research_persist = false | .effort = "thorough"' .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_plan_research_persist = false | .effort = "thorough"' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
+    && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
 
   # Create phase dir without RESEARCH.md
   mkdir -p "$TEST_TEMP_DIR/phase-dir"

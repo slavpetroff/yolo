@@ -10,7 +10,7 @@ set -euo pipefail
 
 ACTION="${1:-scan}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PLANNING_DIR="${VBW_PLANNING_DIR:-$(pwd)/.vbw-planning}"
+PLANNING_DIR="${YOLO_PLANNING_DIR:-$(pwd)/.yolo-planning}"
 LOG_FILE="$PLANNING_DIR/.hook-errors.log"
 
 # Resolve CLAUDE_DIR

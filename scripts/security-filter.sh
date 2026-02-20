@@ -25,9 +25,9 @@ if echo "$FILE_PATH" | grep -qE '\.env$|\.env\.|\.pem$|\.key$|\.cert$|\.p12$|\.p
   exit 2
 fi
 
-# Block GSD's .planning/ directory when VBW is actively running.
-# Only enforce when VBW markers are present (session or agent), so GSD can
-# still write to its own directory when VBW is not the active caller.
+# Block GSD's .planning/ directory when YOLO is actively running.
+# Only enforce when YOLO markers are present (session or agent), so GSD can
+# still write to its own directory when YOLO is not the active caller.
 # Stale marker protection: ignore markers older than 24h to avoid false positives
 # from crashed sessions that didn't clean up.
 is_marker_fresh() {
@@ -57,19 +57,19 @@ derive_project_root() {
   printf '%s' "$root"
 }
 
-if echo "$FILE_PATH" | grep -qF '.planning/' && ! echo "$FILE_PATH" | grep -qF '.vbw-planning/'; then
+if echo "$FILE_PATH" | grep -qF '.planning/' && ! echo "$FILE_PATH" | grep -qF '.yolo-planning/'; then
   GSD_ROOT=$(derive_project_root "$FILE_PATH" ".planning")
-  if is_marker_fresh "$GSD_ROOT/.vbw-planning/.active-agent" || is_marker_fresh "$GSD_ROOT/.vbw-planning/.vbw-session"; then
-    echo "Blocked: .planning/ is managed by GSD, not VBW ($FILE_PATH)" >&2
+  if is_marker_fresh "$GSD_ROOT/.yolo-planning/.active-agent" || is_marker_fresh "$GSD_ROOT/.yolo-planning/.yolo-session"; then
+    echo "Blocked: .planning/ is managed by GSD, not YOLO ($FILE_PATH)" >&2
     exit 2
   fi
 fi
 
-# .vbw-planning/ is VBW's own directory — never block VBW from its own state.
-# Previous marker-based isolation (.gsd-isolation + .active-agent + .vbw-session)
+# .yolo-planning/ is YOLO's own directory — never block YOLO from its own state.
+# Previous marker-based isolation (.gsd-isolation + .active-agent + .yolo-session)
 # caused false blocks: orchestrator after team deletion, agents before markers set,
 # Read calls before prompt-preflight runs. GSD isolation is enforced by CLAUDE.md
-# instructions + the .planning/ block above (which prevents VBW from touching GSD).
-# Removed: self-blocking of .vbw-planning/ (v1.21.13).
+# instructions + the .planning/ block above (which prevents YOLO from touching GSD).
+# Removed: self-blocking of .yolo-planning/ (v1.21.13).
 
 exit 0

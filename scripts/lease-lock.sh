@@ -5,7 +5,7 @@ set -u
 # Lease-based lock upgrade to lock-lite with TTL/heartbeat support.
 # action: acquire (create lock with TTL), renew (extend lease), release (remove),
 #         check (detect conflicts + expired leases)
-# Lock files: .vbw-planning/.locks/{task-id}.lock (JSON with ttl/expires_at)
+# Lock files: .yolo-planning/.locks/{task-id}.lock (JSON with ttl/expires_at)
 # Fail-open: exit 0 always. Conflicts are logged to metrics, never blocking.
 
 if [ $# -lt 2 ]; then
@@ -17,7 +17,7 @@ ACTION="$1"
 TASK_ID="$2"
 shift 2
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 CONFIG_PATH="${PLANNING_DIR}/config.json"
 LOCKS_DIR="${PLANNING_DIR}/.locks"
 LOCK_FILE="${LOCKS_DIR}/${TASK_ID}.lock"

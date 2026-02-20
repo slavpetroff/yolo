@@ -4,15 +4,15 @@
 set -euo pipefail
 
 # Skip during compaction — post-compact.sh handles the compact SessionStart.
-if [[ -f ".vbw-planning/.compaction-marker" ]]; then
-  _cm_ts=$(cat ".vbw-planning/.compaction-marker" 2>/dev/null || echo 0)
+if [[ -f ".yolo-planning/.compaction-marker" ]]; then
+  _cm_ts=$(cat ".yolo-planning/.compaction-marker" 2>/dev/null || echo 0)
   _cm_now=$(date +%s 2>/dev/null || echo 0)
   if (( _cm_now - _cm_ts < 60 )); then
     exit 0
   fi
 fi
 
-META=".vbw-planning/codebase/META.md"
+META=".yolo-planning/codebase/META.md"
 
 # Detect hook context: when stdout is not a terminal, we're called as a hook.
 # In hook mode, only JSON goes to stdout; diagnostics go to stderr.
@@ -53,7 +53,7 @@ if ! git cat-file -e "$git_hash" 2>/dev/null; then
   _diag "total: $file_count"
   _diag "since: $mapped_at"
   if [[ "$IS_HOOK" == true ]]; then
-    echo "{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"Codebase map is stale (100% files changed). Run /vbw:map --incremental to refresh.\"}}"
+    echo "{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"Codebase map is stale (100% files changed). Run /yolo:map --incremental to refresh.\"}}"
   fi
   exit 0
 fi
@@ -78,5 +78,5 @@ _diag "since: $mapped_at"
 
 # When called as a SessionStart hook, output hookSpecificOutput JSON only
 if [[ "$status" == "stale" ]] && [[ "$IS_HOOK" == true ]]; then
-  echo "{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"Codebase map is stale (${staleness}% files changed). Run /vbw:map --incremental to refresh.\"}}"
+  echo "{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"Codebase map is stale (${staleness}% files changed). Run /yolo:map --incremental to refresh.\"}}"
 fi

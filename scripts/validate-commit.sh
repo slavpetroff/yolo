@@ -47,10 +47,10 @@ if ! echo "$MSG" | grep -qE "^($VALID_TYPES)\(.+\): .+"; then
   }'
 fi
 
-# Version sync warning (VBW plugin development only)
+# Version sync warning (YOLO plugin development only)
 if [ -f ".claude-plugin/plugin.json" ] && [ -f "./scripts/bump-version.sh" ]; then
   PLUGIN_NAME=$(jq -r '.name // ""' .claude-plugin/plugin.json 2>/dev/null)
-  if [ "$PLUGIN_NAME" = "vbw" ]; then
+  if [ "$PLUGIN_NAME" = "yolo" ]; then
     VERIFY_OUTPUT=$(bash ./scripts/bump-version.sh --verify 2>&1) || {
       DETAILS=$(echo "$VERIFY_OUTPUT" | grep -A 10 "MISMATCH")
       jq -n --arg details "$DETAILS" '{

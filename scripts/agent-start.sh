@@ -1,10 +1,10 @@
 #!/bin/bash
 set -u
 # SubagentStart hook: Record active agent type for cost attribution
-# Writes stripped agent name to .vbw-planning/.active-agent
+# Writes stripped agent name to .yolo-planning/.active-agent
 
 INPUT=$(cat)
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 [ ! -d "$PLANNING_DIR" ] && exit 0
 
 AGENT_TYPE=$(echo "$INPUT" | jq -r '.agent_type // .agent_name // .name // ""' 2>/dev/null)
@@ -15,30 +15,30 @@ normalize_agent_role() {
 
   lower=$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')
   lower="${lower#@}"
-  lower="${lower#vbw:}"
+  lower="${lower#yolo:}"
 
   case "$lower" in
-    vbw-lead|vbw-lead-[0-9]*|lead|lead-[0-9]*|team-lead|team-lead-[0-9]*)
+    yolo-lead|yolo-lead-[0-9]*|lead|lead-[0-9]*|team-lead|team-lead-[0-9]*)
       printf 'lead'
       return 0
       ;;
-    vbw-dev|vbw-dev-[0-9]*|dev|dev-[0-9]*|team-dev|team-dev-[0-9]*)
+    yolo-dev|yolo-dev-[0-9]*|dev|dev-[0-9]*|team-dev|team-dev-[0-9]*)
       printf 'dev'
       return 0
       ;;
-    vbw-qa|vbw-qa-[0-9]*|qa|qa-[0-9]*|team-qa|team-qa-[0-9]*)
+    yolo-qa|yolo-qa-[0-9]*|qa|qa-[0-9]*|team-qa|team-qa-[0-9]*)
       printf 'qa'
       return 0
       ;;
-    vbw-scout|vbw-scout-[0-9]*|scout|scout-[0-9]*|team-scout|team-scout-[0-9]*)
+    yolo-scout|yolo-scout-[0-9]*|scout|scout-[0-9]*|team-scout|team-scout-[0-9]*)
       printf 'scout'
       return 0
       ;;
-    vbw-debugger|vbw-debugger-[0-9]*|debugger|debugger-[0-9]*|team-debugger|team-debugger-[0-9]*)
+    yolo-debugger|yolo-debugger-[0-9]*|debugger|debugger-[0-9]*|team-debugger|team-debugger-[0-9]*)
       printf 'debugger'
       return 0
       ;;
-    vbw-architect|vbw-architect-[0-9]*|architect|architect-[0-9]*|team-architect|team-architect-[0-9]*)
+    yolo-architect|yolo-architect-[0-9]*|architect|architect-[0-9]*|team-architect|team-architect-[0-9]*)
       printf 'architect'
       return 0
       ;;
@@ -47,11 +47,11 @@ normalize_agent_role() {
   return 1
 }
 
-is_explicit_vbw_agent() {
+is_explicit_yolo_agent() {
   local value="$1"
   local lower
   lower=$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')
-  echo "$lower" | grep -qE '^@?vbw:|^@?vbw-'
+  echo "$lower" | grep -qE '^@?yolo:|^@?yolo-'
 }
 
 ROLE=""
@@ -61,7 +61,7 @@ else
   ROLE=""
 fi
 
-# Only track VBW agents; maintain reference count for concurrent agents
+# Only track YOLO agents; maintain reference count for concurrent agents
 COUNT_FILE="$PLANNING_DIR/.active-agent-count"
 LOCK_DIR="$PLANNING_DIR/.active-agent-count.lock"
 
@@ -121,9 +121,9 @@ update_agent_markers() {
 }
 
 if [ -n "$ROLE" ]; then
-  # Accept non-prefixed role aliases only when a VBW context is already active.
-  if is_explicit_vbw_agent "$AGENT_TYPE" \
-    || [ -f "$PLANNING_DIR/.vbw-session" ] \
+  # Accept non-prefixed role aliases only when a YOLO context is already active.
+  if is_explicit_yolo_agent "$AGENT_TYPE" \
+    || [ -f "$PLANNING_DIR/.yolo-session" ] \
     || [ -f "$PLANNING_DIR/.active-agent" ] \
     || [ -f "$COUNT_FILE" ]; then
     if acquire_lock; then

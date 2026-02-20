@@ -4,7 +4,7 @@ load test_helper
 
 setup() {
   setup_temp_dir
-  export HEALTH_DIR="$TEST_TEMP_DIR/.vbw-planning/.agent-health"
+  export HEALTH_DIR="$TEST_TEMP_DIR/.yolo-planning/.agent-health"
 }
 
 teardown() {
@@ -20,7 +20,7 @@ teardown() {
   LIVE_PID=$!
 
   # Simulate SubagentStart hook
-  echo "{\"pid\":\"$LIVE_PID\",\"agent_type\":\"vbw-dev\"}" | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
+  echo "{\"pid\":\"$LIVE_PID\",\"agent_type\":\"yolo-dev\"}" | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
 
   # Verify health file created
   [ -f "$HEALTH_DIR/dev.json" ]
@@ -30,14 +30,14 @@ teardown() {
   [ "$output" = "0" ]
 
   # Simulate TeammateIdle hook
-  echo '{"agent_type":"vbw-dev"}' | bash "$SCRIPTS_DIR/agent-health.sh" idle >/dev/null
+  echo '{"agent_type":"yolo-dev"}' | bash "$SCRIPTS_DIR/agent-health.sh" idle >/dev/null
 
   # Verify idle_count incremented
   run jq -r '.idle_count' "$HEALTH_DIR/dev.json"
   [ "$output" = "1" ]
 
   # Simulate SubagentStop hook
-  echo '{"agent_type":"vbw-dev"}' | bash "$SCRIPTS_DIR/agent-health.sh" stop >/dev/null
+  echo '{"agent_type":"yolo-dev"}' | bash "$SCRIPTS_DIR/agent-health.sh" stop >/dev/null
 
   # Verify health file removed
   [ ! -f "$HEALTH_DIR/dev.json" ]
@@ -64,13 +64,13 @@ teardown() {
 EOF
 
   # Create health file with dead PID
-  echo '{"pid":"99999","agent_type":"vbw-dev"}' | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
+  echo '{"pid":"99999","agent_type":"yolo-dev"}' | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
 
   # Verify health file created
   [ -f "$HEALTH_DIR/dev.json" ]
 
   # Simulate TeammateIdle hook with dead PID
-  run bash -c "echo '{\"agent_type\":\"vbw-dev\"}' | bash '$SCRIPTS_DIR/agent-health.sh' idle | jq -r '.hookSpecificOutput.additionalContext'"
+  run bash -c "echo '{\"agent_type\":\"yolo-dev\"}' | bash '$SCRIPTS_DIR/agent-health.sh' idle | jq -r '.hookSpecificOutput.additionalContext'"
 
   # Verify orphan recovery message
   [[ "$output" == *"Orphan recovery"* ]]
@@ -94,22 +94,22 @@ EOF
   LIVE_PID=$!
 
   # Simulate SubagentStart
-  echo "{\"pid\":\"$LIVE_PID\",\"agent_type\":\"vbw-qa\"}" | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
+  echo "{\"pid\":\"$LIVE_PID\",\"agent_type\":\"yolo-qa\"}" | bash "$SCRIPTS_DIR/agent-health.sh" start >/dev/null
 
   # First idle: idle_count = 1
-  run bash -c "echo '{\"agent_type\":\"vbw-qa\"}' | bash '$SCRIPTS_DIR/agent-health.sh' idle | jq -r '.hookSpecificOutput.additionalContext'"
+  run bash -c "echo '{\"agent_type\":\"yolo-qa\"}' | bash '$SCRIPTS_DIR/agent-health.sh' idle | jq -r '.hookSpecificOutput.additionalContext'"
   [ "$output" = "" ]
   run jq -r '.idle_count' "$HEALTH_DIR/qa.json"
   [ "$output" = "1" ]
 
   # Second idle: idle_count = 2
-  run bash -c "echo '{\"agent_type\":\"vbw-qa\"}' | bash '$SCRIPTS_DIR/agent-health.sh' idle | jq -r '.hookSpecificOutput.additionalContext'"
+  run bash -c "echo '{\"agent_type\":\"yolo-qa\"}' | bash '$SCRIPTS_DIR/agent-health.sh' idle | jq -r '.hookSpecificOutput.additionalContext'"
   [ "$output" = "" ]
   run jq -r '.idle_count' "$HEALTH_DIR/qa.json"
   [ "$output" = "2" ]
 
   # Third idle: idle_count = 3, stuck advisory appears
-  run bash -c "echo '{\"agent_type\":\"vbw-qa\"}' | bash '$SCRIPTS_DIR/agent-health.sh' idle | jq -r '.hookSpecificOutput.additionalContext'"
+  run bash -c "echo '{\"agent_type\":\"yolo-qa\"}' | bash '$SCRIPTS_DIR/agent-health.sh' idle | jq -r '.hookSpecificOutput.additionalContext'"
   [[ "$output" == *"stuck"* ]]
   [[ "$output" == *"idle_count=3"* ]]
   run jq -r '.idle_count' "$HEALTH_DIR/qa.json"

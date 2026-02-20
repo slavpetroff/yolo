@@ -10,14 +10,14 @@ load test_helper
 setup() {
   setup_temp_dir
   create_test_config
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.contracts"
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/.events"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.contracts"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.events"
   mkdir -p "$TEST_TEMP_DIR/config/schemas"
   cp "$CONFIG_DIR/schemas/message-schemas.json" "$TEST_TEMP_DIR/config/schemas/"
   # Enable V2 typed protocol
   jq '.v2_typed_protocol = true | .v3_event_log = true' \
-    "$TEST_TEMP_DIR/.vbw-planning/config.json" > "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" \
-    && mv "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" "$TEST_TEMP_DIR/.vbw-planning/config.json"
+    "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" \
+    && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
 }
 
 teardown() {
@@ -28,28 +28,28 @@ teardown() {
 # Agent definitions: all 6 team-participating agents have Shutdown Handling
 # =============================================================================
 
-@test "vbw-dev has Shutdown Handling section" {
-  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/vbw-dev.md"
+@test "yolo-dev has Shutdown Handling section" {
+  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
 
-@test "vbw-qa has Shutdown Handling section" {
-  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/vbw-qa.md"
+@test "yolo-qa has Shutdown Handling section" {
+  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/yolo-qa.md"
 }
 
-@test "vbw-scout has Shutdown Handling section" {
-  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/vbw-scout.md"
+@test "yolo-scout has Shutdown Handling section" {
+  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/yolo-scout.md"
 }
 
-@test "vbw-lead has Shutdown Handling section" {
-  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/vbw-lead.md"
+@test "yolo-lead has Shutdown Handling section" {
+  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/yolo-lead.md"
 }
 
-@test "vbw-debugger has Shutdown Handling section" {
-  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/vbw-debugger.md"
+@test "yolo-debugger has Shutdown Handling section" {
+  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/yolo-debugger.md"
 }
 
-@test "vbw-docs has Shutdown Handling section" {
-  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/vbw-docs.md"
+@test "yolo-docs has Shutdown Handling section" {
+  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/yolo-docs.md"
 }
 
 # =============================================================================
@@ -58,8 +58,8 @@ teardown() {
 
 @test "all agent handlers reference shutdown_request" {
   for agent in dev qa scout lead debugger docs; do
-    grep -q 'shutdown_request' "$PROJECT_ROOT/agents/vbw-${agent}.md" || {
-      echo "vbw-${agent}.md missing shutdown_request reference"
+    grep -q 'shutdown_request' "$PROJECT_ROOT/agents/yolo-${agent}.md" || {
+      echo "yolo-${agent}.md missing shutdown_request reference"
       return 1
     }
   done
@@ -67,8 +67,8 @@ teardown() {
 
 @test "all agent handlers reference shutdown_response" {
   for agent in dev qa scout lead debugger docs; do
-    grep -q 'shutdown_response' "$PROJECT_ROOT/agents/vbw-${agent}.md" || {
-      echo "vbw-${agent}.md missing shutdown_response reference"
+    grep -q 'shutdown_response' "$PROJECT_ROOT/agents/yolo-${agent}.md" || {
+      echo "yolo-${agent}.md missing shutdown_response reference"
       return 1
     }
   done
@@ -81,15 +81,15 @@ teardown() {
 @test "all agent shutdown handlers instruct to STOP" {
   for agent in dev qa scout lead debugger docs; do
     # Each handler must contain a STOP instruction
-    sed -n '/^## Shutdown Handling$/,/^## /p' "$PROJECT_ROOT/agents/vbw-${agent}.md" | grep -qi 'STOP' || {
-      echo "vbw-${agent}.md Shutdown Handling section missing STOP instruction"
+    sed -n '/^## Shutdown Handling$/,/^## /p' "$PROJECT_ROOT/agents/yolo-${agent}.md" | grep -qi 'STOP' || {
+      echo "yolo-${agent}.md Shutdown Handling section missing STOP instruction"
       return 1
     }
   done
 }
 
 @test "debugger handler includes checkpoint instruction" {
-  sed -n '/^## Shutdown Handling$/,/^## /p' "$PROJECT_ROOT/agents/vbw-debugger.md" | grep -qi 'checkpoint'
+  sed -n '/^## Shutdown Handling$/,/^## /p' "$PROJECT_ROOT/agents/yolo-debugger.md" | grep -qi 'checkpoint'
 }
 
 # =============================================================================
@@ -98,21 +98,21 @@ teardown() {
 
 @test "shutdown handling section order: after Effort, before Circuit Breaker" {
   for agent in dev qa scout lead debugger docs; do
-    local file="$PROJECT_ROOT/agents/vbw-${agent}.md"
+    local file="$PROJECT_ROOT/agents/yolo-${agent}.md"
     local effort_line shutdown_line breaker_line
     effort_line=$(grep -n '^## Effort' "$file" | head -1 | cut -d: -f1)
     shutdown_line=$(grep -n '^## Shutdown Handling' "$file" | head -1 | cut -d: -f1)
     breaker_line=$(grep -n '^## Circuit Breaker' "$file" | head -1 | cut -d: -f1)
     [ -n "$effort_line" ] && [ -n "$shutdown_line" ] && [ -n "$breaker_line" ] || {
-      echo "vbw-${agent}.md missing one of Effort/Shutdown/Circuit sections"
+      echo "yolo-${agent}.md missing one of Effort/Shutdown/Circuit sections"
       return 1
     }
     [ "$effort_line" -lt "$shutdown_line" ] || {
-      echo "vbw-${agent}.md: Shutdown Handling ($shutdown_line) not after Effort ($effort_line)"
+      echo "yolo-${agent}.md: Shutdown Handling ($shutdown_line) not after Effort ($effort_line)"
       return 1
     }
     [ "$shutdown_line" -lt "$breaker_line" ] || {
-      echo "vbw-${agent}.md: Shutdown Handling ($shutdown_line) not before Circuit Breaker ($breaker_line)"
+      echo "yolo-${agent}.md: Shutdown Handling ($shutdown_line) not before Circuit Breaker ($breaker_line)"
       return 1
     }
   done
@@ -245,7 +245,7 @@ teardown() {
 
 @test "validate-message: shutdown_request from lead passes" {
   cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-001","type":"shutdown_request","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"vbw-phase-01"}}'
+  MSG='{"id":"shut-001","type":"shutdown_request","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
   run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.valid == true'
@@ -253,7 +253,7 @@ teardown() {
 
 @test "validate-message: shutdown_request from dev rejected (unauthorized)" {
   cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-bad","type":"shutdown_request","phase":1,"task":"","author_role":"dev","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"vbw-phase-01"}}'
+  MSG='{"id":"shut-bad","type":"shutdown_request","phase":1,"task":"","author_role":"dev","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
   run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
   [ "$status" -eq 2 ]
   [[ "$output" == *"not authorized"* ]]
@@ -261,7 +261,7 @@ teardown() {
 
 @test "validate-message: shutdown_request missing reason rejected" {
   cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-002","type":"shutdown_request","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"team_name":"vbw-phase-01"}}'
+  MSG='{"id":"shut-002","type":"shutdown_request","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"team_name":"yolo-phase-01"}}'
   run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
   [ "$status" -eq 2 ]
   [[ "$output" == *"missing payload field"* ]]
@@ -357,7 +357,7 @@ teardown() {
 
 @test "validate-message: shutdown_request targeted to dev passes receive check" {
   cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-t1","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"dev","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"vbw-phase-01"}}'
+  MSG='{"id":"shut-t1","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"dev","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
   run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.valid == true'
@@ -377,7 +377,7 @@ teardown() {
 
 @test "validate-message: shutdown_request targeted to docs passes" {
   cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-t3","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"docs","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"vbw-phase-01"}}'
+  MSG='{"id":"shut-t3","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"docs","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
   run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.valid == true'
@@ -385,7 +385,7 @@ teardown() {
 
 @test "validate-message: shutdown_request targeted to lead passes" {
   cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-t4","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"vbw-phase-01"}}'
+  MSG='{"id":"shut-t4","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
   run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.valid == true'
@@ -398,9 +398,9 @@ teardown() {
 @test "validate-message: shutdown_request passes when v2_typed_protocol=false" {
   cd "$TEST_TEMP_DIR"
   jq '.v2_typed_protocol = false' \
-    "$TEST_TEMP_DIR/.vbw-planning/config.json" > "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" \
-    && mv "$TEST_TEMP_DIR/.vbw-planning/config.json.tmp" "$TEST_TEMP_DIR/.vbw-planning/config.json"
-  MSG='{"id":"shut-fallback","type":"shutdown_request","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"vbw-phase-01"}}'
+    "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" \
+    && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
+  MSG='{"id":"shut-fallback","type":"shutdown_request","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
   run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
   [ "$status" -eq 0 ]
 }
@@ -411,7 +411,7 @@ teardown() {
 
 @test "validate-message: shutdown_request targeted to architect rejected" {
   cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-arch-1","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"architect","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"vbw-phase-01"}}'
+  MSG='{"id":"shut-arch-1","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"architect","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
   run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
   [ "$status" -eq 2 ]
 }
@@ -426,15 +426,15 @@ teardown() {
 
 @test "validate-message: shutdown_request from architect as sender rejected" {
   cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-arch-3","type":"shutdown_request","phase":1,"task":"","author_role":"architect","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"vbw-phase-01"}}'
+  MSG='{"id":"shut-arch-3","type":"shutdown_request","phase":1,"task":"","author_role":"architect","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
   run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
   [ "$status" -eq 2 ]
   [[ "$output" == *"not authorized"* ]]
 }
 
 @test "architect agent documents shutdown exemption" {
-  grep -q '## Shutdown Handling' "$PROJECT_ROOT/agents/vbw-architect.md"
-  sed -n '/^## Shutdown Handling$/,/^## /p' "$PROJECT_ROOT/agents/vbw-architect.md" | grep -qi 'planning-only'
+  grep -q '## Shutdown Handling' "$PROJECT_ROOT/agents/yolo-architect.md"
+  sed -n '/^## Shutdown Handling$/,/^## /p' "$PROJECT_ROOT/agents/yolo-architect.md" | grep -qi 'planning-only'
 }
 
 # =============================================================================
@@ -442,7 +442,7 @@ teardown() {
 # =============================================================================
 
 @test "architect shutdown handling section order: after Effort, before Circuit Breaker" {
-  local file="$PROJECT_ROOT/agents/vbw-architect.md"
+  local file="$PROJECT_ROOT/agents/yolo-architect.md"
   local effort_line shutdown_line breaker_line
   effort_line=$(grep -n '^## Effort' "$file" | head -1 | cut -d: -f1)
   shutdown_line=$(grep -n '^## Shutdown Handling' "$file" | head -1 | cut -d: -f1)

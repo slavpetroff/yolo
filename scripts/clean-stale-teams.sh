@@ -13,7 +13,7 @@ set -euo pipefail
 TEAMS_DIR="$CLAUDE_DIR/teams"
 TASKS_DIR="$CLAUDE_DIR/tasks"
 STALE_THRESHOLD_SECONDS=7200  # 2 hours
-PLANNING_DIR="${VBW_PLANNING_DIR:-$(pwd)/.vbw-planning}"
+PLANNING_DIR="${YOLO_PLANNING_DIR:-$(pwd)/.yolo-planning}"
 LOG_FILE="$PLANNING_DIR/.hook-errors.log"
 
 # Graceful exit if teams directory doesn't exist
@@ -22,7 +22,7 @@ if [ ! -d "$TEAMS_DIR" ]; then
 fi
 
 # Temporary directory for atomic cleanup
-TEMP_DIR="/tmp/vbw-stale-teams-$$"
+TEMP_DIR="/tmp/yolo-stale-teams-$$"
 mkdir -p "$TEMP_DIR"
 
 # Logging helper (fail-silent)

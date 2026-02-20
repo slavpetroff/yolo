@@ -13,7 +13,7 @@ teardown() {
 
 @test "research-warn: ok when flag disabled" {
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/.vbw-planning"
+  run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/.yolo-planning"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.result == "ok"'
   echo "$output" | jq -e '.reason == "research_persist disabled"'
@@ -21,9 +21,9 @@ teardown() {
 
 @test "research-warn: ok when effort=turbo" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_plan_research_persist = true | .effort = "turbo"' .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
-  run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/.vbw-planning"
+  jq '.v3_plan_research_persist = true | .effort = "turbo"' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
+    && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
+  run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/.yolo-planning"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.result == "ok"'
   echo "$output" | jq -e '.reason == "turbo effort: research skipped"'
@@ -31,8 +31,8 @@ teardown() {
 
 @test "research-warn: warns when no RESEARCH.md" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_plan_research_persist = true | .effort = "balanced"' .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_plan_research_persist = true | .effort = "balanced"' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
+    && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   mkdir -p "$TEST_TEMP_DIR/phase-dir"
   run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/phase-dir"
   [ "$status" -eq 0 ]
@@ -44,8 +44,8 @@ teardown() {
 
 @test "research-warn: ok when RESEARCH.md exists" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_plan_research_persist = true | .effort = "thorough"' .vbw-planning/config.json > .vbw-planning/config.json.tmp \
-    && mv .vbw-planning/config.json.tmp .vbw-planning/config.json
+  jq '.v3_plan_research_persist = true | .effort = "thorough"' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
+    && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   mkdir -p "$TEST_TEMP_DIR/phase-dir"
   echo "# Research" > "$TEST_TEMP_DIR/phase-dir/02-01-RESEARCH.md"
   run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/phase-dir"

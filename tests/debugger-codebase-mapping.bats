@@ -18,27 +18,27 @@ teardown() {
 # =============================================================================
 
 @test "debugger agent references codebase mapping in investigation protocol" {
-  grep -q '.vbw-planning/codebase/' "$PROJECT_ROOT/agents/vbw-debugger.md"
+  grep -q '.yolo-planning/codebase/' "$PROJECT_ROOT/agents/yolo-debugger.md"
 }
 
 @test "debugger agent checks META.md for mapping existence" {
-  grep -q 'META.md' "$PROJECT_ROOT/agents/vbw-debugger.md"
+  grep -q 'META.md' "$PROJECT_ROOT/agents/yolo-debugger.md"
 }
 
 @test "debugger agent references ARCHITECTURE.md" {
-  grep -q 'ARCHITECTURE.md' "$PROJECT_ROOT/agents/vbw-debugger.md"
+  grep -q 'ARCHITECTURE.md' "$PROJECT_ROOT/agents/yolo-debugger.md"
 }
 
 @test "debugger agent references CONCERNS.md" {
-  grep -q 'CONCERNS.md' "$PROJECT_ROOT/agents/vbw-debugger.md"
+  grep -q 'CONCERNS.md' "$PROJECT_ROOT/agents/yolo-debugger.md"
 }
 
 @test "debugger agent references PATTERNS.md" {
-  grep -q 'PATTERNS.md' "$PROJECT_ROOT/agents/vbw-debugger.md"
+  grep -q 'PATTERNS.md' "$PROJECT_ROOT/agents/yolo-debugger.md"
 }
 
 @test "debugger agent references DEPENDENCIES.md" {
-  grep -q 'DEPENDENCIES.md' "$PROJECT_ROOT/agents/vbw-debugger.md"
+  grep -q 'DEPENDENCIES.md' "$PROJECT_ROOT/agents/yolo-debugger.md"
 }
 
 # =============================================================================
@@ -46,23 +46,23 @@ teardown() {
 # =============================================================================
 
 @test "dev agent references codebase mapping in execution protocol" {
-  grep -q '.vbw-planning/codebase/' "$PROJECT_ROOT/agents/vbw-dev.md"
+  grep -q '.yolo-planning/codebase/' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
 
 @test "dev agent references CONVENTIONS.md" {
-  grep -q 'CONVENTIONS.md' "$PROJECT_ROOT/agents/vbw-dev.md"
+  grep -q 'CONVENTIONS.md' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
 
 @test "dev agent references PATTERNS.md" {
-  grep -q 'PATTERNS.md' "$PROJECT_ROOT/agents/vbw-dev.md"
+  grep -q 'PATTERNS.md' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
 
 @test "dev agent references STRUCTURE.md" {
-  grep -q 'STRUCTURE.md' "$PROJECT_ROOT/agents/vbw-dev.md"
+  grep -q 'STRUCTURE.md' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
 
 @test "dev agent references DEPENDENCIES.md" {
-  grep -q 'DEPENDENCIES.md' "$PROJECT_ROOT/agents/vbw-dev.md"
+  grep -q 'DEPENDENCIES.md' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
 
 # =============================================================================
@@ -70,19 +70,19 @@ teardown() {
 # =============================================================================
 
 @test "qa agent references codebase mapping in verification protocol" {
-  grep -q '.vbw-planning/codebase/' "$PROJECT_ROOT/agents/vbw-qa.md"
+  grep -q '.yolo-planning/codebase/' "$PROJECT_ROOT/agents/yolo-qa.md"
 }
 
 @test "qa agent references TESTING.md" {
-  grep -q 'TESTING.md' "$PROJECT_ROOT/agents/vbw-qa.md"
+  grep -q 'TESTING.md' "$PROJECT_ROOT/agents/yolo-qa.md"
 }
 
 @test "qa agent references CONCERNS.md" {
-  grep -q 'CONCERNS.md' "$PROJECT_ROOT/agents/vbw-qa.md"
+  grep -q 'CONCERNS.md' "$PROJECT_ROOT/agents/yolo-qa.md"
 }
 
 @test "qa agent references ARCHITECTURE.md" {
-  grep -q 'ARCHITECTURE.md' "$PROJECT_ROOT/agents/vbw-qa.md"
+  grep -q 'ARCHITECTURE.md' "$PROJECT_ROOT/agents/yolo-qa.md"
 }
 
 # =============================================================================
@@ -90,19 +90,19 @@ teardown() {
 # =============================================================================
 
 @test "lead agent references codebase mapping in research stage" {
-  grep -q '.vbw-planning/codebase/' "$PROJECT_ROOT/agents/vbw-lead.md"
+  grep -q '.yolo-planning/codebase/' "$PROJECT_ROOT/agents/yolo-lead.md"
 }
 
 @test "lead agent references ARCHITECTURE.md" {
-  grep -q 'ARCHITECTURE.md' "$PROJECT_ROOT/agents/vbw-lead.md"
+  grep -q 'ARCHITECTURE.md' "$PROJECT_ROOT/agents/yolo-lead.md"
 }
 
 @test "lead agent references CONCERNS.md" {
-  grep -q 'CONCERNS.md' "$PROJECT_ROOT/agents/vbw-lead.md"
+  grep -q 'CONCERNS.md' "$PROJECT_ROOT/agents/yolo-lead.md"
 }
 
 @test "lead agent references STRUCTURE.md" {
-  grep -q 'STRUCTURE.md' "$PROJECT_ROOT/agents/vbw-lead.md"
+  grep -q 'STRUCTURE.md' "$PROJECT_ROOT/agents/yolo-lead.md"
 }
 
 # =============================================================================
@@ -110,27 +110,27 @@ teardown() {
 # =============================================================================
 
 @test "architect agent references codebase mapping in core protocol" {
-  grep -q '.vbw-planning/codebase/' "$PROJECT_ROOT/agents/vbw-architect.md"
+  grep -q '.yolo-planning/codebase/' "$PROJECT_ROOT/agents/yolo-architect.md"
 }
 
 @test "architect agent references ARCHITECTURE.md" {
-  grep -q 'ARCHITECTURE.md' "$PROJECT_ROOT/agents/vbw-architect.md"
+  grep -q 'ARCHITECTURE.md' "$PROJECT_ROOT/agents/yolo-architect.md"
 }
 
 @test "architect agent references STACK.md" {
-  grep -q 'STACK.md' "$PROJECT_ROOT/agents/vbw-architect.md"
+  grep -q 'STACK.md' "$PROJECT_ROOT/agents/yolo-architect.md"
 }
 
 # =============================================================================
 # Compiled context: codebase mapping hint in debugger context
 # =============================================================================
 
-# Helper: set up minimal .vbw-planning structure for compile-context.sh
+# Helper: set up minimal .yolo-planning structure for compile-context.sh
 setup_debugger_context() {
-  mkdir -p "$TEST_TEMP_DIR/.vbw-planning/phases/01-test"
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/phases/01-test"
   create_test_config
 
-  cat > "$TEST_TEMP_DIR/.vbw-planning/ROADMAP.md" <<'ROADMAP'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/ROADMAP.md" <<'ROADMAP'
 ## Phases
 
 ## Phase 1: Debug Phase
@@ -146,12 +146,12 @@ setup_debugger_context() {
 **Success:** Placeholder
 ROADMAP
 
-  cat > "$TEST_TEMP_DIR/.vbw-planning/REQUIREMENTS.md" <<'REQS'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/REQUIREMENTS.md" <<'REQS'
 ## Requirements
 - [REQ-01] Widget must render correctly
 REQS
 
-  cat > "$TEST_TEMP_DIR/.vbw-planning/STATE.md" <<'STATE'
+  cat > "$TEST_TEMP_DIR/.yolo-planning/STATE.md" <<'STATE'
 ## Status
 Phase: 1 of 1 (Debug Phase)
 Status: executing
@@ -170,34 +170,34 @@ STATE
   cd "$TEST_TEMP_DIR"
 
   # Create codebase mapping files
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Architecture overview" > .vbw-planning/codebase/ARCHITECTURE.md
-  echo "# Known concerns" > .vbw-planning/codebase/CONCERNS.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Architecture overview" > .yolo-planning/codebase/ARCHITECTURE.md
+  echo "# Known concerns" > .yolo-planning/codebase/CONCERNS.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "Codebase Map" ".vbw-planning/phases/01-test/.context-debugger.md"
+  grep -q "Codebase Map" ".yolo-planning/phases/01-test/.context-debugger.md"
 }
 
 @test "compile-context.sh debugger context lists available mapping files" {
   setup_debugger_context
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
-  echo "# Concerns" > .vbw-planning/codebase/CONCERNS.md
-  echo "# Patterns" > .vbw-planning/codebase/PATTERNS.md
-  echo "# Dependencies" > .vbw-planning/codebase/DEPENDENCIES.md
-  echo "# Structure" > .vbw-planning/codebase/STRUCTURE.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Architecture" > .yolo-planning/codebase/ARCHITECTURE.md
+  echo "# Concerns" > .yolo-planning/codebase/CONCERNS.md
+  echo "# Patterns" > .yolo-planning/codebase/PATTERNS.md
+  echo "# Dependencies" > .yolo-planning/codebase/DEPENDENCIES.md
+  echo "# Structure" > .yolo-planning/codebase/STRUCTURE.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "ARCHITECTURE.md" ".vbw-planning/phases/01-test/.context-debugger.md"
-  grep -q "CONCERNS.md" ".vbw-planning/phases/01-test/.context-debugger.md"
-  grep -q "PATTERNS.md" ".vbw-planning/phases/01-test/.context-debugger.md"
-  grep -q "DEPENDENCIES.md" ".vbw-planning/phases/01-test/.context-debugger.md"
+  grep -q "ARCHITECTURE.md" ".yolo-planning/phases/01-test/.context-debugger.md"
+  grep -q "CONCERNS.md" ".yolo-planning/phases/01-test/.context-debugger.md"
+  grep -q "PATTERNS.md" ".yolo-planning/phases/01-test/.context-debugger.md"
+  grep -q "DEPENDENCIES.md" ".yolo-planning/phases/01-test/.context-debugger.md"
 }
 
 @test "compile-context.sh debugger context omits codebase mapping when no mapping exists" {
@@ -205,10 +205,10 @@ STATE
   cd "$TEST_TEMP_DIR"
 
   # No codebase directory created
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
   # Should NOT contain codebase mapping section
-  run grep "Codebase Map" ".vbw-planning/phases/01-test/.context-debugger.md"
+  run grep "Codebase Map" ".yolo-planning/phases/01-test/.context-debugger.md"
   [ "$status" -eq 1 ]
 }
 
@@ -217,13 +217,13 @@ STATE
   cd "$TEST_TEMP_DIR"
 
   # Create directory but no META.md (incomplete mapping)
-  mkdir -p .vbw-planning/codebase
-  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Architecture" > .yolo-planning/codebase/ARCHITECTURE.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
   # Should NOT contain codebase mapping section without META.md
-  run grep "Codebase Map" ".vbw-planning/phases/01-test/.context-debugger.md"
+  run grep "Codebase Map" ".yolo-planning/phases/01-test/.context-debugger.md"
   [ "$status" -eq 1 ]
 }
 
@@ -236,16 +236,16 @@ STATE
   cd "$TEST_TEMP_DIR"
 
   # Only META.md + ARCHITECTURE.md (no CONCERNS, PATTERNS, DEPENDENCIES)
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Architecture" > .yolo-planning/codebase/ARCHITECTURE.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
   # Should mention ARCHITECTURE.md in guidance
-  grep -q "Read ARCHITECTURE.md first" ".vbw-planning/phases/01-test/.context-debugger.md"
+  grep -q "Read ARCHITECTURE.md first" ".yolo-planning/phases/01-test/.context-debugger.md"
   # Should NOT mention CONCERNS.md in guidance
-  run grep "CONCERNS.md first" ".vbw-planning/phases/01-test/.context-debugger.md"
+  run grep "CONCERNS.md first" ".yolo-planning/phases/01-test/.context-debugger.md"
   [ "$status" -eq 1 ]
 }
 
@@ -253,19 +253,19 @@ STATE
   setup_debugger_context
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
-  echo "# Concerns" > .vbw-planning/codebase/CONCERNS.md
-  echo "# Patterns" > .vbw-planning/codebase/PATTERNS.md
-  echo "# Dependencies" > .vbw-planning/codebase/DEPENDENCIES.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Architecture" > .yolo-planning/codebase/ARCHITECTURE.md
+  echo "# Concerns" > .yolo-planning/codebase/CONCERNS.md
+  echo "# Patterns" > .yolo-planning/codebase/PATTERNS.md
+  echo "# Dependencies" > .yolo-planning/codebase/DEPENDENCIES.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "ARCHITECTURE.md" ".vbw-planning/phases/01-test/.context-debugger.md"
-  grep -q "CONCERNS.md" ".vbw-planning/phases/01-test/.context-debugger.md"
-  grep -q "PATTERNS.md" ".vbw-planning/phases/01-test/.context-debugger.md"
-  grep -q "DEPENDENCIES.md" ".vbw-planning/phases/01-test/.context-debugger.md"
+  grep -q "ARCHITECTURE.md" ".yolo-planning/phases/01-test/.context-debugger.md"
+  grep -q "CONCERNS.md" ".yolo-planning/phases/01-test/.context-debugger.md"
+  grep -q "PATTERNS.md" ".yolo-planning/phases/01-test/.context-debugger.md"
+  grep -q "DEPENDENCIES.md" ".yolo-planning/phases/01-test/.context-debugger.md"
 }
 
 # =============================================================================
@@ -276,33 +276,33 @@ STATE
   setup_debugger_context
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Conventions" > .vbw-planning/codebase/CONVENTIONS.md
-  echo "# Patterns" > .vbw-planning/codebase/PATTERNS.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Conventions" > .yolo-planning/codebase/CONVENTIONS.md
+  echo "# Patterns" > .yolo-planning/codebase/PATTERNS.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "dev" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "dev" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "Codebase Map" ".vbw-planning/phases/01-test/.context-dev.md"
+  grep -q "Codebase Map" ".yolo-planning/phases/01-test/.context-dev.md"
 }
 
 @test "compile-context.sh dev guidance references conventions and patterns" {
   setup_debugger_context
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Conventions" > .vbw-planning/codebase/CONVENTIONS.md
-  echo "# Patterns" > .vbw-planning/codebase/PATTERNS.md
-  echo "# Structure" > .vbw-planning/codebase/STRUCTURE.md
-  echo "# Dependencies" > .vbw-planning/codebase/DEPENDENCIES.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Conventions" > .yolo-planning/codebase/CONVENTIONS.md
+  echo "# Patterns" > .yolo-planning/codebase/PATTERNS.md
+  echo "# Structure" > .yolo-planning/codebase/STRUCTURE.md
+  echo "# Dependencies" > .yolo-planning/codebase/DEPENDENCIES.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "dev" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "dev" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "CONVENTIONS.md" ".vbw-planning/phases/01-test/.context-dev.md"
-  grep -q "PATTERNS.md" ".vbw-planning/phases/01-test/.context-dev.md"
-  grep -q "STRUCTURE.md" ".vbw-planning/phases/01-test/.context-dev.md"
-  grep -q "DEPENDENCIES.md" ".vbw-planning/phases/01-test/.context-dev.md"
+  grep -q "CONVENTIONS.md" ".yolo-planning/phases/01-test/.context-dev.md"
+  grep -q "PATTERNS.md" ".yolo-planning/phases/01-test/.context-dev.md"
+  grep -q "STRUCTURE.md" ".yolo-planning/phases/01-test/.context-dev.md"
+  grep -q "DEPENDENCIES.md" ".yolo-planning/phases/01-test/.context-dev.md"
 }
 
 # =============================================================================
@@ -313,31 +313,31 @@ STATE
   setup_debugger_context
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Testing" > .vbw-planning/codebase/TESTING.md
-  echo "# Concerns" > .vbw-planning/codebase/CONCERNS.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Testing" > .yolo-planning/codebase/TESTING.md
+  echo "# Concerns" > .yolo-planning/codebase/CONCERNS.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "qa" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "qa" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "Codebase Map" ".vbw-planning/phases/01-test/.context-qa.md"
+  grep -q "Codebase Map" ".yolo-planning/phases/01-test/.context-qa.md"
 }
 
 @test "compile-context.sh qa guidance references testing and concerns" {
   setup_debugger_context
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Testing" > .vbw-planning/codebase/TESTING.md
-  echo "# Concerns" > .vbw-planning/codebase/CONCERNS.md
-  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Testing" > .yolo-planning/codebase/TESTING.md
+  echo "# Concerns" > .yolo-planning/codebase/CONCERNS.md
+  echo "# Architecture" > .yolo-planning/codebase/ARCHITECTURE.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "qa" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "qa" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "TESTING.md" ".vbw-planning/phases/01-test/.context-qa.md"
-  grep -q "CONCERNS.md" ".vbw-planning/phases/01-test/.context-qa.md"
-  grep -q "ARCHITECTURE.md" ".vbw-planning/phases/01-test/.context-qa.md"
+  grep -q "TESTING.md" ".yolo-planning/phases/01-test/.context-qa.md"
+  grep -q "CONCERNS.md" ".yolo-planning/phases/01-test/.context-qa.md"
+  grep -q "ARCHITECTURE.md" ".yolo-planning/phases/01-test/.context-qa.md"
 }
 
 # =============================================================================
@@ -348,31 +348,31 @@ STATE
   setup_debugger_context
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
-  echo "# Concerns" > .vbw-planning/codebase/CONCERNS.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Architecture" > .yolo-planning/codebase/ARCHITECTURE.md
+  echo "# Concerns" > .yolo-planning/codebase/CONCERNS.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "lead" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "lead" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "Codebase Map" ".vbw-planning/phases/01-test/.context-lead.md"
+  grep -q "Codebase Map" ".yolo-planning/phases/01-test/.context-lead.md"
 }
 
 @test "compile-context.sh lead guidance references architecture and concerns" {
   setup_debugger_context
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
-  echo "# Concerns" > .vbw-planning/codebase/CONCERNS.md
-  echo "# Structure" > .vbw-planning/codebase/STRUCTURE.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Architecture" > .yolo-planning/codebase/ARCHITECTURE.md
+  echo "# Concerns" > .yolo-planning/codebase/CONCERNS.md
+  echo "# Structure" > .yolo-planning/codebase/STRUCTURE.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "lead" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "lead" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "ARCHITECTURE.md" ".vbw-planning/phases/01-test/.context-lead.md"
-  grep -q "CONCERNS.md" ".vbw-planning/phases/01-test/.context-lead.md"
-  grep -q "STRUCTURE.md" ".vbw-planning/phases/01-test/.context-lead.md"
+  grep -q "ARCHITECTURE.md" ".yolo-planning/phases/01-test/.context-lead.md"
+  grep -q "CONCERNS.md" ".yolo-planning/phases/01-test/.context-lead.md"
+  grep -q "STRUCTURE.md" ".yolo-planning/phases/01-test/.context-lead.md"
 }
 
 # =============================================================================
@@ -383,29 +383,29 @@ STATE
   setup_debugger_context
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
-  echo "# Stack" > .vbw-planning/codebase/STACK.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Architecture" > .yolo-planning/codebase/ARCHITECTURE.md
+  echo "# Stack" > .yolo-planning/codebase/STACK.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "architect" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "architect" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "Codebase Map" ".vbw-planning/phases/01-test/.context-architect.md"
+  grep -q "Codebase Map" ".yolo-planning/phases/01-test/.context-architect.md"
 }
 
 @test "compile-context.sh architect guidance references architecture and stack" {
   setup_debugger_context
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
-  echo "# Stack" > .vbw-planning/codebase/STACK.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Architecture" > .yolo-planning/codebase/ARCHITECTURE.md
+  echo "# Stack" > .yolo-planning/codebase/STACK.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "architect" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "architect" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  grep -q "ARCHITECTURE.md" ".vbw-planning/phases/01-test/.context-architect.md"
-  grep -q "STACK.md" ".vbw-planning/phases/01-test/.context-architect.md"
+  grep -q "ARCHITECTURE.md" ".yolo-planning/phases/01-test/.context-architect.md"
+  grep -q "STACK.md" ".yolo-planning/phases/01-test/.context-architect.md"
 }
 
 @test "compile-context.sh debugger omits map section when META.md exists but no key files" {
@@ -413,13 +413,13 @@ STATE
   cd "$TEST_TEMP_DIR"
 
   # Only META.md, none of the 5 key files
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "debugger" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
   # Should NOT show Codebase Map section when no key files exist
-  run grep "Codebase Map" ".vbw-planning/phases/01-test/.context-debugger.md"
+  run grep "Codebase Map" ".yolo-planning/phases/01-test/.context-debugger.md"
   [ "$status" -eq 1 ]
 }
 
@@ -431,18 +431,18 @@ STATE
   cd "$TEST_TEMP_DIR"
 
   # Set up mapping files
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Architecture v1" > .vbw-planning/codebase/ARCHITECTURE.md
-  echo "# Concerns v1" > .vbw-planning/codebase/CONCERNS.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Architecture v1" > .yolo-planning/codebase/ARCHITECTURE.md
+  echo "# Concerns v1" > .yolo-planning/codebase/CONCERNS.md
 
-  run bash "$SCRIPTS_DIR/cache-context.sh" 01 debugger "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run bash "$SCRIPTS_DIR/cache-context.sh" 01 debugger "$TEST_TEMP_DIR/.yolo-planning/config.json"
   HASH1=$(echo "$output" | cut -d' ' -f2)
 
   # Remove a mapping file
-  rm .vbw-planning/codebase/CONCERNS.md
+  rm .yolo-planning/codebase/CONCERNS.md
 
-  run bash "$SCRIPTS_DIR/cache-context.sh" 01 debugger "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run bash "$SCRIPTS_DIR/cache-context.sh" 01 debugger "$TEST_TEMP_DIR/.yolo-planning/config.json"
   HASH2=$(echo "$output" | cut -d' ' -f2)
 
   [ "$HASH1" != "$HASH2" ]
@@ -451,17 +451,17 @@ STATE
 @test "cache-context.sh non-mapping role hash unaffected by codebase mapping" {
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Architecture" > .yolo-planning/codebase/ARCHITECTURE.md
 
-  run bash "$SCRIPTS_DIR/cache-context.sh" 01 scout "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run bash "$SCRIPTS_DIR/cache-context.sh" 01 scout "$TEST_TEMP_DIR/.yolo-planning/config.json"
   HASH1=$(echo "$output" | cut -d' ' -f2)
 
   # Remove mapping file
-  rm .vbw-planning/codebase/ARCHITECTURE.md
+  rm .yolo-planning/codebase/ARCHITECTURE.md
 
-  run bash "$SCRIPTS_DIR/cache-context.sh" 01 scout "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run bash "$SCRIPTS_DIR/cache-context.sh" 01 scout "$TEST_TEMP_DIR/.yolo-planning/config.json"
   HASH2=$(echo "$output" | cut -d' ' -f2)
 
   # Scout hash should be unchanged — codebase mapping only affects dev/qa/lead/architect/debugger
@@ -471,16 +471,16 @@ STATE
 @test "cache-context.sh dev hash changes when codebase mapping files change" {
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Conventions" > .vbw-planning/codebase/CONVENTIONS.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Conventions" > .yolo-planning/codebase/CONVENTIONS.md
 
-  run bash "$SCRIPTS_DIR/cache-context.sh" 01 dev "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run bash "$SCRIPTS_DIR/cache-context.sh" 01 dev "$TEST_TEMP_DIR/.yolo-planning/config.json"
   HASH1=$(echo "$output" | cut -d' ' -f2)
 
-  rm .vbw-planning/codebase/CONVENTIONS.md
+  rm .yolo-planning/codebase/CONVENTIONS.md
 
-  run bash "$SCRIPTS_DIR/cache-context.sh" 01 dev "$TEST_TEMP_DIR/.vbw-planning/config.json"
+  run bash "$SCRIPTS_DIR/cache-context.sh" 01 dev "$TEST_TEMP_DIR/.yolo-planning/config.json"
   HASH2=$(echo "$output" | cut -d' ' -f2)
 
   [ "$HASH1" != "$HASH2" ]
@@ -492,19 +492,19 @@ STATE
 
 @test "debug.md Path B prompt includes codebase bootstrap instruction" {
   # The Path B prompt template block must include codebase bootstrap
-  grep -A20 'Path B.*Standard' "$PROJECT_ROOT/commands/debug.md" | grep -q '.vbw-planning/codebase/'
+  grep -A20 'Path B.*Standard' "$PROJECT_ROOT/commands/debug.md" | grep -q '.yolo-planning/codebase/'
 }
 
-@test "debug.md Path B prompt mentions .vbw-planning/codebase/" {
+@test "debug.md Path B prompt mentions .yolo-planning/codebase/" {
   # The prompt template must tell the debugger to check for codebase mapping
-  grep -q '.vbw-planning/codebase/' "$PROJECT_ROOT/commands/debug.md"
+  grep -q '.yolo-planning/codebase/' "$PROJECT_ROOT/commands/debug.md"
 }
 
 @test "debug.md Path A task prompt includes codebase bootstrap instruction" {
   # Path A creates 3 tasks — each task prompt should mention codebase bootstrap
-  grep -q '.vbw-planning/codebase/' "$PROJECT_ROOT/commands/debug.md"
+  grep -q '.yolo-planning/codebase/' "$PROJECT_ROOT/commands/debug.md"
   # Both Path A and Path B sections should reference it
-  grep -A20 'Create.*tasks via TaskCreate' "$PROJECT_ROOT/commands/debug.md" | grep -q '.vbw-planning/codebase/'
+  grep -A20 'Create.*tasks via TaskCreate' "$PROJECT_ROOT/commands/debug.md" | grep -q '.yolo-planning/codebase/'
 }
 
 # =============================================================================
@@ -515,14 +515,14 @@ STATE
   setup_debugger_context
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
-  echo "# Concerns" > .vbw-planning/codebase/CONCERNS.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Architecture" > .yolo-planning/codebase/ARCHITECTURE.md
+  echo "# Concerns" > .yolo-planning/codebase/CONCERNS.md
 
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "scout" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "scout" ".yolo-planning/phases"
   [ "$status" -eq 0 ]
-  run grep "Codebase Map" ".vbw-planning/phases/01-test/.context-scout.md"
+  run grep "Codebase Map" ".yolo-planning/phases/01-test/.context-scout.md"
   [ "$status" -eq 1 ]
 }
 
@@ -534,13 +534,13 @@ STATE
   setup_debugger_context
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Architecture" > .yolo-planning/codebase/ARCHITECTURE.md
 
   for role in dev qa lead architect debugger scout; do
-    run bash "$SCRIPTS_DIR/compile-context.sh" "01" "$role" ".vbw-planning/phases"
+    run bash "$SCRIPTS_DIR/compile-context.sh" "01" "$role" ".yolo-planning/phases"
     [ "$status" -eq 0 ]
-    run grep "Codebase Map" ".vbw-planning/phases/01-test/.context-${role}.md"
+    run grep "Codebase Map" ".yolo-planning/phases/01-test/.context-${role}.md"
     [ "$status" -eq 1 ]
   done
 }
@@ -550,7 +550,7 @@ STATE
 # =============================================================================
 
 @test "fix.md spawn prompt includes codebase bootstrap instruction" {
-  grep -q '.vbw-planning/codebase/' "$PROJECT_ROOT/commands/fix.md"
+  grep -q '.yolo-planning/codebase/' "$PROJECT_ROOT/commands/fix.md"
 }
 
 @test "fix.md spawn prompt mentions CONVENTIONS.md or PATTERNS.md" {
@@ -562,20 +562,20 @@ STATE
 }
 
 # =============================================================================
-# vbw-dev.md: codebase bootstrap is standalone, not nested in Execution Protocol (#96)
+# yolo-dev.md: codebase bootstrap is standalone, not nested in Execution Protocol (#96)
 # =============================================================================
 
 @test "dev agent has standalone Codebase Bootstrap section" {
   # Codebase Bootstrap should be a top-level ## section, not ### inside Execution Protocol
-  grep -q '^## Codebase Bootstrap' "$PROJECT_ROOT/agents/vbw-dev.md"
+  grep -q '^## Codebase Bootstrap' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
 
 @test "dev agent codebase bootstrap qualifies files with existence check" {
-  grep -q 'whichever.*exist\|Skip any' "$PROJECT_ROOT/agents/vbw-dev.md"
+  grep -q 'whichever.*exist\|Skip any' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
 
 @test "dev agent codebase bootstrap mentions compaction re-read" {
-  grep -q 'compaction.*re-read\|re-read.*compaction' "$PROJECT_ROOT/agents/vbw-dev.md"
+  grep -q 'compaction.*re-read\|re-read.*compaction' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
 
 # =============================================================================
@@ -592,7 +592,7 @@ STATE
 # =============================================================================
 
 @test "execute-protocol.md dev spawn prompt includes codebase bootstrap" {
-  grep -q '.vbw-planning/codebase/' "$PROJECT_ROOT/references/execute-protocol.md"
+  grep -q '.yolo-planning/codebase/' "$PROJECT_ROOT/references/execute-protocol.md"
 }
 
 @test "execute-protocol.md dev spawn prompt gates on META.md" {
@@ -665,19 +665,19 @@ STATE
 # =============================================================================
 
 @test "debugger agent bootstrap qualifies files with existence check" {
-  grep -qE 'whichever.*exist|Skip any' "$PROJECT_ROOT/agents/vbw-debugger.md"
+  grep -qE 'whichever.*exist|Skip any' "$PROJECT_ROOT/agents/yolo-debugger.md"
 }
 
 @test "qa agent bootstrap qualifies files with existence check" {
-  grep -qE 'whichever.*exist|Skip any' "$PROJECT_ROOT/agents/vbw-qa.md"
+  grep -qE 'whichever.*exist|Skip any' "$PROJECT_ROOT/agents/yolo-qa.md"
 }
 
 @test "lead agent bootstrap qualifies files with existence check" {
-  grep -qE 'whichever.*exist|Skip any' "$PROJECT_ROOT/agents/vbw-lead.md"
+  grep -qE 'whichever.*exist|Skip any' "$PROJECT_ROOT/agents/yolo-lead.md"
 }
 
 @test "architect agent bootstrap qualifies files with existence check" {
-  grep -qE 'whichever.*exist|Skip any' "$PROJECT_ROOT/agents/vbw-architect.md"
+  grep -qE 'whichever.*exist|Skip any' "$PROJECT_ROOT/agents/yolo-architect.md"
 }
 
 # =============================================================================
@@ -693,7 +693,7 @@ STATE
 }
 
 @test "compaction-instructions.sh docs agent does NOT include codebase mapping" {
-  echo '{"agent_name":"vbw-docs","matcher":"auto"}' | \
+  echo '{"agent_name":"yolo-docs","matcher":"auto"}' | \
     bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
   ! grep -q 'codebase' "$TEST_TEMP_DIR/compaction-output.json"
 }
@@ -702,43 +702,43 @@ STATE
 # compaction-instructions.sh: output uses full META.md path and "whichever exist" (#96 QA round 4)
 # =============================================================================
 
-@test "compaction-instructions.sh dev output uses full .vbw-planning/codebase/META.md path" {
-  echo '{"agent_name":"vbw-dev","matcher":"auto"}' | \
+@test "compaction-instructions.sh dev output uses full .yolo-planning/codebase/META.md path" {
+  echo '{"agent_name":"yolo-dev","matcher":"auto"}' | \
     bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
-  grep -q '.vbw-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q '.yolo-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
 }
 
 @test "compaction-instructions.sh dev output includes whichever exist qualifier" {
-  echo '{"agent_name":"vbw-dev","matcher":"auto"}' | \
+  echo '{"agent_name":"yolo-dev","matcher":"auto"}' | \
     bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
   grep -q 'whichever exist' "$TEST_TEMP_DIR/compaction-output.json"
 }
 
 @test "compaction-instructions.sh qa output uses full META.md path and whichever exist" {
-  echo '{"agent_name":"vbw-qa","matcher":"auto"}' | \
+  echo '{"agent_name":"yolo-qa","matcher":"auto"}' | \
     bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
-  grep -q '.vbw-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q '.yolo-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
   grep -q 'whichever exist' "$TEST_TEMP_DIR/compaction-output.json"
 }
 
 @test "compaction-instructions.sh debugger output uses full META.md path and whichever exist" {
-  echo '{"agent_name":"vbw-debugger","matcher":"auto"}' | \
+  echo '{"agent_name":"yolo-debugger","matcher":"auto"}' | \
     bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
-  grep -q '.vbw-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q '.yolo-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
   grep -q 'whichever exist' "$TEST_TEMP_DIR/compaction-output.json"
 }
 
 @test "compaction-instructions.sh lead output uses full META.md path and whichever exist" {
-  echo '{"agent_name":"vbw-lead","matcher":"auto"}' | \
+  echo '{"agent_name":"yolo-lead","matcher":"auto"}' | \
     bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
-  grep -q '.vbw-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q '.yolo-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
   grep -q 'whichever exist' "$TEST_TEMP_DIR/compaction-output.json"
 }
 
 @test "compaction-instructions.sh architect output uses full META.md path and whichever exist" {
-  echo '{"agent_name":"vbw-architect","matcher":"auto"}' | \
+  echo '{"agent_name":"yolo-architect","matcher":"auto"}' | \
     bash "$PROJECT_ROOT/scripts/compaction-instructions.sh" > "$TEST_TEMP_DIR/compaction-output.json"
-  grep -q '.vbw-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
+  grep -q '.yolo-planning/codebase/META.md' "$TEST_TEMP_DIR/compaction-output.json"
   grep -q 'whichever exist' "$TEST_TEMP_DIR/compaction-output.json"
 }
 
@@ -751,15 +751,15 @@ STATE
 }
 
 @test "vibe.md does not gate codebase reads on bare directory existence" {
-  # Every line referencing .vbw-planning/codebase/ should also mention META.md
+  # Every line referencing .yolo-planning/codebase/ should also mention META.md
   while IFS= read -r line; do
     echo "$line" | grep -q 'META.md' || {
-      # Allow "from .vbw-planning/codebase/" (trailing path in read instructions)
-      echo "$line" | grep -q 'from.*\.vbw-planning/codebase/' && continue
+      # Allow "from .yolo-planning/codebase/" (trailing path in read instructions)
+      echo "$line" | grep -q 'from.*\.yolo-planning/codebase/' && continue
       echo "FAIL: line missing META.md gate: $line"
       return 1
     }
-  done < <(grep '.vbw-planning/codebase/' "$PROJECT_ROOT/commands/vibe.md")
+  done < <(grep '.yolo-planning/codebase/' "$PROJECT_ROOT/commands/vibe.md")
 }
 
 # =============================================================================
@@ -770,12 +770,12 @@ STATE
   setup_debugger_context
   cd "$TEST_TEMP_DIR"
 
-  mkdir -p .vbw-planning/codebase
-  echo "# Meta" > .vbw-planning/codebase/META.md
-  echo "# Architecture" > .vbw-planning/codebase/ARCHITECTURE.md
-  echo "# Concerns" > .vbw-planning/codebase/CONCERNS.md
+  mkdir -p .yolo-planning/codebase
+  echo "# Meta" > .yolo-planning/codebase/META.md
+  echo "# Architecture" > .yolo-planning/codebase/ARCHITECTURE.md
+  echo "# Concerns" > .yolo-planning/codebase/CONCERNS.md
 
   # docs is not a valid compile-context.sh role — it should exit non-zero
-  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "docs" ".vbw-planning/phases"
+  run bash "$SCRIPTS_DIR/compile-context.sh" "01" "docs" ".yolo-planning/phases"
   [ "$status" -ne 0 ]
 }

@@ -1,4 +1,4 @@
-# VBW shellcheck configuration
+# YOLO shellcheck configuration
 # Info-level suppressions for patterns used intentionally across scripts
 
 # ls usage is intentional for version sorting (ls | sort -V | tail -1)

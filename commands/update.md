@@ -1,17 +1,17 @@
 ---
-name: vbw:update
+name: yolo:update
 category: advanced
 disable-model-invocation: true
-description: Update VBW to the latest version with automatic cache refresh.
+description: Update YOLO to the latest version with automatic cache refresh.
 argument-hint: "[--check]"
 allowed-tools: Read, Bash, Glob
 ---
 
-# VBW Update $ARGUMENTS
+# YOLO Update $ARGUMENTS
 
 ## Context
 
-Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/vbw-marketplace/vbw/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
+Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
 
 **Resolve config directory:** `CLAUDE_DIR` = env var `CLAUDE_CONFIG_DIR` if set, otherwise `~/.claude`. Use for all config paths below.
 
@@ -21,7 +21,7 @@ Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/
 
 Read the **cached** version (what user actually has installed):
 ```bash
-cat "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/vbw-marketplace/vbw/*/VERSION 2>/dev/null | sort -V | tail -1
+cat "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/*/VERSION 2>/dev/null | sort -V | tail -1
 ```
 Store as `old_version`. If empty, fall back to `${CLAUDE_PLUGIN_ROOT}/VERSION`.
 
@@ -34,7 +34,7 @@ If `--check`: display version banner with installed version and STOP.
 ### Step 3: Check for update
 
 ```bash
-curl -sf --max-time 5 "https://raw.githubusercontent.com/yidakee/vibe-better-with-claude-code-vbw/main/VERSION"
+curl -sf --max-time 5 "https://raw.githubusercontent.com/yidakee/vibe-better-with-claude-code-yolo/main/VERSION"
 ```
 Store as `remote_version`. Curl fails → STOP: "⚠ Could not reach GitHub to check for updates."
 If remote == old: display "✓ Already at latest (v{old_version}). Refreshing cache..." Continue to Step 4 for clean cache refresh.
@@ -44,51 +44,51 @@ If remote == old: display "✓ Already at latest (v{old_version}). Refreshing ca
 ```bash
 bash ${CLAUDE_PLUGIN_ROOT}/scripts/cache-nuke.sh
 ```
-Removes CLAUDE_DIR/plugins/cache/vbw-marketplace/vbw/, CLAUDE_DIR/commands/vbw/, /tmp/vbw-* for pristine update.
+Removes CLAUDE_DIR/plugins/cache/yolo-marketplace/yolo/, CLAUDE_DIR/commands/yolo/, /tmp/yolo-* for pristine update.
 
 ### Step 5: Perform update
 
-Same version: "Refreshing VBW v{old_version} cache..." Different: "Updating VBW v{old_version}..."
+Same version: "Refreshing YOLO v{old_version} cache..." Different: "Updating YOLO v{old_version}..."
 
 **CRITICAL: All `claude plugin` commands MUST be prefixed with `unset CLAUDECODE &&`** — without this, Claude Code detects the parent session's env var and blocks with "cannot be launched inside another Claude Code session."
 
 **Refresh marketplace FIRST** (stale checkout → plugin update re-caches old code):
 ```bash
-unset CLAUDECODE && claude plugin marketplace update vbw-marketplace 2>&1
+unset CLAUDECODE && claude plugin marketplace update yolo-marketplace 2>&1
 ```
 If fails: "⚠ Marketplace refresh failed — trying update anyway..."
 
 Try in order (stop at first success):
-- **A) Platform update:** `unset CLAUDECODE && claude plugin update vbw@vbw-marketplace 2>&1`
-- **B) Reinstall:** `unset CLAUDECODE && claude plugin uninstall vbw@vbw-marketplace 2>&1 && unset CLAUDECODE && claude plugin install vbw@vbw-marketplace 2>&1`
+- **A) Platform update:** `unset CLAUDECODE && claude plugin update yolo@yolo-marketplace 2>&1`
+- **B) Reinstall:** `unset CLAUDECODE && claude plugin uninstall yolo@yolo-marketplace 2>&1 && unset CLAUDECODE && claude plugin install yolo@yolo-marketplace 2>&1`
 - **C) Manual fallback:** display commands for user to run manually, STOP.
 
 **Clean stale global commands** (after A or B succeeds):
 ```bash
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
-rm -rf "$CLAUDE_DIR/commands/vbw" 2>/dev/null
+rm -rf "$CLAUDE_DIR/commands/yolo" 2>/dev/null
 ```
 This removes stale copies that break `${CLAUDE_PLUGIN_ROOT}` resolution. Commands load from the plugin cache where `${CLAUDE_PLUGIN_ROOT}` is guaranteed.
 
-### Step 5.5: Ensure VBW statusline
+### Step 5.5: Ensure YOLO statusline
 
-Read `CLAUDE_DIR/settings.json`, check `statusLine` (string or object .command). If contains `vbw-statusline`: skip. Otherwise update to:
+Read `CLAUDE_DIR/settings.json`, check `statusLine` (string or object .command). If contains `yolo-statusline`: skip. Otherwise update to:
 ```json
-{"type": "command", "command": "bash -c 'f=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/vbw-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"$f\" ] && exec bash \"$f\"'"}
+{"type": "command", "command": "bash -c 'f=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/yolo-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"$f\" ] && exec bash \"$f\"'"}
 ```
 Use jq to write (backup, update, restore on failure). Display `✓ Statusline restored (restart to activate)` if changed.
 
 ### Step 6: Verify update
 
 ```bash
-NEW_CACHED=$(cat "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/vbw-marketplace/vbw/*/VERSION 2>/dev/null | sort -V | tail -1)
+NEW_CACHED=$(cat "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/*/VERSION 2>/dev/null | sort -V | tail -1)
 ```
-Use NEW_CACHED as authoritative version. If empty or equals old_version when it shouldn't: "⚠ Update may not have applied. Try /vbw:update again after restart."
+Use NEW_CACHED as authoritative version. If empty or equals old_version when it shouldn't: "⚠ Update may not have applied. Try /yolo:update again after restart."
 
 ### Step 7: Display result
 
-Use NEW_CACHED for all display. Same version = "VBW Cache Refreshed" banner. Different = "VBW Updated" banner with old→new + "Restart Claude Code" + "/vbw:whats-new" suggestion.
+Use NEW_CACHED for all display. Same version = "YOLO Cache Refreshed" banner. Different = "YOLO Updated" banner with old→new + "Restart Claude Code" + "/yolo:whats-new" suggestion.
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — double-line box, ✓ success, ⚠ fallback warning, Next Up, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — double-line box, ✓ success, ⚠ fallback warning, Next Up, no ANSI.

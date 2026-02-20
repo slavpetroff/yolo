@@ -1,14 +1,14 @@
 #!/bin/bash
 set -u
-# SessionStart: VBW project state detection, update checks, cache maintenance (exit 0)
+# SessionStart: YOLO project state detection, update checks, cache maintenance (exit 0)
 
 # --- Dependency check ---
 if ! command -v jq &>/dev/null; then
-  echo '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"VBW: jq not found. Install: brew install jq (macOS) / apt install jq (Linux). All 17 VBW quality gates are disabled until jq is installed -- no commit validation, no security filtering, no file guarding."}}'
+  echo '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"YOLO: jq not found. Install: brew install jq (macOS) / apt install jq (Linux). All 17 YOLO quality gates are disabled until jq is installed -- no commit validation, no security filtering, no file guarding."}}'
   exit 0
 fi
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 # shellcheck source=resolve-claude-dir.sh
 . "$(dirname "$0")/resolve-claude-dir.sh"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -33,7 +33,7 @@ if [ -f "$PLANNING_DIR/.compaction-marker" ]; then
   rm -f "$PLANNING_DIR/.compaction-marker" 2>/dev/null
 fi
 
-# Auto-migrate config if .vbw-planning exists.
+# Auto-migrate config if .yolo-planning exists.
 # Version marker retained here for backwards test compatibility.
 EXPECTED_FLAG_COUNT=23
 if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ]; then
@@ -43,7 +43,7 @@ if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ]; then
 fi
 
 # --- Migrate .claude/CLAUDE.md to root CLAUDE.md (one-time, #20) ---
-# Old VBW versions wrote a duplicate isolation guard to .claude/CLAUDE.md.
+# Old YOLO versions wrote a duplicate isolation guard to .claude/CLAUDE.md.
 # Consolidate to root CLAUDE.md only. Three scenarios:
 #   A) .claude/CLAUDE.md only (no root) → mv to root
 #   B) Both exist → root already has isolation via bootstrap, delete guard
@@ -108,36 +108,36 @@ fi
 # --- Session-level config cache (performance optimization, REQ-01 #9) ---
 # Write commonly-read config flags to a flat file for fast sourcing.
 # Invalidation: overwritten every session start. Scripts can opt-in:
-#   [ -f /tmp/vbw-config-cache-$(id -u) ] && source /tmp/vbw-config-cache-$(id -u)
-VBW_CONFIG_CACHE="/tmp/vbw-config-cache-$(id -u)"
+#   [ -f /tmp/yolo-config-cache-$(id -u) ] && source /tmp/yolo-config-cache-$(id -u)
+YOLO_CONFIG_CACHE="/tmp/yolo-config-cache-$(id -u)"
 if [ -d "$PLANNING_DIR" ] && [ -f "$PLANNING_DIR/config.json" ] && command -v jq &>/dev/null; then
   jq -r '
-    "VBW_EFFORT=\(.effort // "balanced")",
-    "VBW_AUTONOMY=\(.autonomy // "standard")",
-    "VBW_PLANNING_TRACKING=\(.planning_tracking // "manual")",
-    "VBW_AUTO_PUSH=\(.auto_push // "never")",
-    "VBW_CONTEXT_COMPILER=\(if .context_compiler == null then true else .context_compiler end)",
-    "VBW_V3_DELTA_CONTEXT=\(.v3_delta_context // false)",
-    "VBW_V3_CONTEXT_CACHE=\(.v3_context_cache // false)",
-    "VBW_V3_PLAN_RESEARCH_PERSIST=\(.v3_plan_research_persist // false)",
-    "VBW_V3_METRICS=\(.v3_metrics // false)",
-    "VBW_V3_CONTRACT_LITE=\(.v3_contract_lite // false)",
-    "VBW_V3_LOCK_LITE=\(.v3_lock_lite // false)",
-    "VBW_V3_VALIDATION_GATES=\(.v3_validation_gates // false)",
-    "VBW_V3_SMART_ROUTING=\(.v3_smart_routing // false)",
-    "VBW_V3_EVENT_LOG=\(.v3_event_log // false)",
-    "VBW_V3_SCHEMA_VALIDATION=\(.v3_schema_validation // false)",
-    "VBW_V3_SNAPSHOT_RESUME=\(.v3_snapshot_resume // false)",
-    "VBW_V3_LEASE_LOCKS=\(.v3_lease_locks // false)",
-    "VBW_V3_EVENT_RECOVERY=\(.v3_event_recovery // false)",
-    "VBW_V3_MONOREPO_ROUTING=\(.v3_monorepo_routing // false)",
-    "VBW_V2_HARD_CONTRACTS=\(.v2_hard_contracts // false)",
-    "VBW_V2_HARD_GATES=\(.v2_hard_gates // false)",
-    "VBW_V2_TYPED_PROTOCOL=\(.v2_typed_protocol // false)",
-    "VBW_V2_ROLE_ISOLATION=\(.v2_role_isolation // false)",
-    "VBW_V2_TWO_PHASE_COMPLETION=\(.v2_two_phase_completion // false)",
-    "VBW_V2_TOKEN_BUDGETS=\(.v2_token_budgets // false)"
-  ' "$PLANNING_DIR/config.json" > "$VBW_CONFIG_CACHE" 2>/dev/null || true
+    "YOLO_EFFORT=\(.effort // "balanced")",
+    "YOLO_AUTONOMY=\(.autonomy // "standard")",
+    "YOLO_PLANNING_TRACKING=\(.planning_tracking // "manual")",
+    "YOLO_AUTO_PUSH=\(.auto_push // "never")",
+    "YOLO_CONTEXT_COMPILER=\(if .context_compiler == null then true else .context_compiler end)",
+    "YOLO_V3_DELTA_CONTEXT=\(.v3_delta_context // false)",
+    "YOLO_V3_CONTEXT_CACHE=\(.v3_context_cache // false)",
+    "YOLO_V3_PLAN_RESEARCH_PERSIST=\(.v3_plan_research_persist // false)",
+    "YOLO_V3_METRICS=\(.v3_metrics // false)",
+    "YOLO_V3_CONTRACT_LITE=\(.v3_contract_lite // false)",
+    "YOLO_V3_LOCK_LITE=\(.v3_lock_lite // false)",
+    "YOLO_V3_VALIDATION_GATES=\(.v3_validation_gates // false)",
+    "YOLO_V3_SMART_ROUTING=\(.v3_smart_routing // false)",
+    "YOLO_V3_EVENT_LOG=\(.v3_event_log // false)",
+    "YOLO_V3_SCHEMA_VALIDATION=\(.v3_schema_validation // false)",
+    "YOLO_V3_SNAPSHOT_RESUME=\(.v3_snapshot_resume // false)",
+    "YOLO_V3_LEASE_LOCKS=\(.v3_lease_locks // false)",
+    "YOLO_V3_EVENT_RECOVERY=\(.v3_event_recovery // false)",
+    "YOLO_V3_MONOREPO_ROUTING=\(.v3_monorepo_routing // false)",
+    "YOLO_V2_HARD_CONTRACTS=\(.v2_hard_contracts // false)",
+    "YOLO_V2_HARD_GATES=\(.v2_hard_gates // false)",
+    "YOLO_V2_TYPED_PROTOCOL=\(.v2_typed_protocol // false)",
+    "YOLO_V2_ROLE_ISOLATION=\(.v2_role_isolation // false)",
+    "YOLO_V2_TWO_PHASE_COMPLETION=\(.v2_two_phase_completion // false)",
+    "YOLO_V2_TOKEN_BUDGETS=\(.v2_token_budgets // false)"
+  ' "$PLANNING_DIR/config.json" > "$YOLO_CONFIG_CACHE" 2>/dev/null || true
 fi
 
 # --- Flag dependency validation (REQ-01) ---
@@ -165,17 +165,17 @@ fi
 UPDATE_MSG=""
 
 # --- First-run welcome (DXP-03) ---
-VBW_MARKER="$CLAUDE_DIR/.vbw-welcomed"
+YOLO_MARKER="$CLAUDE_DIR/.yolo-welcomed"
 WELCOME_MSG=""
-if [ ! -f "$VBW_MARKER" ]; then
+if [ ! -f "$YOLO_MARKER" ]; then
   mkdir -p "$CLAUDE_DIR" 2>/dev/null
-  touch "$VBW_MARKER" 2>/dev/null
-  WELCOME_MSG="FIRST RUN -- Display this welcome to the user verbatim: Welcome to VBW -- Vibe Better with Claude Code. You're not an engineer anymore. You're a prompt jockey with commit access. At least do it properly. Quick start: /vbw:vibe -- describe your project and VBW handles the rest. Type /vbw:help for the full story. --- "
+  touch "$YOLO_MARKER" 2>/dev/null
+  WELCOME_MSG="FIRST RUN -- Display this welcome to the user verbatim: Welcome to YOLO -- Vibe Better with Claude Code. You're not an engineer anymore. You're a prompt jockey with commit access. At least do it properly. Quick start: /yolo:vibe -- describe your project and YOLO handles the rest. Type /yolo:help for the full story. --- "
 fi
 
 # --- Update check (once per day, fail-silent) ---
 
-CACHE="/tmp/vbw-update-check-$(id -u)"
+CACHE="/tmp/yolo-update-check-$(id -u)"
 NOW=$(date +%s)
 if [ "$(uname)" = "Darwin" ]; then
   MT=$(stat -f %m "$CACHE" 2>/dev/null || echo 0)
@@ -189,21 +189,21 @@ if [ ! -f "$CACHE" ] || [ $((NOW - MT)) -gt 86400 ]; then
 
   # Fetch latest version from GitHub (3s timeout)
   REMOTE_VER=$(curl -sf --max-time 3 \
-    "https://raw.githubusercontent.com/yidakee/vibe-better-with-claude-code-vbw/main/.claude-plugin/plugin.json" \
+    "https://raw.githubusercontent.com/yidakee/vibe-better-with-claude-code-yolo/main/.claude-plugin/plugin.json" \
     2>/dev/null | jq -r '.version // "0.0.0"' 2>/dev/null)
 
   # Cache the result regardless
   echo "${LOCAL_VER:-0.0.0}|${REMOTE_VER:-0.0.0}" > "$CACHE" 2>/dev/null
 
   if [ -n "$REMOTE_VER" ] && [ "$REMOTE_VER" != "0.0.0" ] && [ "$REMOTE_VER" != "$LOCAL_VER" ]; then
-    UPDATE_MSG=" UPDATE AVAILABLE: v${LOCAL_VER} -> v${REMOTE_VER}. Run /vbw:update to upgrade."
+    UPDATE_MSG=" UPDATE AVAILABLE: v${LOCAL_VER} -> v${REMOTE_VER}. Run /yolo:update to upgrade."
   fi
 else
   # Read cached result
   LOCAL_VER="" REMOTE_VER=""
   IFS='|' read -r LOCAL_VER REMOTE_VER < "$CACHE" 2>/dev/null || true
   if [ -n "${REMOTE_VER:-}" ] && [ "${REMOTE_VER:-}" != "0.0.0" ] && [ "${REMOTE_VER:-}" != "${LOCAL_VER:-}" ]; then
-    UPDATE_MSG=" UPDATE AVAILABLE: v${LOCAL_VER:-0.0.0} -> v${REMOTE_VER:-0.0.0}. Run /vbw:update to upgrade."
+    UPDATE_MSG=" UPDATE AVAILABLE: v${LOCAL_VER:-0.0.0} -> v${REMOTE_VER:-0.0.0}. Run /yolo:update to upgrade."
   fi
 fi
 
@@ -211,8 +211,8 @@ fi
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 if [ -f "$SETTINGS_FILE" ]; then
   SL_CMD=$(jq -r '.statusLine.command // .statusLine // ""' "$SETTINGS_FILE" 2>/dev/null)
-  if echo "$SL_CMD" | grep -q 'for f in' && echo "$SL_CMD" | grep -q 'vbw-statusline'; then
-    CORRECT_CMD="bash -c 'f=\$(ls -1 \"\${CLAUDE_CONFIG_DIR:-\$HOME/.claude}\"/plugins/cache/vbw-marketplace/vbw/*/scripts/vbw-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"\$f\" ] && exec bash \"\$f\"'"
+  if echo "$SL_CMD" | grep -q 'for f in' && echo "$SL_CMD" | grep -q 'yolo-statusline'; then
+    CORRECT_CMD="bash -c 'f=\$(ls -1 \"\${CLAUDE_CONFIG_DIR:-\$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/yolo-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"\$f\" ] && exec bash \"\$f\"'"
     cp "$SETTINGS_FILE" "${SETTINGS_FILE}.bak"
     if ! jq --arg cmd "$CORRECT_CMD" '.statusLine = {"type": "command", "command": $cmd}' "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp"; then
       cp "${SETTINGS_FILE}.bak" "$SETTINGS_FILE"
@@ -246,15 +246,15 @@ if [ -f "$SETTINGS_FILE" ]; then
 fi
 
 # --- Clean old cache versions (keep only latest) ---
-CACHE_DIR="$CLAUDE_DIR/plugins/cache/vbw-marketplace/vbw"
-VBW_CLEANUP_LOCK="/tmp/vbw-cache-cleanup-lock"
-if [ -d "$CACHE_DIR" ] && mkdir "$VBW_CLEANUP_LOCK" 2>/dev/null; then
+CACHE_DIR="$CLAUDE_DIR/plugins/cache/yolo-marketplace/yolo"
+YOLO_CLEANUP_LOCK="/tmp/yolo-cache-cleanup-lock"
+if [ -d "$CACHE_DIR" ] && mkdir "$YOLO_CLEANUP_LOCK" 2>/dev/null; then
   VERSIONS=$(ls -d "$CACHE_DIR"/*/ 2>/dev/null | sort -V)
   COUNT=$(echo "$VERSIONS" | wc -l | tr -d ' ')
   if [ "$COUNT" -gt 1 ]; then
     echo "$VERSIONS" | head -n $((COUNT - 1)) | while IFS= read -r dir; do rm -rf "$dir"; done
   fi
-  rmdir "$VBW_CLEANUP_LOCK" 2>/dev/null
+  rmdir "$YOLO_CLEANUP_LOCK" 2>/dev/null
 fi
 
 # --- Cache integrity check (nuke if critical files missing) ---
@@ -269,14 +269,14 @@ if [ -d "$CACHE_DIR" ]; then
       fi
     done
     if [ "$INTEGRITY_OK" = false ]; then
-      echo "VBW cache integrity check failed — nuking stale cache" >&2
+      echo "YOLO cache integrity check failed — nuking stale cache" >&2
       rm -rf "$CACHE_DIR"
     fi
   fi
 fi
 
 # --- Auto-sync stale marketplace checkout ---
-MKT_DIR="$CLAUDE_DIR/plugins/marketplaces/vbw-marketplace"
+MKT_DIR="$CLAUDE_DIR/plugins/marketplaces/yolo-marketplace"
 if [ -d "$MKT_DIR/.git" ] && [ -d "$CACHE_DIR" ]; then
   MKT_VER=$(jq -r '.version // "0"' "$MKT_DIR/.claude-plugin/plugin.json" 2>/dev/null)
   CACHE_VER=$(jq -r '.version // "0"' "$(ls -d "$CACHE_DIR"/*/.claude-plugin/plugin.json 2>/dev/null | sort -V | tail -1)" 2>/dev/null)
@@ -285,7 +285,7 @@ if [ -d "$MKT_DIR/.git" ] && [ -d "$CACHE_DIR" ]; then
       if git diff --quiet 2>/dev/null; then
         git merge --ff-only origin/main --quiet 2>/dev/null
       else
-        echo "VBW: marketplace checkout has local modifications — skipping reset" >&2
+        echo "YOLO: marketplace checkout has local modifications — skipping reset" >&2
       fi) &
   fi
   # Content staleness: compare command counts
@@ -298,27 +298,27 @@ if [ -d "$MKT_DIR/.git" ] && [ -d "$CACHE_DIR" ]; then
       # shellcheck disable=SC2010
       CACHE_CMD_COUNT=$(ls -1 "${LATEST_VER}commands/" 2>/dev/null | grep '\.md$' | wc -l | tr -d ' ')
       if [ "${MKT_CMD_COUNT:-0}" -ne "${CACHE_CMD_COUNT:-0}" ]; then
-        echo "VBW cache stale — marketplace has ${MKT_CMD_COUNT} commands, cache has ${CACHE_CMD_COUNT}" >&2
+        echo "YOLO cache stale — marketplace has ${MKT_CMD_COUNT} commands, cache has ${CACHE_CMD_COUNT}" >&2
         rm -rf "$CACHE_DIR"
       fi
     fi
   fi
 fi
 
-# --- Sync global commands mirror for vbw: prefix in autocomplete ---
-VBW_GLOBAL_CMD="$CLAUDE_DIR/commands/vbw"
+# --- Sync global commands mirror for yolo: prefix in autocomplete ---
+YOLO_GLOBAL_CMD="$CLAUDE_DIR/commands/yolo"
 CACHED_VER=$(ls -d "$CACHE_DIR"/*/ 2>/dev/null | sort -V | tail -1)
 if [ -n "$CACHED_VER" ] && [ -d "${CACHED_VER}commands" ]; then
-  mkdir -p "$VBW_GLOBAL_CMD"
+  mkdir -p "$YOLO_GLOBAL_CMD"
   # Remove stale commands not in cache, then copy fresh
-  if [ -d "$VBW_GLOBAL_CMD" ]; then
-    for f in "$VBW_GLOBAL_CMD"/*.md; do
+  if [ -d "$YOLO_GLOBAL_CMD" ]; then
+    for f in "$YOLO_GLOBAL_CMD"/*.md; do
       [ -f "$f" ] || continue
       base=$(basename "$f")
       [ -f "${CACHED_VER}commands/$base" ] || rm -f "$f"
     done
   fi
-  cp "${CACHED_VER}commands/"*.md "$VBW_GLOBAL_CMD/" 2>/dev/null
+  cp "${CACHED_VER}commands/"*.md "$YOLO_GLOBAL_CMD/" 2>/dev/null
 fi
 
 # --- Auto-install git hooks if missing ---
@@ -475,7 +475,7 @@ if [ ! -d "$PLANNING_DIR" ]; then
   jq -n --arg update "$UPDATE_MSG" --arg welcome "$WELCOME_MSG" '{
     "hookSpecificOutput": {
       "hookEventName": "SessionStart",
-      "additionalContext": ($welcome + "No .vbw-planning/ directory found. Run /vbw:init to set up the project." + $update)
+      "additionalContext": ($welcome + "No .yolo-planning/ directory found. Run /yolo:init to set up the project." + $update)
     }
   }'
   exit 0
@@ -555,9 +555,9 @@ fi
 # --- Determine next action ---
 NEXT_ACTION=""
 if [ ! -f "$PLANNING_DIR/PROJECT.md" ]; then
-  NEXT_ACTION="/vbw:init"
+  NEXT_ACTION="/yolo:init"
 elif [ ! -d "$PHASES_DIR" ] || [ -z "$(ls -d "$PHASES_DIR"/*/ 2>/dev/null)" ]; then
-  NEXT_ACTION="/vbw:vibe (needs scoping)"
+  NEXT_ACTION="/yolo:vibe (needs scoping)"
 else
   # Check execution state for interrupted builds
   EXEC_STATE="$PLANNING_DIR/.execution-state.json"
@@ -574,7 +574,7 @@ else
   done
 
   if [ "$exec_running" = true ]; then
-    NEXT_ACTION="/vbw:vibe (build interrupted, will resume)"
+    NEXT_ACTION="/yolo:vibe (build interrupted, will resume)"
   else
     # Find next phase needing work
     all_done=true
@@ -588,25 +588,25 @@ else
       if [ "${plan_count:-0}" -eq 0 ]; then
         # Phase has no plans yet — needs planning
         pnum=$(echo "$pname" | sed 's/-.*//')
-        NEXT_ACTION="/vbw:vibe (Phase $pnum needs planning)"
+        NEXT_ACTION="/yolo:vibe (Phase $pnum needs planning)"
         all_done=false
         break
       elif [ "${summary_count:-0}" -lt "${plan_count:-0}" ]; then
         # Phase has plans but not all executed
         pnum=$(echo "$pname" | sed 's/-.*//')
-        NEXT_ACTION="/vbw:vibe (Phase $pnum planned, needs execution)"
+        NEXT_ACTION="/yolo:vibe (Phase $pnum planned, needs execution)"
         all_done=false
         break
       fi
     done
     if [ "$all_done" = true ]; then
-      NEXT_ACTION="/vbw:vibe --archive"
+      NEXT_ACTION="/yolo:vibe --archive"
     fi
   fi
 fi
 
 # --- Build additionalContext ---
-CTX="VBW project detected."
+CTX="YOLO project detected."
 CTX="$CTX Milestone: ${MILESTONE_SLUG}."
 CTX="$CTX Phase: ${phase_pos}/${phase_total} (${phase_name}) -- ${phase_status}."
 CTX="$CTX Progress: ${progress_pct}%."

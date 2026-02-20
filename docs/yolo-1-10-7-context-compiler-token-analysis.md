@@ -11,17 +11,17 @@
 
 ## Executive Summary
 
-VBW v1.10.2 compressed *the content* — making every file smaller. v1.10.7 changes *what gets loaded* — routing only relevant content to each agent role.
+YOLO v1.10.2 compressed _the content_ — making every file smaller. v1.10.7 changes _what gets loaded_ — routing only relevant content to each agent role.
 
-The v1.10.2 compression milestone reduced VBW's coordination overhead to 75% below stock teams. This milestone compounds on top: instead of loading 3-4 full project files per agent spawn, each agent now receives a single pre-compiled context file containing only what its role needs.
+The v1.10.2 compression milestone reduced YOLO's coordination overhead to 75% below stock teams. This milestone compounds on top: instead of loading 3-4 full project files per agent spawn, each agent now receives a single pre-compiled context file containing only what its role needs.
 
 Three phases attacked three distinct waste sources:
 
-| Phase | Target | Mechanism | Per-Phase Saving |
-|---|---|---|---|
-| 1: Quick Wins | Redundant reference loads + unused state | Eliminated 3 runtime file loads | ~5,700-7,100 tokens |
-| 2: Context Compiler | Full-file loads replaced by filtered views | `compile-context.sh` produces role-specific context | ~1,400-2,800 tokens |
-| 3: Compound Optimizations | Per-task re-reads + per-task skill loads | Compaction marker + skill bundling | ~1,000-2,400 tokens |
+| Phase                     | Target                                     | Mechanism                                           | Per-Phase Saving    |
+| ------------------------- | ------------------------------------------ | --------------------------------------------------- | ------------------- |
+| 1: Quick Wins             | Redundant reference loads + unused state   | Eliminated 3 runtime file loads                     | ~5,700-7,100 tokens |
+| 2: Context Compiler       | Full-file loads replaced by filtered views | `compile-context.sh` produces role-specific context | ~1,400-2,800 tokens |
+| 3: Compound Optimizations | Per-task re-reads + per-task skill loads   | Compaction marker + skill bundling                  | ~1,000-2,400 tokens |
 
 **The key insight:** v1.10.2 made files smaller but every agent still loaded the same files regardless of role. A Dev building a 5-task plan loaded the same 46-line STATE.md it never uses. A Lead planning Phase 3 loaded all 30 requirements when only 5 are mapped to its phase. A QA agent loaded a 146-line protocol reference to learn its tier — information the spawning command already knew.
 
@@ -31,26 +31,26 @@ Three phases attacked three distinct waste sources:
 
 ## The Before State: v1.10.2 Baseline
 
-After the compression milestone, VBW's file sizes were optimized but loading patterns were not:
+After the compression milestone, YOLO's file sizes were optimized but loading patterns were not:
 
 ### What Each Agent Loaded (v1.10.2)
 
-| Agent | Definition | Runtime Loads | Total per Spawn |
-|---|---|---|---|
-| Lead | 568 tokens | REQUIREMENTS.md + ROADMAP.md + STATE.md + PROJECT.md | ~2,833 |
-| Dev | 568 tokens | STATE.md + PLAN.md + per-task re-reads | ~1,758 (+ ~500/re-read) |
-| QA | 568 tokens | verification-protocol.md + PLAN.md + SUMMARY.md | ~3,758 |
+| Agent | Definition | Runtime Loads                                        | Total per Spawn         |
+| ----- | ---------- | ---------------------------------------------------- | ----------------------- |
+| Lead  | 568 tokens | REQUIREMENTS.md + ROADMAP.md + STATE.md + PROJECT.md | ~2,833                  |
+| Dev   | 568 tokens | STATE.md + PLAN.md + per-task re-reads               | ~1,758 (+ ~500/re-read) |
+| QA    | 568 tokens | verification-protocol.md + PLAN.md + SUMMARY.md      | ~3,758                  |
 
 ### Waste Sources Identified
 
-| # | Waste Source | Tokens Wasted | Frequency | Evidence |
-|---|---|---|---|---|
-| 1 | Dev reads STATE.md (never acts on it) | ~690/spawn | Every Dev spawn | Quality analyst verified across 3 phases |
-| 2 | 6 commands load 89-line phase-detection.md | ~1,335/load | 1-3 per session | Script already pre-computes identical result |
-| 3 | QA loads 146-line verification-protocol.md | ~2,190/spawn | Every QA spawn | Tier already known by spawning command |
-| 4 | Lead reads all requirements (most irrelevant) | ~200-900/spawn | Every Lead spawn | Only 3-5 of 10-30 reqs map to current phase |
-| 5 | Dev re-reads PLAN.md every task (often unnecessary) | ~500/re-read | 2-4 per plan | Only needed after compaction, not always |
-| 6 | Skills re-loaded per task via @-references | ~400/skill/task | When skills used | Same content loaded repeatedly |
+| #   | Waste Source                                        | Tokens Wasted   | Frequency        | Evidence                                     |
+| --- | --------------------------------------------------- | --------------- | ---------------- | -------------------------------------------- |
+| 1   | Dev reads STATE.md (never acts on it)               | ~690/spawn      | Every Dev spawn  | Quality analyst verified across 3 phases     |
+| 2   | 6 commands load 89-line phase-detection.md          | ~1,335/load     | 1-3 per session  | Script already pre-computes identical result |
+| 3   | QA loads 146-line verification-protocol.md          | ~2,190/spawn    | Every QA spawn   | Tier already known by spawning command       |
+| 4   | Lead reads all requirements (most irrelevant)       | ~200-900/spawn  | Every Lead spawn | Only 3-5 of 10-30 reqs map to current phase  |
+| 5   | Dev re-reads PLAN.md every task (often unnecessary) | ~500/re-read    | 2-4 per plan     | Only needed after compaction, not always     |
+| 6   | Skills re-loaded per task via @-references          | ~400/skill/task | When skills used | Same content loaded repeatedly               |
 
 ---
 
@@ -62,11 +62,11 @@ After the compression milestone, VBW's file sizes were optimized but loading pat
 
 ### Changes
 
-| Change | Before | After | Saving |
-|---|---|---|---|
-| phase-detection.md removed from 6 commands | 89-line reference loaded at runtime | phase-detect.sh output pre-computed in Context block | ~1,335 tokens per load |
-| STATE.md removed from Dev Stage 1 | Dev loaded ~46-80 line file every spawn | Dev doesn't load STATE.md | ~690-1,200 per Dev spawn |
-| verification-protocol.md replaced in QA | QA loaded 146-line reference | 12-line inline format spec in agent def | ~2,010 per QA spawn |
+| Change                                     | Before                                  | After                                                | Saving                   |
+| ------------------------------------------ | --------------------------------------- | ---------------------------------------------------- | ------------------------ |
+| phase-detection.md removed from 6 commands | 89-line reference loaded at runtime     | phase-detect.sh output pre-computed in Context block | ~1,335 tokens per load   |
+| STATE.md removed from Dev Stage 1          | Dev loaded ~46-80 line file every spawn | Dev doesn't load STATE.md                            | ~690-1,200 per Dev spawn |
+| verification-protocol.md replaced in QA    | QA loaded 146-line reference            | 12-line inline format spec in agent def              | ~2,010 per QA spawn      |
 
 ### Token Math
 
@@ -120,22 +120,22 @@ Agent definitions grew slightly (+15 lines total across Dev and QA) because the 
 
 ### Measured Output Sizes (This Project, Phase 02)
 
-| Output File | Lines | Est. Tokens | Replaces |
-|---|---|---|---|
-| .context-lead.md | 27 | ~405 | REQUIREMENTS.md (43 lines) + ROADMAP.md (33) + STATE.md (46) = 122 lines, ~1,830 tokens |
-| .context-dev.md | 21 | ~315 | Phase awareness (additive — Dev had no phase context before) |
-| .context-qa.md | 34 | ~510 | Ad-hoc reads of REQUIREMENTS.md + phase context |
+| Output File      | Lines | Est. Tokens | Replaces                                                                                |
+| ---------------- | ----- | ----------- | --------------------------------------------------------------------------------------- |
+| .context-lead.md | 27    | ~405        | REQUIREMENTS.md (43 lines) + ROADMAP.md (33) + STATE.md (46) = 122 lines, ~1,830 tokens |
+| .context-dev.md  | 21    | ~315        | Phase awareness (additive — Dev had no phase context before)                            |
+| .context-qa.md   | 34    | ~510        | Ad-hoc reads of REQUIREMENTS.md + phase context                                         |
 
 ### Lead Context Savings at Scale
 
 This is the highest-impact mechanism. As projects grow, REQUIREMENTS.md balloons but each phase still maps to only 3-5 requirements:
 
-| Project Scale | Reqs | Full REQUIREMENTS.md | Compiled Lead Context | Saving |
-|---|---|---|---|---|
-| Small (10 reqs, phase has 4) | 10 | ~20 lines, 300 tokens | ~15 lines, 225 tokens | ~75 |
-| Current (18 reqs, phase has 8) | 18 | ~43 lines, 645 tokens | ~27 lines, 405 tokens | ~240 |
-| Medium (20 reqs, phase has 4) | 20 | ~50 lines, 750 tokens | ~18 lines, 270 tokens | ~480 |
-| Large (30 reqs, phase has 5) | 30 | ~90 lines, 1,350 tokens | ~22 lines, 330 tokens | ~1,020 |
+| Project Scale                  | Reqs | Full REQUIREMENTS.md    | Compiled Lead Context | Saving |
+| ------------------------------ | ---- | ----------------------- | --------------------- | ------ |
+| Small (10 reqs, phase has 4)   | 10   | ~20 lines, 300 tokens   | ~15 lines, 225 tokens | ~75    |
+| Current (18 reqs, phase has 8) | 18   | ~43 lines, 645 tokens   | ~27 lines, 405 tokens | ~240   |
+| Medium (20 reqs, phase has 4)  | 20   | ~50 lines, 750 tokens   | ~18 lines, 270 tokens | ~480   |
+| Large (30 reqs, phase has 5)   | 30   | ~90 lines, 1,350 tokens | ~22 lines, 330 tokens | ~1,020 |
 
 The Lead also no longer loads ROADMAP.md (~495-900 tokens) or STATE.md (~690-1,200 tokens) separately — these are extracted into the compiled file. Total Lead spawn saving: **~1,425 (current) to ~2,800 (large)** tokens.
 
@@ -145,12 +145,12 @@ The Lead also no longer loads ROADMAP.md (~495-900 tokens) or STATE.md (~690-1,2
 
 ### Integration Points
 
-| Command | Compile Call | Role | When |
-|---|---|---|---|
-| plan.md | Before Lead spawn | lead | Phase planning |
-| execute.md | Before Dev spawn | dev | Phase execution |
-| execute.md | Before QA spawn | qa | Post-build verification |
-| implement.md | Before Lead spawn | lead | Planning step (States 3-4) |
+| Command      | Compile Call        | Role    | When                        |
+| ------------ | ------------------- | ------- | --------------------------- |
+| plan.md      | Before Lead spawn   | lead    | Phase planning              |
+| execute.md   | Before Dev spawn    | dev     | Phase execution             |
+| execute.md   | Before QA spawn     | qa      | Post-build verification     |
+| implement.md | Before Lead spawn   | lead    | Planning step (States 3-4)  |
 | implement.md | Before Dev/QA spawn | dev, qa | Execution step (States 3-4) |
 
 All calls are config-gated. All degrade gracefully on compile failure (proceed without compiled context).
@@ -255,11 +255,11 @@ Per-phase non-request       37,689       15,595       22,094  (59%)
 
 Per-request overhead barely changed (+0.5%): active commands grew ~39 lines but CLAUDE.md shrank 26 lines. The context compiler's value is in the spawn/context layer, not the per-request layer.
 
-| Scale | v1.10.2 Total | v1.10.7 Total | Saved | Reduction |
-|---|---|---|---|---|
-| Small (3 phases, 50 req/phase) | ~226,735 | ~194,230 | ~32,505 | **~14%** |
-| Medium (5 phases, 80 req/phase) | ~439,065 | ~350,125 | ~88,940 | **~20%** |
-| Large (8 phases, 80 req/phase) | ~561,512 | ~384,760 | ~176,752 | **~31%** |
+| Scale                           | v1.10.2 Total | v1.10.7 Total | Saved    | Reduction |
+| ------------------------------- | ------------- | ------------- | -------- | --------- |
+| Small (3 phases, 50 req/phase)  | ~226,735      | ~194,230      | ~32,505  | **~14%**  |
+| Medium (5 phases, 80 req/phase) | ~439,065      | ~350,125      | ~88,940  | **~20%**  |
+| Large (8 phases, 80 req/phase)  | ~561,512      | ~384,760      | ~176,752 | **~31%**  |
 
 ---
 
@@ -276,7 +276,7 @@ Total coordination/phase  97,900      38,170     24,975     14,155
 Reduction vs stock             —        61%        74%        86%
 ```
 
-**VBW v1.10.7 delivers ~86% reduction in per-phase coordination overhead vs stock Agent Teams** (up from 74% at v1.10.2, 61% at v1.0.99).
+**YOLO v1.10.7 delivers ~86% reduction in per-phase coordination overhead vs stock Agent Teams** (up from 74% at v1.10.2, 61% at v1.0.99).
 
 For large projects, the reduction is even more dramatic because filtered context scales better than full-file loading:
 
@@ -290,13 +290,13 @@ Reference loads           ~8,000                   0           100%
 
 ### Version Progression Table
 
-| Milestone | Version | Optimization Type | Cumulative vs Stock |
-|---|---|---|---|
-| Performance Optimization | v1.0.99 | 15 mechanisms: when/how to load | 61% overhead reduction |
-| GSD Isolation | v1.10.0 | Two-marker isolation, PreToolUse block | (security, not tokens) |
-| Token Compression | v1.10.2 | Content compression across all layers | 74% overhead reduction |
-| Intelligent Discovery | v1.10.5 | Discovery protocol + phase questions | (quality, not tokens) |
-| **Context Compiler** | **v1.10.7** | **Deterministic context routing** | **86% overhead reduction** |
+| Milestone                | Version     | Optimization Type                      | Cumulative vs Stock        |
+| ------------------------ | ----------- | -------------------------------------- | -------------------------- |
+| Performance Optimization | v1.0.99     | 15 mechanisms: when/how to load        | 61% overhead reduction     |
+| GSD Isolation            | v1.10.0     | Two-marker isolation, PreToolUse block | (security, not tokens)     |
+| Token Compression        | v1.10.2     | Content compression across all layers  | 74% overhead reduction     |
+| Intelligent Discovery    | v1.10.5     | Discovery protocol + phase questions   | (quality, not tokens)      |
+| **Context Compiler**     | **v1.10.7** | **Deterministic context routing**      | **86% overhead reduction** |
 
 ---
 
@@ -305,7 +305,7 @@ Reference loads           ~8,000                   0           100%
 ### v1.10.2 (Post-Compression, Pre-Compiler)
 
 ```
-/vbw:implement Phase 3:
+/yolo:implement Phase 3:
   implement.md loaded:                       290 tokens
   phase-detection.md loaded:               1,335 tokens    ← eliminated
   STATE.md + ROADMAP.md reads:               450 tokens
@@ -337,7 +337,7 @@ Reference loads           ~8,000                   0           100%
 ### v1.10.7 (With Context Compiler)
 
 ```
-/vbw:implement Phase 3:
+/yolo:implement Phase 3:
   implement.md loaded:                       435 tokens    (grew, has compile instructions)
   phase-detect.sh pre-computed:              300 tokens    (replaces 1,335 reference)
   STATE.md + ROADMAP.md reads:               450 tokens
@@ -370,6 +370,7 @@ Reference loads           ~8,000                   0           100%
 ```
 
 Over the full 5-phase project:
+
 - v1.10.2: ~1,411,565 tokens
 - v1.10.7: ~1,366,900 tokens
 - Saved: **~44,665 tokens** (~3.2% total, but **~51,000 tokens** saved in spawn/context layer)
@@ -408,37 +409,37 @@ Runtime savings/phase        —          —    11,900    NET per phase
 
 ### Files Created
 
-| File | Lines | Purpose |
-|---|---|---|
-| `scripts/compile-context.sh` | 164 | Role-specific context compiler (lead/dev/qa) |
+| File                         | Lines | Purpose                                      |
+| ---------------------------- | ----- | -------------------------------------------- |
+| `scripts/compile-context.sh` | 164   | Role-specific context compiler (lead/dev/qa) |
 
 ### Files Modified
 
-| File | Change | Lines Before → After |
-|---|---|---|
-| `commands/execute.md` | +phase-detect injection, +compile calls | 155 → 194 |
-| `commands/plan.md` | +phase-detect injection, +compile call | 120 → 146 |
-| `commands/implement.md` | +compile calls in States 3-4 | 160 → 193 |
-| `commands/qa.md` | +phase-detect injection | 65 → 70 |
-| `commands/discuss.md` | +phase-detect injection | 55 → 61 |
-| `commands/assumptions.md` | +phase-detect injection | 38 → 44 |
-| `agents/vbw-dev.md` | -STATE.md read, +marker protocol | 42 → 47 |
-| `agents/vbw-qa.md` | +inline format spec, -protocol ref | 39 → 51 |
-| `config/defaults.json` | +context_compiler toggle | 16 → 17 |
-| `scripts/phase-detect.sh` | +config_context_compiler output | 195 → 202 |
-| `scripts/compaction-instructions.sh` | +marker write | +2 lines |
-| `scripts/session-start.sh` | +marker cleanup | +3 lines |
+| File                                 | Change                                  | Lines Before → After |
+| ------------------------------------ | --------------------------------------- | -------------------- |
+| `commands/execute.md`                | +phase-detect injection, +compile calls | 155 → 194            |
+| `commands/plan.md`                   | +phase-detect injection, +compile call  | 120 → 146            |
+| `commands/implement.md`              | +compile calls in States 3-4            | 160 → 193            |
+| `commands/qa.md`                     | +phase-detect injection                 | 65 → 70              |
+| `commands/discuss.md`                | +phase-detect injection                 | 55 → 61              |
+| `commands/assumptions.md`            | +phase-detect injection                 | 38 → 44              |
+| `agents/yolo-dev.md`                 | -STATE.md read, +marker protocol        | 42 → 47              |
+| `agents/yolo-qa.md`                  | +inline format spec, -protocol ref      | 39 → 51              |
+| `config/defaults.json`               | +context_compiler toggle                | 16 → 17              |
+| `scripts/phase-detect.sh`            | +config_context_compiler output         | 195 → 202            |
+| `scripts/compaction-instructions.sh` | +marker write                           | +2 lines             |
+| `scripts/session-start.sh`           | +marker cleanup                         | +3 lines             |
 
 ### Reference Files Still in Inventory
 
-| File | Lines | Status |
-|---|---|---|
-| phase-detection.md | 89 | Preserved as developer docs (no longer loaded by agents) |
-| verification-protocol.md | 146 | Preserved as developer docs (no longer loaded by agents) |
-| vbw-brand-essentials.md | 44 | Still loaded (output formatting) |
-| effort-profile-*.md (4) | 124 | Still loaded (effort-gated, lazy) |
-| handoff-schemas.md | 94 | Still loaded (agent communication) |
-| discovery-protocol.md | 159 | Still loaded (discovery questions, new in v1.10.5) |
+| File                     | Lines | Status                                                   |
+| ------------------------ | ----- | -------------------------------------------------------- |
+| phase-detection.md       | 89    | Preserved as developer docs (no longer loaded by agents) |
+| verification-protocol.md | 146   | Preserved as developer docs (no longer loaded by agents) |
+| yolo-brand-essentials.md | 44    | Still loaded (output formatting)                         |
+| effort-profile-\*.md (4) | 124   | Still loaded (effort-gated, lazy)                        |
+| handoff-schemas.md       | 94    | Still loaded (agent communication)                       |
+| discovery-protocol.md    | 159   | Still loaded (discovery questions, new in v1.10.5)       |
 
 ---
 
@@ -450,36 +451,36 @@ Same methodology as v1.10.2 analysis: ~15 tokens/line for markdown. Compiled con
 
 ### What Was Measured vs Estimated
 
-| Metric | Method | Confidence |
-|---|---|---|
-| File line counts | `wc -l` on actual files | Exact |
-| Compiled output sizes | `compile-context.sh` run on real project | Exact |
-| Reference load elimination | `grep` confirms zero runtime references | High |
-| Re-read savings | Estimated 1-2 saves per plan (compaction occurs 0-2 times) | Medium |
-| Skill bundling savings | Measured for bash-pro (337 lines); other skills vary | Medium |
-| Per-request overhead | Line count of active commands + CLAUDE.md | High |
-| Scale projections | Linear extrapolation from known file growth patterns | Medium |
+| Metric                     | Method                                                     | Confidence |
+| -------------------------- | ---------------------------------------------------------- | ---------- |
+| File line counts           | `wc -l` on actual files                                    | Exact      |
+| Compiled output sizes      | `compile-context.sh` run on real project                   | Exact      |
+| Reference load elimination | `grep` confirms zero runtime references                    | High       |
+| Re-read savings            | Estimated 1-2 saves per plan (compaction occurs 0-2 times) | Medium     |
+| Skill bundling savings     | Measured for bash-pro (337 lines); other skills vary       | Medium     |
+| Per-request overhead       | Line count of active commands + CLAUDE.md                  | High       |
+| Scale projections          | Linear extrapolation from known file growth patterns       | Medium     |
 
 ### What This Milestone Did NOT Change
 
-| Component | Why Unchanged |
-|---|---|
-| Per-request overhead | Not the target — commands grew slightly but reference loads moved to compile time |
-| Template loads | Already compressed in v1.10.2 — no further optimization available |
-| Agent model routing | Already optimal — Sonnet for QA, Opus for Lead/Dev |
-| Hook execution costs | Already zero model tokens — shell execution |
-| `disable-model-invocation` | Already prevents loading disabled commands — unchanged |
+| Component                  | Why Unchanged                                                                     |
+| -------------------------- | --------------------------------------------------------------------------------- |
+| Per-request overhead       | Not the target — commands grew slightly but reference loads moved to compile time |
+| Template loads             | Already compressed in v1.10.2 — no further optimization available                 |
+| Agent model routing        | Already optimal — Sonnet for QA, Opus for Lead/Dev                                |
+| Hook execution costs       | Already zero model tokens — shell execution                                       |
+| `disable-model-invocation` | Already prevents loading disabled commands — unchanged                            |
 
 ---
 
 ## QA Verification
 
-| Phase | Plans | Checks | Result | Key Validations |
-|---|---|---|---|---|
-| Phase 1: Quick Wins | 01-01, 01-02 | 21/21 | PASS | Zero runtime refs to phase-detection.md; STATE.md absent from Dev; inline QA spec functional |
-| Phase 2: Compiler Core | 02-01, 02-02 | 22/22 | PASS | compile-context.sh produces correct output for all 3 roles; config toggle works; graceful degradation verified |
-| Phase 3: Compound | 03-01, 03-02 | 22/22 | PASS | Skill bundling produces correct output; compaction marker written/cleaned; conservative default preserved |
-| **Total** | **6 plans** | **65/65** | **PASS** | |
+| Phase                  | Plans        | Checks    | Result   | Key Validations                                                                                                |
+| ---------------------- | ------------ | --------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+| Phase 1: Quick Wins    | 01-01, 01-02 | 21/21     | PASS     | Zero runtime refs to phase-detection.md; STATE.md absent from Dev; inline QA spec functional                   |
+| Phase 2: Compiler Core | 02-01, 02-02 | 22/22     | PASS     | compile-context.sh produces correct output for all 3 roles; config toggle works; graceful degradation verified |
+| Phase 3: Compound      | 03-01, 03-02 | 22/22     | PASS     | Skill bundling produces correct output; compaction marker written/cleaned; conservative default preserved      |
+| **Total**              | **6 plans**  | **65/65** | **PASS** |                                                                                                                |
 
 ---
 
@@ -505,24 +506,24 @@ Same methodology as v1.10.2 analysis: ~15 tokens/line for markdown. Compiled con
 
 15 commits in chronological order (plus release commit):
 
-| # | Hash | Message | Phase/Plan |
-|---|---|---|---|
-| 1 | 0789b24 | `fix(hooks): restore pre-push-hook.sh actual validation logic` | Pre-phase |
-| 2 | 91741d7 | `refactor(commands): replace phase-detection.md reads with pre-computed phase-detect.sh injection` | P1/01-01 |
-| 3 | cb609a3 | `refactor(agents): remove STATE.md from Dev, inline QA format spec, pre-compute verification tier` | P1/01-02 |
-| 4 | 3b89b98 | `feat(context): create compile-context.sh with lead role output` | P2/02-01 |
-| 5 | d7088a7 | `feat(context): add dev and qa role outputs to compile-context.sh` | P2/02-01 |
-| 6 | cc72b78 | `feat(config): add context_compiler toggle to defaults.json and phase-detect.sh` | P2/02-01 |
-| 7 | 50a027a | `feat(context): wire compile-context.sh into plan.md before Lead spawn` | P2/02-02 |
-| 8 | ae3cb20 | `feat(context): wire compile-context.sh into execute.md before Dev and QA spawns` | P2/02-02 |
-| 9 | 0bc9641 | `feat(context): wire compile-context.sh into implement.md States 3-4` | P2/02-02 |
-| 10 | 19e3b35 | `feat(03-02): add compaction marker write to compaction-instructions.sh` | P3/03-02 |
-| 11 | 89a48d6 | `feat(03-02): add compaction marker cleanup to session-start.sh` | P3/03-02 |
-| 12 | 5d96bd1 | `feat(03-02): update vbw-dev.md for marker-based conditional re-read` | P3/03-02 |
-| 13 | 21fee65 | `feat(compiler): add plan-path arg and skill bundling to compile-context.sh dev case` | P3/03-01 |
-| 14 | caa4b84 | `feat(commands): pass plan_path as 4th arg to compile-context.sh in execute.md` | P3/03-01 |
-| 15 | ace5135 | `feat(commands): pass plan_path to compile-context.sh dev call in implement.md` | P3/03-01 |
-| 16 | f4aab7a | `chore: release v1.10.7` | Release |
+| #   | Hash    | Message                                                                                            | Phase/Plan |
+| --- | ------- | -------------------------------------------------------------------------------------------------- | ---------- |
+| 1   | 0789b24 | `fix(hooks): restore pre-push-hook.sh actual validation logic`                                     | Pre-phase  |
+| 2   | 91741d7 | `refactor(commands): replace phase-detection.md reads with pre-computed phase-detect.sh injection` | P1/01-01   |
+| 3   | cb609a3 | `refactor(agents): remove STATE.md from Dev, inline QA format spec, pre-compute verification tier` | P1/01-02   |
+| 4   | 3b89b98 | `feat(context): create compile-context.sh with lead role output`                                   | P2/02-01   |
+| 5   | d7088a7 | `feat(context): add dev and qa role outputs to compile-context.sh`                                 | P2/02-01   |
+| 6   | cc72b78 | `feat(config): add context_compiler toggle to defaults.json and phase-detect.sh`                   | P2/02-01   |
+| 7   | 50a027a | `feat(context): wire compile-context.sh into plan.md before Lead spawn`                            | P2/02-02   |
+| 8   | ae3cb20 | `feat(context): wire compile-context.sh into execute.md before Dev and QA spawns`                  | P2/02-02   |
+| 9   | 0bc9641 | `feat(context): wire compile-context.sh into implement.md States 3-4`                              | P2/02-02   |
+| 10  | 19e3b35 | `feat(03-02): add compaction marker write to compaction-instructions.sh`                           | P3/03-02   |
+| 11  | 89a48d6 | `feat(03-02): add compaction marker cleanup to session-start.sh`                                   | P3/03-02   |
+| 12  | 5d96bd1 | `feat(03-02): update yolo-dev.md for marker-based conditional re-read`                             | P3/03-02   |
+| 13  | 21fee65 | `feat(compiler): add plan-path arg and skill bundling to compile-context.sh dev case`              | P3/03-01   |
+| 14  | caa4b84 | `feat(commands): pass plan_path as 4th arg to compile-context.sh in execute.md`                    | P3/03-01   |
+| 15  | ace5135 | `feat(commands): pass plan_path to compile-context.sh dev call in implement.md`                    | P3/03-01   |
+| 16  | f4aab7a | `chore: release v1.10.7`                                                                           | Release    |
 
 ## Appendix B: Compiler Output Examples
 
@@ -532,20 +533,24 @@ Same methodology as v1.10.2 analysis: ~15 tokens/line for markdown. Compiled con
 ## Phase 02 Context (Compiled)
 
 ### Goal
+
 Build compile-context.sh that produces role-specific context files with filtered requirements
 
 ### Success Criteria
+
 Running compile-context.sh produces .context-lead.md with only phase-mapped requirements...
 
 ### Requirements (REQ-06, REQ-07, REQ-08, REQ-09, REQ-10, REQ-11, REQ-17, REQ-18)
+
 - [ ] **REQ-06**: compile-context.sh script extracts phase-relevant requirements...
 - [ ] **REQ-07**: Compiler produces .context-lead.md with phase goal...
-[8 requirements shown, 10 filtered out]
+      [8 requirements shown, 10 filtered out]
 
 ### Active Decisions
+
 - Deterministic context compilation over ML-based scoring
 - Marker-file approach for compaction detection
-[6 decisions total]
+  [6 decisions total]
 ```
 
 **27 lines replacing 122 lines of full-file reads (REQUIREMENTS + ROADMAP + STATE).**
@@ -556,16 +561,19 @@ Running compile-context.sh produces .context-lead.md with only phase-mapped requ
 ## Phase 03 Context
 
 ### Goal
+
 Add skill bundling and compaction-aware re-reads on top of the compiler
 
 ### Conventions
+
 - [file-structure] Commands are kebab-case .md files in commands/
-- [naming] Agents named vbw-{role}.md in agents/
-[15 conventions total]
+- [naming] Agents named yolo-{role}.md in agents/
+  [15 conventions total]
 
 ### Skills Reference
 
 #### bash-pro
+
 [337 lines of skill content — loaded once, not per-task]
 ```
 

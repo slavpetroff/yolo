@@ -1,11 +1,11 @@
 # Planning docs (local-only)
-# Note: .vbw-planning/ exclusion covers all runtime files inside:
+# Note: .yolo-planning/ exclusion covers all runtime files inside:
 #   - .agent-pids (tmux agent tracking)
 #   - .hook-errors.log (hook and cleanup logs, doctor-cleanup.sh runtime logs)
 #   - .watchdog-pid (tmux watchdog PID)
 #   - .watchdog.log (tmux watchdog logs)
-#   - .snapshots/ — agent state snapshots (covered by .vbw-planning/ exclusion)
-.vbw-planning/
+#   - .snapshots/ — agent state snapshots (covered by .yolo-planning/ exclusion)
+.yolo-planning/
 .planning/
 
 # Dependencies
@@ -17,7 +17,10 @@ node_modules/
 .env.*.local
 
 # Claude Code local settings
-.claude/settings.local.json
+.claude/
+
+# Telemetry
+*.db
 
 # GitHub Copilot instructions
 .github/copilot-instructions.md

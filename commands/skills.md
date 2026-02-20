@@ -1,5 +1,5 @@
 ---
-name: vbw:skills
+name: yolo:skills
 category: supporting
 disable-model-invocation: true
 description: Browse and install community skills from skills.sh based on your project's tech stack.
@@ -7,14 +7,14 @@ argument-hint: [--search <query>] [--list] [--refresh]
 allowed-tools: Read, Bash, Glob, Grep, WebFetch
 ---
 
-# VBW Skills $ARGUMENTS
+# YOLO Skills $ARGUMENTS
 
 ## Context
 
 Working directory: `!`pwd``
 Stack detection:
 ```
-!`bash ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/vbw-marketplace/vbw/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}/scripts/detect-stack.sh "$(pwd)" 2>/dev/null || echo '{"error":"detect-stack.sh failed"}'`
+!`bash ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}/scripts/detect-stack.sh "$(pwd)" 2>/dev/null || echo '{"error":"detect-stack.sh failed"}'`
 ```
 
 ## Guard
@@ -67,4 +67,4 @@ Store the choice as SCOPE. If "Skip" was selected in Step 5: skip this step.
 
 ## Output Format
 
-Follow @${CLAUDE_PLUGIN_ROOT}/references/vbw-brand-essentials.md — single-line box, ✓ installed, ○ suggested, ✗ failed, ⚠ warning, no ANSI.
+Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md — single-line box, ✓ installed, ○ suggested, ✗ failed, ⚠ warning, no ANSI.

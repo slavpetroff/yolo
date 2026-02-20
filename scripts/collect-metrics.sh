@@ -2,7 +2,7 @@
 set -u
 
 # collect-metrics.sh <event> <phase> [plan] [key=value ...]
-# Appends a JSON line to .vbw-planning/.metrics/run-metrics.jsonl
+# Appends a JSON line to .yolo-planning/.metrics/run-metrics.jsonl
 # Events: cache_hit, cache_miss, compile_context, execute_task, execute_plan,
 #         execute_phase_start, execute_phase_complete
 # Exit 0 always — metrics must never block execution.
@@ -41,7 +41,7 @@ for arg in "$@"; do
   esac
 done
 
-METRICS_DIR=".vbw-planning/.metrics"
+METRICS_DIR=".yolo-planning/.metrics"
 METRICS_FILE="${METRICS_DIR}/run-metrics.jsonl"
 
 # Create dir if needed

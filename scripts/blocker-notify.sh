@@ -4,8 +4,8 @@ set -u
 # Outputs additionalContext with unblocked task info
 # Exit 0 always (advisory, never blocks)
 
-# Only apply to VBW contexts with active teams
-[ ! -d ".vbw-planning" ] && exit 0
+# Only apply to YOLO contexts with active teams
+[ ! -d ".yolo-planning" ] && exit 0
 command -v jq &>/dev/null || exit 0
 
 # Read stdin to get completed task context

@@ -10,7 +10,7 @@ set -u
 # Logs to stderr. Exits when session is gone (not just detached).
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 
 # --- Session name resolution ---
 SESSION="${1:-}"

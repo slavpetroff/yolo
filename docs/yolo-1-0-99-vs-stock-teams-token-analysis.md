@@ -1,9 +1,9 @@
-# VBW vs Stock Agent Teams: Token Efficiency Analysis
+# YOLO vs Stock Agent Teams: Token Efficiency Analysis
 
 **Date:** 2026-02-10
-**Scope:** Deep comparison of VBW plugin token optimization vs Claude Code's native Agent Teams
+**Scope:** Deep comparison of YOLO plugin token optimization vs Claude Code's native Agent Teams
 **Method:** Parallel research agents analyzed both sides; team lead synthesized
-**Verdict:** VBW saves **40-65% of tokens** and **46% of dollar cost** per session through 15 distinct optimization mechanisms across 7 architectural layers
+**Verdict:** YOLO saves **40-65% of tokens** and **46% of dollar cost** per session through 15 distinct optimization mechanisms across 7 architectural layers
 
 ---
 
@@ -11,32 +11,32 @@
 
 Stock Claude Code Agent Teams are a general-purpose coordination primitive. They provide spawning, messaging, and task tracking, but make no attempt to minimize token usage. Every agent loads full context, uses the same model, re-reads the same files independently, and coordinates via expensive message round-trips.
 
-VBW wraps Agent Teams with a purpose-built optimization stack: shell-based pre-computation, model routing, `disable-model-invocation`, compaction-aware hooks, context budgeting, and disk-based coordination. The result is the same coordination capability at significantly lower token cost.
+YOLO wraps Agent Teams with a purpose-built optimization stack: shell-based pre-computation, model routing, `disable-model-invocation`, compaction-aware hooks, context budgeting, and disk-based coordination. The result is the same coordination capability at significantly lower token cost.
 
-**The key insight:** Stock teams pay the "coordination tax" -- 57,000-133,000 tokens of pure overhead per phase execution before any productive work begins. VBW cuts that overhead by 60-80%.
+**The key insight:** Stock teams pay the "coordination tax" -- 57,000-133,000 tokens of pure overhead per phase execution before any productive work begins. YOLO cuts that overhead by 60-80%.
 
 ---
 
 ## Stock Agent Teams: The Overhead Baseline
 
-Before showing VBW's optimizations, here's what stock teams cost in token overhead per phase (3-agent team):
+Before showing YOLO's optimizations, here's what stock teams cost in token overhead per phase (3-agent team):
 
-| Overhead Category | Low Estimate | High Estimate | Description |
-|---|---|---|---|
-| Agent initialization context | 15,000 | 24,000 | System prompt + CLAUDE.md + tools per agent |
-| Task CRUD coordination | 5,000 | 15,000 | TaskCreate/List/Update/Get calls by lead |
-| SendMessage / broadcast | 6,000 | 16,000 | Agent-to-lead messages (full API round-trips) |
-| Idle notifications | 500 | 2,000 | System-injected status tokens |
-| Context in teammate-message | 1,500 | 6,000 | Lead must manually describe all context |
-| CLAUDE.md duplication | 3,000 | 9,000 | Full CLAUDE.md loaded per agent (no selective loading) |
-| State discovery (no pre-computation) | 6,000 | 15,000 | Each agent reads STATE.md, config, scans dirs |
-| Lead coordination tax | 8,000 | 25,000 | Lead spends tokens managing, not producing |
-| Context duplication (shared files) | 12,000 | 21,000 | Multiple agents read same files independently |
-| **TOTAL OVERHEAD** | **57,000** | **133,000** | **Before any productive work tokens** |
+| Overhead Category                    | Low Estimate | High Estimate | Description                                            |
+| ------------------------------------ | ------------ | ------------- | ------------------------------------------------------ |
+| Agent initialization context         | 15,000       | 24,000        | System prompt + CLAUDE.md + tools per agent            |
+| Task CRUD coordination               | 5,000        | 15,000        | TaskCreate/List/Update/Get calls by lead               |
+| SendMessage / broadcast              | 6,000        | 16,000        | Agent-to-lead messages (full API round-trips)          |
+| Idle notifications                   | 500          | 2,000         | System-injected status tokens                          |
+| Context in teammate-message          | 1,500        | 6,000         | Lead must manually describe all context                |
+| CLAUDE.md duplication                | 3,000        | 9,000         | Full CLAUDE.md loaded per agent (no selective loading) |
+| State discovery (no pre-computation) | 6,000        | 15,000        | Each agent reads STATE.md, config, scans dirs          |
+| Lead coordination tax                | 8,000        | 25,000        | Lead spends tokens managing, not producing             |
+| Context duplication (shared files)   | 12,000       | 21,000        | Multiple agents read same files independently          |
+| **TOTAL OVERHEAD**                   | **57,000**   | **133,000**   | **Before any productive work tokens**                  |
 
 ---
 
-## The 15 VBW Optimization Mechanisms (7 Layers)
+## The 15 YOLO Optimization Mechanisms (7 Layers)
 
 ### Layer 1: Context Diet
 
@@ -48,7 +48,7 @@ Commands with this frontmatter flag are excluded from the always-on context. The
 
 ```
 Stock:  10,800 tokens (all 27 commands always loaded, ~400 tokens each)
-VBW:     3,200 tokens (only 8 always-on: status, fix, debug, plan, discuss, assumptions, qa, research)
+YOLO:     3,200 tokens (only 8 always-on: status, fix, debug, plan, discuss, assumptions, qa, research)
 Saving:  7,600 tokens removed from EVERY API request in the session
 ```
 
@@ -58,7 +58,7 @@ This is documented as "the highest-impact token optimization for plugins" (`CLAU
 
 **Impact: ~1,200-1,500 tokens/session**
 
-A single 50-line `vbw-brand-essentials.md` replaced a 329-line `vbw-brand.md` that was `@`-referenced in all 27 commands. Only the output formatting rules actually used by commands survive.
+A single 50-line `yolo-brand-essentials.md` replaced a 329-line `yolo-brand.md` that was `@`-referenced in all 27 commands. Only the output formatting rules actually used by commands survive.
 
 #### Mechanism 3: Capped Context Injections (`head -40`)
 
@@ -68,7 +68,7 @@ Commands inject STATE.md and ROADMAP.md via `head -40` or `head -50`, not full f
 
 ```bash
 # execute.md:17 -- reads only first 40 lines
-!`head -40 .vbw-planning/STATE.md`
+!`head -40 .yolo-planning/STATE.md`
 ```
 
 #### Mechanism 4: Lazy Reference Loading
@@ -85,6 +85,7 @@ The monolithic `effort-profiles.md` (all 4 profiles, ~1,000 tokens) was split in
 
 ```markdown
 # execute.md:61-62
+
 Read the corresponding profile... Do NOT read all four profile files -- only the active one.
 ```
 
@@ -117,7 +118,7 @@ brownfield, execution_state
 
 **What it replaces:** 5-7 tool calls (Read STATE.md, Read config.json, Glob phase dirs, count files, check brownfield) + model reasoning = ~1,300 tokens.
 
-**What VBW pays:** 22 lines of key=value text = ~150 tokens. Net saving: **~1,100 tokens per `/implement`**.
+**What YOLO pays:** 22 lines of key=value text = ~150 tokens. Net saving: **~1,100 tokens per `/implement`**.
 
 #### Mechanism 8: SessionStart Rich Context Injection
 
@@ -126,17 +127,18 @@ brownfield, execution_state
 The 314-line `session-start.sh` hook injects a one-line project summary via `additionalContext`:
 
 ```
-VBW project detected. Milestone: v1-release. Phase: 2/3 (Script Offloading) -- Planned.
+YOLO project detected. Milestone: v1-release. Phase: 2/3 (Script Offloading) -- Planned.
 Progress: 45%. Config: effort=balanced, autonomy=standard, auto_commit=true,
-verification=standard, agent_teams=true, max_tasks=5. Next: /vbw:implement.
+verification=standard, agent_teams=true, max_tasks=5. Next: /yolo:implement.
 ```
 
 But that's just the visible output. **Silently (zero model tokens)**, it also:
+
 - Migrates stale statusLine configuration
 - Cleans old plugin cache versions (keeps only latest)
 - Validates cache integrity (nukes if critical files missing)
 - Syncs marketplace checkout if stale
-- Copies commands to `~/.claude/commands/vbw/` for autocomplete
+- Copies commands to `~/.claude/commands/yolo/` for autocomplete
 - Auto-installs git hooks if missing
 - Reconciles orphaned execution state (crashed builds)
 
@@ -150,19 +152,19 @@ The 215-line `suggest-next.sh` computes context-aware next-action suggestions in
 
 **Layer 2 subtotal: 26 scripts, 1,624 lines of bash, ALL execute at zero model token cost**
 
-| Script | Lines | Hook Type | Token Impact |
-|---|---|---|---|
-| `session-start.sh` | 314 | SessionStart | State injection + silent infrastructure |
-| `phase-detect.sh` | 202 | Bash substitution | 22 pre-computed state variables |
-| `suggest-next.sh` | 215 | Bash substitution | Context-aware routing |
-| `map-staleness.sh` | 66 | SessionStart | Codebase freshness check |
-| `compaction-instructions.sh` | 48 | PreCompact | Agent preservation priorities |
-| `post-compact.sh` | 51 | SessionStart(compact) | Targeted re-read instructions |
-| `vbw-statusline.sh` | 559 | StatusLine | Full 5-line dashboard |
-| `prompt-preflight.sh` | 87 | UserPromptSubmit | Pre-flight validation |
-| `security-filter.sh` | 52 | PreToolUse | File access control |
-| `agent-start.sh` | 20 | SubagentStart | Cost attribution |
-| `agent-stop.sh` | 10 | SubagentStop | Marker cleanup |
+| Script                       | Lines | Hook Type             | Token Impact                            |
+| ---------------------------- | ----- | --------------------- | --------------------------------------- |
+| `session-start.sh`           | 314   | SessionStart          | State injection + silent infrastructure |
+| `phase-detect.sh`            | 202   | Bash substitution     | 22 pre-computed state variables         |
+| `suggest-next.sh`            | 215   | Bash substitution     | Context-aware routing                   |
+| `map-staleness.sh`           | 66    | SessionStart          | Codebase freshness check                |
+| `compaction-instructions.sh` | 48    | PreCompact            | Agent preservation priorities           |
+| `post-compact.sh`            | 51    | SessionStart(compact) | Targeted re-read instructions           |
+| `yolo-statusline.sh`         | 559   | StatusLine            | Full 5-line dashboard                   |
+| `prompt-preflight.sh`        | 87    | UserPromptSubmit      | Pre-flight validation                   |
+| `security-filter.sh`         | 52    | PreToolUse            | File access control                     |
+| `agent-start.sh`             | 20    | SubagentStart         | Cost attribution                        |
+| `agent-stop.sh`              | 10    | SubagentStop          | Marker cleanup                          |
 
 ---
 
@@ -172,28 +174,28 @@ The 215-line `suggest-next.sh` computes context-aware next-action suggestions in
 
 **Impact: 40-60% dollar cost reduction (HIGH CONFIDENCE -- pricing-based)**
 
-| Agent | Model | Why | Stock equivalent |
-|---|---|---|---|
-| `vbw-scout` | **Haiku** (hardcoded) | Retrieval only, no code gen | Opus (60x more expensive) |
-| `vbw-qa` | **Sonnet** (hardcoded) | Verification, no creativity | Opus (5x more expensive) |
-| `vbw-dev` | inherit (Opus at balanced) | Code gen needs strongest | Same |
-| `vbw-lead` | inherit (Opus at balanced) | Planning needs strongest | Same |
-| `vbw-architect` | inherit | Requirements analysis | Same |
-| `vbw-debugger` | inherit | Root cause analysis | Same |
+| Agent            | Model                      | Why                         | Stock equivalent          |
+| ---------------- | -------------------------- | --------------------------- | ------------------------- |
+| `yolo-scout`     | **Haiku** (hardcoded)      | Retrieval only, no code gen | Opus (60x more expensive) |
+| `yolo-qa`        | **Sonnet** (hardcoded)     | Verification, no creativity | Opus (5x more expensive)  |
+| `yolo-dev`       | inherit (Opus at balanced) | Code gen needs strongest    | Same                      |
+| `yolo-lead`      | inherit (Opus at balanced) | Planning needs strongest    | Same                      |
+| `yolo-architect` | inherit                    | Requirements analysis       | Same                      |
+| `yolo-debugger`  | inherit                    | Root cause analysis         | Same                      |
 
 **Full effort-aware matrix:**
 
-| Agent | Thorough | Balanced | Fast | Turbo |
-|---|---|---|---|---|
-| Scout | Haiku | Haiku | Haiku | **skipped** |
-| QA | Sonnet | Sonnet | Sonnet | **skipped** |
-| Dev | Opus | Opus | Sonnet | Sonnet |
-| Lead | Opus | Opus | Sonnet | **skipped** |
+| Agent | Thorough | Balanced | Fast   | Turbo       |
+| ----- | -------- | -------- | ------ | ----------- |
+| Scout | Haiku    | Haiku    | Haiku  | **skipped** |
+| QA    | Sonnet   | Sonnet   | Sonnet | **skipped** |
+| Dev   | Opus     | Opus     | Sonnet | Sonnet      |
+| Lead  | Opus     | Opus     | Sonnet | **skipped** |
 
 **Dollar math for a typical phase execution:**
 
 ```
-                Stock (all Opus)                  VBW (model-routed)
+                Stock (all Opus)                  YOLO (model-routed)
 4 scout queries:   4 x 15K x $0.015/K = $0.90    4 x 15K x $0.00025/K = $0.015
 1 QA verification: 25K x $0.015/K     = $0.38    25K x $0.003/K       = $0.075
 2 dev sessions:    2 x 50K x $0.015/K = $1.50    2 x 50K x $0.015/K   = $1.50
@@ -213,19 +215,21 @@ Saving:                                                                 43%
 Two hooks prevent the "amnesia tax" -- the cost of re-establishing context after compaction:
 
 **PreCompact (`compaction-instructions.sh`)** -- Injects tailored preservation priorities:
+
 ```
-vbw-dev:  "Preserve commit hashes, file paths modified, deviation decisions, current task number"
-vbw-scout: "Preserve research findings, URLs, confidence assessments"
-vbw-qa:   "Preserve pass/fail status, gap descriptions, verification results"
+yolo-dev:  "Preserve commit hashes, file paths modified, deviation decisions, current task number"
+yolo-scout: "Preserve research findings, URLs, confidence assessments"
+yolo-qa:   "Preserve pass/fail status, gap descriptions, verification results"
 ```
 
 **Post-compact (`post-compact.sh`)** -- Tells each agent exactly what to re-read:
+
 ```
-vbw-lead: "Re-read STATE.md, ROADMAP.md, config.json, and current phase plans"
-vbw-dev:  "Re-read your assigned plan file, SUMMARY.md template, and relevant source files"
+yolo-lead: "Re-read STATE.md, ROADMAP.md, config.json, and current phase plans"
+yolo-dev:  "Re-read your assigned plan file, SUMMARY.md template, and relevant source files"
 ```
 
-**Stock teams:** No compaction awareness. Agent re-reads everything (~8,000 tokens). VBW: targeted re-read (~2,000 tokens).
+**Stock teams:** No compaction awareness. Agent re-reads everything (~8,000 tokens). YOLO: targeted re-read (~2,000 tokens).
 
 ---
 
@@ -235,12 +239,12 @@ vbw-dev:  "Re-read your assigned plan file, SUMMARY.md template, and relevant so
 
 **Impact: ~800-2,000 tokens/session (prevents wasted tool calls)**
 
-| Agent | Disallowed Tools | What's prevented |
-|---|---|---|
-| `vbw-scout` | Write, Edit, Bash, NotebookEdit | Can't accidentally modify files |
-| `vbw-qa` | Write, Edit, NotebookEdit | Can verify but never modify |
-| `vbw-architect` | Edit, WebFetch, Bash | Produces artifacts only |
-| `vbw-lead` | Edit | Plans but doesn't patch |
+| Agent            | Disallowed Tools                | What's prevented                |
+| ---------------- | ------------------------------- | ------------------------------- |
+| `yolo-scout`     | Write, Edit, Bash, NotebookEdit | Can't accidentally modify files |
+| `yolo-qa`        | Write, Edit, NotebookEdit       | Can verify but never modify     |
+| `yolo-architect` | Edit, WebFetch, Bash            | Produces artifacts only         |
+| `yolo-lead`      | Edit                            | Plans but doesn't patch         |
 
 Each disallowed tool also removes ~200-400 tokens of tool schema from the agent's system prompt. Scout with 4 disallowed tools saves ~800-1,600 tokens per prompt.
 
@@ -256,14 +260,14 @@ PreToolUse hook blocks Write/Edit calls to files not declared in the active plan
 
 **Impact: Insurance (prevents catastrophic runaway)**
 
-| Agent | maxTurns | Prevents |
-|---|---|---|
-| Scout | 15 | Research rabbit holes |
-| QA | 25 | Verification loops |
-| Architect | 30 | Over-planning |
-| Debugger | 40 | Investigation spirals |
-| Lead | 50 | Decomposition paralysis |
-| Dev | 75 | Implementation sprawl |
+| Agent     | maxTurns | Prevents                |
+| --------- | -------- | ----------------------- |
+| Scout     | 15       | Research rabbit holes   |
+| QA        | 25       | Verification loops      |
+| Architect | 30       | Over-planning           |
+| Debugger  | 40       | Investigation spirals   |
+| Lead      | 50       | Decomposition paralysis |
+| Dev       | 75       | Implementation sprawl   |
 
 Without caps, a stuck agent could consume 100+ turns (500K+ tokens) before stopping.
 
@@ -276,6 +280,7 @@ Without caps, a stuck agent could consume 100+ turns (500K+ tokens) before stopp
 **Impact: ~3,200 tokens/agent (HIGH CONFIDENCE)**
 
 **Stock coordination (message-based):**
+
 ```
 Lead -> Spawn agent with big prompt     (~2,000 tokens prompt)
 Agent -> Does work                       (variable)
@@ -287,7 +292,8 @@ Lead -> Sends message to next agent      (~500 tokens)
 Per-agent overhead:                       ~4,000 tokens
 ```
 
-**VBW coordination (disk-based):**
+**YOLO coordination (disk-based):**
+
 ```
 Implement command -> Pre-computes state  (0 model tokens)
 Implement command -> Spawns Lead         (~500 token prompt, pre-computed context)
@@ -321,28 +327,28 @@ Turbo saves 60-80% of total tokens vs Thorough.
 
 ### Per-Mechanism Token Savings
 
-| # | Mechanism | Tokens Saved | When | Confidence |
-|---|---|---|---|---|
-| 1 | `disable-model-invocation` (19 cmds) | ~7,600/session | Every API request | High (measured) |
-| 2 | Brand reference consolidation | ~1,300/session | Every command | High |
-| 3 | Capped context injections | ~300/invocation | Mature projects | High |
-| 4 | Lazy reference loading | ~350/invocation | Per command run | High |
-| 5 | Effort profile lazy-loading | ~270/execution | Per build | High |
-| 6 | Reference dedup in agents | ~1,600/agent spawn | Per spawn | High |
-| 7 | `phase-detect.sh` pre-computation | ~1,100/invocation | Per /implement | High (measured) |
-| 8 | SessionStart context injection | ~600/session | Session start | High (measured) |
-| 9 | `suggest-next.sh` shell routing | ~300/command | Per command | Medium |
-| 10 | Model routing (Haiku/Sonnet) | 40-60% cost | Per agent | High (pricing) |
-| 11 | Compaction hooks | ~1,500/event | Per compaction | Medium |
-| 12 | Tool restrictions | ~1,200/agent prompt | Per spawn | High |
-| 13 | File guard | ~500/blocked write | Per violation | Medium |
-| 14 | `maxTurns` caps | Insurance | Worst case | High |
-| 15 | Disk coordination + schemas | ~3,200/agent | Per agent | Medium |
+| #   | Mechanism                            | Tokens Saved        | When              | Confidence      |
+| --- | ------------------------------------ | ------------------- | ----------------- | --------------- |
+| 1   | `disable-model-invocation` (19 cmds) | ~7,600/session      | Every API request | High (measured) |
+| 2   | Brand reference consolidation        | ~1,300/session      | Every command     | High            |
+| 3   | Capped context injections            | ~300/invocation     | Mature projects   | High            |
+| 4   | Lazy reference loading               | ~350/invocation     | Per command run   | High            |
+| 5   | Effort profile lazy-loading          | ~270/execution      | Per build         | High            |
+| 6   | Reference dedup in agents            | ~1,600/agent spawn  | Per spawn         | High            |
+| 7   | `phase-detect.sh` pre-computation    | ~1,100/invocation   | Per /implement    | High (measured) |
+| 8   | SessionStart context injection       | ~600/session        | Session start     | High (measured) |
+| 9   | `suggest-next.sh` shell routing      | ~300/command        | Per command       | Medium          |
+| 10  | Model routing (Haiku/Sonnet)         | 40-60% cost         | Per agent         | High (pricing)  |
+| 11  | Compaction hooks                     | ~1,500/event        | Per compaction    | Medium          |
+| 12  | Tool restrictions                    | ~1,200/agent prompt | Per spawn         | High            |
+| 13  | File guard                           | ~500/blocked write  | Per violation     | Medium          |
+| 14  | `maxTurns` caps                      | Insurance           | Worst case        | High            |
+| 15  | Disk coordination + schemas          | ~3,200/agent        | Per agent         | Medium          |
 
 ### Aggregate Session Estimate (Balanced effort, 1 phase, 3-plan build)
 
 ```
-                            Stock Teams    VBW          Saving
+                            Stock Teams    YOLO          Saving
 Base context overhead        10,800         3,200        7,600  (70%)
 State computation             1,300           200        1,100  (85%)
 Agent init context (x4)      24,000         6,400       17,600  (73%)
@@ -357,7 +363,7 @@ Total coordination overhead  87,100        33,200       53,900  (62%)
 Agent model costs (dollar)    $2.78         $1.59        $1.19  (43%)
 ```
 
-**Bottom line: VBW delivers ~62% reduction in coordination overhead tokens and ~46% reduction in total dollar cost per phase execution.**
+**Bottom line: YOLO delivers ~62% reduction in coordination overhead tokens and ~46% reduction in total dollar cost per phase execution.**
 
 ---
 
@@ -395,14 +401,14 @@ x3 phases...
 Total: ~180,000 tokens, ~$8.50
 ```
 
-### VBW
+### YOLO
 
 ```
 Session start:
   session-start.sh injects context:      100 tokens (model), 0 cost (shell)
   Load 8 always-on commands:           3,200 tokens
 
-/vbw:implement:
+/yolo:implement:
   phase-detect.sh pre-computes:          150 tokens (model), 0 cost (shell)
   State machine routes:                    50 tokens output
 
@@ -434,7 +440,7 @@ Saving: 42% tokens, 46% cost
 ## Architecture Diagram
 
 ```
-                 STOCK AGENT TEAMS                              VBW
+                 STOCK AGENT TEAMS                              YOLO
                  ==================                             ===
 
   User Input                                         User Input
@@ -491,9 +497,9 @@ Saving: 42% tokens, 46% cost
 
 3. **Model routing is the biggest dollar-cost win.** Scout on Haiku (60x cheaper than Opus) and QA on Sonnet (5x cheaper) cut 40-60% off agent costs while maintaining quality where it matters.
 
-4. **Coordination-by-disk beats coordination-by-message.** VBW agents write PLANs and SUMMARYs to disk; the next agent reads them. Stock teams pass context through messages (each a full API round-trip with growing context windows). Disk coordination is nearly free.
+4. **Coordination-by-disk beats coordination-by-message.** YOLO agents write PLANs and SUMMARYs to disk; the next agent reads them. Stock teams pass context through messages (each a full API round-trip with growing context windows). Disk coordination is nearly free.
 
-5. **Compaction resilience is an underappreciated optimization.** Without hooks, post-compaction recovery wastes 5,000-8,000 tokens re-establishing context. VBW's two hooks cut that to ~2,000 tokens with surgical instructions.
+5. **Compaction resilience is an underappreciated optimization.** Without hooks, post-compaction recovery wastes 5,000-8,000 tokens re-establishing context. YOLO's two hooks cut that to ~2,000 tokens with surgical instructions.
 
 6. **Turbo mode eliminates the coordination layer entirely.** For simple tasks, spawning 1 Dev directly (no Lead, no Scout, no QA, no Team) saves 60-80% of tokens.
 
@@ -501,42 +507,42 @@ Saving: 42% tokens, 46% cost
 
 ---
 
-## What VBW Cannot Optimize (Platform Limitations)
+## What YOLO Cannot Optimize (Platform Limitations)
 
-| Limitation | Impact | Why |
-|---|---|---|
-| CLAUDE.md loaded in every agent | ~6,000 tokens duplication | Claude Code platform behavior, no API to control |
-| Task CRUD tool calls | ~8,000-10,000 tokens | Required for team coordination; VBW reduces but can't eliminate |
-| System prompt / tool schemas | ~3,000-4,000 per agent | Platform-injected, not controllable |
-| Idle notification tokens | ~500-2,000/phase | System-generated, can't suppress |
+| Limitation                      | Impact                    | Why                                                              |
+| ------------------------------- | ------------------------- | ---------------------------------------------------------------- |
+| CLAUDE.md loaded in every agent | ~6,000 tokens duplication | Claude Code platform behavior, no API to control                 |
+| Task CRUD tool calls            | ~8,000-10,000 tokens      | Required for team coordination; YOLO reduces but can't eliminate |
+| System prompt / tool schemas    | ~3,000-4,000 per agent    | Platform-injected, not controllable                              |
+| Idle notification tokens        | ~500-2,000/phase          | System-generated, can't suppress                                 |
 
 ---
 
 ## Appendix A: Complete Hook Architecture
 
-VBW uses 18+ hooks across 7 hook types to move work from model to shell:
+YOLO uses 18+ hooks across 7 hook types to move work from model to shell:
 
-| Hook Type | Script | Tokens Saved |
-|---|---|---|
-| SessionStart | `session-start.sh` | ~3,000-5,000 (silent infra) + ~600 (state injection) |
-| SessionStart | `map-staleness.sh` | ~200 (staleness check) |
-| SessionStart(compact) | `post-compact.sh` | ~500-1,000 (targeted recovery) |
-| PreCompact | `compaction-instructions.sh` | ~500-1,000 (preservation priorities) |
-| UserPromptSubmit | `prompt-preflight.sh` | ~200 (command validation) |
-| PreToolUse | `security-filter.sh` | 0 (security, not tokens) |
-| PreToolUse | `file-guard.sh` | ~200-2,000 (prevents wasted writes) |
-| PostToolUse | `validate-commit.sh` | ~100 (commit format) |
-| PostToolUse | `validate-frontmatter.sh` | ~100 (structure) |
-| PostToolUse | `validate-summary.sh` | ~100 (structure) |
-| SubagentStart | `agent-start.sh` | 0 (cost tracking) |
-| SubagentStop | `agent-stop.sh` | 0 (cleanup) |
-| TeammateIdle | `qa-gate.sh` | ~200-500 (prevents premature stop) |
-| StatusLine | `vbw-statusline.sh` | N/A (dashboard, not context) |
-| TaskCompleted | `task-verify.sh` | ~200-500 (validates commits) |
-| Stop | `session-stop.sh` | 0 (logging) |
+| Hook Type             | Script                       | Tokens Saved                                         |
+| --------------------- | ---------------------------- | ---------------------------------------------------- |
+| SessionStart          | `session-start.sh`           | ~3,000-5,000 (silent infra) + ~600 (state injection) |
+| SessionStart          | `map-staleness.sh`           | ~200 (staleness check)                               |
+| SessionStart(compact) | `post-compact.sh`            | ~500-1,000 (targeted recovery)                       |
+| PreCompact            | `compaction-instructions.sh` | ~500-1,000 (preservation priorities)                 |
+| UserPromptSubmit      | `prompt-preflight.sh`        | ~200 (command validation)                            |
+| PreToolUse            | `security-filter.sh`         | 0 (security, not tokens)                             |
+| PreToolUse            | `file-guard.sh`              | ~200-2,000 (prevents wasted writes)                  |
+| PostToolUse           | `validate-commit.sh`         | ~100 (commit format)                                 |
+| PostToolUse           | `validate-frontmatter.sh`    | ~100 (structure)                                     |
+| PostToolUse           | `validate-summary.sh`        | ~100 (structure)                                     |
+| SubagentStart         | `agent-start.sh`             | 0 (cost tracking)                                    |
+| SubagentStop          | `agent-stop.sh`              | 0 (cleanup)                                          |
+| TeammateIdle          | `qa-gate.sh`                 | ~200-500 (prevents premature stop)                   |
+| StatusLine            | `yolo-statusline.sh`         | N/A (dashboard, not context)                         |
+| TaskCompleted         | `task-verify.sh`             | ~200-500 (validates commits)                         |
+| Stop                  | `session-stop.sh`            | 0 (logging)                                          |
 
 **All hooks combined: ~5,600-11,100 tokens saved per session.**
 
 ## Appendix B: Irony of This Analysis
 
-This very analysis was produced using a stock Agent Team (not VBW's optimized agents). The team lead spawned two Explore agents on the default model to research in parallel, coordinated via messages, and waited through idle notifications. If this analysis had been run through VBW's `/vbw:research` command instead, the two Scout agents would have run on Haiku, pre-computed state would have been injected, and the total cost would have been approximately 40-60% lower. The analysis itself demonstrates the problem it describes.
+This very analysis was produced using a stock Agent Team (not YOLO's optimized agents). The team lead spawned two Explore agents on the default model to research in parallel, coordinated via messages, and waited through idle notifications. If this analysis had been run through YOLO's `/yolo:research` command instead, the two Scout agents would have run on Haiku, pre-computed state would have been injected, and the total cost would have been approximately 40-60% lower. The analysis itself demonstrates the problem it describes.

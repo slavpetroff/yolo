@@ -1,16 +1,16 @@
-# VBW Brand Vocabulary
+# YOLO Brand Vocabulary
 
 ## Semantic Symbols
 
-| Meaning          | Symbol | Unicode  | Usage                    |
-|------------------|--------|----------|--------------------------|
-| Success/complete | ✓      | U+2713   | Task done, check passed  |
-| Failure/error    | ✗      | U+2717   | Task failed, check error |
-| In progress      | ◆      | U+25C6   | Currently executing      |
-| Pending/queued   | ○      | U+25CB   | Waiting to start         |
-| Action/lightning | ⚡     | U+26A1   | Command invocation       |
-| Warning          | ⚠      | U+26A0   | Non-blocking concern     |
-| Info/arrow       | ➜      | U+279C   | Navigation, next step    |
+| Meaning          | Symbol | Unicode | Usage                    |
+| ---------------- | ------ | ------- | ------------------------ |
+| Success/complete | ✓      | U+2713  | Task done, check passed  |
+| Failure/error    | ✗      | U+2717  | Task failed, check error |
+| In progress      | ◆      | U+25C6  | Currently executing      |
+| Pending/queued   | ○      | U+25CB  | Waiting to start         |
+| Action/lightning | ⚡     | U+26A1  | Command invocation       |
+| Warning          | ⚠      | U+26A0  | Non-blocking concern     |
+| Info/arrow       | ➜      | U+279C  | Navigation, next step    |
 
 ## Box Drawing
 

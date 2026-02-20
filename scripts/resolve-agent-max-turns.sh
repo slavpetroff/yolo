@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# resolve-agent-max-turns.sh - Turn budget resolution for VBW agents
+# resolve-agent-max-turns.sh - Turn budget resolution for YOLO agents
 #
 # Usage:
 #   resolve-agent-max-turns.sh <agent-name> <config-path> [effort]
 #
 # agent-name: lead|dev|qa|scout|debugger|architect
-# config-path: path to .vbw-planning/config.json (optional/fail-open)
+# config-path: path to .yolo-planning/config.json (optional/fail-open)
 # effort: thorough|balanced|fast|turbo (also accepts high|medium|low)
 #
 # Returns: stdout = integer maxTurns (0 disables maxTurns), exit 0

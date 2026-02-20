@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# bootstrap-project.sh — Generate PROJECT.md for a VBW project
+# bootstrap-project.sh — Generate PROJECT.md for a YOLO project
 #
 # Usage: bootstrap-project.sh OUTPUT_PATH NAME DESCRIPTION [CORE_VALUE]
 #   OUTPUT_PATH   Path to write PROJECT.md

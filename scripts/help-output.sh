@@ -6,7 +6,7 @@ set -euo pipefail
 
 PLUGIN_ROOT="${1:-${CLAUDE_PLUGIN_ROOT:-}}"
 if [ -z "$PLUGIN_ROOT" ]; then
-  PLUGIN_ROOT=$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/vbw-marketplace/vbw/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)
+  PLUGIN_ROOT=$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)
 fi
 
 COMMANDS_DIR="$PLUGIN_ROOT/commands"
@@ -81,9 +81,9 @@ fi
 # Header
 echo "╔══════════════════════════════════════════════════════════════════════════╗"
 if [ -n "$VERSION" ]; then
-  header="VBW Help — v$VERSION"
+  header="YOLO Help — v$VERSION"
 else
-  header="VBW Help"
+  header="YOLO Help"
 fi
 padding=$((72 - ${#header}))
 printf "║ %s%${padding}s║\n" "$header" ""
@@ -109,7 +109,7 @@ print_section "Supporting" "The Safety Net"                  "$TMP_DIR/supportin
 print_section "Advanced"   "For When You're Feeling Ambitious" "$TMP_DIR/advanced"
 print_section "Other"      "Uncategorized"                  "$TMP_DIR/other"
 
-echo "  /vbw:help <command>                      Details on a specific command"
-echo "  /vbw:config                              View and change settings"
+echo "  /yolo:help <command>                      Details on a specific command"
+echo "  /yolo:config                              View and change settings"
 echo ""
-echo "  Getting Started: /vbw:init → /vbw:vibe → /vbw:vibe --archive"
+echo "  Getting Started: /yolo:init → /yolo:vibe → /yolo:vibe --archive"

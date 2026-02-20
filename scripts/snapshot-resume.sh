@@ -5,7 +5,7 @@ set -u
 # snapshot-resume.sh restore <phase> [preferred-role]
 # Save: snapshot execution state + git context for crash recovery.
 # Restore: find latest snapshot for a phase.
-# Snapshots: .vbw-planning/.snapshots/{phase}-{timestamp}.json
+# Snapshots: .yolo-planning/.snapshots/{phase}-{timestamp}.json
 # Max 10 per phase (prunes oldest). Fail-open: exit 0 always.
 
 if [ $# -lt 2 ]; then
@@ -15,7 +15,7 @@ fi
 ACTION="$1"
 PHASE="$2"
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 CONFIG_PATH="${PLANNING_DIR}/config.json"
 SNAPSHOTS_DIR="${PLANNING_DIR}/.snapshots"
 
@@ -27,7 +27,7 @@ fi
 
 case "$ACTION" in
   save)
-    STATE_PATH="${3:-.vbw-planning/.execution-state.json}"
+    STATE_PATH="${3:-.yolo-planning/.execution-state.json}"
     mkdir -p "$SNAPSHOTS_DIR" 2>/dev/null || exit 0
     [ ! -f "$STATE_PATH" ] && exit 0
 
@@ -37,7 +37,7 @@ case "$ACTION" in
     # Optional agent metadata
     AGENT_ROLE="${4:-}"
     if [ -z "$AGENT_ROLE" ]; then
-      AGENT_ROLE=$(cat .vbw-planning/.active-agent 2>/dev/null || echo "unknown")
+      AGENT_ROLE=$(cat .yolo-planning/.active-agent 2>/dev/null || echo "unknown")
     fi
     TRIGGER="${5:-unknown}"
 

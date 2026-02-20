@@ -9,7 +9,7 @@ set -u
 # Output: JSON {result: "confirmed"|"rejected", checks_passed: N, checks_total: N, errors: [...]}
 # Exit: 0 on confirmed, 2 on rejected, 0 when flag off
 
-PLANNING_DIR=".vbw-planning"
+PLANNING_DIR=".yolo-planning"
 CONFIG_PATH="${PLANNING_DIR}/config.json"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
