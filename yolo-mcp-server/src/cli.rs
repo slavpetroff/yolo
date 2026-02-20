@@ -6,6 +6,8 @@ pub mod state_updater;
 pub mod statusline;
 pub mod hard_gate;
 pub mod session_start;
+pub mod metrics_report;
+pub mod token_baseline;
 
 pub fn generate_report(total_calls: i64, compile_calls: i64) -> String {
     let mut out = String::new();
@@ -83,6 +85,15 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
         "session-start" => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             session_start::execute_session_start(&cwd)
+        }
+        "metrics-report" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            let phase_filter = if args.len() > 2 { Some(args[2].as_str()) } else { None };
+            metrics_report::generate_metrics_report(&cwd, phase_filter)
+        }
+        "token-baseline" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            token_baseline::execute(&args, &cwd)
         }
         _ => Err(format!("Unknown command: {}", args[1]))
     }
