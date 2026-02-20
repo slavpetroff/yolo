@@ -2,7 +2,7 @@
   {"rule": "Commit format: {type}({scope}): {description} — types: feat, fix, test, refactor, perf, docs, style, chore", "source": "CLAUDE.md"},
   {"rule": "One atomic commit per task", "source": "CLAUDE.md"},
   {"rule": "Never commit secrets (.env, .pem, .key, credentials)", "source": "CLAUDE.md"},
-  {"rule": "All hooks route through hook-wrapper.sh for graceful degradation", "source": "hooks/hooks.json"},
+  {"rule": "All hooks route through the native Rust dispatcher (yolo hook <Event>)", "source": "hooks/hooks.json"},
   {"rule": "Bash 3 compatibility required (no associative arrays, no ${VAR,,})", "source": "codebase analysis"},
   {"rule": "Use absolute paths, avoid cd in scripts", "source": "codebase analysis"},
   {"rule": "Shell scripts use kebab-case naming", "source": "codebase analysis"},

@@ -13,7 +13,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 - **Never commit secrets.** Do not stage .env, .pem, .key, credentials, or token files.
 - **Plan before building.** Use /yolo:vibe for all lifecycle actions. Plans are the source of truth.
 - **Do not fabricate content.** Only use what the user explicitly states in project-defining flows.
-- **Do not bump version or push until asked.** Never run `scripts/bump-version.sh` or `git push` unless the user explicitly requests it, except when `.yolo-planning/config.json` intentionally sets `auto_push` to `always` or `after_phase`.
+- **Do not bump version or push until asked.** Never run `yolo bump-version` or `git push` unless the user explicitly requests it, except when `.yolo-planning/config.json` intentionally sets `auto_push` to `always` or `after_phase`.
 - **NEVER take work from open or draft PRs.** Before starting any feature, fix, or refactor, run `gh pr list --state open` and check if any open/draft PR already touches the same area. If a PR exists that overlaps with what you're about to do — even if it's draft, half-finished, or failing CI — STOP and tell the user: "There's an open PR (#M) by @author that overlaps with this work. Proceed anyway?" Do NOT read the PR's diff, copy its approach, or integrate its changes without explicit user approval. Contributors' in-progress work belongs to them. This also applies when resolving GitHub issues — check `gh pr list --search "issue_number"` first.
 - **Review PRs by diffing against the repo, not just checking overlap.** When reviewing a PR, run `gh pr diff N` and compare the actual changes to what's currently in the repo. A PR that touches files you already modified is NOT automatically redundant — it may contain additional improvements, bug fixes, or edge cases beyond what's already shipped. Only the diff tells you what's new. Don't dismiss a PR as "already done" without confirming every change in the diff is already present in the codebase.
 - **No QA or Scout agents:** Domain research and testing are natively handled by the Orchestrator and Dev agents via MCP tools. Do not attempt to spawn `yolo-qa` or `yolo-scout`. Tests must be executed and fixed by `yolo-dev` directly using MCP testing infrastructure.
@@ -32,7 +32,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 - **Never commit secrets.** Do not stage .env, .pem, .key, credentials, or token files.
 - **Plan before building.** Use /vbw:vibe for all lifecycle actions. Plans are the source of truth.
 - **Do not fabricate content.** Only use what the user explicitly states in project-defining flows.
-- **Do not bump version or push until asked.** Never run `scripts/bump-version.sh` or `git push` unless the user explicitly requests it, except when `.vbw-planning/config.json` intentionally sets `auto_push` to `always` or `after_phase`.
+- **Do not bump version or push until asked.** Never run `yolo bump-version` or `git push` unless the user explicitly requests it, except when `.vbw-planning/config.json` intentionally sets `auto_push` to `always` or `after_phase`.
 
 ## Installed Skills
 

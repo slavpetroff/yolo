@@ -1,6 +1,6 @@
 {
   "description": "YOLO quality gates and continuous verification — all hooks route through native Rust dispatcher (`yolo hook <event>`)",
-  "_note": "All hooks are handled by the native Rust dispatcher at $HOME/.cargo/bin/yolo. Each event routes to one `yolo hook <EventName>` command which internally dispatches to all relevant handlers (security-filter, validate-summary, skill-hook-dispatch, agent-start, agent-stop, agent-health, compaction-instructions, post-compact, map-staleness, prompt-preflight, session-stop, notification-log, blocker-notify, validate-frontmatter, bash-guard, file-guard, state-updater, qa-gate, task-verify). The bash hook-wrapper.sh is deprecated — it forwards to the Rust dispatcher for backward compatibility.",
+  "_note": "All hooks are handled by the native Rust dispatcher at $HOME/.cargo/bin/yolo. Each event routes to one `yolo hook <EventName>` command which internally dispatches to all relevant handlers (security-filter, validate-summary, skill-hook-dispatch, agent-start, agent-stop, agent-health, compaction-instructions, post-compact, map-staleness, prompt-preflight, session-stop, notification-log, blocker-notify, validate-frontmatter, bash-guard, file-guard, state-updater, qa-gate, task-verify).",
   "hooks": {
     "PreToolUse": [
       {
