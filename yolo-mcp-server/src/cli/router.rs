@@ -1,7 +1,10 @@
 use rusqlite::Connection;
 use std::env;
+use std::io::Read;
 use std::path::PathBuf;
-use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns};
+use std::sync::atomic::Ordering;
+use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, log_event, collect_metrics};
+use crate::hooks;
 pub fn generate_report(total_calls: i64, compile_calls: i64) -> String {
     let mut out = String::new();
     out.push_str("============================================================\n");
@@ -133,6 +136,41 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
         "resolve-turns" => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             resolve_turns::execute(&args, &cwd)
+        }
+        "log-event" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            log_event::execute(&args, &cwd)
+        }
+        "collect-metrics" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            collect_metrics::execute(&args, &cwd)
+        }
+        "hook" => {
+            if args.len() < 3 {
+                return Err("Usage: yolo hook <event-name>".to_string());
+            }
+            let event_name = &args[2];
+
+            // Register SIGHUP handler for cleanup
+            let sighup_flag = hooks::sighup::register_sighup_handler().ok();
+
+            // Read stdin (hook JSON context from Claude Code)
+            let mut stdin_json = String::new();
+            let _ = std::io::stdin().read_to_string(&mut stdin_json);
+            if stdin_json.is_empty() {
+                stdin_json = "{}".to_string();
+            }
+
+            let result = hooks::dispatcher::dispatch_from_cli(event_name, &stdin_json);
+
+            // Check if SIGHUP was received during dispatch
+            if let Some(ref flag) = sighup_flag {
+                if hooks::sighup::check_and_handle_sighup(flag.as_ref()) {
+                    return Ok(("".to_string(), 1));
+                }
+            }
+
+            result
         }
         _ => Err(format!("Unknown command: {}", args[1]))
     }
