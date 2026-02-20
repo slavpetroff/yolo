@@ -104,7 +104,7 @@ pub fn execute_fetch_limits() -> Result<(), String> {
 
     if api_key.is_empty() {
         let cache_path = get_cache_path();
-        let _ = fs::write(cache_path, r#"{"status": "auth"}"#);
+        let _ = fs::write(cache_path, r#"{"status": "auth", "model": "claude-3-5-sonnet-20241022"}"#);
         return Err("No Auth".to_string());
     }
 
@@ -150,7 +150,7 @@ pub fn execute_fetch_limits() -> Result<(), String> {
             Ok(())
         }
         Err(_) => {
-            let _ = fs::write(get_cache_path(), r#"{"status": "fail"}"#);
+            let _ = fs::write(get_cache_path(), r#"{"status": "fail", "model": "claude-3-5-sonnet-20241022"}"#);
             Err("Fetch Failed".to_string())
         }
     }
@@ -218,6 +218,11 @@ mod tests {
     use super::*;
     use std::fs;
     use std::env;
+    use std::sync::Mutex;
+
+    // Tests that call set_current_dir or set_var must not run concurrently
+    // because both are process-global state. A static Mutex serialises them.
+    static CWD_LOCK: Mutex<()> = Mutex::new(());
 
     fn setup_test_dir(name: &str) -> PathBuf {
         let mut d = env::temp_dir();
@@ -238,9 +243,10 @@ mod tests {
 
     #[test]
     fn test_get_project_name() {
+        let _lock = CWD_LOCK.lock().unwrap();
         let name = get_project_name();
         assert!(!name.is_empty());
-        
+
         let orig_dir = env::current_dir().unwrap();
         struct DirGuard(std::path::PathBuf);
         impl Drop for DirGuard { fn drop(&mut self) { let _ = std::env::set_current_dir(&self.0); } }
@@ -250,10 +256,11 @@ mod tests {
             let root_name = get_project_name();
             assert_eq!(root_name, "Unknown Project");
         }
-        }
+    }
 
     #[test]
     fn test_get_state_info() {
+        let _lock = CWD_LOCK.lock().unwrap();
         let d = setup_test_dir("state_info");
         let orig_dir = env::current_dir().unwrap();
         struct DirGuard(std::path::PathBuf);
@@ -302,6 +309,7 @@ mod tests {
 
     #[test]
     fn test_execute_fetch_limits_no_auth() {
+        let _lock = CWD_LOCK.lock().unwrap();
         let d = setup_test_dir("no_auth");
         let orig_dir = env::current_dir().unwrap();
         struct DirGuard(std::path::PathBuf);
@@ -328,6 +336,7 @@ mod tests {
 
     #[test]
     fn test_execute_fetch_limits_with_auth() {
+        let _lock = CWD_LOCK.lock().unwrap();
         let d = setup_test_dir("with_auth");
         let orig_dir = env::current_dir().unwrap();
         struct DirGuard(std::path::PathBuf);
@@ -358,6 +367,7 @@ mod tests {
 
     #[test]
     fn test_execute_fetch_limits_bearer_token() {
+        let _lock = CWD_LOCK.lock().unwrap();
         let d = setup_test_dir("bearer_auth");
         let orig_dir = env::current_dir().unwrap();
         struct DirGuard(std::path::PathBuf);
@@ -383,6 +393,7 @@ mod tests {
 
     #[test]
     fn test_get_limits_and_model() {
+        let _lock = CWD_LOCK.lock().unwrap();
         let d = setup_test_dir("limits_model");
         let orig_dir = env::current_dir().unwrap();
         struct DirGuard(std::path::PathBuf);
@@ -391,19 +402,19 @@ mod tests {
         env::set_current_dir(&d).unwrap();
 
         let cache_path = get_cache_path();
-        
+
         unsafe {
             env::remove_var("ANTHROPIC_API_KEY");
             env::remove_var("YOLO_OAUTH_TOKEN");
             env::set_var("HOME", d.to_str().unwrap());
         }
-        
+
         // 1. Missing cache -> returns Pending...
         let _ = fs::remove_file(&cache_path);
-        let (out1, model1) = get_limits_and_model();
+        let (out1, _model1) = get_limits_and_model();
         assert!(out1.contains("Pending") || out1.contains("fail") || out1.contains("auth")); // Depending on if it ran sync fetch internally!
-        
-        // Wait, get_limits_and_model runs execute_fetch_limits synchronously if cache is missing. 
+
+        // Wait, get_limits_and_model runs execute_fetch_limits synchronously if cache is missing.
         // So out1 will reflect the immediate fetch result!
 
         // 2. Auth error
