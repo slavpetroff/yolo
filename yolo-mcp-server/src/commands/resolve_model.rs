@@ -267,4 +267,67 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Usage:"));
     }
+
+    #[test]
+    fn test_budget_profile() {
+        let dir = tempdir().unwrap();
+        let profiles = write_profiles(dir.path());
+        let config = write_config(dir.path(), r#"{"model_profile": "budget"}"#);
+
+        let (out, _) = execute(
+            &["yolo".into(), "resolve-model".into(), "qa".into(), config, profiles],
+            dir.path(),
+        ).unwrap();
+        assert_eq!(out.trim(), "haiku");
+    }
+
+    #[test]
+    fn test_all_7_agents_quality() {
+        let dir = tempdir().unwrap();
+        let profiles = write_profiles(dir.path());
+        let config = write_config(dir.path(), r#"{"model_profile": "quality"}"#);
+
+        let expected = [
+            ("lead", "opus"), ("dev", "opus"), ("qa", "sonnet"),
+            ("scout", "haiku"), ("debugger", "opus"), ("architect", "opus"), ("docs", "sonnet"),
+        ];
+        for (agent, model) in &expected {
+            let (out, code) = execute(
+                &["yolo".into(), "resolve-model".into(), agent.to_string(), config.clone(), profiles.clone()],
+                dir.path(),
+            ).unwrap();
+            assert_eq!(out.trim(), *model, "Agent {} should resolve to {}", agent, model);
+            assert_eq!(code, 0);
+        }
+    }
+
+    #[test]
+    fn test_missing_profiles_file() {
+        let dir = tempdir().unwrap();
+        let config = write_config(dir.path(), r#"{}"#);
+
+        let result = execute(
+            &["yolo".into(), "resolve-model".into(), "dev".into(), config, "/nonexistent/profiles.json".into()],
+            dir.path(),
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Model profiles not found"));
+    }
+
+    #[test]
+    fn test_empty_override_ignored() {
+        let dir = tempdir().unwrap();
+        let profiles = write_profiles(dir.path());
+        let config = write_config(dir.path(), r#"{
+            "model_profile": "quality",
+            "model_overrides": { "dev": "" }
+        }"#);
+
+        let (out, _) = execute(
+            &["yolo".into(), "resolve-model".into(), "dev".into(), config, profiles],
+            dir.path(),
+        ).unwrap();
+        // Empty override should be ignored, falls through to profile value
+        assert_eq!(out.trim(), "opus");
+    }
 }

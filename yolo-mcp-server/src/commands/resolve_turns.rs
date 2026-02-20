@@ -404,4 +404,99 @@ mod tests {
         ).unwrap();
         assert_eq!(out.trim(), "50");
     }
+
+    #[test]
+    fn test_zero_scalar_unlimited() {
+        let dir = tempdir().unwrap();
+        let config = write_config(dir.path(), r#"{
+            "agent_max_turns": { "dev": 0 }
+        }"#);
+
+        let (out, _) = execute(
+            &["yolo".into(), "resolve-turns".into(), "dev".into(), config],
+            dir.path(),
+        ).unwrap();
+        assert_eq!(out.trim(), "0");
+    }
+
+    #[test]
+    fn test_legacy_effort_low_maps_to_turbo() {
+        let dir = tempdir().unwrap();
+        let config = write_config(dir.path(), r#"{}"#);
+
+        // low -> turbo -> 0.6x on dev=75 -> 45
+        let (out, _) = execute(
+            &["yolo".into(), "resolve-turns".into(), "dev".into(), config, "low".into()],
+            dir.path(),
+        ).unwrap();
+        assert_eq!(out.trim(), "45");
+    }
+
+    #[test]
+    fn test_legacy_effort_medium_maps_to_balanced() {
+        let dir = tempdir().unwrap();
+        let config = write_config(dir.path(), r#"{}"#);
+
+        // medium -> balanced -> 1.0x on dev=75 -> 75
+        let (out, _) = execute(
+            &["yolo".into(), "resolve-turns".into(), "dev".into(), config, "medium".into()],
+            dir.path(),
+        ).unwrap();
+        assert_eq!(out.trim(), "75");
+    }
+
+    #[test]
+    fn test_missing_config_uses_defaults() {
+        let dir = tempdir().unwrap();
+
+        // Config file doesn't exist - should still work with defaults
+        let (out, _) = execute(
+            &["yolo".into(), "resolve-turns".into(), "dev".into(), "/nonexistent/config.json".into()],
+            dir.path(),
+        ).unwrap();
+        assert_eq!(out.trim(), "75");
+    }
+
+    #[test]
+    fn test_empty_config_effort_falls_back_to_balanced() {
+        let dir = tempdir().unwrap();
+        let config = write_config(dir.path(), r#"{"effort": ""}"#);
+
+        // Empty effort -> falls back to balanced -> 1.0x on dev=75 -> 75
+        let (out, _) = execute(
+            &["yolo".into(), "resolve-turns".into(), "dev".into(), config],
+            dir.path(),
+        ).unwrap();
+        assert_eq!(out.trim(), "75");
+    }
+
+    #[test]
+    fn test_object_mode_legacy_fallback() {
+        let dir = tempdir().unwrap();
+        let config = write_config(dir.path(), r#"{
+            "agent_max_turns": {
+                "dev": { "high": 200, "medium": 100, "low": 50 }
+            }
+        }"#);
+
+        // thorough -> tries "thorough" (miss) -> tries legacy "high" (hit) -> 200
+        let (out, _) = execute(
+            &["yolo".into(), "resolve-turns".into(), "dev".into(), config, "thorough".into()],
+            dir.path(),
+        ).unwrap();
+        assert_eq!(out.trim(), "200");
+    }
+
+    #[test]
+    fn test_thorough_rounding_architect() {
+        let dir = tempdir().unwrap();
+        let config = write_config(dir.path(), r#"{}"#);
+
+        // architect=30, thorough=1.5x -> (30*3 + 2/2)/2 = (90+1)/2 = 45
+        let (out, _) = execute(
+            &["yolo".into(), "resolve-turns".into(), "architect".into(), config, "thorough".into()],
+            dir.path(),
+        ).unwrap();
+        assert_eq!(out.trim(), "45");
+    }
 }
