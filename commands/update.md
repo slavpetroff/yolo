@@ -42,7 +42,7 @@ If remote == old: display "✓ Already at latest (v{old_version}). Refreshing ca
 ### Step 4: Nuclear cache wipe
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/cache-nuke.sh
+yolo cache-nuke
 ```
 Removes CLAUDE_DIR/plugins/cache/yolo-marketplace/yolo/, CLAUDE_DIR/commands/yolo/, /tmp/yolo-* for pristine update.
 
@@ -74,7 +74,7 @@ This removes stale copies that break `${CLAUDE_PLUGIN_ROOT}` resolution. Command
 
 Read `CLAUDE_DIR/settings.json`, check `statusLine` (string or object .command). If contains `yolo-statusline`: skip. Otherwise update to:
 ```json
-{"type": "command", "command": "bash -c 'f=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/yolo-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"$f\" ] && exec bash \"$f\"'"}
+{"type": "command", "command": "$HOME/.cargo/bin/yolo statusline"}
 ```
 Use jq to write (backup, update, restore on failure). Display `✓ Statusline restored (restart to activate)` if changed.
 

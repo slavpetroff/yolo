@@ -23,7 +23,7 @@ Git status:
 1. **Not a YOLO repo:** No VERSION file → STOP: "No VERSION file found. Must run from YOLO plugin root."
 2. **Dirty tree:** If `git status --porcelain` shows uncommitted changes (excluding .claude/ and CLAUDE.md), WARN + confirm: "Uncommitted changes detected. They will NOT be in the release commit. Continue?"
 3. **No [Unreleased]:** If CHANGELOG.md lacks `## [Unreleased]`, WARN + confirm: "No [Unreleased] section. Release commit will only bump versions. Continue?"
-4. **Version sync:** `bash scripts/bump-version.sh --verify`. Out of sync → WARN but proceed (bump fixes it).
+4. **Version sync:** `yolo bump-version --verify`. Out of sync → WARN but proceed (bump fixes it).
 
 ## Pre-release Audit
 
@@ -60,7 +60,7 @@ No flags = patch bump (default).
 ### Step 2: Bump version
 
 --major/--minor: read VERSION, compute new version, write to all 4 files (VERSION, .claude-plugin/plugin.json, .claude-plugin/marketplace.json, marketplace.json).
-Neither flag: `bash scripts/bump-version.sh`. Capture new version.
+Neither flag: `yolo bump-version`. Capture new version.
 
 ### Step 3: Update CHANGELOG header
 
@@ -69,7 +69,7 @@ No [Unreleased]: display ○.
 
 ### Step 4: Verify version sync
 
-`bash scripts/bump-version.sh --verify`. Fail → STOP: "Version sync failed after bump."
+`yolo bump-version --verify`. Fail → STOP: "Version sync failed after bump."
 
 ### Step 5: Commit
 

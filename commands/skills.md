@@ -14,7 +14,7 @@ allowed-tools: Read, Bash, Glob, Grep, WebFetch
 Working directory: `!`pwd``
 Stack detection:
 ```
-!`${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}/yolo-mcp-server/target/release/yolo detect-stack "$(pwd)" 2>/dev/null || echo '{"error":"detect-stack.sh failed"}'`
+!`"$HOME/.cargo/bin/yolo" detect-stack "$(pwd)" 2>/dev/null || echo '{"error":"detect-stack failed"}'`
 ```
 
 ## Guard

@@ -26,7 +26,7 @@ Active milestone: `!`cat .yolo-planning/ACTIVE 2>/dev/null || echo "No active mi
 2. **Read ground truth:** PROJECT.md (name, core value), STATE.md (decisions, todos, blockers), ROADMAP.md (phases), Glob *-PLAN.md + *-SUMMARY.md (plan/completion counts), .execution-state.json (interrupted builds), most recent SUMMARY.md (last work), RESUME.md (session notes). Skip missing files.
 3. **Compute progress:** Per phase: count PLANs vs SUMMARYs → not started | planned | in progress | complete. Current phase = first incomplete.
 4. **Detect interrupted builds:** If .execution-state.json status="running": all SUMMARYs present = completed since last session; some missing = interrupted.
-5. **Present dashboard:** Phase Banner "Context Restored / {project name}" with: core value, phase/progress, overall progress bar, key decisions, todos, blockers (⚠), last completed, build status (✓ completed / ⚠ interrupted), session notes. Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next resume`.
+5. **Present dashboard:** Phase Banner "Context Restored / {project name}" with: core value, phase/progress, overall progress bar, key decisions, todos, blockers (⚠), last completed, build status (✓ completed / ⚠ interrupted), session notes. Run `"$HOME/.cargo/bin/yolo" suggest-next resume`.
 
 ## Output Format
 

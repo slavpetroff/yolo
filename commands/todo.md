@@ -23,8 +23,8 @@ Active milestone: `!`cat .yolo-planning/ACTIVE 2>/dev/null || echo "No active mi
 ## Steps
 
 1. **Resolve context:** Always use `.yolo-planning/STATE.md` for todos — project-level data lives at the root, not in milestone subdirectories. If `.yolo-planning/STATE.md` does not exist:
-   - **ACTIVE milestone exists:** Create root STATE.md by running: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/persist-state-after-ship.sh .yolo-planning/milestones/{SLUG}/STATE.md .yolo-planning/STATE.md "{PROJECT_NAME}"` (read SLUG from `.yolo-planning/ACTIVE`, PROJECT_NAME from the milestone STATE.md `**Project:**` line).
-   - **No ACTIVE but archived milestones exist** (any `.yolo-planning/milestones/*/STATE.md`): Recover by running `bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-orphaned-state.sh .yolo-planning` — this picks the most recent archived milestone by modification time and creates root STATE.md.
+   - **ACTIVE milestone exists:** Create root STATE.md by running: `yolo persist-state-after-ship .yolo-planning/milestones/{SLUG}/STATE.md .yolo-planning/STATE.md "{PROJECT_NAME}"` (read SLUG from `.yolo-planning/ACTIVE`, PROJECT_NAME from the milestone STATE.md `**Project:**` line).
+   - **No ACTIVE but archived milestones exist** (any `.yolo-planning/milestones/*/STATE.md`): Recover by running `yolo migrate-orphaned-state .yolo-planning` — this picks the most recent archived milestone by modification time and creates root STATE.md.
    - **No STATE.md anywhere:** STOP: "STATE.md not found. Run /yolo:init to set up your project."
 2. **Parse args:** Description (non-flag text), --priority (default: normal). Format: high=`[HIGH]`, normal=plain, low=`[low]`. Append `(added {YYYY-MM-DD})`.
 3. **Add to STATE.md:** Find `## Todos` section. Replace "None." / placeholder or append after last item.

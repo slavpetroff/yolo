@@ -14,7 +14,7 @@ disable-model-invocation: true
 Working directory: `!`pwd``
 Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}``
 
-Pre-computed state (via phase-detect.sh):
+Pre-computed state (via phase-detect):
 ```
 !`"$HOME/.cargo/bin/yolo" phase-detect 2>/dev/null || echo "phase_detect_error=true"`
 ```
@@ -67,7 +67,7 @@ ALWAYS confirm interpreted intent via AskUserQuestion before executing.
 
 ### Path 3: State detection (no args)
 
-If no $ARGUMENTS, evaluate phase-detect.sh output. First match determines mode:
+If no $ARGUMENTS, evaluate phase-detect output. First match determines mode:
 
 | Priority | Condition | Mode | Confirmation |
 |---|---|---|---|
@@ -173,7 +173,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 2. If $ARGUMENTS (excl. flags) provided, use as scope. Else ask: "What do you want to build?" Show uncovered requirements as suggestions.
 3. Decompose into 3-5 phases (name, goal, success criteria). Each independently plannable. Map REQ-IDs.
 4. Write ROADMAP.md. Create `.yolo-planning/phases/{NN}-{slug}/` dirs.
-5. Update STATE.md: Phase 1, status "Pending planning". Do NOT write next-action suggestions (e.g. "Run /yolo:vibe --plan 1") into the Todos section — those are ephemeral display output from suggest-next.sh, not persistent state.
+5. Update STATE.md: Phase 1, status "Pending planning". Do NOT write next-action suggestions (e.g. "Run /yolo:vibe --plan 1") into the Todos section — those are ephemeral display output from suggest-next, not persistent state.
 6. Display "Scoping complete. {N} phases created." STOP -- do not auto-continue to planning.
 
 ### Mode: Discuss
@@ -211,7 +211,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
    - **If exists:** Include it in Lead's context for incremental refresh. Lead may update RESEARCH.md if new information emerges.
    - **On failure:** Log warning, continue planning without research. Do not block.
    - If `v3_plan_research_persist=false` or effort=turbo: skip entirely.
-4. **Context compilation:** If `config_context_compiler=true`, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} lead {phases_dir}`. Include `.context-lead.md` in Lead agent context if produced.
+4. **Context compilation:** If `config_context_compiler=true`, run `yolo compile-context {phase} lead {phases_dir}`. Include `.context-lead.md` in Lead agent context if produced.
 5. **Turbo shortcut:** If effort=turbo, skip Lead. Read phase reqs from ROADMAP.md, create single lightweight PLAN.md inline.
 6. **Other efforts:**
    - Resolve Lead model:
@@ -281,8 +281,8 @@ This mode delegates entirely to the protocol file. Before reading:
    - No PLAN.md in phase dir: STOP "Phase {N} has no plans. Run `/yolo:vibe --plan {N}` first."
    - All plans have SUMMARY.md: cautious/standard -> WARN + confirm; confident/pure-vibe -> warn + auto-continue.
 3. **Compile context:** If `config_context_compiler=true`, run:
-   - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} dev {phases_dir} {plan_path}`
-   - `bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-context.sh {phase} qa {phases_dir}`
+   - `yolo compile-context {phase} dev {phases_dir} {plan_path}`
+   - `yolo compile-context {phase} qa {phases_dir}`
    Include compiled context paths in Dev and QA task descriptions.
 
 Then Read the protocol file and execute Steps 2-5 as written.
@@ -374,7 +374,7 @@ FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
 3. Compute summary: from ROADMAP (phases), SUMMARY.md files (tasks/commits/deviations), REQUIREMENTS.md (satisfied count).
 4. **Rolling summary (conditional):** If `v3_rolling_summary=true` in config:
    ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/scripts/compile-rolling-summary.sh \
+   yolo compile-rolling-summary \
      .yolo-planning/phases .yolo-planning/ROLLING-CONTEXT.md 2>/dev/null || true
    ```
    Compiles final rolling context before artifacts move to milestones/. Fail-open.
@@ -382,7 +382,7 @@ FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
 5. Archive: `mkdir -p .yolo-planning/milestones/`. Move roadmap, state, phases to milestones/{SLUG}/. Write SHIPPED.md. Delete stale RESUME.md.
 5b. **Persist project-level state:** After archiving, run:
    ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/scripts/persist-state-after-ship.sh \
+   yolo persist-state-after-ship \
      .yolo-planning/milestones/{SLUG}/STATE.md .yolo-planning/STATE.md "{PROJECT_NAME}"
    ```
    This extracts project-level sections (Todos, Decisions, Skills, Blockers, Codebase Profile) from the archived STATE.md and writes a fresh root STATE.md. Milestone-specific sections (Current Phase, Activity Log, Phase Status) stay in the archive only. Fail-open: if the script fails, warn but continue.

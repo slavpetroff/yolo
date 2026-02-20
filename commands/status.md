@@ -96,4 +96,4 @@ Per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md:
     Cache hit rate: {percent}%
 ```
 
-**Next Up:** Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next status` and display.
+**Next Up:** Run `"$HOME/.cargo/bin/yolo" suggest-next status` and display.

@@ -29,7 +29,7 @@ If no .yolo-planning/ dir: STOP "Run /yolo:init first." (check `.yolo-planning/c
 Before any read/write behavior below, run:
 
 ```bash
-MIGRATED_COUNT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-config.sh --print-added .yolo-planning/config.json 2>/dev/null)
+MIGRATED_COUNT=$(yolo migrate-config --print-added .yolo-planning/config.json 2>/dev/null)
 if [ $? -ne 0 ] || [ -z "${MIGRATED_COUNT:-}" ]; then
   echo "⚠ Config migration failed (invalid JSON). Fix .yolo-planning/config.json, then retry /yolo:config"
   exit 0

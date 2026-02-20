@@ -25,7 +25,7 @@ FAIL if missing: "Install jq: brew install jq (macOS) or apt install jq (Linux)"
 Check `VERSION` in repo root. FAIL if missing.
 
 ### 3. Version sync
-`bash scripts/bump-version.sh --verify 2>&1`
+`yolo bump-version --verify 2>&1`
 FAIL if mismatch detected.
 
 ### 4. Plugin cache present
@@ -41,7 +41,7 @@ Glob `agents/yolo-*.md`. Expect 5 files (lead, dev, debugger, architect, docs). 
 If `.yolo-planning/config.json` exists, parse with `jq empty`. FAIL if parse error. SKIP if no project initialized.
 
 ### 8. Scripts executable
-Check all `scripts/*.sh` files. WARN if any lack execute permission.
+Check that the `yolo` binary exists at `$HOME/.cargo/bin/yolo` and is executable.
 
 ### 9. gh CLI available
 `gh --version 2>/dev/null || echo "MISSING"`
@@ -54,7 +54,7 @@ PASS if result is "1.0.10". WARN if sort -V unavailable (fallback will be used).
 ### Runtime Health
 
 ### 11. Stale teams
-Run `bash scripts/doctor-cleanup.sh scan 2>/dev/null` and count lines starting with `stale_team|`.
+Run `yolo doctor-cleanup scan 2>/dev/null` and count lines starting with `stale_team|`.
 PASS if 0. WARN if any, show count.
 
 ### 12. Orphaned processes
@@ -106,6 +106,6 @@ If any WARN from checks 11-14:
 - Display: "Run `/yolo:doctor --cleanup` to apply cleanup"
 
 If user invoked with `--cleanup` (check for this in the command arguments):
-- Run `bash scripts/doctor-cleanup.sh cleanup 2>&1`
+- Run `yolo doctor-cleanup cleanup 2>&1`
 - Report what was cleaned
 - Show updated counts
