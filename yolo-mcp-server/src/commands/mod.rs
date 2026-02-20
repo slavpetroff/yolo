@@ -31,3 +31,7 @@ pub mod assess_plan_risk;
 pub mod resolve_gate_policy;
 pub mod smart_route;
 pub mod route_monorepo;
+pub mod snapshot_resume;
+pub mod persist_state;
+pub mod recover_state;
+pub mod compile_rolling_summary;
