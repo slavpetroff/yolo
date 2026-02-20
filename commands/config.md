@@ -53,10 +53,10 @@ echo ""
 echo "Model Profile: $PROFILE"
 echo "Agent Models:"
 # Resolve each agent model
-LEAD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-DEV=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-DEBUGGER=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-ARCHITECT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+LEAD=$("$HOME/.cargo/bin/yolo" resolve-model lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+DEV=$("$HOME/.cargo/bin/yolo" resolve-model dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+DEBUGGER=$("$HOME/.cargo/bin/yolo" resolve-model debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+ARCHITECT=$("$HOME/.cargo/bin/yolo" resolve-model architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
 # Check for overrides and mark with asterisk
 LEAD_DISPLAY=$LEAD
 DEV_DISPLAY=$DEV
@@ -132,10 +132,10 @@ CURRENT_PROFILE=$(jq -r '.model_profile // "quality"' .yolo-planning/config.json
 PROFILES_PATH="${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json"
 
 # Get current models (before changes)
-LEAD_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-DEV_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-DEBUGGER_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-ARCHITECT_OLD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+LEAD_OLD=$("$HOME/.cargo/bin/yolo" resolve-model lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+DEV_OLD=$("$HOME/.cargo/bin/yolo" resolve-model dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+DEBUGGER_OLD=$("$HOME/.cargo/bin/yolo" resolve-model debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+ARCHITECT_OLD=$("$HOME/.cargo/bin/yolo" resolve-model architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
 
 # Calculate cost based on model
 get_model_cost() {
@@ -152,8 +152,8 @@ OLD_COST=$(( $(get_model_cost "$LEAD_OLD") + $(get_model_cost "$DEV_OLD") + $(ge
 
 Get current models for Lead, Dev:
 ```bash
-CURRENT_LEAD=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-CURRENT_DEV=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+CURRENT_LEAD=$("$HOME/.cargo/bin/yolo" resolve-model lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+CURRENT_DEV=$("$HOME/.cargo/bin/yolo" resolve-model dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
 ```
 
 AskUserQuestion with 2 questions:
@@ -166,8 +166,8 @@ Store selections in variables `LEAD_MODEL`, `DEV_MODEL`.
 
 Get current models for Debugger and Architect:
 ```bash
-CURRENT_DEBUGGER=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-CURRENT_ARCHITECT=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+CURRENT_DEBUGGER=$("$HOME/.cargo/bin/yolo" resolve-model debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+CURRENT_ARCHITECT=$("$HOME/.cargo/bin/yolo" resolve-model architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
 ```
 
 AskUserQuestion with 2 questions:
@@ -233,7 +233,7 @@ fi
 - If mismatch: AskUserQuestion "Settings no longer match '{profile}'. Save as new profile?" → "Save" (route to /yolo:profile save) or "No" (set active_profile to "custom")
 - Skip if no profile-tracked settings changed or already "custom"
 
-Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next config` and display.
+Run `"$HOME/.cargo/bin/yolo" suggest-next config` and display.
 
 ### With arguments: `<setting> <value>`
 
@@ -242,7 +242,7 @@ Validate setting + value. Update config.json. Display ✓ with ➜.
 If `setting=planning_tracking`, after writing config run:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/planning-git.sh sync-ignore .yolo-planning/config.json
+"$HOME/.cargo/bin/yolo" planning-git sync-ignore .yolo-planning/config.json
 ```
 
 This keeps root `.gitignore` and `.yolo-planning/.gitignore` aligned with the selected tracking mode.
@@ -333,7 +333,7 @@ case "$MODEL" in
 esac
 
 # Get current model for this agent
-OLD_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh "$AGENT" .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+OLD_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model "$AGENT" .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
 
 echo "Set $AGENT model override: $MODEL (was: $OLD_MODEL)"
 
