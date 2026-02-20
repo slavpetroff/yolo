@@ -384,6 +384,36 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
                 }
             }
         }
+        "install-mcp" => {
+            // Locate install-yolo-mcp.sh relative to plugin root or binary
+            let plugin_root = env::var("CLAUDE_PLUGIN_ROOT").unwrap_or_else(|_| {
+                env::current_exe()
+                    .ok()
+                    .and_then(|p| p.parent().map(|d| d.parent().unwrap_or(d).to_path_buf()))
+                    .unwrap_or_else(|| PathBuf::from("."))
+                    .to_string_lossy()
+                    .to_string()
+            });
+            let script_path = PathBuf::from(&plugin_root).join("install-yolo-mcp.sh");
+            if !script_path.exists() {
+                return Err(format!("install-yolo-mcp.sh not found at {}", script_path.display()));
+            }
+            let mut cmd = std::process::Command::new("bash");
+            cmd.arg(&script_path);
+            // Pass through any extra args
+            for arg in &args[2..] {
+                cmd.arg(arg);
+            }
+            let output = cmd.output().map_err(|e| format!("Failed to run install script: {e}"))?;
+            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            let combined = if stderr.is_empty() { stdout } else { format!("{}\n{}", stdout, stderr) };
+            if output.status.success() {
+                Ok((combined, 0))
+            } else {
+                Ok((combined, output.status.code().unwrap_or(1)))
+            }
+        }
         "migrate-orphaned-state" => {
             if args.len() < 3 {
                 return Err("Usage: yolo migrate-orphaned-state <planning_dir>".to_string());
