@@ -58,7 +58,14 @@ fn route_event(event: &HookEvent, input: &HookInput) -> Result<HookOutput, Strin
 
     match event {
         HookEvent::SessionStart => handle_stub("SessionStart", input),
-        HookEvent::PreToolUse => handle_stub("PreToolUse", input),
+        HookEvent::PreToolUse => {
+            // Security filter runs first — exit 2 = block
+            let sf_result = security_filter::handle(input)?;
+            if sf_result.exit_code == 2 {
+                return Ok(sf_result);
+            }
+            Ok(HookOutput::empty())
+        }
         HookEvent::PostToolUse => handle_post_tool_use(input),
         HookEvent::PreCompact => handle_stub("PreCompact", input),
         HookEvent::SubagentStart => {
@@ -87,7 +94,7 @@ fn route_event(event: &HookEvent, input: &HookInput) -> Result<HookOutput, Strin
             }
         }
         HookEvent::TaskCompleted => handle_task_completed(input),
-        HookEvent::UserPromptSubmit => handle_stub("UserPromptSubmit", input),
+        HookEvent::UserPromptSubmit => prompt_preflight::handle(input),
         HookEvent::Notification => handle_stub("Notification", input),
         HookEvent::Stop => handle_stub("Stop", input),
     }
@@ -150,9 +157,8 @@ mod tests {
 
     #[test]
     fn test_dispatch_all_events_return_ok() {
-        let events = vec![
+        let events_exit_0 = vec![
             HookEvent::SessionStart,
-            HookEvent::PreToolUse,
             HookEvent::PostToolUse,
             HookEvent::PreCompact,
             HookEvent::SubagentStart,
@@ -165,10 +171,33 @@ mod tests {
         ];
 
         let stdin = r#"{"tool_name":"Bash"}"#;
-        for event in events {
+        for event in events_exit_0 {
             let (_output, code) = dispatch(&event, stdin);
             assert_eq!(code, 0, "Event {:?} should return exit 0", event);
         }
+    }
+
+    #[test]
+    fn test_dispatch_pre_tool_use_blocks_without_tool_input() {
+        // security_filter is fail-closed: no tool_input => exit 2
+        let stdin = r#"{"tool_name":"Bash"}"#;
+        let (_output, code) = dispatch(&HookEvent::PreToolUse, stdin);
+        assert_eq!(code, 2, "PreToolUse without tool_input should block (fail-closed)");
+    }
+
+    #[test]
+    fn test_dispatch_pre_tool_use_allows_normal_file() {
+        let stdin = r#"{"tool_name":"Read","tool_input":{"file_path":"/project/src/main.rs"}}"#;
+        let (_output, code) = dispatch(&HookEvent::PreToolUse, stdin);
+        assert_eq!(code, 0, "PreToolUse with normal file should pass");
+    }
+
+    #[test]
+    fn test_dispatch_pre_tool_use_blocks_env_file() {
+        let stdin = r#"{"tool_name":"Read","tool_input":{"file_path":"/project/.env"}}"#;
+        let (output, code) = dispatch(&HookEvent::PreToolUse, stdin);
+        assert_eq!(code, 2, "PreToolUse with .env should block");
+        assert!(output.contains("deny"));
     }
 
     #[test]
@@ -187,7 +216,10 @@ mod tests {
 
     #[test]
     fn test_dispatch_from_cli_valid() {
-        let result = dispatch_from_cli("pre-tool-use", r#"{"tool_name":"Read"}"#);
+        let result = dispatch_from_cli(
+            "pre-tool-use",
+            r#"{"tool_name":"Read","tool_input":{"file_path":"/project/src/main.rs"}}"#,
+        );
         assert!(result.is_ok());
         let (output, code) = result.unwrap();
         assert_eq!(code, 0);
@@ -236,5 +268,26 @@ mod tests {
         let output = result.unwrap();
         assert_eq!(output.exit_code, 0);
         assert!(output.stdout.is_empty());
+    }
+
+    #[test]
+    fn test_post_tool_use_exits_0_with_normal_input() {
+        let stdin = r#"{"tool_name":"Bash","tool_input":{"command":"ls"}}"#;
+        let (_output, code) = dispatch(&HookEvent::PostToolUse, stdin);
+        assert_eq!(code, 0, "PostToolUse should always exit 0 (advisory)");
+    }
+
+    #[test]
+    fn test_task_completed_exits_0_with_task_id() {
+        let stdin = r#"{"task_id":"42"}"#;
+        let (_output, code) = dispatch(&HookEvent::TaskCompleted, stdin);
+        assert_eq!(code, 0, "TaskCompleted should always exit 0 (advisory)");
+    }
+
+    #[test]
+    fn test_task_completed_exits_0_empty_input() {
+        let stdin = r#"{}"#;
+        let (_output, code) = dispatch(&HookEvent::TaskCompleted, stdin);
+        assert_eq!(code, 0, "TaskCompleted with empty input should exit 0");
     }
 }
