@@ -1,11 +1,11 @@
 use serde_json::{json, Value};
-use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use chrono::Utc;
 use sha2::{Sha256, Digest};
 use std::process::Command;
 use regex::Regex;
+use super::{log_event, collect_metrics};
 
 #[derive(serde::Serialize)]
 struct GateResult {
@@ -76,37 +76,35 @@ pub fn execute_gate(args: &[String], cwd: &Path) -> Result<(String, i32), String
 
     let emit_res = move |result: &str, evidence: &str| -> (String, i32) {
         let ts = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
-        
-        let scripts_dir = cwd_clone.join("scripts");
-        let log_event_sh = scripts_dir.join("log-event.sh");
-        
-        #[cfg(not(tarpaulin_include))]
-        if log_event_sh.exists() {
-            let event_type = if result == "fail" { "gate_failed" } else { "gate_passed" };
-            let _ = std::process::Command::new("bash")
-                .arg(&log_event_sh)
-                .arg(event_type)
-                .arg(&phase_clone)
-                .arg(&plan_clone)
-                .arg(format!("gate={}", gate_type_clone))
-                .arg(format!("task={}", task_clone))
-                .arg(format!("evidence={}", evidence))
-                .output();
-        }
-        
-        let collect_metrics_sh = scripts_dir.join("collect-metrics.sh");
-        #[cfg(not(tarpaulin_include))]
-        if collect_metrics_sh.exists() {
-            let metric_name = format!("gate_{}", result);
-            let _ = std::process::Command::new("bash")
-                .arg(&collect_metrics_sh)
-                .arg(&metric_name)
-                .arg(&phase_clone)
-                .arg(&plan_clone)
-                .arg(format!("gate={}", gate_type_clone))
-                .arg(format!("task={}", task_clone))
-                .output();
-        }
+
+        // Log event via native Rust module (replaces log-event.sh shell-out)
+        let event_type = if result == "fail" { "gate_failed" } else { "gate_passed" };
+        let log_data = vec![
+            ("gate".to_string(), gate_type_clone.clone()),
+            ("task".to_string(), task_clone.clone()),
+            ("evidence".to_string(), evidence.to_string()),
+        ];
+        let _ = log_event::log(
+            event_type,
+            &phase_clone,
+            Some(&plan_clone),
+            &log_data,
+            &cwd_clone,
+        );
+
+        // Collect metrics via native Rust module (replaces collect-metrics.sh shell-out)
+        let metric_name = format!("gate_{}", result);
+        let metric_data = vec![
+            ("gate".to_string(), gate_type_clone.clone()),
+            ("task".to_string(), task_clone.clone()),
+        ];
+        let _ = collect_metrics::collect(
+            &metric_name,
+            &phase_clone,
+            Some(&plan_clone),
+            &metric_data,
+            &cwd_clone,
+        );
 
         let res = GateResult {
             gate: gate_type_clone.clone(),
