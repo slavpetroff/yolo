@@ -379,7 +379,7 @@ Run inference scripts based on the detected scenario, display results, and confi
 
 **6b. Brownfield branch** (SCENARIO=BROWNFIELD):
 
-- Run inference: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/infer-project-context.sh .yolo-planning/codebase/ "$(pwd)"`
+- Run inference: `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo infer .yolo-planning/codebase/ "$(pwd)"`
 - Capture JSON output to `.yolo-planning/inference.json` via Bash
 - Parse the JSON and display inferred fields:
 
@@ -398,7 +398,7 @@ Run inference scripts based on the detected scenario, display results, and confi
 
 - Run GSD inference: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/infer-gsd-summary.sh .yolo-planning/gsd-archive/`
 - Capture JSON output to `.yolo-planning/gsd-inference.json` via Bash
-- If `.yolo-planning/codebase/` exists, also run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/infer-project-context.sh .yolo-planning/codebase/ "$(pwd)"`
+- If `.yolo-planning/codebase/` exists, also run: `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo infer .yolo-planning/codebase/ "$(pwd)"`
   - Capture to `.yolo-planning/inference.json`
 - Display merged results:
 
@@ -501,7 +501,7 @@ If SKIP_INFERENCE=false (confirmed/corrected inference data):
 **7f. Generate/update CLAUDE.md:**
 
 - If root CLAUDE.md exists: pass it as EXISTING_PATH to preserve non-YOLO content
-- Run: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-claude.sh CLAUDE.md "$NAME" "$DESCRIPTION" "CLAUDE.md"`
+- Run: `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo bootstrap CLAUDE.md "$NAME" "$DESCRIPTION" "CLAUDE.md"`
   - If CLAUDE.md does not exist yet, omit the last argument
 - Display: `✓ CLAUDE.md`
 

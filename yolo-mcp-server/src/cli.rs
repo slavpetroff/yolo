@@ -10,6 +10,10 @@ pub mod metrics_report;
 pub mod token_baseline;
 pub mod bootstrap_claude;
 pub mod suggest_next;
+pub mod list_todos;
+pub mod phase_detect;
+pub mod detect_stack;
+pub mod infer_project_context;
 
 pub fn generate_report(total_calls: i64, compile_calls: i64) -> String {
     let mut out = String::new();
@@ -104,6 +108,22 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
         "suggest-next" => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             suggest_next::execute(&args, &cwd)
+        }
+        "list-todos" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            list_todos::execute(&args, &cwd)
+        }
+        "phase-detect" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            phase_detect::execute(&args, &cwd)
+        }
+        "detect-stack" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            detect_stack::execute(&args, &cwd)
+        }
+        "infer" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            infer_project_context::execute(&args, &cwd)
         }
         _ => Err(format!("Unknown command: {}", args[1]))
     }

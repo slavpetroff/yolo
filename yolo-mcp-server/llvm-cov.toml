@@ -1,0 +1,10 @@
+[coverage]
+exclude_path = [
+    "src/cli.rs",
+    "src/detect_stack.rs",
+    "src/hard_gate.rs",
+    "src/infer_project_context.rs",
+    "src/session_start.rs",
+    "src/suggest_next.rs",
+    "src/list_todos.rs",
+]

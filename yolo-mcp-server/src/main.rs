@@ -55,7 +55,7 @@ pub async fn run_server<R: AsyncBufReadExt + Unpin, W: AsyncWriteExt + Unpin>(
     Ok(())
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg(not(test))]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let db_path = std::path::PathBuf::from(".yolo-telemetry.db");

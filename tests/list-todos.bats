@@ -34,7 +34,7 @@ EOF
   cd "$TEST_TEMP_DIR"
   create_state_with_todos ".yolo-planning/STATE.md"
 
-  run bash "$SCRIPTS_DIR/list-todos.sh"
+  run "$YOLO_BIN" list-todos
   [ "$status" -eq 0 ]
 
   local count
@@ -48,7 +48,7 @@ EOF
   create_state_with_todos ".yolo-planning/milestones/m1/STATE.md"
   echo "m1" > .yolo-planning/ACTIVE
 
-  run bash "$SCRIPTS_DIR/list-todos.sh"
+  run "$YOLO_BIN" list-todos
   [ "$status" -eq 0 ]
 
   local state_path
@@ -65,7 +65,7 @@ EOF
   mkdir -p .yolo-planning/milestones/default
   create_state_with_todos ".yolo-planning/milestones/default/STATE.md"
 
-  run bash "$SCRIPTS_DIR/list-todos.sh"
+  run "$YOLO_BIN" list-todos
   [ "$status" -eq 0 ]
 
   local state_path status_val
@@ -79,7 +79,7 @@ EOF
   cd "$TEST_TEMP_DIR"
   mkdir -p .yolo-planning/milestones
 
-  run bash "$SCRIPTS_DIR/list-todos.sh"
+  run "$YOLO_BIN" list-todos
   [ "$status" -eq 0 ]
 
   local status_val
@@ -92,7 +92,7 @@ EOF
   mkdir -p .yolo-planning/milestones/default
   create_state_with_todos ".yolo-planning/milestones/default/STATE.md"
 
-  run bash "$SCRIPTS_DIR/list-todos.sh" high
+  run "$YOLO_BIN" list-todos high
   [ "$status" -eq 0 ]
 
   local count

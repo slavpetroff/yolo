@@ -85,7 +85,7 @@ teardown() {
   export CLAUDE_CONFIG_DIR="$TEST_TEMP_DIR/custom-claude"
   mkdir -p "$CLAUDE_CONFIG_DIR/skills/test-skill"
 
-  run bash "$SCRIPTS_DIR/detect-stack.sh" "$TEST_TEMP_DIR"
+  run "$YOLO_BIN" detect-stack "$TEST_TEMP_DIR"
   [ "$status" -eq 0 ]
 
   # Should find test-skill in custom dir
@@ -98,7 +98,7 @@ teardown() {
   export HOME="$TEST_TEMP_DIR"
   mkdir -p "$HOME/.claude/skills/default-skill"
 
-  run bash "$SCRIPTS_DIR/detect-stack.sh" "$TEST_TEMP_DIR"
+  run "$YOLO_BIN" detect-stack "$TEST_TEMP_DIR"
   [ "$status" -eq 0 ]
 
   echo "$output" | jq -e '.installed.global' >/dev/null

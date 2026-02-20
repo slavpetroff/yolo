@@ -206,7 +206,7 @@ generate_chars() {
 
 @test "metrics-report: produces markdown with no data" {
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/metrics-report.sh"
+  run "$YOLO_BIN" metrics-report
   [ "$status" -eq 0 ]
   [[ "$output" == *"Metrics Report"* ]] || [[ "$output" == *"Observability Report"* ]]
 }
@@ -217,7 +217,7 @@ generate_chars() {
   echo '{"ts":"2026-01-01","event":"task_started","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
   echo '{"ts":"2026-01-01","event":"task_completed_confirmed","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
   echo '{"ts":"2026-01-01","event":"gate_passed","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
-  run bash "$SCRIPTS_DIR/metrics-report.sh"
+  run "$YOLO_BIN" metrics-report
   [ "$status" -eq 0 ]
   [[ "$output" == *"Summary"* ]]
   [[ "$output" == *"Tasks started"* ]]
@@ -229,7 +229,7 @@ generate_chars() {
   echo '{"ts":"2026-01-01","event":"gate_passed","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
   echo '{"ts":"2026-01-01","event":"gate_passed","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
   echo '{"ts":"2026-01-01","event":"gate_failed","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
-  run bash "$SCRIPTS_DIR/metrics-report.sh"
+  run "$YOLO_BIN" metrics-report
   [ "$status" -eq 0 ]
   [[ "$output" == *"Gate Failure Rate"* ]]
   [[ "$output" == *"33%"* ]]
@@ -242,7 +242,7 @@ generate_chars() {
   echo '{"ts":"2026-01-01T10:05:00Z","event":"task_completed_confirmed","phase":1,"data":{"task_id":"t1"}}' >> ".yolo-planning/.events/event-log.jsonl"
   echo '{"ts":"2026-01-01T10:10:00Z","event":"task_started","phase":1,"data":{"task_id":"t2"}}' >> ".yolo-planning/.events/event-log.jsonl"
   echo '{"ts":"2026-01-01T10:20:00Z","event":"task_completed_confirmed","phase":1,"data":{"task_id":"t2"}}' >> ".yolo-planning/.events/event-log.jsonl"
-  run bash "$SCRIPTS_DIR/metrics-report.sh"
+  run "$YOLO_BIN" metrics-report
   [ "$status" -eq 0 ]
   [[ "$output" == *"Median latency"* ]]
   # Should not be N/A since we have matched pairs
@@ -252,7 +252,7 @@ generate_chars() {
 @test "metrics-report: shows profile info in summary" {
   cd "$TEST_TEMP_DIR"
   echo '{"ts":"2026-01-01","event":"task_started","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
-  run bash "$SCRIPTS_DIR/metrics-report.sh"
+  run "$YOLO_BIN" metrics-report
   [ "$status" -eq 0 ]
   [[ "$output" == *"effort=balanced"* ]]
   [[ "$output" == *"autonomy=standard"* ]]

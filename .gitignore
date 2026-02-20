@@ -45,3 +45,5 @@ npm-debug.log*
 
 # Non-production files
 a_non_prod_files/
+
+target/

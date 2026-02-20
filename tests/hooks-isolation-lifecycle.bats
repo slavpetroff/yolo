@@ -36,7 +36,7 @@ load test_helper
   local tmpdir
   tmpdir=$(mktemp -d)
   touch "$tmpdir/Cargo.toml"
-  run bash "$SCRIPTS_DIR/detect-stack.sh" "$tmpdir"
+  run "$YOLO_BIN" detect-stack "$tmpdir"
   rm -rf "$tmpdir"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.detected_stack | index("rust")' >/dev/null
@@ -46,7 +46,7 @@ load test_helper
   local tmpdir
   tmpdir=$(mktemp -d)
   echo "module example.com/test" > "$tmpdir/go.mod"
-  run bash "$SCRIPTS_DIR/detect-stack.sh" "$tmpdir"
+  run "$YOLO_BIN" detect-stack "$tmpdir"
   rm -rf "$tmpdir"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.detected_stack | index("go")' >/dev/null
@@ -56,7 +56,7 @@ load test_helper
   local tmpdir
   tmpdir=$(mktemp -d)
   touch "$tmpdir/pyproject.toml"
-  run bash "$SCRIPTS_DIR/detect-stack.sh" "$tmpdir"
+  run "$YOLO_BIN" detect-stack "$tmpdir"
   rm -rf "$tmpdir"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.detected_stack | index("python")' >/dev/null

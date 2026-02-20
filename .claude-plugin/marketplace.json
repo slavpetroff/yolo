@@ -15,7 +15,7 @@
         "url": "https://github.com/slavpetroff/yolo"
       },
       "description": "Development lifecycle plugin, continuous verification",
-      "version": "1.21.31",
+      "version": "2.0.0",
       "license": "MIT",
       "keywords": [
         "vibe-coding",

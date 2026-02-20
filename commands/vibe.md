@@ -16,7 +16,7 @@ Plugin root: `!`echo ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/
 
 Pre-computed state (via phase-detect.sh):
 ```
-!`bash ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}/scripts/phase-detect.sh 2>/dev/null || echo "phase_detect_error=true"`
+!`${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}/yolo-mcp-server/target/release/yolo phase-detect 2>/dev/null || echo "phase_detect_error=true"`
 ```
 
 Config:
@@ -154,7 +154,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 - **B5: Brownfield summary** -- If BROWNFIELD=true AND no codebase/: count files by ext, check tests/CI/Docker/monorepo, add Codebase Profile to STATE.md.
 - **B6: CLAUDE.md** -- Extract project name and core value from PROJECT.md. If root CLAUDE.md exists, pass it as EXISTING_PATH for section preservation. Call:
   ```
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap/bootstrap-claude.sh CLAUDE.md "$PROJECT_NAME" "$CORE_VALUE" [CLAUDE.md]
+  ${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo bootstrap CLAUDE.md "$PROJECT_NAME" "$CORE_VALUE" [CLAUDE.md]
   ```
   Script handles: new file generation (heading + core value + YOLO sections), existing file preservation (replaces only YOLO-managed sections: Active Context, YOLO Rules, Installed Skills, Project Conventions, Commands, Plugin Isolation; preserves all other content). Omit the fourth argument if no existing CLAUDE.md. Max 200 lines.
 - **B7: Planning commit boundary (conditional)** -- Run:
@@ -184,7 +184,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 **Steps:**
 1. Determine target phase from $ARGUMENTS or auto-detection.
 2. Read `${CLAUDE_PLUGIN_ROOT}/references/discussion-engine.md` and follow its protocol for the target phase.
-3. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh vibe`.
+3. Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next vibe`.
 
 ### Mode: Assumptions
 
@@ -195,7 +195,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 1. Load context: ROADMAP.md, REQUIREMENTS.md, PROJECT.md, STATE.md, CONTEXT.md (if exists), codebase signals.
 2. Generate 5-10 assumptions by impact: scope (included/excluded), technical (implied approaches), ordering (sequencing), dependency (prior phases), user preference (defaults without stated preference).
 3. Gather feedback per assumption: "Confirm, correct, or expand?" Confirm=proceed, Correct=user provides answer, Expand=user adds nuance.
-4. Present grouped by status (confirmed/corrected/expanded). This mode does NOT write files. For persistence: "Run `/yolo:vibe --discuss {N}` to capture as CONTEXT.md." Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh vibe`.
+4. Present grouped by status (confirmed/corrected/expanded). This mode does NOT write files. For persistence: "Run `/yolo:vibe --discuss {N}` to capture as CONTEXT.md." Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next vibe`.
 
 ### Mode: Plan
 
@@ -395,7 +395,7 @@ FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
 8. Git tag: unless --no-tag, `git tag -a {tag} -m "Shipped milestone: {name}"`. Default: `milestone/{SLUG}`.
 9. Update ACTIVE: remaining milestones -> set ACTIVE to first. None -> remove ACTIVE.
 10. Regenerate CLAUDE.md: update Active Context, remove shipped refs. Preserve non-YOLO content — only replace YOLO-managed sections, keep user's own sections intact.
-11. Present: Phase Banner with metrics (phases, tasks, commits, requirements, deviations), archive path, tag, branch status, memory status. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh vibe`.
+11. Present: Phase Banner with metrics (phases, tasks, commits, requirements, deviations), archive path, tag, branch status, memory status. Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next vibe`.
 
 ### Pure-Vibe Phase Loop
 
@@ -419,4 +419,4 @@ Per-mode output:
 
 Rules: Phase Banner (double-line box), ◆ running, ✓ complete, ✗ failed, ○ skipped, Metrics Block, Next Up Block, no ANSI color codes.
 
-Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh vibe {result}` for Next Up suggestions.
+Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next vibe {result}` for Next Up suggestions.

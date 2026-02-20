@@ -76,4 +76,35 @@ mod tests {
             _ => panic!("Expected Notification"),
         }
     }
+
+    #[test]
+    fn test_parse_response() {
+        let res_str = r#"{"jsonrpc": "2.0", "id": 1, "result": {"foo": "bar"}}"#;
+        let msg: IncomingMessage = serde_json::from_str(res_str).unwrap();
+        match msg {
+            IncomingMessage::Response(res) => {
+                assert_eq!(res.jsonrpc, "2.0");
+                assert_eq!(res.id, json!(1));
+                assert_eq!(res.result, Some(json!({"foo": "bar"})));
+                assert!(res.error.is_none());
+            }
+            _ => panic!("Expected Response"),
+        }
+    }
+
+    #[test]
+    fn test_parse_error_response() {
+        let err_str = r#"{"jsonrpc": "2.0", "id": null, "error": {"code": -32600, "message": "Invalid Request"}}"#;
+        let msg: IncomingMessage = serde_json::from_str(err_str).unwrap();
+        match msg {
+            IncomingMessage::Response(res) => {
+                assert!(res.result.is_none());
+                let err = res.error.unwrap();
+                assert_eq!(err.code, -32600);
+                assert_eq!(err.message, "Invalid Request");
+                assert!(err.data.is_none());
+            }
+            _ => panic!("Expected Error Response"),
+        }
+    }
 }

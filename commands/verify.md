@@ -27,7 +27,7 @@ Phase directories:
 
 Phase state:
 ```
-!`bash ${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}/scripts/phase-detect.sh 2>/dev/null || echo "phase_detect_error=true"`
+!`${CLAUDE_PLUGIN_ROOT:-$(ls -1d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/* 2>/dev/null | (sort -V 2>/dev/null || sort -t. -k1,1n -k2,2n -k3,3n) | tail -1)}/yolo-mcp-server/target/release/yolo phase-detect 2>/dev/null || echo "phase_detect_error=true"`
 ```
 
 ## Guard
@@ -146,4 +146,4 @@ This is **display-only**. Do NOT edit STATE.md, do NOT add todos, do NOT invoke 
 
 - If issues found: `Suggest /yolo:fix to address recorded issues.`
 
-Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh verify {result}` and display.
+Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next verify {result}` and display.

@@ -233,7 +233,7 @@ fi
 - If mismatch: AskUserQuestion "Settings no longer match '{profile}'. Save as new profile?" → "Save" (route to /yolo:profile save) or "No" (set active_profile to "custom")
 - Skip if no profile-tracked settings changed or already "custom"
 
-Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh config` and display.
+Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next config` and display.
 
 ### With arguments: `<setting> <value>`
 

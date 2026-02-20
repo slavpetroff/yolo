@@ -19,40 +19,40 @@ teardown() {
 
 @test "detects no planning directory" {
   rm -rf .yolo-planning
-  run bash "$SCRIPTS_DIR/phase-detect.sh"
+  run "$YOLO_BIN" phase-detect
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "planning_dir_exists=false"
 }
 
 @test "detects planning directory exists" {
-  run bash "$SCRIPTS_DIR/phase-detect.sh"
+  run "$YOLO_BIN" phase-detect
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "planning_dir_exists=true"
 }
 
 @test "detects no project when PROJECT.md missing" {
-  run bash "$SCRIPTS_DIR/phase-detect.sh"
+  run "$YOLO_BIN" phase-detect
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "project_exists=false"
 }
 
 @test "detects project exists" {
   echo "# My Project" > .yolo-planning/PROJECT.md
-  run bash "$SCRIPTS_DIR/phase-detect.sh"
+  run "$YOLO_BIN" phase-detect
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "project_exists=true"
 }
 
 @test "detects zero phases" {
   mkdir -p .yolo-planning/phases
-  run bash "$SCRIPTS_DIR/phase-detect.sh"
+  run "$YOLO_BIN" phase-detect
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "phase_count=0"
 }
 
 @test "detects phases needing plan" {
   mkdir -p .yolo-planning/phases/01-test/
-  run bash "$SCRIPTS_DIR/phase-detect.sh"
+  run "$YOLO_BIN" phase-detect
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "next_phase_state=needs_plan_and_execute"
 }
@@ -60,7 +60,7 @@ teardown() {
 @test "detects phases needing execution" {
   mkdir -p .yolo-planning/phases/01-test/
   touch .yolo-planning/phases/01-test/01-01-PLAN.md
-  run bash "$SCRIPTS_DIR/phase-detect.sh"
+  run "$YOLO_BIN" phase-detect
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "next_phase_state=needs_execute"
 }
@@ -69,13 +69,13 @@ teardown() {
   mkdir -p .yolo-planning/phases/01-test/
   touch .yolo-planning/phases/01-test/01-01-PLAN.md
   touch .yolo-planning/phases/01-test/01-01-SUMMARY.md
-  run bash "$SCRIPTS_DIR/phase-detect.sh"
+  run "$YOLO_BIN" phase-detect
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "next_phase_state=all_done"
 }
 
 @test "reads config values" {
-  run bash "$SCRIPTS_DIR/phase-detect.sh"
+  run "$YOLO_BIN" phase-detect
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "config_effort=balanced"
   echo "$output" | grep -q "config_autonomy=standard"

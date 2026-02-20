@@ -51,7 +51,7 @@ Config: Pre-injected by SessionStart hook.
       Files: {changed files}
     ```
 
-    Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh fix` and display.
+    Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next fix` and display.
 
     Committed, with discovered issues (Dev reported pre-existing failures):
 
@@ -74,7 +74,7 @@ Config: Pre-injected by SessionStart hook.
     invoke /yolo:todo, and do NOT enter an interactive loop. The user decides
     whether to track these. If no discovered issues: omit the section entirely.
     After displaying discovered issues, STOP. Do not take further action.
-    Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh fix` and display.
+    Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next fix` and display.
 
     Dev stopped:
 
@@ -83,4 +83,4 @@ Config: Pre-injected by SessionStart hook.
       {reason from Dev agent}
     ```
 
-    Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh debug` and display.
+    Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next debug` and display.

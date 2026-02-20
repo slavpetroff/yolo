@@ -537,6 +537,20 @@ mod tests {
     }
 
     #[test]
+    fn test_update_execution_state_phases() {
+        let root = setup_test_dir("execution_state_phases");
+        let exec_state = root.join(".execution-state.json");
+        fs::write(&exec_state, r#"{"phases": {"1": {"1": {"status": "planned"}}}}"#).unwrap();
+        
+        update_execution_state(&root, "1", "1", "completed", "1");
+        
+        let content = fs::read_to_string(&exec_state).unwrap();
+        assert!(content.contains(r#""status": "completed""#));
+        
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
     fn test_update_state_invalid_files() {
         let root = setup_test_dir("invalid_files");
         

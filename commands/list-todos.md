@@ -20,12 +20,12 @@ Active milestone: `!`cat .yolo-planning/ACTIVE 2>/dev/null || echo "No active mi
 
 ## Steps
 
-1. **Load todos:** Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/list-todos.sh {priority-filter}` (omit filter arg if none provided). Parse the JSON output.
+1. **Load todos:** Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo list-todos {priority-filter}` (omit filter arg if none provided). Parse the JSON output.
 
 2. **Handle status:**
    - `"error"`: STOP with the `message` value.
-   - `"empty"`: Display the `display` value. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh list-todos empty` and display. Exit.
-   - `"no-match"`: Display the `display` value. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh list-todos empty` and display. Exit.
+   - `"empty"`: Display the `display` value. Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next list-todos empty` and display. Exit.
+   - `"no-match"`: Display the `display` value. Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next list-todos empty` and display. Exit.
    - `"ok"`: Continue to step 3.
 
 3. **Display list:** Show the `display` value from the script output, followed by:
@@ -56,7 +56,7 @@ Active milestone: `!`cat .yolo-planning/ACTIVE 2>/dev/null || echo "No active mi
      ➜ Run: /yolo:{command} {todo text}
      ```
      Do NOT execute the command. STOP after displaying the suggested command.
-   - **Remove:** Remove the `line` value from the todo section in STATE.md. If no todos remain, replace with "None." Log to `## Recent Activity` with format `- {YYYY-MM-DD}: Removed todo: {text}`. Confirm: "✓ Todo removed." Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh list-todos` and display.
+   - **Remove:** Remove the `line` value from the todo section in STATE.md. If no todos remain, replace with "None." Log to `## Recent Activity` with format `- {YYYY-MM-DD}: Removed todo: {text}`. Confirm: "✓ Todo removed." Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next list-todos` and display.
    - **Back:** Return to step 3.
 
 ## Output Format

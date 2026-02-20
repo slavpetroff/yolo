@@ -17,7 +17,7 @@ COMMANDS_DIR="$ROOT/commands"
 README="$ROOT/README.md"
 CLAUDE_MD="$ROOT/CLAUDE.md"
 HELP="$ROOT/commands/help.md"
-SUGGEST="$ROOT/scripts/suggest-next.sh"
+SUGGEST="$ROOT/yolo-mcp-server/src/suggest_next.rs"
 MKT_ROOT="$ROOT/marketplace.json"
 MKT_PLUGIN="$ROOT/.claude-plugin/marketplace.json"
 
@@ -171,13 +171,13 @@ check_absent "REQ-20" "marketplace.json has no '29 commands'" grep -q "29 comman
 check_absent "REQ-20" ".claude-plugin/marketplace.json has no '29 commands'" grep -q "29 commands" "$MKT_PLUGIN"
 
 # REQ-20: No /yolo:implement in key files
-check_absent "REQ-20" "suggest-next.sh has no /yolo:implement" grep -q "/yolo:implement" "$SUGGEST"
+check_absent "REQ-20" "suggest_next.rs has no /yolo:implement" grep -q "/yolo:implement" "$SUGGEST"
 check_absent "REQ-20" "help.md has no /yolo:implement" grep -q "/yolo:implement" "$HELP"
 check_absent "REQ-20" "README.md has no /yolo:implement" grep -q "/yolo:implement" "$README"
 check_absent "REQ-20" "CLAUDE.md has no /yolo:implement" grep -q "/yolo:implement" "$CLAUDE_MD"
 
 # REQ-20: Positive checks — key files reference /yolo:vibe
-check "REQ-20" "suggest-next.sh references /yolo:vibe" grep -q "/yolo:vibe" "$SUGGEST"
+check "REQ-20" "suggest_next.rs references /yolo:vibe" grep -q "/yolo:vibe" "$SUGGEST"
 check "REQ-20" "help.md references /yolo:vibe" grep -q "/yolo:vibe" "$HELP"
 
 group_end "Command Surface"

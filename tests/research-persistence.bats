@@ -28,7 +28,7 @@ teardown() {
 
 @test "research-warn: JSON schema validation - flag disabled" {
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/.yolo-planning"
+  run "$YOLO_BIN" hard-gate research_warn "$TEST_TEMP_DIR/.yolo-planning"
   [ "$status" -eq 0 ]
 
   # Validate JSON schema: must have check, result, reason keys
@@ -41,7 +41,7 @@ teardown() {
   cd "$TEST_TEMP_DIR"
   jq '.v3_plan_research_persist = true | .effort = "turbo"' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
     && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-  run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/.yolo-planning"
+  run "$YOLO_BIN" hard-gate research_warn "$TEST_TEMP_DIR/.yolo-planning"
   [ "$status" -eq 0 ]
 
   # Validate JSON schema
@@ -55,7 +55,7 @@ teardown() {
   jq '.v3_plan_research_persist = true | .effort = "balanced"' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
     && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   mkdir -p "$TEST_TEMP_DIR/phase-dir"
-  run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/phase-dir"
+  run "$YOLO_BIN" hard-gate research_warn "$TEST_TEMP_DIR/phase-dir"
   [ "$status" -eq 0 ]
 
   # Extract first line (JSON) — stderr warning also captured by run
@@ -71,7 +71,7 @@ teardown() {
     && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   mkdir -p "$TEST_TEMP_DIR/phase-dir"
   echo "# Research" > "$TEST_TEMP_DIR/phase-dir/02-01-RESEARCH.md"
-  run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/phase-dir"
+  run "$YOLO_BIN" hard-gate research_warn "$TEST_TEMP_DIR/phase-dir"
   [ "$status" -eq 0 ]
 
   # Validate JSON schema
@@ -141,7 +141,7 @@ ROADMAP
   mkdir -p "$TEST_TEMP_DIR/phase-dir"
 
   # Call research-warn.sh to validate skip path
-  run bash "$SCRIPTS_DIR/research-warn.sh" "$TEST_TEMP_DIR/phase-dir"
+  run "$YOLO_BIN" hard-gate research_warn "$TEST_TEMP_DIR/phase-dir"
   [ "$status" -eq 0 ]
 
   # Verify output is result=ok with reason="research_persist disabled"

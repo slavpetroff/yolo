@@ -24,7 +24,7 @@ teardown() {
   cd "$TEST_TEMP_DIR"
   # Remove event/metrics dirs so files don't exist
   rm -rf ".yolo-planning/.events" ".yolo-planning/.metrics"
-  run bash scripts/token-baseline.sh
+  run "$YOLO_BIN" token-baseline
   [ "$status" -eq 0 ]
   [[ "$output" == *"No event data"* ]]
 }
@@ -36,7 +36,7 @@ teardown() {
   echo '{"ts":"2026-02-13T10:01:00Z","event":"token_overage","phase":1,"data":{"role":"dev","lines_total":"600","lines_max":"800","lines_truncated":"50"}}' >> .yolo-planning/.metrics/run-metrics.jsonl
   echo '{"ts":"2026-02-13T10:02:00Z","event":"token_overage","phase":2,"data":{"role":"qa","lines_total":"400","lines_max":"600","lines_truncated":"30"}}' >> .yolo-planning/.metrics/run-metrics.jsonl
 
-  run bash scripts/token-baseline.sh measure
+  run "$YOLO_BIN" token-baseline measure
   [ "$status" -eq 0 ]
 
   # Parse JSON output
@@ -52,7 +52,7 @@ teardown() {
   echo '{"ts":"2026-02-13T10:01:00Z","event":"token_overage","phase":1,"data":{"role":"dev","lines_total":"600","lines_max":"800","lines_truncated":"50"}}' >> .yolo-planning/.metrics/run-metrics.jsonl
   echo '{"ts":"2026-02-13T10:02:00Z","event":"token_overage","phase":2,"data":{"role":"qa","lines_total":"400","lines_max":"600","lines_truncated":"30"}}' >> .yolo-planning/.metrics/run-metrics.jsonl
 
-  run bash scripts/token-baseline.sh measure
+  run "$YOLO_BIN" token-baseline measure
   [ "$status" -eq 0 ]
 
   total_truncated=$(echo "$output" | jq '.totals.truncated_chars')
@@ -64,7 +64,7 @@ teardown() {
   echo '{"ts":"2026-02-13T10:00:00Z","event":"token_overage","phase":1,"data":{"role":"dev","lines_total":"500","lines_max":"800","lines_truncated":"100"}}' >> .yolo-planning/.metrics/run-metrics.jsonl
   echo '{"ts":"2026-02-13T10:00:00Z","event_id":"e1","event":"task_started","phase":1}' >> .yolo-planning/.events/event-log.jsonl
 
-  run bash scripts/token-baseline.sh measure --save
+  run "$YOLO_BIN" token-baseline measure --save
   [ "$status" -eq 0 ]
 
   # Baseline file should exist and be valid JSON
@@ -89,7 +89,7 @@ JSON
   echo '{"ts":"2026-02-13T10:00:00Z","event":"token_overage","phase":1,"data":{"role":"dev","lines_total":"300","lines_max":"800","lines_truncated":"50"}}' >> .yolo-planning/.metrics/run-metrics.jsonl
   echo '{"ts":"2026-02-13T10:00:00Z","event_id":"e1","event":"task_started","phase":1}' >> .yolo-planning/.events/event-log.jsonl
 
-  run bash scripts/token-baseline.sh compare
+  run "$YOLO_BIN" token-baseline compare
   [ "$status" -eq 0 ]
 
   # Current has 1 overage vs baseline 3 = delta -2 = better
@@ -103,7 +103,7 @@ JSON
   cd "$TEST_TEMP_DIR"
   echo '{"ts":"2026-02-13T10:00:00Z","event":"token_overage","phase":1,"data":{"role":"dev","lines_total":"500","lines_max":"800","lines_truncated":"100"}}' >> .yolo-planning/.metrics/run-metrics.jsonl
 
-  run bash scripts/token-baseline.sh compare
+  run "$YOLO_BIN" token-baseline compare
   [ "$status" -eq 0 ]
   [[ "$output" == *"No baseline"* ]]
 }
@@ -113,7 +113,7 @@ JSON
   echo '{"ts":"2026-02-13T10:00:00Z","event_id":"e1","event":"task_started","phase":1}' >> .yolo-planning/.events/event-log.jsonl
   echo '{"ts":"2026-02-13T10:00:00Z","event":"token_overage","phase":1,"data":{"role":"dev","lines_total":"500","lines_max":"800","lines_truncated":"100"}}' >> .yolo-planning/.metrics/run-metrics.jsonl
 
-  run bash scripts/token-baseline.sh report
+  run "$YOLO_BIN" token-baseline report
   [ "$status" -eq 0 ]
   [[ "$output" == *"Token Usage Baseline Report"* ]]
   [[ "$output" == *"Per-Phase Summary"* ]]
@@ -131,7 +131,7 @@ JSON
   echo '{"ts":"2026-02-13T10:00:00Z","event_id":"e1","event":"task_started","phase":1}' >> .yolo-planning/.events/event-log.jsonl
   echo '{"ts":"2026-02-13T10:00:00Z","event":"token_overage","phase":1,"data":{"role":"dev","lines_total":"300","lines_max":"800","lines_truncated":"50"}}' >> .yolo-planning/.metrics/run-metrics.jsonl
 
-  run bash scripts/token-baseline.sh report
+  run "$YOLO_BIN" token-baseline report
   [ "$status" -eq 0 ]
   [[ "$output" == *"Comparison with Baseline"* ]]
   [[ "$output" == *"Baseline from:"* ]]
@@ -146,7 +146,7 @@ JSON
   echo '{"ts":"2026-02-13T10:00:00Z","event":"token_overage","phase":1,"data":{"role":"dev","lines_total":"500","lines_max":"800","lines_truncated":"100"}}' >> .yolo-planning/.metrics/run-metrics.jsonl
   echo '{"ts":"2026-02-13T10:01:00Z","event":"token_overage","phase":2,"data":{"role":"qa","lines_total":"400","lines_max":"600","lines_truncated":"30"}}' >> .yolo-planning/.metrics/run-metrics.jsonl
 
-  run bash scripts/token-baseline.sh report --phase=1
+  run "$YOLO_BIN" token-baseline report --phase=1
   [ "$status" -eq 0 ]
   [[ "$output" == *"Phase filter: 1"* ]]
   # Phase 1 should appear
@@ -161,7 +161,7 @@ JSON
   touch .yolo-planning/.events/event-log.jsonl
   touch .yolo-planning/.metrics/run-metrics.jsonl
 
-  run bash scripts/token-baseline.sh measure
+  run "$YOLO_BIN" token-baseline measure
   [ "$status" -eq 0 ]
 
   total_overages=$(echo "$output" | jq '.totals.overages')

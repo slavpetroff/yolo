@@ -242,18 +242,23 @@ mod tests {
         assert!(!name.is_empty());
         
         let orig_dir = env::current_dir().unwrap();
+        struct DirGuard(std::path::PathBuf);
+        impl Drop for DirGuard { fn drop(&mut self) { let _ = std::env::set_current_dir(&self.0); } }
+        let _guard = DirGuard(orig_dir.clone());
         // Root directory has no file_name
         if let Ok(_) = env::set_current_dir("/") {
             let root_name = get_project_name();
             assert_eq!(root_name, "Unknown Project");
         }
-        let _ = env::set_current_dir(orig_dir);
-    }
+        }
 
     #[test]
     fn test_get_state_info() {
         let d = setup_test_dir("state_info");
         let orig_dir = env::current_dir().unwrap();
+        struct DirGuard(std::path::PathBuf);
+        impl Drop for DirGuard { fn drop(&mut self) { let _ = std::env::set_current_dir(&self.0); } }
+        let _guard = DirGuard(orig_dir.clone());
         env::set_current_dir(&d).unwrap();
 
         let (p, l, pr) = get_state_info();
@@ -298,6 +303,11 @@ mod tests {
     #[test]
     fn test_execute_fetch_limits_no_auth() {
         let d = setup_test_dir("no_auth");
+        let orig_dir = env::current_dir().unwrap();
+        struct DirGuard(std::path::PathBuf);
+        impl Drop for DirGuard { fn drop(&mut self) { let _ = std::env::set_current_dir(&self.0); } }
+        let _guard = DirGuard(orig_dir.clone());
+        env::set_current_dir(&d).unwrap();
         
         unsafe {
             env::remove_var("ANTHROPIC_API_KEY");
@@ -319,6 +329,11 @@ mod tests {
     #[test]
     fn test_execute_fetch_limits_with_auth() {
         let d = setup_test_dir("with_auth");
+        let orig_dir = env::current_dir().unwrap();
+        struct DirGuard(std::path::PathBuf);
+        impl Drop for DirGuard { fn drop(&mut self) { let _ = std::env::set_current_dir(&self.0); } }
+        let _guard = DirGuard(orig_dir.clone());
+        env::set_current_dir(&d).unwrap();
         unsafe {
             env::set_var("ANTHROPIC_API_KEY", "sk-ant-fake-key-for-test-coverage");
         }
@@ -344,6 +359,11 @@ mod tests {
     #[test]
     fn test_execute_fetch_limits_bearer_token() {
         let d = setup_test_dir("bearer_auth");
+        let orig_dir = env::current_dir().unwrap();
+        struct DirGuard(std::path::PathBuf);
+        impl Drop for DirGuard { fn drop(&mut self) { let _ = std::env::set_current_dir(&self.0); } }
+        let _guard = DirGuard(orig_dir.clone());
+        env::set_current_dir(&d).unwrap();
         unsafe {
             env::set_var("YOLO_OAUTH_TOKEN", "ya29.fake-bearer-token-with-length-gt-10");
         }
@@ -363,7 +383,20 @@ mod tests {
 
     #[test]
     fn test_get_limits_and_model() {
+        let d = setup_test_dir("limits_model");
+        let orig_dir = env::current_dir().unwrap();
+        struct DirGuard(std::path::PathBuf);
+        impl Drop for DirGuard { fn drop(&mut self) { let _ = std::env::set_current_dir(&self.0); } }
+        let _guard = DirGuard(orig_dir.clone());
+        env::set_current_dir(&d).unwrap();
+
         let cache_path = get_cache_path();
+        
+        unsafe {
+            env::remove_var("ANTHROPIC_API_KEY");
+            env::remove_var("YOLO_OAUTH_TOKEN");
+            env::set_var("HOME", d.to_str().unwrap());
+        }
         
         // 1. Missing cache -> returns Pending...
         let _ = fs::remove_file(&cache_path);
@@ -404,6 +437,8 @@ mod tests {
         fs::write(&cache_path, r#"invalid json"#).unwrap();
         let (out7, _) = get_limits_and_model();
         assert!(out7.contains("Pending"));
+        
+        let _ = fs::remove_dir_all(&d);
     }
 
     #[test]

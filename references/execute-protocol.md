@@ -453,7 +453,7 @@ Note: "Run inline" means the execute-protocol agent runs the verify protocol dir
 
 **V2 Observability Report (REQ-14):** After phase completion, if `v3_metrics=true` or `v3_event_log=true`:
 
-- Generate observability report: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/metrics-report.sh {phase}`
+- Generate observability report: `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo metrics-report {phase}`
 - The report aggregates 7 V2 metrics: task latency, tokens/task, gate failure rate, lease conflicts, resume success, regression escape, fallback %.
 - Display summary table in phase completion output.
 - Dashboards show by profile (thorough|balanced|fast|turbo) and autonomy (cautious|standard|confident|pure-vibe).
@@ -510,7 +510,7 @@ Display per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md:
 
 This is **display-only**. Do NOT edit STATE.md, do NOT add todos, do NOT invoke /yolo:todo, and do NOT enter an interactive loop. The user decides whether to track these. If no discovered issues: omit the section entirely. After displaying discovered issues, STOP. Do not take further action.
 
-Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-next.sh execute pass` and display output.
+Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next execute pass` and display output.
 
 **STOP.** Execute mode is complete. Return control to the user. Do NOT take further actions — no file edits, no additional commits, no interactive prompts, no improvised follow-up work. The user will decide what to do next based on the summary and suggest-next output.
 

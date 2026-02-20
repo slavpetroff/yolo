@@ -478,7 +478,7 @@ None
 EOF
   echo "m2" > .yolo-planning/ACTIVE
 
-  run bash "$SCRIPTS_DIR/list-todos.sh"
+  run "$YOLO_BIN" list-todos
   [ "$status" -eq 0 ]
 
   # Should find the root todo, not the milestone one
@@ -687,7 +687,7 @@ None
 EOF
   touch -t 202602150000 ".yolo-planning/milestones/a-new/STATE.md"
 
-  run bash "$SCRIPTS_DIR/list-todos.sh"
+  run "$YOLO_BIN" list-todos
   [ "$status" -eq 0 ]
 
   # Should pick a-new (newer by mtime), not z-old (alphabetically later)
