@@ -8,6 +8,8 @@ pub mod hard_gate;
 pub mod session_start;
 pub mod metrics_report;
 pub mod token_baseline;
+pub mod bootstrap_claude;
+pub mod suggest_next;
 
 pub fn generate_report(total_calls: i64, compile_calls: i64) -> String {
     let mut out = String::new();
@@ -94,6 +96,14 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
         "token-baseline" => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             token_baseline::execute(&args, &cwd)
+        }
+        "bootstrap" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            bootstrap_claude::execute(&args, &cwd)
+        }
+        "suggest-next" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            suggest_next::execute(&args, &cwd)
         }
         _ => Err(format!("Unknown command: {}", args[1]))
     }
