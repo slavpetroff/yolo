@@ -1,6 +1,7 @@
 pub mod mcp;
 pub mod cli;
 pub mod commands;
+pub mod hooks;
 pub mod telemetry;
 
 use std::error::Error;
