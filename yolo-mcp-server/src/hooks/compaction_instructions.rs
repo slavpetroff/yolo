@@ -77,7 +77,7 @@ fn write_compaction_marker() {
     let _ = fs::write(&marker, ts);
 }
 
-/// Save agent state snapshot (mirrors bash snapshot-resume.sh save).
+/// Save agent state snapshot for compaction recovery.
 /// Best-effort: failures are logged but do not affect exit code.
 fn save_snapshot(_input: &Value, agent_name: &str, matcher: &str) {
     let planning = Path::new(".yolo-planning");

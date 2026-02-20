@@ -297,8 +297,8 @@ fn migrate_statusline_and_tmux(claude_dir: &Path, planning_dir: &Path) {
                 if let Some(sl) = sl_val {
                     let cmd_str = sl.get("command").and_then(|v| v.as_str()).unwrap_or("");
                     if cmd_str.contains("for f in") && cmd_str.contains("yolo-statusline") {
-                        let new_cmd = "bash -c 'f=$(ls -1 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/yolo-marketplace/yolo/*/scripts/yolo-statusline.sh 2>/dev/null | sort -V | tail -1) && [ -f \"$f\" ] && exec bash \"$f\"'";
-                        
+                        let new_cmd = "yolo statusline";
+
                         if let Some(obj) = val.as_object_mut() {
                             obj.insert("statusLine".to_string(), json!({
                                 "type": "command",

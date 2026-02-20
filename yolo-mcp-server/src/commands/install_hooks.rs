@@ -7,13 +7,12 @@ const YOLO_MARKER: &str = "YOLO pre-push hook";
 
 const HOOK_CONTENT: &str = r#"#!/usr/bin/env bash
 set -euo pipefail
-# YOLO pre-push hook — delegates to the latest cached plugin script.
-# Installed by YOLO install-hooks.sh. Remove with: rm .git/hooks/pre-push
-SCRIPT=$(ls -1 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/yolo-marketplace/yolo/*/scripts/pre-push-hook.sh 2>/dev/null | sort -V | tail -1)
-if [ -n "$SCRIPT" ] && [ -f "$SCRIPT" ]; then
-  exec bash "$SCRIPT" "$@"
+# YOLO pre-push hook — delegates to yolo CLI.
+# Installed by YOLO install-hooks. Remove with: rm .git/hooks/pre-push
+if command -v yolo >/dev/null 2>&1; then
+  exec yolo pre-push-hook "$@"
 fi
-# Plugin not cached — skip silently
+# yolo CLI not found — skip silently
 exit 0"#;
 
 /// Install YOLO-managed git hooks. Idempotent.

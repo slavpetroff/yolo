@@ -6,7 +6,7 @@ use serde_json::json;
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     if args.len() > 2 && (args[2] == "--help" || args[2] == "-h") {
         return Ok((
-            "Usage: infer-project-context.sh CODEBASE_DIR [REPO_ROOT]\n\n\
+            "Usage: yolo infer-project-context CODEBASE_DIR [REPO_ROOT]\n\n\
              Extract project context from codebase mapping files.\n\n\
                CODEBASE_DIR  Path to .yolo-planning/codebase/ mapping files\n\
                REPO_ROOT     Optional, defaults to current directory\n\n\
@@ -16,7 +16,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     }
 
     if args.len() < 3 {
-        return Err("Error: CODEBASE_DIR is required\nUsage: infer-project-context.sh CODEBASE_DIR [REPO_ROOT]".to_string());
+        return Err("Error: CODEBASE_DIR is required\nUsage: yolo infer-project-context CODEBASE_DIR [REPO_ROOT]".to_string());
     }
 
     let codebase_dir = Path::new(&args[2]);

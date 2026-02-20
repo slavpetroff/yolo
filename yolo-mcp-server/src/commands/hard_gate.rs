@@ -77,7 +77,7 @@ pub fn execute_gate(args: &[String], cwd: &Path) -> Result<(String, i32), String
     let emit_res = move |result: &str, evidence: &str| -> (String, i32) {
         let ts = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
-        // Log event via native Rust module (replaces log-event.sh shell-out)
+        // Log event via native Rust module
         let event_type = if result == "fail" { "gate_failed" } else { "gate_passed" };
         let log_data = vec![
             ("gate".to_string(), gate_type_clone.clone()),
@@ -92,7 +92,7 @@ pub fn execute_gate(args: &[String], cwd: &Path) -> Result<(String, i32), String
             &cwd_clone,
         );
 
-        // Collect metrics via native Rust module (replaces collect-metrics.sh shell-out)
+        // Collect metrics via native Rust module
         let metric_name = format!("gate_{}", result);
         let metric_data = vec![
             ("gate".to_string(), gate_type_clone.clone()),

@@ -16,8 +16,8 @@ pub fn execute(_args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
         }
     };
 
-    // Guard: skip if scripts/bump-version.sh doesn't exist (not a YOLO repo)
-    if !root.join("scripts/bump-version.sh").exists() {
+    // Guard: skip if Cargo.toml doesn't exist (not a YOLO repo)
+    if !root.join("Cargo.toml").exists() {
         return Ok(("".to_string(), 0));
     }
 

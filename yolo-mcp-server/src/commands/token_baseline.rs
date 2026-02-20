@@ -286,7 +286,7 @@ fn build_report(cwd: &Path, phase_filter: Option<&str>) -> String {
             ));
         }
     } else {
-        out.push_str("\nNo baseline available. Run `token-baseline.sh measure --save` to create a baseline for comparison.\n");
+        out.push_str("\nNo baseline available. Run `yolo token-baseline measure --save` to create a baseline for comparison.\n");
     }
     out.push_str("\n");
     out
