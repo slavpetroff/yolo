@@ -366,7 +366,7 @@ No user interaction in this step. Proceed immediately to Step 6.
 
 <!-- Inference: yolo infer outputs {name, tech_stack, architecture, purpose, features} -->
 <!-- Each field has {value, source} for attribution. Null value = not detected but still displayed (REQ-03) -->
-<!-- yolo infer-gsd-summary outputs {latest_milestone, recent_phases, key_decisions, current_work} -->
+<!-- yolo gsd-summary outputs {latest_milestone, recent_phases, key_decisions, current_work} -->
 <!-- Confirmation UX: 3 options prevent NL misinterpretation; field picker for targeted corrections -->
 
 Run inference scripts based on the detected scenario, display results, and confirm with the user. Always show inferred data even if fields are null (REQ-03).
@@ -396,7 +396,7 @@ Run inference scripts based on the detected scenario, display results, and confi
 
 **6c. GSD Migration branch** (SCENARIO=GSD_MIGRATION):
 
-- Run GSD inference: `yolo infer-gsd-summary .yolo-planning/gsd-archive/`
+- Run GSD inference: `yolo gsd-summary .yolo-planning/gsd-archive/`
 - Capture JSON output to `.yolo-planning/gsd-inference.json` via Bash
 - If `.yolo-planning/codebase/` exists, also run: `"$HOME/.cargo/bin/yolo" infer .yolo-planning/codebase/ "$(pwd)"`
   - Capture to `.yolo-planning/inference.json`
