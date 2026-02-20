@@ -143,7 +143,7 @@ fn validate_end(
         .and_then(|v| v.as_array())
         .map(|arr| {
             arr.iter()
-                .filter_map(|v| v.as_str().map(|s| normalize_path(s)))
+                .filter_map(|v| v.as_str().map(normalize_path))
                 .collect()
         })
         .unwrap_or_default();
@@ -154,7 +154,7 @@ fn validate_end(
             .and_then(|v| v.as_array())
             .map(|arr| {
                 arr.iter()
-                    .filter_map(|v| v.as_str().map(|s| normalize_path(s)))
+                    .filter_map(|v| v.as_str().map(normalize_path))
                     .collect()
             })
             .unwrap_or_default()

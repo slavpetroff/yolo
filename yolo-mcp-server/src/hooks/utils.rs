@@ -126,9 +126,7 @@ pub fn normalize_agent_role(name: &str) -> String {
     }
 
     // Strip "yolo-" or "yolo:" prefix
-    if s.starts_with("yolo-") {
-        s = s[5..].to_string();
-    } else if s.starts_with("yolo:") {
+    if s.starts_with("yolo-") || s.starts_with("yolo:") {
         s = s[5..].to_string();
     }
 

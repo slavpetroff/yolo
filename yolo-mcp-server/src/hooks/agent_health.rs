@@ -183,7 +183,7 @@ fn recover_tasks_in_dir(team_dir: &Path, role: &str, pid: u32, advisory: &mut St
 
     for entry in entries.flatten() {
         let path = entry.path();
-        if !path.extension().is_some_and(|e| e == "json") {
+        if path.extension().is_none_or(|e| e != "json") {
             continue;
         }
 

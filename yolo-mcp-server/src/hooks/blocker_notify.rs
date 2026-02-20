@@ -95,7 +95,7 @@ fn scan_for_unblocked(team_dir: &Path, completed_id: &str) -> Vec<String> {
 
     for entry in entries.flatten() {
         let path = entry.path();
-        if !path.extension().is_some_and(|ext| ext == "json") {
+        if path.extension().is_none_or(|ext| ext != "json") {
             continue;
         }
 
