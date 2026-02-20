@@ -35,3 +35,7 @@ pub mod snapshot_resume;
 pub mod persist_state;
 pub mod recover_state;
 pub mod compile_rolling_summary;
+pub mod generate_gsd_index;
+pub mod generate_incidents;
+pub mod artifact_registry;
+pub mod infer_gsd_summary;
