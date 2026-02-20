@@ -1,7 +1,7 @@
 use rusqlite::Connection;
 use std::env;
 use std::path::PathBuf;
-use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, bootstrap_claude, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns};
+use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns};
 pub fn generate_report(total_calls: i64, compile_calls: i64) -> String {
     let mut out = String::new();
     out.push_str("============================================================\n");
@@ -90,6 +90,16 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
         }
         "bootstrap" => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            // Dispatch bootstrap subcommands; fall through to bootstrap_claude for CLAUDE.md
+            if args.len() > 2 {
+                match args[2].as_str() {
+                    "project" => return bootstrap_project::execute(&args[2..], &cwd),
+                    "requirements" => return bootstrap_requirements::execute(&args[2..], &cwd),
+                    "roadmap" => return bootstrap_roadmap::execute(&args[2..], &cwd),
+                    "state" => return bootstrap_state::execute(&args[2..], &cwd),
+                    _ => {} // Not a known subcommand, fall through to bootstrap_claude
+                }
+            }
             bootstrap_claude::execute(&args, &cwd)
         }
         "suggest-next" => {

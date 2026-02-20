@@ -1,4 +1,8 @@
 pub mod bootstrap_claude;
+pub mod bootstrap_project;
+pub mod bootstrap_requirements;
+pub mod bootstrap_roadmap;
+pub mod bootstrap_state;
 pub mod detect_stack;
 pub mod hard_gate;
 pub mod infer_project_context;
