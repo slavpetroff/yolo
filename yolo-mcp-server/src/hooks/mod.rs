@@ -93,4 +93,34 @@ mod no_bash_regression {
             "session_start.rs still contains Command::new(\"bash\") -- should be migrated"
         );
     }
+
+    /// Verify hard_gate.rs only uses Command::new("bash") for user-defined verification checks.
+    /// hard_gate evaluates arbitrary shell commands from contract JSON (verification_checks),
+    /// which is a legitimate use case similar to skill_hook_dispatch.
+    #[test]
+    fn test_hard_gate_bash_is_user_defined_checks_only() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/commands/hard_gate.rs");
+        let content = fs::read_to_string(&path).unwrap();
+        let bash_count = content.matches(r#"Command::new("bash")"#).count();
+        // hard_gate has exactly 1 bash invocation for user-defined verification_checks.
+        // If this increases, new bash usages need justification.
+        assert!(
+            bash_count <= 1,
+            "hard_gate.rs has {} Command::new(\"bash\") calls -- only 1 is expected (verification_checks)",
+            bash_count
+        );
+    }
+
+    /// Verify two_phase_complete.rs only uses Command::new("sh") for user-defined verification checks.
+    #[test]
+    fn test_two_phase_complete_sh_is_user_defined_checks_only() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/commands/two_phase_complete.rs");
+        let content = fs::read_to_string(&path).unwrap();
+        let sh_count = content.matches(r#"Command::new("sh")"#).count();
+        assert!(
+            sh_count <= 1,
+            "two_phase_complete.rs has {} Command::new(\"sh\") calls -- only 1 is expected (verification_checks)",
+            sh_count
+        );
+    }
 }
