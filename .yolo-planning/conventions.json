@@ -1,0 +1,9 @@
+{"conventions": [
+  {"rule": "Commit format: {type}({scope}): {description}", "source": "CLAUDE.md"},
+  {"rule": "One atomic commit per task", "source": "CLAUDE.md"},
+  {"rule": "Shell scripts must be bash 3+ compatible (no declare -A, no ${VAR,,})", "source": "CONVENTIONS.md"},
+  {"rule": "CLI subcommands use kebab-case, Rust modules use snake_case", "source": "PATTERNS.md"},
+  {"rule": "Every feature area has a corresponding .bats test file", "source": "TESTING.md"},
+  {"rule": "No secrets committed (.env, .pem, .key, credentials)", "source": "CLAUDE.md"},
+  {"rule": "Slash commands defined as markdown with frontmatter", "source": "CONVENTIONS.md"}
+]}

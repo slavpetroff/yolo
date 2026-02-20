@@ -22,7 +22,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 **Work:** No active milestone
 **Last shipped:** _(none yet)_
-**Next action:** Run /vbw:vibe to start a new milestone, or /vbw:status to review progress
+**Next action:** Run /yolo:vibe to start planning your first milestone
 
 ## VBW Rules
 
@@ -36,16 +36,23 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Installed Skills
 
-_(Run /vbw:skills to list)_
+**Global:** python-backend-architecture-review, kubernetes-health, fastapi-expert, find-skills, design-md, reactcomponents, docker-expert, fastapi-templates, kubernetes-expert, github-actions-templates, async-python-patterns, stitch-loop, managing-infra, clean-architecture, python-backend, rust-async-patterns, rust-best-practices
 
 ## Project Conventions
 
-_(To be defined during project setup)_
+These conventions are enforced during planning and verified during QA.
+- Commit format: `{type}({scope}): {description}`
+- One atomic commit per task
+- Shell scripts must be bash 3+ compatible (no `declare -A`, no `${VAR,,}`)
+- CLI subcommands use kebab-case, Rust modules use snake_case
+- Every feature area has a corresponding `.bats` test file
+- No secrets committed (.env, .pem, .key, credentials)
+- Slash commands defined as markdown with frontmatter
 
 ## Commands
 
-Run /vbw:status for current progress.
-Run /vbw:help for all available commands.
+Run /yolo:status for current progress.
+Run /yolo:help for all available commands.
 ## Plugin Isolation
 
 - GSD agents and commands MUST NOT read, write, glob, grep, or reference any files in `.vbw-planning/`
