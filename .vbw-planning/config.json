@@ -1,6 +1,6 @@
 {
-  "effort": "balanced",
-  "autonomy": "standard",
+  "effort": "thorough",
+  "autonomy": "confident",
   "auto_commit": true,
   "planning_tracking": "commit",
   "auto_push": "never",
