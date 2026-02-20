@@ -383,4 +383,174 @@ mod tests {
         assert_eq!(code, 0);
         assert!(output.contains("Context was compacted"));
     }
+
+    // --- End-to-end integration tests (plan 17, task 3) ---
+
+    #[test]
+    fn test_e2e_pre_tool_use_sensitive_file_blocks() {
+        let stdin = r#"{"tool_name":"Write","tool_input":{"file_path":"/project/.env.local","content":"SECRET=x"}}"#;
+        let (output, code) = dispatch(&HookEvent::PreToolUse, stdin);
+        assert_eq!(code, 2, "PreToolUse should block writes to .env.local");
+        assert!(output.contains("deny") || output.contains("permissionDecision"));
+    }
+
+    #[test]
+    fn test_e2e_pre_tool_use_safe_file_passes() {
+        let stdin = r#"{"tool_name":"Edit","tool_input":{"file_path":"/project/src/lib.rs","old_string":"a","new_string":"b"}}"#;
+        let (output, code) = dispatch(&HookEvent::PreToolUse, stdin);
+        assert_eq!(code, 0, "PreToolUse should allow edits to normal source files");
+        assert!(output.is_empty());
+    }
+
+    #[test]
+    fn test_e2e_pre_tool_use_glob_passes() {
+        let stdin = r#"{"tool_name":"Glob","tool_input":{"pattern":"**/*.rs"}}"#;
+        let (output, code) = dispatch(&HookEvent::PreToolUse, stdin);
+        assert_eq!(code, 0, "PreToolUse should allow Glob");
+        assert!(output.is_empty());
+    }
+
+    #[test]
+    fn test_e2e_post_tool_use_write_advisory() {
+        let stdin = r#"{"tool_name":"Write","tool_input":{"file_path":"/project/src/main.rs"}}"#;
+        let (_output, code) = dispatch(&HookEvent::PostToolUse, stdin);
+        assert_eq!(code, 0, "PostToolUse is always advisory (exit 0)");
+    }
+
+    #[test]
+    fn test_e2e_subagent_start_with_yolo_dev() {
+        let stdin = r#"{"agent_name":"yolo-dev-1","matcher":"yolo-dev"}"#;
+        let (_output, code) = dispatch(&HookEvent::SubagentStart, stdin);
+        assert_eq!(code, 0, "SubagentStart for yolo-dev should succeed");
+    }
+
+    #[test]
+    fn test_e2e_subagent_stop_with_agent() {
+        let stdin = r#"{"agent_name":"yolo-dev-1","matcher":"yolo-dev"}"#;
+        let (_output, code) = dispatch(&HookEvent::SubagentStop, stdin);
+        assert_eq!(code, 0, "SubagentStop should succeed");
+    }
+
+    #[test]
+    fn test_e2e_teammate_idle_with_agent() {
+        let stdin = r#"{"agent_name":"yolo-dev-1","matcher":"yolo-dev"}"#;
+        let (_output, code) = dispatch(&HookEvent::TeammateIdle, stdin);
+        assert_eq!(code, 0, "TeammateIdle should succeed");
+    }
+
+    #[test]
+    fn test_e2e_pre_compact_with_lead_agent() {
+        let stdin = r#"{"agent_name":"yolo-lead","matcher":"auto"}"#;
+        let (output, code) = dispatch(&HookEvent::PreCompact, stdin);
+        assert_eq!(code, 0, "PreCompact should succeed");
+        assert!(!output.is_empty(), "PreCompact should return compaction priorities");
+    }
+
+    #[test]
+    fn test_e2e_session_start_reason_compact() {
+        let stdin = r#"{"reason":"compact"}"#;
+        let (output, code) = dispatch(&HookEvent::SessionStart, stdin);
+        assert_eq!(code, 0);
+        assert!(output.contains("Context was compacted"), "SessionStart with reason=compact should trigger post_compact");
+    }
+
+    #[test]
+    fn test_e2e_user_prompt_submit_with_vibe() {
+        let stdin = r#"{"prompt":"/yolo:vibe Build a REST API"}"#;
+        let (_output, code) = dispatch(&HookEvent::UserPromptSubmit, stdin);
+        assert_eq!(code, 0, "UserPromptSubmit with /yolo:vibe should succeed");
+    }
+
+    #[test]
+    fn test_e2e_user_prompt_submit_empty() {
+        let stdin = r#"{"prompt":"just a regular message"}"#;
+        let (_output, code) = dispatch(&HookEvent::UserPromptSubmit, stdin);
+        assert_eq!(code, 0, "UserPromptSubmit with regular prompt should succeed");
+    }
+
+    #[test]
+    fn test_e2e_stop_with_session_data() {
+        let stdin = r#"{"cost_usd": 1.23, "duration_ms": 60000, "model": "claude-opus-4-6", "total_turns": 15}"#;
+        let (_output, code) = dispatch(&HookEvent::Stop, stdin);
+        assert_eq!(code, 0, "Stop with full session data should succeed");
+    }
+
+    #[test]
+    fn test_e2e_notification_with_metadata() {
+        let stdin = r#"{"notification_type":"warning","message":"Context growing large","title":"Warning","severity":"medium"}"#;
+        let (_output, code) = dispatch(&HookEvent::Notification, stdin);
+        assert_eq!(code, 0, "Notification with metadata should succeed");
+    }
+
+    #[test]
+    fn test_e2e_task_completed_with_task_data() {
+        let stdin = r#"{"task_id":"99","task_subject":"Fix bug in auth module","agent_name":"yolo-dev-1"}"#;
+        let (_output, code) = dispatch(&HookEvent::TaskCompleted, stdin);
+        assert_eq!(code, 0, "TaskCompleted with full task data should succeed");
+    }
+
+    #[test]
+    fn test_e2e_dispatch_from_cli_roundtrip() {
+        // Test the full CLI -> dispatch -> handler path
+        let result = dispatch_from_cli(
+            "session-start",
+            r#"{"compact": true}"#,
+        );
+        assert!(result.is_ok());
+        let (output, code) = result.unwrap();
+        assert_eq!(code, 0);
+        assert!(output.contains("Context was compacted"));
+    }
+
+    #[test]
+    fn test_e2e_post_tool_use_summary_md_write() {
+        // PostToolUse with SUMMARY.md write should trigger validate_summary
+        let stdin = r#"{"tool_name":"Write","tool_input":{"file_path":"/project/.yolo-planning/phases/01/SUMMARY.md","content":"# Summary\nPhase complete"}}"#;
+        let (_output, code) = dispatch(&HookEvent::PostToolUse, stdin);
+        assert_eq!(code, 0, "PostToolUse with SUMMARY.md write should be advisory (exit 0)");
+    }
+
+    #[test]
+    fn test_e2e_pre_tool_use_blocks_credentials() {
+        let stdin = r#"{"tool_name":"Read","tool_input":{"file_path":"/project/credentials.json"}}"#;
+        let (output, code) = dispatch(&HookEvent::PreToolUse, stdin);
+        assert_eq!(code, 2, "PreToolUse should block reads of credentials.json");
+        assert!(output.contains("deny"));
+    }
+
+    #[test]
+    fn test_e2e_pre_tool_use_blocks_pem_file() {
+        let stdin = r#"{"tool_name":"Read","tool_input":{"file_path":"/project/server.pem"}}"#;
+        let (output, code) = dispatch(&HookEvent::PreToolUse, stdin);
+        assert_eq!(code, 2, "PreToolUse should block reads of .pem files");
+        assert!(output.contains("deny"));
+    }
+
+    #[test]
+    fn test_e2e_all_events_handle_empty_json() {
+        // Every event must handle empty JSON gracefully
+        let events = vec![
+            ("session-start", HookEvent::SessionStart),
+            ("pre-tool-use", HookEvent::PreToolUse),
+            ("post-tool-use", HookEvent::PostToolUse),
+            ("pre-compact", HookEvent::PreCompact),
+            ("subagent-start", HookEvent::SubagentStart),
+            ("subagent-stop", HookEvent::SubagentStop),
+            ("teammate-idle", HookEvent::TeammateIdle),
+            ("task-completed", HookEvent::TaskCompleted),
+            ("user-prompt-submit", HookEvent::UserPromptSubmit),
+            ("notification", HookEvent::Notification),
+            ("stop", HookEvent::Stop),
+        ];
+
+        for (name, event) in events {
+            let (_, code) = dispatch(&event, "{}");
+            // PreToolUse blocks on empty input (fail-closed security), all others exit 0
+            if event == HookEvent::PreToolUse {
+                assert_eq!(code, 2, "{} should fail-closed on empty input", name);
+            } else {
+                assert_eq!(code, 0, "{} should handle empty JSON gracefully", name);
+            }
+        }
+    }
 }
