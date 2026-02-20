@@ -1,7 +1,7 @@
 use rusqlite::Connection;
 use std::env;
 use std::path::PathBuf;
-use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, bootstrap_claude, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context};
+use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, bootstrap_claude, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns};
 pub fn generate_report(total_calls: i64, compile_calls: i64) -> String {
     let mut out = String::new();
     out.push_str("============================================================\n");
@@ -111,6 +111,18 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
         "infer" => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             infer_project_context::execute(&args, &cwd)
+        }
+        "planning-git" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            planning_git::execute(&args, &cwd)
+        }
+        "resolve-model" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            resolve_model::execute(&args, &cwd)
+        }
+        "resolve-turns" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            resolve_turns::execute(&args, &cwd)
         }
         _ => Err(format!("Unknown command: {}", args[1]))
     }
