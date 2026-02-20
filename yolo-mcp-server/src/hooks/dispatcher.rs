@@ -1,6 +1,11 @@
 use super::agent_health;
 use super::agent_start;
 use super::agent_stop;
+use super::blocker_notify;
+use super::prompt_preflight;
+use super::security_filter;
+use super::skill_hook_dispatch;
+use super::validate_summary;
 use super::types::{HookEvent, HookInput, HookOutput};
 use super::utils;
 
@@ -54,7 +59,7 @@ fn route_event(event: &HookEvent, input: &HookInput) -> Result<HookOutput, Strin
     match event {
         HookEvent::SessionStart => handle_stub("SessionStart", input),
         HookEvent::PreToolUse => handle_stub("PreToolUse", input),
-        HookEvent::PostToolUse => handle_stub("PostToolUse", input),
+        HookEvent::PostToolUse => handle_post_tool_use(input),
         HookEvent::PreCompact => handle_stub("PreCompact", input),
         HookEvent::SubagentStart => {
             if let Some(ref pd) = planning_dir {
@@ -81,11 +86,42 @@ fn route_event(event: &HookEvent, input: &HookInput) -> Result<HookOutput, Strin
                 Ok(HookOutput::empty())
             }
         }
-        HookEvent::TaskCompleted => handle_stub("TaskCompleted", input),
+        HookEvent::TaskCompleted => handle_task_completed(input),
         HookEvent::UserPromptSubmit => handle_stub("UserPromptSubmit", input),
         HookEvent::Notification => handle_stub("Notification", input),
         HookEvent::Stop => handle_stub("Stop", input),
     }
+}
+
+/// PostToolUse handler: runs validators then skill_hook_dispatch.
+/// Non-blocking: always returns exit 0 with advisory context.
+fn handle_post_tool_use(input: &HookInput) -> Result<HookOutput, String> {
+    // Run validate_summary (advisory)
+    let (summary_output, _) = validate_summary::validate_summary(&input.data);
+
+    // Run skill_hook_dispatch (advisory, may invoke user scripts)
+    let (_, _) = skill_hook_dispatch::skill_hook_dispatch("PostToolUse", &input.data);
+
+    // Return summary validation advisory if present
+    if !summary_output.is_null() {
+        let stdout = serde_json::to_string(&summary_output).unwrap_or_default();
+        return Ok(HookOutput::ok(stdout));
+    }
+
+    Ok(HookOutput::empty())
+}
+
+/// TaskCompleted handler: runs blocker_notify to detect newly-unblocked tasks.
+/// Non-blocking: always returns exit 0 with advisory context.
+fn handle_task_completed(input: &HookInput) -> Result<HookOutput, String> {
+    let (output, _) = blocker_notify::blocker_notify(&input.data);
+
+    if !output.is_null() {
+        let stdout = serde_json::to_string(&output).unwrap_or_default();
+        return Ok(HookOutput::ok(stdout));
+    }
+
+    Ok(HookOutput::empty())
 }
 
 /// Stub handler for events not yet migrated.
