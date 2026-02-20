@@ -49,9 +49,9 @@ Recent commits:
     - Generate 3 hypotheses (cause, codebase area, confirming evidence)
     - Resolve Debugger model:
         ```bash
-        DEBUGGER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+        DEBUGGER_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
         if [ $? -ne 0 ]; then echo "$DEBUGGER_MODEL" >&2; exit 1; fi
-        DEBUGGER_MAX_TURNS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-max-turns.sh debugger .yolo-planning/config.json "$EFFORT_PROFILE")
+        DEBUGGER_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns debugger .yolo-planning/config.json "$EFFORT_PROFILE")
         if [ $? -ne 0 ]; then echo "$DEBUGGER_MAX_TURNS" >&2; exit 1; fi
         ```
     - Display: `◆ Spawning Debugger (${DEBUGGER_MODEL})...`
@@ -66,9 +66,9 @@ Recent commits:
     **Path B: Standard** (all other cases):
     - Resolve Debugger model:
         ```bash
-        DEBUGGER_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+        DEBUGGER_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
         if [ $? -ne 0 ]; then echo "$DEBUGGER_MODEL" >&2; exit 1; fi
-        DEBUGGER_MAX_TURNS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-max-turns.sh debugger .yolo-planning/config.json "$EFFORT_PROFILE")
+        DEBUGGER_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns debugger .yolo-planning/config.json "$EFFORT_PROFILE")
         if [ $? -ne 0 ]; then echo "$DEBUGGER_MAX_TURNS" >&2; exit 1; fi
         ```
     - Display: `◆ Spawning Debugger (${DEBUGGER_MODEL})...`

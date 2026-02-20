@@ -77,7 +77,7 @@ Scout A (Tech + Architecture): analyze tech stack, deps, architecture, structure
 Scout B (Quality + Concerns): analyze quality, conventions, testing, debt, risks. Send 2 scout_findings messages (domain: "quality" with CONVENTIONS.md+TESTING.md, domain: "concerns" with CONCERNS.md). Mode: {MAPPING_MODE}. Schema ref: `${CLAUDE_PLUGIN_ROOT}/references/handoff-schemas.md`
 
 **Scout model (effort-gated):** Fast/Turbo: `Model: haiku`. Thorough/Balanced: inherit session model.
-**Scout turn budget (effort-gated):** Resolve with `bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-max-turns.sh scout .yolo-planning/config.json "{effort}"` and pass `maxTurns: ${SCOUT_MAX_TURNS}` to each Scout TaskCreate.
+**Scout turn budget (effort-gated):** Resolve with `"$HOME/.cargo/bin/yolo" resolve-turns scout .yolo-planning/config.json "{effort}"` and pass `maxTurns: ${SCOUT_MAX_TURNS}` to each Scout TaskCreate.
 Wait for all findings. Proceed to Step 3.5.
 
 ---

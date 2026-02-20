@@ -25,8 +25,8 @@ Config: Pre-injected by SessionStart hook.
 
 3. **Spawn Dev:** Resolve model first:
     ```bash
-    DEV_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-    DEV_MAX_TURNS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-max-turns.sh dev .yolo-planning/config.json turbo)
+    DEV_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+    DEV_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns dev .yolo-planning/config.json turbo)
     ```
 
     Spawn yolo-dev as subagent via Task tool with `model: "${DEV_MODEL}"` and
@@ -51,7 +51,7 @@ Config: Pre-injected by SessionStart hook.
       Files: {changed files}
     ```
 
-    Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next fix` and display.
+    Run `"$HOME/.cargo/bin/yolo" suggest-next fix` and display.
 
     Committed, with discovered issues (Dev reported pre-existing failures):
 
@@ -74,7 +74,7 @@ Config: Pre-injected by SessionStart hook.
     invoke /yolo:todo, and do NOT enter an interactive loop. The user decides
     whether to track these. If no discovered issues: omit the section entirely.
     After displaying discovered issues, STOP. Do not take further action.
-    Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next fix` and display.
+    Run `"$HOME/.cargo/bin/yolo" suggest-next fix` and display.
 
     Dev stopped:
 
@@ -83,4 +83,4 @@ Config: Pre-injected by SessionStart hook.
       {reason from Dev agent}
     ```
 
-    Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next debug` and display.
+    Run `"$HOME/.cargo/bin/yolo" suggest-next debug` and display.

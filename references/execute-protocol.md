@@ -174,9 +174,9 @@ If compilation fails, proceed without it — Dev reads files directly.
 **Model resolution:** Resolve models for Dev agents:
 
 ```bash
-DEV_MODEL=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-model.sh dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+DEV_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
 if [ $? -ne 0 ]; then echo "$DEV_MODEL" >&2; exit 1; fi
-DEV_MAX_TURNS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-agent-max-turns.sh dev .yolo-planning/config.json "{effort}")
+DEV_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns dev .yolo-planning/config.json "{effort}")
 if [ $? -ne 0 ]; then echo "$DEV_MAX_TURNS" >&2; exit 1; fi
 ```
 
@@ -319,26 +319,26 @@ Hooks handle continuous verification: PostToolUse validates SUMMARY.md, TaskComp
 **V2 Hard Gates (REQ-02, REQ-03):** If `v2_hard_gates=true` in config:
 
 - **Pre-task gate sequence (before each task starts):**
-  1. `contract_compliance` gate: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/hard-gate.sh contract_compliance {phase} {plan} {task} {contract_path}`
+  1. `contract_compliance` gate: `"$HOME/.cargo/bin/yolo" hard-gate contract_compliance {phase} {plan} {task} {contract_path}`
   2. **Lease acquisition** (V2 control plane): acquire exclusive file lease before protected_file check:
      - If `v3_lease_locks=true`: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh acquire {task_id} --ttl=300 {claimed_files...}`
      - Else if `v3_lock_lite=true`: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lock-lite.sh acquire {task_id} {claimed_files...}`
      - Lease conflict → auto-repair attempt (wait + re-acquire), then escalate blocker if unresolved.
-  3. `protected_file` gate: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/hard-gate.sh protected_file {phase} {plan} {task} {contract_path}`
+  3. `protected_file` gate: `"$HOME/.cargo/bin/yolo" hard-gate protected_file {phase} {plan} {task} {contract_path}`
   - If any gate fails (exit 2): attempt auto-repair:
     `REPAIR=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/auto-repair.sh {gate_type} {phase} {plan} {task} {contract_path})`
   - If `repaired=true`: re-run the failed gate to confirm, then proceed.
   - If `repaired=false`: emit blocker, halt task execution. Send Lead a message with the failure evidence and next action from the blocker event.
 - **Post-task gate sequence (after each task commit):**
-  1. `required_checks` gate: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/hard-gate.sh required_checks {phase} {plan} {task} {contract_path}`
-  2. `commit_hygiene` gate: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/hard-gate.sh commit_hygiene {phase} {plan} {task} {contract_path}`
+  1. `required_checks` gate: `"$HOME/.cargo/bin/yolo" hard-gate required_checks {phase} {plan} {task} {contract_path}`
+  2. `commit_hygiene` gate: `"$HOME/.cargo/bin/yolo" hard-gate commit_hygiene {phase} {plan} {task} {contract_path}`
   3. **Lease release**: release file lease after task completes:
      - If `v3_lease_locks=true`: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lease-lock.sh release {task_id}`
      - Else if `v3_lock_lite=true`: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/lock-lite.sh release {task_id}`
   - Gate failures trigger auto-repair with same flow as pre-task.
 - **Post-plan gate (after all tasks complete, before marking plan done):**
-  1. `artifact_persistence` gate: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/hard-gate.sh artifact_persistence {phase} {plan} {task} {contract_path}`
-  2. `verification_threshold` gate: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/hard-gate.sh verification_threshold {phase} {plan} {task} {contract_path}`
+  1. `artifact_persistence` gate: `"$HOME/.cargo/bin/yolo" hard-gate artifact_persistence {phase} {plan} {task} {contract_path}`
+  2. `verification_threshold` gate: `"$HOME/.cargo/bin/yolo" hard-gate verification_threshold {phase} {plan} {task} {contract_path}`
   - These gates fire AFTER SUMMARY.md verification but BEFORE updating execution-state.json to "complete".
 - **YOLO mode:** Hard gates ALWAYS fire regardless of autonomy level. YOLO only skips confirmation prompts.
 - **Fallback:** If hard-gate.sh or auto-repair.sh errors (not a gate fail, but a script error), log to metrics and continue (fail-open on script errors, hard-stop only on gate verdicts).
@@ -453,7 +453,7 @@ Note: "Run inline" means the execute-protocol agent runs the verify protocol dir
 
 **V2 Observability Report (REQ-14):** After phase completion, if `v3_metrics=true` or `v3_event_log=true`:
 
-- Generate observability report: `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo metrics-report {phase}`
+- Generate observability report: `"$HOME/.cargo/bin/yolo" metrics-report {phase}`
 - The report aggregates 7 V2 metrics: task latency, tokens/task, gate failure rate, lease conflicts, resume success, regression escape, fallback %.
 - Display summary table in phase completion output.
 - Dashboards show by profile (thorough|balanced|fast|turbo) and autonomy (cautious|standard|confident|pure-vibe).
@@ -465,7 +465,7 @@ Note: "Run inline" means the execute-protocol agent runs the verify protocol dir
 **Planning artifact boundary commit (conditional):**
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/planning-git.sh commit-boundary "complete phase {N}" .yolo-planning/config.json
+"$HOME/.cargo/bin/yolo" planning-git commit-boundary "complete phase {N}" .yolo-planning/config.json
 ```
 
 - `planning_tracking=commit`: commits `.yolo-planning/` + `CLAUDE.md` when changed
@@ -475,7 +475,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/planning-git.sh commit-boundary "complete pha
 **After-phase push (conditional):**
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/planning-git.sh push-after-phase .yolo-planning/config.json
+"$HOME/.cargo/bin/yolo" planning-git push-after-phase .yolo-planning/config.json
 ```
 
 - `auto_push=after_phase`: pushes once after phase completion (if upstream exists)
@@ -510,7 +510,7 @@ Display per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md:
 
 This is **display-only**. Do NOT edit STATE.md, do NOT add todos, do NOT invoke /yolo:todo, and do NOT enter an interactive loop. The user decides whether to track these. If no discovered issues: omit the section entirely. After displaying discovered issues, STOP. Do not take further action.
 
-Run `${CLAUDE_PLUGIN_ROOT}/yolo-mcp-server/target/release/yolo suggest-next execute pass` and display output.
+Run `"$HOME/.cargo/bin/yolo" suggest-next execute pass` and display output.
 
 **STOP.** Execute mode is complete. Return control to the user. Do NOT take further actions — no file edits, no additional commits, no interactive prompts, no improvised follow-up work. The user will decide what to do next based on the summary and suggest-next output.
 
