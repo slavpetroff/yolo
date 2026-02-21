@@ -1,0 +1,47 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "574596cf-dac0-4fc5-b241-f8674c44b2ae",
+    "phase": 1,
+    "phase_name": "01-incomplete-cli-mcp-fixes",
+    "plans": [
+      {
+        "id": "01-01",
+        "status": "complete",
+        "title": "Fix infer command: manifest-based stack detection + purpose extraction",
+        "wave": 1
+      },
+      {
+        "id": "01-02",
+        "status": "complete",
+        "title": "Fix hard-gate broken git commands and exit codes",
+        "wave": 1
+      },
+      {
+        "id": "01-03",
+        "status": "complete",
+        "title": "Fix lock exit code + delta-files empty response ambiguity",
+        "wave": 1
+      },
+      {
+        "id": "01-04",
+        "status": "complete",
+        "title": "Route unrouted CLI commands + fix detect-stack glob patterns",
+        "wave": 1
+      },
+      {
+        "id": "01-05",
+        "status": "complete",
+        "title": "CLI audit: stubs, silent failures, e2e verification",
+        "wave": 2
+      }
+    ],
+    "started_at": "2026-02-22T23:30:00Z",
+    "status": "complete",
+    "total_waves": 2,
+    "wave": 2
+  },
+  "matcher": "auto",
+  "phase": "1",
+  "timestamp": "2026-02-21T23:32:17Z"
+}
