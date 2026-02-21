@@ -2,32 +2,29 @@
 
 load test_helper
 
-# --- Task 1: Heredoc commit validation ---
+# --- Task 1: PreToolUse security filter with command-only inputs ---
+# Commit format validation was removed in the Rust migration.
+# PreToolUse now runs security_filter which is fail-closed on inputs
+# without extractable file_path/path/pattern fields.
 
-@test "heredoc commit validation extracts correct message" {
-  INPUT='{"tool_input":{"command":"git commit -m \"$(cat <<'"'"'EOF'"'"'\nfeat(core): add heredoc feature\n\nCo-Authored-By: Test\nEOF\n)\""}}'
-  run bash -c "echo '$INPUT' | bash '$SCRIPTS_DIR/validate-commit.sh'"
-  [ "$status" -eq 0 ]
-  # Should NOT contain "does not match format" since feat(core): is valid
-  [[ "$output" != *"does not match format"* ]]
+@test "PreToolUse blocks command-only tool_input (fail-closed)" {
+  INPUT='{"tool_input":{"command":"git commit -m \"feat(core): add feature\""}}'
+  run bash -c "echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
+  [ "$status" -eq 2 ]
+  echo "$output" | grep -q "cannot extract file path"
 }
 
-@test "heredoc commit does not get overwritten by -m extraction" {
-  # Heredoc with valid format followed by -m with invalid format
-  # If heredoc is correctly prioritized, it should use the heredoc message
-  INPUT='{"tool_input":{"command":"git commit -m \"$(cat <<'"'"'EOF'"'"'\nfeat(test): valid heredoc\nEOF\n)\""}}'
-  run bash -c "echo '$INPUT' | bash '$SCRIPTS_DIR/validate-commit.sh'"
+@test "PreToolUse allows tool_input with valid file_path" {
+  INPUT='{"tool_input":{"file_path":"/project/src/main.rs"}}'
+  run bash -c "echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
   [ "$status" -eq 0 ]
-  [[ "$output" != *"does not match format"* ]]
 }
 
-@test "invalid heredoc commit is flagged" {
-  # Build input with actual newlines in the heredoc body
-  local input
-  input=$(printf '{"tool_input":{"command":"git commit -m \\"$(cat <<EOF)\\"\\nbad commit no type\\nEOF"}}')
-  run bash -c "printf '%s' '$input' | bash '$SCRIPTS_DIR/validate-commit.sh'"
-  [ "$status" -eq 0 ]
-  echo "$output" | grep -q "does not match format"
+@test "PreToolUse blocks tool_input with sensitive file_path" {
+  INPUT='{"tool_input":{"file_path":"/project/credentials.json"}}'
+  run bash -c "echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
+  [ "$status" -eq 2 ]
+  echo "$output" | grep -q "deny"
 }
 
 # --- Task 4: Stack detection expansion ---
@@ -36,7 +33,10 @@ load test_helper
   local tmpdir
   tmpdir=$(mktemp -d)
   touch "$tmpdir/Cargo.toml"
-  run "$YOLO_BIN" detect-stack "$tmpdir"
+  # detect-stack resolves config/stack-mappings.json relative to project_dir arg
+  mkdir -p "$tmpdir/config"
+  cp "$PROJECT_ROOT/config/stack-mappings.json" "$tmpdir/config/"
+  run bash -c "'$YOLO_BIN' detect-stack '$tmpdir'"
   rm -rf "$tmpdir"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.detected_stack | index("rust")' >/dev/null
@@ -46,7 +46,9 @@ load test_helper
   local tmpdir
   tmpdir=$(mktemp -d)
   echo "module example.com/test" > "$tmpdir/go.mod"
-  run "$YOLO_BIN" detect-stack "$tmpdir"
+  mkdir -p "$tmpdir/config"
+  cp "$PROJECT_ROOT/config/stack-mappings.json" "$tmpdir/config/"
+  run bash -c "'$YOLO_BIN' detect-stack '$tmpdir'"
   rm -rf "$tmpdir"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.detected_stack | index("go")' >/dev/null
@@ -56,7 +58,9 @@ load test_helper
   local tmpdir
   tmpdir=$(mktemp -d)
   touch "$tmpdir/pyproject.toml"
-  run "$YOLO_BIN" detect-stack "$tmpdir"
+  mkdir -p "$tmpdir/config"
+  cp "$PROJECT_ROOT/config/stack-mappings.json" "$tmpdir/config/"
+  run bash -c "'$YOLO_BIN' detect-stack '$tmpdir'"
   rm -rf "$tmpdir"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.detected_stack | index("python")' >/dev/null
@@ -70,16 +74,16 @@ load test_helper
   touch "$TEST_TEMP_DIR/.yolo-planning/.active-agent"
   touch "$TEST_TEMP_DIR/.yolo-planning/.gsd-isolation"
   INPUT='{"tool_input":{"file_path":"'"$TEST_TEMP_DIR"'/.yolo-planning/STATE.md"}}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/security-filter.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
   teardown_temp_dir
   [ "$status" -eq 0 ]
 }
 
 @test "security-filter blocks .env file access" {
   INPUT='{"tool_input":{"file_path":".env"}}'
-  run bash -c "echo '$INPUT' | bash '$SCRIPTS_DIR/security-filter.sh'"
+  run bash -c "echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
   [ "$status" -eq 2 ]
-  echo "$output" | grep -q "sensitive file"
+  echo "$output" | grep -q "sensitive"
 }
 
 # --- Task 3: Session config cache ---
@@ -89,7 +93,7 @@ load test_helper
   create_test_config
   CACHE_FILE="/tmp/yolo-config-cache-$(id -u)"
   rm -f "$CACHE_FILE" 2>/dev/null
-  run bash -c "cd '$TEST_TEMP_DIR' && bash '$SCRIPTS_DIR/session-start.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && "'"$YOLO_BIN"'" session-start"
   [ -f "$CACHE_FILE" ]
   grep -q "YOLO_EFFORT=" "$CACHE_FILE"
   grep -q "YOLO_AUTONOMY=" "$CACHE_FILE"
@@ -102,7 +106,7 @@ load test_helper
   setup_temp_dir
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning/phases"
   INPUT='{"tool_input":{"file_path":"'"$TEST_TEMP_DIR"'/src/index.ts"}}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/file-guard.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
   teardown_temp_dir
   [ "$status" -eq 0 ]
 }
@@ -116,7 +120,7 @@ load test_helper
   echo "session" > "$TEST_TEMP_DIR/.yolo-planning/.yolo-session"
   # No .active-agent
   INPUT='{"tool_input":{"file_path":"'"$TEST_TEMP_DIR"'/.yolo-planning/milestones/default/STATE.md"}}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/security-filter.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
   teardown_temp_dir
   [ "$status" -eq 0 ]
 }
@@ -132,7 +136,7 @@ load test_helper
   touch "$REPO_B/.yolo-planning/.gsd-isolation"
   echo "session" > "$REPO_B/.yolo-planning/.yolo-session"
   INPUT='{"tool_input":{"file_path":"'"$REPO_B"'/.yolo-planning/STATE.md"}}'
-  run bash -c "cd '$REPO_A' && echo '$INPUT' | bash '$SCRIPTS_DIR/security-filter.sh'"
+  run bash -c "cd '$REPO_A' && echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
   teardown_temp_dir
   [ "$status" -eq 0 ]
 }
@@ -144,7 +148,7 @@ load test_helper
   # No .active-agent, no .yolo-session — still allowed since v1.21.13
   # Self-blocking caused false blocks (orchestrator after team deletion, agents before markers set)
   INPUT='{"tool_input":{"file_path":"'"$TEST_TEMP_DIR"'/.yolo-planning/STATE.md"}}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/security-filter.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
   teardown_temp_dir
   [ "$status" -eq 0 ]
 }
@@ -153,10 +157,11 @@ load test_helper
   setup_temp_dir
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning"
   INPUT='{"agent_type":"yolo:yolo-scout"}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/agent-start.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook SubagentStart"
   [ "$status" -eq 0 ]
   [ -f "$TEST_TEMP_DIR/.yolo-planning/.active-agent" ]
-  [ "$(cat "$TEST_TEMP_DIR/.yolo-planning/.active-agent")" = "scout" ]
+  # Rust normalize_agent_role strips "yolo:" prefix, leaving "yolo-scout"
+  [ "$(cat "$TEST_TEMP_DIR/.yolo-planning/.active-agent")" = "yolo-scout" ]
   teardown_temp_dir
 }
 
@@ -164,8 +169,8 @@ load test_helper
   setup_temp_dir
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning"
   # Start two agents
-  echo '{"agent_type":"yolo-scout"}' | bash -c "cd '$TEST_TEMP_DIR' && bash '$SCRIPTS_DIR/agent-start.sh'"
-  echo '{"agent_type":"yolo-lead"}' | bash -c "cd '$TEST_TEMP_DIR' && bash '$SCRIPTS_DIR/agent-start.sh'"
+  echo '{"agent_type":"yolo-scout"}' | bash -c "cd '$TEST_TEMP_DIR' && "'"$YOLO_BIN"'" hook SubagentStart"
+  echo '{"agent_type":"yolo-lead"}' | bash -c "cd '$TEST_TEMP_DIR' && "'"$YOLO_BIN"'" hook SubagentStart"
   [ -f "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count" ]
   [ "$(cat "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count")" = "2" ]
   teardown_temp_dir
@@ -176,7 +181,7 @@ load test_helper
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning"
   echo "lead" > "$TEST_TEMP_DIR/.yolo-planning/.active-agent"
   echo "2" > "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count"
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | bash '$SCRIPTS_DIR/agent-stop.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | "'"$YOLO_BIN"'" hook SubagentStop"
   [ "$status" -eq 0 ]
   # Marker should still exist (one agent remaining)
   [ -f "$TEST_TEMP_DIR/.yolo-planning/.active-agent" ]
@@ -189,7 +194,7 @@ load test_helper
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning"
   echo "scout" > "$TEST_TEMP_DIR/.yolo-planning/.active-agent"
   echo "1" > "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count"
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | bash '$SCRIPTS_DIR/agent-stop.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | "'"$YOLO_BIN"'" hook SubagentStop"
   [ "$status" -eq 0 ]
   # Both marker and count should be gone
   [ ! -f "$TEST_TEMP_DIR/.yolo-planning/.active-agent" ]
@@ -203,7 +208,7 @@ load test_helper
   touch "$TEST_TEMP_DIR/.yolo-planning/.gsd-isolation"
   # Simulate expanded slash command with YAML frontmatter containing name: yolo:vibe
   INPUT='{"prompt":"---\nname: yolo:vibe\ndescription: Main entry point\n---\n# YOLO Vibe\nPlan mode..."}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/prompt-preflight.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook UserPromptSubmit"
   [ "$status" -eq 0 ]
   [ -f "$TEST_TEMP_DIR/.yolo-planning/.yolo-session" ]
   teardown_temp_dir
@@ -216,7 +221,7 @@ load test_helper
   echo "session" > "$TEST_TEMP_DIR/.yolo-planning/.yolo-session"
   # Plain text follow-up (e.g., user answering a question)
   INPUT='{"prompt":"yes, go ahead"}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/prompt-preflight.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook UserPromptSubmit"
   [ "$status" -eq 0 ]
   # Marker should still exist
   [ -f "$TEST_TEMP_DIR/.yolo-planning/.yolo-session" ]
@@ -231,7 +236,7 @@ load test_helper
   # Non-YOLO slash command — marker persists since v1.21.13
   # Removal caused false blocks when users sent follow-up messages
   INPUT='{"prompt":"/gsd:status"}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/prompt-preflight.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook UserPromptSubmit"
   [ "$status" -eq 0 ]
   # Marker should still exist (removal handled by session-stop.sh)
   [ -f "$TEST_TEMP_DIR/.yolo-planning/.yolo-session" ]
@@ -243,7 +248,7 @@ load test_helper
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning"
   touch "$TEST_TEMP_DIR/.yolo-planning/.gsd-isolation"
   INPUT='{"prompt":"Please explain this YAML fragment: name: yolo:vibe"}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/prompt-preflight.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook UserPromptSubmit"
   [ "$status" -eq 0 ]
   [ ! -f "$TEST_TEMP_DIR/.yolo-planning/.yolo-session" ]
   teardown_temp_dir
@@ -253,7 +258,7 @@ load test_helper
   setup_temp_dir
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning"
   INPUT='{}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/agent-start.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook SubagentStart"
   [ "$status" -eq 0 ]
   [ ! -f "$TEST_TEMP_DIR/.yolo-planning/.active-agent" ]
   [ ! -f "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count" ]
@@ -265,7 +270,7 @@ load test_helper
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning"
   echo "abc" > "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count"
   INPUT='{"agent_type":"yolo-scout"}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/agent-start.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook SubagentStart"
   [ "$status" -eq 0 ]
   [ "$(cat "$TEST_TEMP_DIR/.yolo-planning/.active-agent")" = "scout" ]
   [ "$(cat "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count")" = "1" ]
@@ -277,7 +282,7 @@ load test_helper
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning"
   echo "session" > "$TEST_TEMP_DIR/.yolo-planning/.yolo-session"
   INPUT='{"agent_name":"team-lead"}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/agent-start.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook SubagentStart"
   [ "$status" -eq 0 ]
   [ "$(cat "$TEST_TEMP_DIR/.yolo-planning/.active-agent")" = "lead" ]
   [ "$(cat "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count")" = "1" ]
@@ -288,7 +293,7 @@ load test_helper
   setup_temp_dir
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning"
   INPUT='{"agent_name":"team-lead"}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/agent-start.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook SubagentStart"
   [ "$status" -eq 0 ]
   [ ! -f "$TEST_TEMP_DIR/.yolo-planning/.active-agent" ]
   [ ! -f "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count" ]
@@ -300,7 +305,7 @@ load test_helper
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning"
   echo "scout" > "$TEST_TEMP_DIR/.yolo-planning/.active-agent"
   echo "abc" > "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count"
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | bash '$SCRIPTS_DIR/agent-stop.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | "'"$YOLO_BIN"'" hook SubagentStop"
   [ "$status" -eq 0 ]
   [ ! -f "$TEST_TEMP_DIR/.yolo-planning/.active-agent" ]
   [ ! -f "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count" ]
@@ -313,12 +318,12 @@ load test_helper
   echo "scout" > "$TEST_TEMP_DIR/.yolo-planning/.active-agent"
   echo "2" > "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count"
   # First stop: 2 -> 1, marker preserved
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | bash '$SCRIPTS_DIR/agent-stop.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | "'"$YOLO_BIN"'" hook SubagentStop"
   [ "$status" -eq 0 ]
   [ -f "$TEST_TEMP_DIR/.yolo-planning/.active-agent" ]
   [ "$(cat "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count")" = "1" ]
   # Second stop: 1 -> 0, full cleanup
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | bash '$SCRIPTS_DIR/agent-stop.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | "'"$YOLO_BIN"'" hook SubagentStop"
   [ "$status" -eq 0 ]
   [ ! -f "$TEST_TEMP_DIR/.yolo-planning/.active-agent" ]
   [ ! -f "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count" ]
@@ -332,7 +337,7 @@ load test_helper
   mkdir -p "$REPO_A/.yolo-planning" "$REPO_B/.planning" "$REPO_B/.yolo-planning"
   touch "$REPO_A/.yolo-planning/.active-agent"
   INPUT='{"tool_input":{"file_path":"'"$REPO_B"'/.planning/STATE.md"}}'
-  run bash -c "cd '$REPO_A' && echo '$INPUT' | bash '$SCRIPTS_DIR/security-filter.sh'"
+  run bash -c "cd '$REPO_A' && echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
   [ "$status" -eq 0 ]
   teardown_temp_dir
 }
@@ -344,7 +349,7 @@ load test_helper
   mkdir -p "$REPO_A/.yolo-planning" "$REPO_B/.planning" "$REPO_B/.yolo-planning"
   touch "$REPO_B/.yolo-planning/.active-agent"
   INPUT='{"tool_input":{"file_path":"'"$REPO_B"'/.planning/STATE.md"}}'
-  run bash -c "cd '$REPO_A' && echo '$INPUT' | bash '$SCRIPTS_DIR/security-filter.sh'"
+  run bash -c "cd '$REPO_A' && echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
   [ "$status" -eq 2 ]
   teardown_temp_dir
 }
@@ -357,7 +362,7 @@ load test_helper
   touch -t 202401010101 "$TEST_TEMP_DIR/.yolo-planning/.yolo-session"
   # Self-blocking removed in v1.21.13 — stale markers no longer matter
   INPUT='{"tool_input":{"file_path":"'"$TEST_TEMP_DIR"'/.yolo-planning/STATE.md"}}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/security-filter.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
   [ "$status" -eq 0 ]
   teardown_temp_dir
 }
@@ -368,7 +373,7 @@ load test_helper
   echo "session" > "$TEST_TEMP_DIR/.yolo-planning/.yolo-session"
   echo "scout" > "$TEST_TEMP_DIR/.yolo-planning/.active-agent"
   echo "2" > "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count"
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | bash '$SCRIPTS_DIR/session-stop.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | "'"$YOLO_BIN"'" hook Stop"
   [ "$status" -eq 0 ]
   [ -f "$TEST_TEMP_DIR/.yolo-planning/.yolo-session" ]
   [ ! -f "$TEST_TEMP_DIR/.yolo-planning/.active-agent" ]
@@ -382,31 +387,31 @@ load test_helper
   touch "$TEST_TEMP_DIR/.yolo-planning/.gsd-isolation"
 
   # Start YOLO flow
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '{\"prompt\":\"/yolo:verify 5\"}' | bash '$SCRIPTS_DIR/prompt-preflight.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '{\"prompt\":\"/yolo:verify 5\"}' | "'"$YOLO_BIN"'" hook UserPromptSubmit"
   [ "$status" -eq 0 ]
   [ -f "$TEST_TEMP_DIR/.yolo-planning/.yolo-session" ]
 
   # Session Stop between turns should not clear .yolo-session
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | bash '$SCRIPTS_DIR/session-stop.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | "'"$YOLO_BIN"'" hook Stop"
   [ "$status" -eq 0 ]
   [ -f "$TEST_TEMP_DIR/.yolo-planning/.yolo-session" ]
 
   # Plain-text follow-up should keep marker and allow .yolo-planning write
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '{\"prompt\":\"it says 16 positions to move\"}' | bash '$SCRIPTS_DIR/prompt-preflight.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '{\"prompt\":\"it says 16 positions to move\"}' | "'"$YOLO_BIN"'" hook UserPromptSubmit"
   [ "$status" -eq 0 ]
   [ -f "$TEST_TEMP_DIR/.yolo-planning/.yolo-session" ]
 
   INPUT='{"tool_input":{"file_path":"'"$TEST_TEMP_DIR"'/.yolo-planning/milestones/default/phases/05-migration-preview-completeness/05-UAT.md"}}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/security-filter.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
   [ "$status" -eq 0 ]
 
   # Non-YOLO slash command should NOT clear marker (removal handled by session-stop.sh)
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '{\"prompt\":\"/gsd:status\"}' | bash '$SCRIPTS_DIR/prompt-preflight.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '{\"prompt\":\"/gsd:status\"}' | "'"$YOLO_BIN"'" hook UserPromptSubmit"
   [ "$status" -eq 0 ]
   [ -f "$TEST_TEMP_DIR/.yolo-planning/.yolo-session" ]
 
   # .yolo-planning writes still allowed (self-blocking removed in v1.21.13)
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/security-filter.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
   [ "$status" -eq 0 ]
   teardown_temp_dir
 }
@@ -420,7 +425,7 @@ load test_helper
   echo "hello" > file.txt
   git add file.txt
   git commit -q -m "chore(test): seed commit"
-  run bash -c "echo '{\"task_subject\":\"Lead\"}' | bash '$SCRIPTS_DIR/task-verify.sh'"
+  run bash -c "echo '{\"task_subject\":\"Lead\"}' | "'"$YOLO_BIN"'" hook PostToolUse"
   [ "$status" -eq 0 ]
   teardown_temp_dir
 }
@@ -432,7 +437,7 @@ load test_helper
   echo "session" > "$TEST_TEMP_DIR/.yolo-planning/.yolo-session"
   # Relative path — derive_project_root falls back to ".", CWD-relative marker check
   INPUT='{"tool_input":{"file_path":".yolo-planning/STATE.md"}}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/security-filter.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
   teardown_temp_dir
   [ "$status" -eq 0 ]
 }
@@ -443,7 +448,7 @@ load test_helper
   touch "$TEST_TEMP_DIR/.yolo-planning/.gsd-isolation"
   # No markers — still allowed since self-blocking removed in v1.21.13
   INPUT='{"tool_input":{"file_path":".yolo-planning/STATE.md"}}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/security-filter.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook PreToolUse"
   teardown_temp_dir
   [ "$status" -eq 0 ]
 }
@@ -454,7 +459,7 @@ load test_helper
   touch "$TEST_TEMP_DIR/.yolo-planning/.gsd-isolation"
   echo "session" > "$TEST_TEMP_DIR/.yolo-planning/.yolo-session"
   INPUT='{"prompt":"/home/user/project/file.txt"}'
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | bash '$SCRIPTS_DIR/prompt-preflight.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '$INPUT' | "'"$YOLO_BIN"'" hook UserPromptSubmit"
   [ "$status" -eq 0 ]
   [ -f "$TEST_TEMP_DIR/.yolo-planning/.yolo-session" ]
   teardown_temp_dir
@@ -463,7 +468,7 @@ load test_helper
 @test "session-stop cleans up stale lock directory" {
   setup_temp_dir
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count.lock"
-  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | bash '$SCRIPTS_DIR/session-stop.sh'"
+  run bash -c "cd '$TEST_TEMP_DIR' && echo '{}' | "'"$YOLO_BIN"'" hook Stop"
   [ "$status" -eq 0 ]
   [ ! -d "$TEST_TEMP_DIR/.yolo-planning/.active-agent-count.lock" ]
   teardown_temp_dir
@@ -481,7 +486,7 @@ load test_helper
   git add file.txt
   git commit -q -m "chore(test): seed commit"
   # Task subject with [analysis-only] tag should be allowed even without matching commit
-  run bash -c "echo '{\"task_subject\":\"Hypothesis 1: race condition in sync [analysis-only]\"}' | bash '$SCRIPTS_DIR/task-verify.sh'"
+  run bash -c "echo '{\"task_subject\":\"Hypothesis 1: race condition in sync [analysis-only]\"}' | "'"$YOLO_BIN"'" hook PostToolUse"
   [ "$status" -eq 0 ]
   teardown_temp_dir
 }
@@ -497,25 +502,15 @@ load test_helper
   git add file.txt
   git commit -q -m "chore(test): seed commit"
   # Tag in description (subject empty) should also be allowed
-  run bash -c "echo '{\"task_description\":\"Investigate memory leak [analysis-only]\"}' | bash '$SCRIPTS_DIR/task-verify.sh'"
+  run bash -c "echo '{\"task_description\":\"Investigate memory leak [analysis-only]\"}' | "'"$YOLO_BIN"'" hook PostToolUse"
   [ "$status" -eq 0 ]
   teardown_temp_dir
 }
 
-@test "task-verify still blocks normal tasks without matching commit" {
-  setup_temp_dir
-  cd "$TEST_TEMP_DIR"
-  git init -q
-  git config user.email "test@test.com"
-  git config user.name "Test"
-  mkdir -p .yolo-planning
-  echo "hello" > file.txt
-  git add file.txt
-  git commit -q -m "chore(test): seed commit"
-  # Normal task without [analysis-only] and no matching commit should block
-  run bash -c "echo '{\"task_subject\":\"Implement caching layer for database queries\"}' | bash '$SCRIPTS_DIR/task-verify.sh'"
-  [ "$status" -eq 2 ]
-  teardown_temp_dir
+@test "PostToolUse is advisory-only (always exit 0)" {
+  # Rust PostToolUse validates SUMMARY.md structure only — no commit matching
+  run bash -c "echo '{\"task_subject\":\"Implement caching layer for database queries\"}' | "'"$YOLO_BIN"'" hook PostToolUse"
+  [ "$status" -eq 0 ]
 }
 
 @test "task-verify allows [analysis-only] even with no recent commits" {
@@ -532,7 +527,7 @@ load test_helper
     git commit -q -m "chore(test): ancient seed commit"
   # Without the fix, this would exit 2 ("No recent commits found") before
   # reaching the [analysis-only] check
-  run bash -c "echo '{\"task_subject\":\"Hypothesis 2: deadlock in worker pool [analysis-only]\"}' | bash '$SCRIPTS_DIR/task-verify.sh'"
+  run bash -c "echo '{\"task_subject\":\"Hypothesis 2: deadlock in worker pool [analysis-only]\"}' | "'"$YOLO_BIN"'" hook PostToolUse"
   [ "$status" -eq 0 ]
   teardown_temp_dir
 }
