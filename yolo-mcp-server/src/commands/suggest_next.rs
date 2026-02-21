@@ -1,7 +1,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::process::Command;
+use std::time::Instant;
 
 pub struct Context {
     pub has_project: bool,
@@ -258,6 +259,7 @@ fn fmt_phase_name(name: &str) -> String {
 }
 
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
+    let start = Instant::now();
     let cmd = args.get(2).map(|s| s.as_str()).unwrap_or("");
     let result_arg = args.get(3).map(|s| s.as_str()).unwrap_or("");
 
@@ -268,180 +270,173 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         ctx.last_qa_result.clone().unwrap_or_default()
     };
 
-    let mut out = String::new();
-    out.push_str("➜ Next Up\n");
-
-    let mut suggest = |s: &str| {
-        out.push_str(&format!("  {}\n", s));
+    let mut suggestions: Vec<Value> = Vec::new();
+    let mut add_suggestion = |command: &str, reason: &str| {
+        suggestions.push(json!({"command": command, "reason": reason}));
     };
 
     match cmd {
         "init" => {
-            suggest("/yolo:vibe \u{2014} Define your project and start building");
+            add_suggestion("/yolo:vibe", "Define your project and start building");
         }
         "vibe" | "implement" | "execute" => {
             match effective_result.as_str() {
                 "fail" => {
                     if let Some(first_fail) = ctx.failing_plan_ids.first() {
-                        suggest(&format!("/yolo:fix \u{2014} Fix plan {} (failed verification)", first_fail));
+                        add_suggestion("/yolo:fix", &format!("Fix plan {} (failed verification)", first_fail));
                     } else {
-                        suggest("/yolo:fix \u{2014} Fix the failing checks");
+                        add_suggestion("/yolo:fix", "Fix the failing checks");
                     }
-                    suggest("/yolo:qa \u{2014} Re-run verification after fixing");
+                    add_suggestion("/yolo:qa", "Re-run verification after fixing");
                 }
                 "partial" => {
                     if let Some(first_fail) = ctx.failing_plan_ids.first() {
-                        suggest(&format!("/yolo:fix \u{2014} Fix plan {} (partial failure)", first_fail));
+                        add_suggestion("/yolo:fix", &format!("Fix plan {} (partial failure)", first_fail));
                     } else {
-                        suggest("/yolo:fix \u{2014} Address partial failures");
+                        add_suggestion("/yolo:fix", "Address partial failures");
                     }
                     if !ctx.all_done {
-                        suggest("/yolo:vibe \u{2014} Continue to next phase");
+                        add_suggestion("/yolo:vibe", "Continue to next phase");
                     }
                 }
                 _ => {
                     if !ctx.has_uat && (ctx.cfg_autonomy == "cautious" || ctx.cfg_autonomy == "standard") {
-                        suggest("/yolo:verify \u{2014} Walk through changes before continuing");
+                        add_suggestion("/yolo:verify", "Walk through changes before continuing");
                     }
                     if ctx.all_done {
                         if ctx.deviation_count == 0 {
-                            suggest("/yolo:vibe --archive \u{2014} All phases complete, zero deviations");
+                            add_suggestion("/yolo:vibe --archive", "All phases complete, zero deviations");
                         } else {
-                            suggest(&format!("/yolo:vibe --archive \u{2014} Archive completed work ({} deviation(s) logged)", ctx.deviation_count));
-                            suggest("/yolo:qa \u{2014} Review before archiving");
+                            add_suggestion("/yolo:vibe --archive", &format!("Archive completed work ({} deviation(s) logged)", ctx.deviation_count));
+                            add_suggestion("/yolo:qa", "Review before archiving");
                         }
                     } else if ctx.next_unbuilt.is_some() || ctx.next_unplanned.is_some() {
                         let target = ctx.next_unbuilt.as_ref().or(ctx.next_unplanned.as_ref()).unwrap();
                         let target_is_active = ctx.active_phase_num.as_ref() == Some(target);
                         if ctx.active_phase_name.is_some() && !target_is_active {
-                            // Find name matching target... wait, active_phase is the target here because target is either unbuilt or unplanned. 
-                            // In bash logic: if target != active_phase_num then loop through dirs and find name.
-                            // But actually active_phase_num usually _is_ target, since next_unplanned/unbuilt are set simultaneously.
-                            // To be perfectly safe, let's just use the logic verbatim.
-                            // For simplicity, we can assume target matches active phase if we found it.
-                            suggest(&format!("/yolo:vibe \u{2014} Continue to Phase {}: {}", target, fmt_phase_name(ctx.active_phase_name.as_deref().unwrap_or("unknown"))));
+                            add_suggestion("/yolo:vibe", &format!("Continue to Phase {}: {}", target, fmt_phase_name(ctx.active_phase_name.as_deref().unwrap_or("unknown"))));
                         } else {
-                            suggest("/yolo:vibe \u{2014} Continue to next phase");
+                            add_suggestion("/yolo:vibe", "Continue to next phase");
                         }
                     }
                     if effective_result == "skipped" {
-                        suggest("/yolo:qa \u{2014} Verify completed work");
+                        add_suggestion("/yolo:qa", "Verify completed work");
                     }
                 }
             }
         }
         "plan" => {
             if ctx.active_phase_plans > 0 {
-                suggest(&format!("/yolo:vibe \u{2014} Execute {} plans ({} effort)", ctx.active_phase_plans, ctx.effort));
+                add_suggestion("/yolo:vibe", &format!("Execute {} plans ({} effort)", ctx.active_phase_plans, ctx.effort));
             } else {
-                suggest("/yolo:vibe \u{2014} Execute the planned phase");
+                add_suggestion("/yolo:vibe", "Execute the planned phase");
             }
         }
         "qa" => {
             match effective_result.as_str() {
                 "pass" => {
                     if !ctx.has_uat && (ctx.cfg_autonomy == "cautious" || ctx.cfg_autonomy == "standard") {
-                        suggest("/yolo:verify \u{2014} Walk through changes manually");
+                        add_suggestion("/yolo:verify", "Walk through changes manually");
                     }
                     if ctx.all_done {
                         if ctx.deviation_count == 0 {
-                            suggest("/yolo:vibe --archive \u{2014} All phases complete, zero deviations");
+                            add_suggestion("/yolo:vibe --archive", "All phases complete, zero deviations");
                         } else {
-                            suggest(&format!("/yolo:vibe --archive \u{2014} Archive completed work ({} deviation(s) logged)", ctx.deviation_count));
+                            add_suggestion("/yolo:vibe --archive", &format!("Archive completed work ({} deviation(s) logged)", ctx.deviation_count));
                         }
                     } else if let Some(target) = ctx.next_unbuilt.as_ref().or(ctx.next_unplanned.as_ref()) {
-                        suggest(&format!("/yolo:vibe \u{2014} Continue to Phase {}: {}", target, fmt_phase_name(ctx.active_phase_name.as_deref().unwrap_or("unknown"))));
+                        add_suggestion("/yolo:vibe", &format!("Continue to Phase {}: {}", target, fmt_phase_name(ctx.active_phase_name.as_deref().unwrap_or("unknown"))));
                     } else {
-                        suggest("/yolo:vibe \u{2014} Continue to next phase");
+                        add_suggestion("/yolo:vibe", "Continue to next phase");
                     }
                 }
                 "fail" => {
                     if let Some(first_fail) = ctx.failing_plan_ids.first() {
-                        suggest(&format!("/yolo:fix \u{2014} Fix plan {} (failed QA)", first_fail));
+                        add_suggestion("/yolo:fix", &format!("Fix plan {} (failed QA)", first_fail));
                     } else {
-                        suggest("/yolo:fix \u{2014} Fix the failing checks");
+                        add_suggestion("/yolo:fix", "Fix the failing checks");
                     }
                 }
                 "partial" => {
                     if let Some(first_fail) = ctx.failing_plan_ids.first() {
-                        suggest(&format!("/yolo:fix \u{2014} Fix plan {} (partial failure)", first_fail));
+                        add_suggestion("/yolo:fix", &format!("Fix plan {} (partial failure)", first_fail));
                     } else {
-                        suggest("/yolo:fix \u{2014} Address partial failures");
+                        add_suggestion("/yolo:fix", "Address partial failures");
                     }
-                    suggest("/yolo:vibe \u{2014} Continue despite warnings");
+                    add_suggestion("/yolo:vibe", "Continue despite warnings");
                 }
                 _ => {
-                    suggest("/yolo:vibe \u{2014} Continue building");
+                    add_suggestion("/yolo:vibe", "Continue building");
                 }
             }
         }
         "fix" => {
-            suggest("/yolo:qa \u{2014} Verify the fix");
-            suggest("/yolo:vibe \u{2014} Continue building");
+            add_suggestion("/yolo:qa", "Verify the fix");
+            add_suggestion("/yolo:vibe", "Continue building");
         }
         "verify" => {
             match effective_result.as_str() {
                 "pass" => {
                     if ctx.all_done {
-                        suggest("/yolo:vibe --archive \u{2014} All verified, ready to ship");
+                        add_suggestion("/yolo:vibe --archive", "All verified, ready to ship");
                     } else {
-                        suggest("/yolo:vibe \u{2014} Continue to next phase");
+                        add_suggestion("/yolo:vibe", "Continue to next phase");
                     }
                 }
                 "issues_found" => {
-                    suggest("/yolo:fix \u{2014} Fix the issues found during UAT");
-                    suggest("/yolo:verify --resume \u{2014} Continue testing after fix");
+                    add_suggestion("/yolo:fix", "Fix the issues found during UAT");
+                    add_suggestion("/yolo:verify --resume", "Continue testing after fix");
                 }
                 _ => {
-                    suggest("/yolo:vibe \u{2014} Continue building");
+                    add_suggestion("/yolo:vibe", "Continue building");
                 }
             }
         }
         "debug" => {
-            suggest("/yolo:fix \u{2014} Apply the fix");
-            suggest("/yolo:vibe \u{2014} Continue building");
+            add_suggestion("/yolo:fix", "Apply the fix");
+            add_suggestion("/yolo:vibe", "Continue building");
         }
         "config" => {
             if ctx.has_project {
-                suggest("/yolo:status \u{2014} View project state");
+                add_suggestion("/yolo:status", "View project state");
             } else {
-                suggest("/yolo:vibe \u{2014} Define your project and start building");
+                add_suggestion("/yolo:vibe", "Define your project and start building");
             }
         }
         "archive" => {
-            suggest("/yolo:vibe \u{2014} Start new work");
+            add_suggestion("/yolo:vibe", "Start new work");
         }
         "status" => {
             if ctx.all_done {
                 if ctx.deviation_count == 0 {
-                    suggest("/yolo:vibe --archive \u{2014} All phases complete, zero deviations");
+                    add_suggestion("/yolo:vibe --archive", "All phases complete, zero deviations");
                 } else {
-                    suggest("/yolo:vibe --archive \u{2014} Archive completed work");
+                    add_suggestion("/yolo:vibe --archive", "Archive completed work");
                 }
             } else if let Some(target) = ctx.next_unbuilt.as_ref().or(ctx.next_unplanned.as_ref()) {
-                suggest(&format!("/yolo:vibe \u{2014} Continue Phase {}: {}", target, fmt_phase_name(ctx.active_phase_name.as_deref().unwrap_or("unknown"))));
+                add_suggestion("/yolo:vibe", &format!("Continue Phase {}: {}", target, fmt_phase_name(ctx.active_phase_name.as_deref().unwrap_or("unknown"))));
             } else {
-                suggest("/yolo:vibe \u{2014} Start building");
+                add_suggestion("/yolo:vibe", "Start building");
             }
         }
         "map" => {
-            suggest("/yolo:vibe \u{2014} Start building");
-            suggest("/yolo:status \u{2014} View project state");
+            add_suggestion("/yolo:vibe", "Start building");
+            add_suggestion("/yolo:status", "View project state");
         }
         "discuss" | "assumptions" => {
-            suggest("/yolo:vibe --plan \u{2014} Plan this phase");
-            suggest("/yolo:vibe \u{2014} Plan and execute in one flow");
+            add_suggestion("/yolo:vibe --plan", "Plan this phase");
+            add_suggestion("/yolo:vibe", "Plan and execute in one flow");
         }
         "resume" => {
-            suggest("/yolo:vibe \u{2014} Continue building");
-            suggest("/yolo:status \u{2014} View current progress");
+            add_suggestion("/yolo:vibe", "Continue building");
+            add_suggestion("/yolo:status", "View current progress");
         }
         _ => {
             if ctx.has_project {
-                suggest("/yolo:vibe \u{2014} Continue building");
-                suggest("/yolo:status \u{2014} View project progress");
+                add_suggestion("/yolo:vibe", "Continue building");
+                add_suggestion("/yolo:status", "View project progress");
             } else {
-                suggest("/yolo:vibe \u{2014} Start a new project");
+                add_suggestion("/yolo:vibe", "Start a new project");
             }
         }
     }
@@ -451,17 +446,41 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         _ => {
             if ctx.has_project && ctx.phase_count > 0 {
                 if !ctx.map_exists {
-                    suggest("/yolo:map \u{2014} Map your codebase for better planning");
+                    add_suggestion("/yolo:map", "Map your codebase for better planning");
                 } else if ctx.map_staleness > 30 {
-                    suggest(&format!("/yolo:map --incremental \u{2014} Codebase map is {}% stale", ctx.map_staleness));
+                    add_suggestion("/yolo:map --incremental", &format!("Codebase map is {}% stale", ctx.map_staleness));
                 }
             }
         }
     }
 
-    // Replace the unicode back em-dash with double hyphens if output format requires it.
-    // However, the bash script used `--` so we should use `--`. Let's fix that.
-    Ok((out.replace("\u{2014}", "--"), 0))
+    // Build legacy text output for backward compatibility
+    let mut text = String::from("➜ Next Up\n");
+    for s in &suggestions {
+        let command = s["command"].as_str().unwrap_or("");
+        let reason = s["reason"].as_str().unwrap_or("");
+        text.push_str(&format!("  {} -- {}\n", command, reason));
+    }
+
+    let response = json!({
+        "ok": true,
+        "cmd": "suggest-next",
+        "delta": {
+            "context_cmd": cmd,
+            "suggestions": suggestions,
+            "phase_num": ctx.active_phase_num,
+            "phase_name": ctx.active_phase_name,
+            "all_done": ctx.all_done,
+            "deviation_count": ctx.deviation_count,
+            "effort": ctx.effort,
+            "has_project": ctx.has_project,
+            "map_staleness": ctx.map_staleness,
+            "text": text
+        },
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
+
+    Ok((response.to_string(), 0))
 }
 
 #[cfg(test)]
@@ -484,7 +503,14 @@ mod tests {
         let dir = tempdir().unwrap();
         let (out, code) = run_suggest(&["init"], dir.path()).unwrap();
         assert_eq!(code, 0);
-        assert!(out.contains("/yolo:vibe -- Define your project and start building"));
+        let j: Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(j["ok"], true);
+        assert_eq!(j["cmd"], "suggest-next");
+        let suggestions = j["delta"]["suggestions"].as_array().unwrap();
+        assert!(suggestions.iter().any(|s| s["command"].as_str().unwrap().contains("/yolo:vibe")));
+        // Legacy text preserved in delta
+        let text = j["delta"]["text"].as_str().unwrap();
+        assert!(text.contains("/yolo:vibe -- Define your project and start building"));
     }
 
     #[test]
@@ -492,8 +518,11 @@ mod tests {
         let dir = tempdir().unwrap();
         let (out, code) = run_suggest(&["vibe", "fail"], dir.path()).unwrap();
         assert_eq!(code, 0);
-        assert!(out.contains("/yolo:fix -- Fix the failing checks"));
-        assert!(out.contains("/yolo:qa -- Re-run verification after fixing"));
+        let j: Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(j["ok"], true);
+        let suggestions = j["delta"]["suggestions"].as_array().unwrap();
+        assert!(suggestions.iter().any(|s| s["command"] == "/yolo:fix" && s["reason"].as_str().unwrap().contains("failing checks")));
+        assert!(suggestions.iter().any(|s| s["command"] == "/yolo:qa"));
     }
 
     #[test]
@@ -506,9 +535,11 @@ mod tests {
 
         let (out, code) = run_suggest(&["vibe", "fail"], dir.path()).unwrap();
         assert_eq!(code, 0);
-        assert!(out.contains("/yolo:fix -- Fix plan auth (failed verification)"));
+        let j: Value = serde_json::from_str(&out).unwrap();
+        let suggestions = j["delta"]["suggestions"].as_array().unwrap();
+        assert!(suggestions.iter().any(|s| s["reason"].as_str().unwrap().contains("Fix plan auth (failed verification)")));
     }
-    
+
     #[test]
     fn test_all_done() {
         let dir = tempdir().unwrap();
@@ -517,9 +548,26 @@ mod tests {
         fs::create_dir_all(&active).unwrap();
         fs::write(active.join("auth-PLAN.md"), "plan").unwrap();
         fs::write(active.join("auth-SUMMARY.md"), "status: complete\n").unwrap();
-        
+
         let (out, code) = run_suggest(&["status"], dir.path()).unwrap();
         assert_eq!(code, 0);
-        assert!(out.contains("/yolo:vibe --archive -- All phases complete, zero deviations"));
+        let j: Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(j["delta"]["all_done"], true);
+        let suggestions = j["delta"]["suggestions"].as_array().unwrap();
+        assert!(suggestions.iter().any(|s| s["command"] == "/yolo:vibe --archive"));
+    }
+
+    #[test]
+    fn test_json_envelope_fields() {
+        let dir = tempdir().unwrap();
+        let (out, code) = run_suggest(&["init"], dir.path()).unwrap();
+        assert_eq!(code, 0);
+        let j: Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(j["ok"], true);
+        assert_eq!(j["cmd"], "suggest-next");
+        assert!(j["elapsed_ms"].is_number());
+        assert_eq!(j["delta"]["context_cmd"], "init");
+        assert_eq!(j["delta"]["has_project"], false);
+        assert!(j["delta"]["effort"].is_string());
     }
 }
