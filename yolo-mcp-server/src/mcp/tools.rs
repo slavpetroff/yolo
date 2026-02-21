@@ -20,16 +20,35 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
     match name {
         "compile_context" => {
             let phase = params.as_ref().and_then(|p| p.get("phase")).and_then(|p| p.as_i64()).unwrap_or(0);
-            
-            let mut prefix = String::from("--- GLOBAL PROJECT STATE DO NOT MODIFY PREFIX ---\n");
-            
-            let files_to_read = vec![
-                ".yolo-planning/codebase/ARCHITECTURE.md",
-                ".yolo-planning/codebase/STACK.md",
-                ".yolo-planning/codebase/CONVENTIONS.md",
-                ".yolo-planning/ROADMAP.md",
-                ".yolo-planning/REQUIREMENTS.md"
-            ];
+            let role = params.as_ref()
+                .and_then(|p| p.get("role"))
+                .and_then(|r| r.as_str())
+                .unwrap_or("default");
+
+            let mut prefix = format!("--- COMPILED CONTEXT (phase={}, role={}) ---\n", phase, role);
+
+            let files_to_read: Vec<&str> = match role {
+                "architect" | "lead" => vec![
+                    ".yolo-planning/codebase/ARCHITECTURE.md",
+                    ".yolo-planning/codebase/STACK.md",
+                    ".yolo-planning/codebase/CONVENTIONS.md",
+                    ".yolo-planning/ROADMAP.md",
+                    ".yolo-planning/REQUIREMENTS.md",
+                ],
+                "senior" | "dev" => vec![
+                    ".yolo-planning/codebase/CONVENTIONS.md",
+                    ".yolo-planning/codebase/STACK.md",
+                    ".yolo-planning/ROADMAP.md",
+                ],
+                "qa" | "security" => vec![
+                    ".yolo-planning/codebase/CONVENTIONS.md",
+                    ".yolo-planning/REQUIREMENTS.md",
+                ],
+                _ => vec![
+                    ".yolo-planning/codebase/CONVENTIONS.md",
+                    ".yolo-planning/ROADMAP.md",
+                ],
+            };
 
             for path in files_to_read {
                 if let Ok(content) = fs::read_to_string(path).await {
@@ -37,7 +56,7 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
                 }
             }
             
-            prefix.push_str("\n--- END GLOBAL STATE ---\n\n--- VOLATILE TAIL ---\n");
+            prefix.push_str("\n--- END COMPILED CONTEXT ---\n\n--- VOLATILE TAIL ---\n");
             
             // Try to get git diff for volatile tail
             if let Ok(diff) = Command::new("git").arg("diff").arg("HEAD").output().await {
