@@ -30,14 +30,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Project Conventions
 
-These conventions are enforced during planning and verified during QA.
-- Commit format: `{type}({scope}): {description}`
-- One atomic commit per task
-- Shell scripts must be bash 3+ compatible (no `declare -A`, no `${VAR,,}`)
-- CLI subcommands use kebab-case, Rust modules use snake_case
-- Every feature area has a corresponding `.bats` test file
-- No secrets committed (.env, .pem, .key, credentials)
-- Slash commands defined as markdown with frontmatter
+Enforced from `config/` and `.yolo-planning/codebase/CONVENTIONS.md`. Run /yolo:config to view.
 
 ## Commands
 
