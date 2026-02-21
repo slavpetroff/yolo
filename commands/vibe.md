@@ -128,7 +128,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
     2. Research the {domain} domain using `WebFetch` or your internal knowledge. Focus on: Table Stakes, Common Pitfalls, Architecture Patterns, Competitor Landscape. Be concise (2-3 bullets per section).
     3. On success: Write your findings to `.yolo-planning/domain-research.md`. Extract brief summary (3-5 lines max). Display to user: "◆ Domain Research: {brief summary}\n\n✓ Research complete. Now let's explore your specific needs..."
     4. On failure: Log warning "⚠ Domain research failed, proceeding with general questions". Set RESEARCH_AVAILABLE=false, continue.
-  - **B2.2: Discussion Engine** -- Read `${CLAUDE_PLUGIN_ROOT}/references/discussion-engine.md` and follow its protocol.
+  - **B2.2: Discussion Engine** -- Read `${CLAUDE_PLUGIN_ROOT}/skills/discussion-engine/SKILL.md` and follow its protocol.
     - Context for the engine: "This is a new project. No phases yet." Use project description + domain research (if available) as input.
     - The engine handles calibration, gray area generation, exploration, and capture.
     - Output: `discovery.json` with answered/inferred/deferred arrays.
@@ -183,7 +183,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 
 **Steps:**
 1. Determine target phase from $ARGUMENTS or auto-detection.
-2. Read `${CLAUDE_PLUGIN_ROOT}/references/discussion-engine.md` and follow its protocol for the target phase.
+2. Read `${CLAUDE_PLUGIN_ROOT}/skills/discussion-engine/SKILL.md` and follow its protocol for the target phase.
 3. Run `"$HOME/.cargo/bin/yolo" suggest-next vibe`.
 
 ### Mode: Assumptions

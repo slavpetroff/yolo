@@ -31,4 +31,4 @@ Phase state:
 
 ## Execute
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/discussion-engine.md` and follow its protocol for the target phase.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/discussion-engine/SKILL.md` and follow its protocol for the target phase.
