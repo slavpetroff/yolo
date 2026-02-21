@@ -1,7 +1,8 @@
 use std::fs;
 use std::path::Path;
 use std::process::Command;
-use serde_json::Value;
+use serde_json::{json, Value};
+use std::time::Instant;
 
 /// Read planning_tracking and auto_push from config JSON file.
 fn read_config(config_path: &Path) -> (String, String) {
@@ -149,26 +150,44 @@ fn git_push(cwd: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn handle_sync_ignore(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
+fn handle_sync_ignore(args: &[String], cwd: &Path, start: Instant) -> Result<(String, i32), String> {
     let default_config = ".yolo-planning/config.json".to_string();
     let config_file = args.get(3).unwrap_or(&default_config);
     let config_path = cwd.join(config_file);
 
     if !is_git_repo(cwd) {
-        return Ok(("".to_string(), 0));
+        let response = json!({
+            "ok": true,
+            "cmd": "planning-git",
+            "delta": { "subcommand": "sync-ignore", "skipped": true, "reason": "not a git repo" },
+            "elapsed_ms": start.elapsed().as_millis() as u64
+        });
+        return Ok((response.to_string(), 0));
     }
 
     let (tracking, _) = read_config(&config_path);
     sync_root_ignore(cwd, &tracking);
 
+    let mut transient_written = false;
     if tracking == "commit" {
         ensure_transient_ignore(cwd);
+        transient_written = true;
     }
 
-    Ok(("".to_string(), 0))
+    let response = json!({
+        "ok": true,
+        "cmd": "planning-git",
+        "delta": {
+            "subcommand": "sync-ignore",
+            "tracking_mode": tracking,
+            "transient_ignore_written": transient_written
+        },
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
+    Ok((response.to_string(), 0))
 }
 
-fn handle_commit_boundary(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
+fn handle_commit_boundary(args: &[String], cwd: &Path, start: Instant) -> Result<(String, i32), String> {
     let action = args.get(3).ok_or_else(|| {
         "Usage: yolo planning-git commit-boundary <action> [CONFIG_FILE]".to_string()
     })?;
@@ -177,13 +196,25 @@ fn handle_commit_boundary(args: &[String], cwd: &Path) -> Result<(String, i32), 
     let config_path = cwd.join(config_file);
 
     if !is_git_repo(cwd) {
-        return Ok(("".to_string(), 0));
+        let response = json!({
+            "ok": true,
+            "cmd": "planning-git",
+            "delta": { "subcommand": "commit-boundary", "committed": false, "reason": "not a git repo" },
+            "elapsed_ms": start.elapsed().as_millis() as u64
+        });
+        return Ok((response.to_string(), 0));
     }
 
     let (tracking, auto_push) = read_config(&config_path);
 
     if tracking != "commit" {
-        return Ok(("".to_string(), 0));
+        let response = json!({
+            "ok": true,
+            "cmd": "planning-git",
+            "delta": { "subcommand": "commit-boundary", "committed": false, "reason": "tracking mode is not commit" },
+            "elapsed_ms": start.elapsed().as_millis() as u64
+        });
+        return Ok((response.to_string(), 0));
     }
 
     ensure_transient_ignore(cwd);
@@ -215,7 +246,13 @@ fn handle_commit_boundary(args: &[String], cwd: &Path) -> Result<(String, i32), 
     match diff_result {
         Ok(status) if status.success() => {
             // No staged changes
-            return Ok(("".to_string(), 0));
+            let response = json!({
+                "ok": true,
+                "cmd": "planning-git",
+                "delta": { "subcommand": "commit-boundary", "committed": false, "reason": "no staged changes" },
+                "elapsed_ms": start.elapsed().as_millis() as u64
+            });
+            return Ok((response.to_string(), 0));
         }
         _ => {}
     }
@@ -233,39 +270,86 @@ fn handle_commit_boundary(args: &[String], cwd: &Path) -> Result<(String, i32), 
         return Err(format!("git commit failed: {}", stderr));
     }
 
+    // Capture commit hash
+    let commit_hash = Command::new("git")
+        .args(["rev-parse", "--short", "HEAD"])
+        .current_dir(cwd)
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map(|s| s.trim().to_string());
+
     // Push if auto_push=always and branch has upstream
+    let mut pushed = false;
     if auto_push == "always" && has_upstream(cwd) {
         git_push(cwd)?;
+        pushed = true;
     }
 
-    Ok(("".to_string(), 0))
+    let response = json!({
+        "ok": true,
+        "cmd": "planning-git",
+        "delta": {
+            "subcommand": "commit-boundary",
+            "action": action,
+            "committed": true,
+            "commit_hash": commit_hash,
+            "pushed": pushed
+        },
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
+
+    Ok((response.to_string(), 0))
 }
 
-fn handle_push_after_phase(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
+fn handle_push_after_phase(args: &[String], cwd: &Path, start: Instant) -> Result<(String, i32), String> {
     let default_config = ".yolo-planning/config.json".to_string();
     let config_file = args.get(3).unwrap_or(&default_config);
     let config_path = cwd.join(config_file);
 
     if !is_git_repo(cwd) {
-        return Ok(("".to_string(), 0));
+        let response = json!({
+            "ok": true,
+            "cmd": "planning-git",
+            "delta": { "subcommand": "push-after-phase", "pushed": false, "reason": "not a git repo" },
+            "elapsed_ms": start.elapsed().as_millis() as u64
+        });
+        return Ok((response.to_string(), 0));
     }
 
     let (_, auto_push) = read_config(&config_path);
 
+    let mut pushed = false;
+    let mut reason = format!("auto_push is {}", auto_push);
     if auto_push == "after_phase" && has_upstream(cwd) {
         git_push(cwd)?;
+        pushed = true;
+        reason = "pushed to upstream".to_string();
+    } else if auto_push == "after_phase" && !has_upstream(cwd) {
+        reason = "no upstream branch".to_string();
     }
 
-    Ok(("".to_string(), 0))
+    let response = json!({
+        "ok": true,
+        "cmd": "planning-git",
+        "delta": {
+            "subcommand": "push-after-phase",
+            "pushed": pushed,
+            "reason": reason
+        },
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
+    Ok((response.to_string(), 0))
 }
 
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
+    let start = Instant::now();
     let subcommand = args.get(2).map(|s| s.as_str()).unwrap_or("");
 
     match subcommand {
-        "sync-ignore" => handle_sync_ignore(args, cwd),
-        "commit-boundary" => handle_commit_boundary(args, cwd),
-        "push-after-phase" => handle_push_after_phase(args, cwd),
+        "sync-ignore" => handle_sync_ignore(args, cwd, start),
+        "commit-boundary" => handle_commit_boundary(args, cwd, start),
+        "push-after-phase" => handle_push_after_phase(args, cwd, start),
         "" => Err("Usage: yolo planning-git sync-ignore [CONFIG_FILE] | commit-boundary <action> [CONFIG_FILE] | push-after-phase [CONFIG_FILE]".to_string()),
         other => Err(format!("Unknown subcommand: {}\nUsage: yolo planning-git sync-ignore [CONFIG_FILE] | commit-boundary <action> [CONFIG_FILE] | push-after-phase [CONFIG_FILE]", other)),
     }
@@ -321,8 +405,11 @@ mod tests {
             "planning-git".to_string(),
             "sync-ignore".to_string(),
         ];
-        let (_, code) = execute(&args, dir.path()).unwrap();
+        let (output, code) = execute(&args, dir.path()).unwrap();
         assert_eq!(code, 0);
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["ok"], true);
+        assert_eq!(j["delta"]["subcommand"], "sync-ignore");
 
         let gitignore = fs::read_to_string(dir.path().join(".gitignore")).unwrap();
         assert!(gitignore.contains(".yolo-planning/"));
@@ -340,8 +427,11 @@ mod tests {
             "planning-git".to_string(),
             "sync-ignore".to_string(),
         ];
-        let (_, code) = execute(&args, dir.path()).unwrap();
+        let (output, code) = execute(&args, dir.path()).unwrap();
         assert_eq!(code, 0);
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["delta"]["transient_ignore_written"], true);
+        assert_eq!(j["delta"]["tracking_mode"], "commit");
 
         let gitignore = fs::read_to_string(dir.path().join(".gitignore")).unwrap();
         assert!(!gitignore.lines().any(|l| l == ".yolo-planning/"));
@@ -365,8 +455,11 @@ mod tests {
             "planning-git".to_string(),
             "sync-ignore".to_string(),
         ];
-        let (_, code) = execute(&args, dir.path()).unwrap();
+        let (output, code) = execute(&args, dir.path()).unwrap();
         assert_eq!(code, 0);
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["delta"]["tracking_mode"], "manual");
+        assert_eq!(j["delta"]["transient_ignore_written"], false);
 
         let gitignore = fs::read_to_string(dir.path().join(".gitignore")).unwrap();
         assert_eq!(gitignore, "node_modules/\n");
@@ -382,7 +475,9 @@ mod tests {
         ];
         let (output, code) = execute(&args, dir.path()).unwrap();
         assert_eq!(code, 0);
-        assert_eq!(output, "");
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["ok"], true);
+        assert_eq!(j["delta"]["skipped"], true);
     }
 
     // --- commit-boundary tests ---
@@ -399,8 +494,11 @@ mod tests {
             "commit-boundary".to_string(),
             "plan phase 1".to_string(),
         ];
-        let (_, code) = execute(&args, dir.path()).unwrap();
+        let (output, code) = execute(&args, dir.path()).unwrap();
         assert_eq!(code, 0);
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["delta"]["committed"], false);
+        assert_eq!(j["delta"]["reason"], "tracking mode is not commit");
     }
 
     #[test]
@@ -418,8 +516,13 @@ mod tests {
             "commit-boundary".to_string(),
             "plan phase 1".to_string(),
         ];
-        let (_, code) = execute(&args, dir.path()).unwrap();
+        let (output, code) = execute(&args, dir.path()).unwrap();
         assert_eq!(code, 0);
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["ok"], true);
+        assert_eq!(j["delta"]["committed"], true);
+        assert!(j["delta"]["commit_hash"].as_str().unwrap().len() >= 7);
+        assert_eq!(j["delta"]["action"], "plan phase 1");
 
         // Verify a commit was made
         let log = Command::new("git")
@@ -449,8 +552,11 @@ mod tests {
             "commit-boundary".to_string(),
             "should not commit".to_string(),
         ];
-        let (_, code) = execute(&args, dir.path()).unwrap();
+        let (output, code) = execute(&args, dir.path()).unwrap();
         assert_eq!(code, 0);
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["delta"]["committed"], false);
+        assert_eq!(j["delta"]["reason"], "no staged changes");
 
         // Verify last commit is NOT our action
         let log = Command::new("git")
@@ -485,8 +591,11 @@ mod tests {
             "commit-boundary".to_string(),
             "some action".to_string(),
         ];
-        let (_, code) = execute(&args, dir.path()).unwrap();
+        let (output, code) = execute(&args, dir.path()).unwrap();
         assert_eq!(code, 0);
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["delta"]["committed"], false);
+        assert_eq!(j["delta"]["reason"], "not a git repo");
     }
 
     // --- push-after-phase tests ---
@@ -502,8 +611,10 @@ mod tests {
             "planning-git".to_string(),
             "push-after-phase".to_string(),
         ];
-        let (_, code) = execute(&args, dir.path()).unwrap();
+        let (output, code) = execute(&args, dir.path()).unwrap();
         assert_eq!(code, 0);
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["delta"]["pushed"], false);
     }
 
     #[test]
@@ -514,8 +625,11 @@ mod tests {
             "planning-git".to_string(),
             "push-after-phase".to_string(),
         ];
-        let (_, code) = execute(&args, dir.path()).unwrap();
+        let (output, code) = execute(&args, dir.path()).unwrap();
         assert_eq!(code, 0);
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["ok"], true);
+        assert_eq!(j["delta"]["pushed"], false);
     }
 
     // --- routing tests ---
