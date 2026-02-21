@@ -3,7 +3,7 @@ use std::env;
 use std::io::Read;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
-use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, token_budget, token_economics_report, lock_lite, lease_lock, two_phase_complete, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, log_event, collect_metrics, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary, cache_context, cache_nuke, delta_files, help_output, bump_version, doctor_cleanup, auto_repair, rollout_stage, verify, install_hooks, migrate_config, migrate_orphaned_state, tier_context};
+use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, token_budget, token_economics_report, lock_lite, lease_lock, two_phase_complete, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, log_event, collect_metrics, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary, cache_context, cache_nuke, delta_files, help_output, bump_version, doctor_cleanup, auto_repair, rollout_stage, verify, install_hooks, migrate_config, migrate_orphaned_state, tier_context, clean_stale_teams, tmux_watchdog, verify_init_todo, verify_vibe, verify_claude_bootstrap, pre_push_hook};
 use crate::hooks;
 pub fn generate_report(total_calls: i64, compile_calls: i64, avg_output_length: f64, unique_sessions: Option<i64>) -> String {
     let mut out = String::new();
@@ -424,6 +424,35 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
                 Ok(false) => Ok(("No migration needed".to_string(), 0)),
                 Err(e) => Err(e),
             }
+        }
+        "clean-stale-teams" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            let claude_dir = cwd.join(".claude");
+            let log_file = cwd.join(".yolo-planning").join("clean-stale-teams.log");
+            let (teams, tasks) = clean_stale_teams::clean_stale_teams(&claude_dir, &log_file);
+            Ok((format!("Cleaned {} teams, {} task dirs", teams, tasks), 0))
+        }
+        "tmux-watchdog" => {
+            match tmux_watchdog::get_tmux_session() {
+                Some(session) => Ok((format!("tmux session: {}", session), 0)),
+                None => Ok(("Not running in tmux".to_string(), 0)),
+            }
+        }
+        "verify-init-todo" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            verify_init_todo::execute(&args, &cwd)
+        }
+        "verify-vibe" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            verify_vibe::execute(&args, &cwd)
+        }
+        "verify-claude-bootstrap" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            verify_claude_bootstrap::execute(&args, &cwd)
+        }
+        "pre-push" => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            pre_push_hook::execute(&args, &cwd)
         }
         _ => Err(format!("Unknown command: {}", args[1]))
     }
