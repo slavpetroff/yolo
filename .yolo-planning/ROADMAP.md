@@ -7,7 +7,7 @@
 ## Progress
 | Phase | Status | Plans | Tasks | Commits |
 |-------|--------|-------|-------|----------|
-| 1 | Pending | 0 | 0 | 0 |
+| 1 | Complete | 5 | 18 | 14 |
 | 2 | Pending | 0 | 0 | 0 |
 | 3 | Pending | 0 | 0 | 0 |
 | 4 | Pending | 0 | 0 | 0 |
@@ -15,7 +15,7 @@
 ---
 
 ## Phase List
-- [ ] [Phase 1: Incomplete CLI & MCP Command Fixes](#phase-1-incomplete-cli--mcp-command-fixes)
+- [x] [Phase 1: Incomplete CLI & MCP Command Fixes](#phase-1-incomplete-cli--mcp-command-fixes)
 - [ ] [Phase 2: Rust CLI Structured Returns](#phase-2-rust-cli-structured-returns)
 - [ ] [Phase 3: Token Reduction Sweep](#phase-3-token-reduction-sweep)
 - [ ] [Phase 4: Hot Path & vibe.md Mode Splitting](#phase-4-hot-path--vibemd-mode-splitting)
