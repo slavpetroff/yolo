@@ -1,4 +1,7 @@
 #!/usr/bin/env bats
+# Migrated: lease-lock.sh -> yolo lease-lock, recover-state.sh -> yolo recover-state,
+#           route-monorepo.sh -> yolo route-monorepo
+# CWD-sensitive: yes
 
 load test_helper
 
@@ -17,109 +20,98 @@ teardown() {
   teardown_temp_dir
 }
 
-# --- lease-lock.sh tests ---
+# --- lease-lock tests (yolo lease-lock) ---
 
 @test "lease-lock: acquire creates lock with TTL" {
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/lease-lock.sh" acquire test-task --ttl=60 file1.sh file2.sh
+  run "$YOLO_BIN" lease-lock acquire file1.sh --owner=test-task --ttl=60
   [ "$status" -eq 0 ]
-  [ "$output" = "acquired" ]
-  [ -f ".yolo-planning/.locks/test-task.lock" ]
-  # Verify TTL fields
-  jq -e '.ttl == 60' .yolo-planning/.locks/test-task.lock
-  jq -e '.expires_at > 0' .yolo-planning/.locks/test-task.lock
-  jq -e '.files | length == 2' .yolo-planning/.locks/test-task.lock
+  echo "$output" | jq -e '.result == "acquired"'
+  echo "$output" | jq -e '.ttl_secs == 60'
+  echo "$output" | jq -e '.resource == "file1.sh"'
+  echo "$output" | jq -e '.owner == "test-task"'
 }
 
 @test "lease-lock: renew extends lease" {
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/lease-lock.sh" acquire test-task --ttl=60 file1.sh
-  OLD_EXPIRES=$(jq '.expires_at' .yolo-planning/.locks/test-task.lock)
+  "$YOLO_BIN" lease-lock acquire file1.sh --owner=test-task --ttl=60 >/dev/null
   sleep 1
-  run bash "$SCRIPTS_DIR/lease-lock.sh" renew test-task
+  run "$YOLO_BIN" lease-lock renew file1.sh --owner=test-task --ttl=120
   [ "$status" -eq 0 ]
-  [ "$output" = "renewed" ]
-  NEW_EXPIRES=$(jq '.expires_at' .yolo-planning/.locks/test-task.lock)
-  [ "$NEW_EXPIRES" -ge "$OLD_EXPIRES" ]
+  echo "$output" | jq -e '.result == "renewed"'
+  echo "$output" | jq -e '.ttl_secs == 120'
 }
 
-@test "lease-lock: check detects expired locks" {
+@test "lease-lock: cleanup detects expired locks" {
   cd "$TEST_TEMP_DIR"
-  # Create a lock that's already expired
+  # Create a lease that's already expired via direct file write
   mkdir -p .yolo-planning/.locks
-  PAST_EPOCH=$(($(date -u +%s) - 100))
-  jq -n --argjson exp "$PAST_EPOCH" \
-    '{"task_id":"old-task","pid":"1","timestamp":"2026-01-01T00:00:00Z","files":["shared.sh"],"ttl":60,"expires_at":$exp}' \
-    > .yolo-planning/.locks/old-task.lock
+  cat > .yolo-planning/.locks/shared.sh.lease <<'JSON'
+{"resource":"shared.sh","owner":"old-task","acquired_at":"2020-01-01T00:00:00Z","ttl_secs":1,"type":"lease"}
+JSON
 
-  run bash "$SCRIPTS_DIR/lease-lock.sh" check new-task shared.sh
+  run "$YOLO_BIN" lease-lock cleanup
   [ "$status" -eq 0 ]
-  # Expired lock should have been cleaned up, so no conflict
-  [[ "$output" == *"clear"* ]]
-  [[ "$output" == *"expired"* ]]
-  # Expired lock file should be removed
-  [ ! -f ".yolo-planning/.locks/old-task.lock" ]
+  echo "$output" | jq -e '.action == "cleanup"'
+  echo "$output" | jq -e '.cleaned >= 1'
+  # Expired lease file should be removed
+  [ ! -f ".yolo-planning/.locks/shared.sh.lease" ]
 }
 
 @test "lease-lock: release removes lock" {
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/lease-lock.sh" acquire test-task file1.sh
-  run bash "$SCRIPTS_DIR/lease-lock.sh" release test-task
+  "$YOLO_BIN" lease-lock acquire file1.sh --owner=test-task >/dev/null
+  run "$YOLO_BIN" lease-lock release file1.sh --owner=test-task
   [ "$status" -eq 0 ]
-  [ "$output" = "released" ]
-  [ ! -f ".yolo-planning/.locks/test-task.lock" ]
+  echo "$output" | jq -e '.result == "released"'
+  [ ! -f ".yolo-planning/.locks/file1.sh.lease" ]
 }
 
-@test "lease-lock: exits 0 when both flags disabled" {
+@test "lease-lock: skip when both flags disabled" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_lease_locks = false | .v3_lock_lite = false' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
     mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-  run bash "$SCRIPTS_DIR/lease-lock.sh" acquire test-task file1.sh
+  run "$YOLO_BIN" lease-lock acquire file1.sh --owner=test-task
   [ "$status" -eq 0 ]
-  [ -z "$output" ]
+  echo "$output" | jq -e '.result == "skip"'
 }
 
 @test "lease-lock: exits non-zero on conflict when v2_hard_gates=true" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_lease_locks = true | .v2_hard_gates = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
     mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-  bash "$SCRIPTS_DIR/lease-lock.sh" acquire other-task file1.sh >/dev/null 2>&1
-  run bash "$SCRIPTS_DIR/lease-lock.sh" acquire new-task file1.sh
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"conflict_blocked"* ]]
+  "$YOLO_BIN" lease-lock acquire file1.sh --owner=other-task >/dev/null 2>&1
+  run "$YOLO_BIN" lease-lock acquire file1.sh --owner=new-task
+  [ "$status" -ne 0 ]
+  echo "$output" | jq -e '.result == "conflict"'
 }
 
-@test "lease-lock: exits 0 on conflict when v2_hard_gates=false" {
+@test "lease-lock: conflict returns non-zero when v2_hard_gates=false" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_lease_locks = true | .v2_hard_gates = false' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
     mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-  bash "$SCRIPTS_DIR/lease-lock.sh" acquire other-task file1.sh >/dev/null 2>&1
-  run bash "$SCRIPTS_DIR/lease-lock.sh" acquire new-task file1.sh
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"acquired"* ]]
+  "$YOLO_BIN" lease-lock acquire file1.sh --owner=other-task >/dev/null 2>&1
+  run "$YOLO_BIN" lease-lock acquire file1.sh --owner=new-task
+  [ "$status" -ne 0 ]
+  echo "$output" | jq -e '.result == "conflict"'
 }
 
-@test "lease-lock: query returns lock info" {
+@test "lease-lock: reentrant acquire renews" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_lease_locks = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
-    mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-  bash "$SCRIPTS_DIR/lease-lock.sh" acquire test-task file1.sh >/dev/null
-  run bash "$SCRIPTS_DIR/lease-lock.sh" query test-task
+  "$YOLO_BIN" lease-lock acquire file1.sh --owner=test-task --ttl=60 >/dev/null
+  run "$YOLO_BIN" lease-lock acquire file1.sh --owner=test-task --ttl=120
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.task_id == "test-task"'
-  echo "$output" | jq -e '.files | length == 1'
+  echo "$output" | jq -e '.result == "renewed"'
 }
 
-@test "lease-lock: query returns no_lock when absent" {
+@test "lease-lock: release non-existent returns not_held" {
   cd "$TEST_TEMP_DIR"
-  jq '.v3_lease_locks = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
-    mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-  run bash "$SCRIPTS_DIR/lease-lock.sh" query nonexistent
+  run "$YOLO_BIN" lease-lock release nonexistent --owner=test-task
   [ "$status" -eq 0 ]
-  [ "$output" = "no_lock" ]
+  echo "$output" | jq -e '.result == "not_held"'
 }
 
-# --- recover-state.sh tests ---
+# --- recover-state tests (yolo recover-state) ---
 
 @test "recover-state: reconstructs state from event log and summaries" {
   cd "$TEST_TEMP_DIR"
@@ -165,7 +157,7 @@ EOF
   echo '{"ts":"2026-01-01T00:00:00Z","event":"phase_start","phase":5}' > .yolo-planning/.events/event-log.jsonl
   echo '{"ts":"2026-01-01T00:01:00Z","event":"plan_end","phase":5,"plan":1,"data":{"status":"complete"}}' >> .yolo-planning/.events/event-log.jsonl
 
-  run bash "$SCRIPTS_DIR/recover-state.sh" 5 .yolo-planning/phases
+  run "$YOLO_BIN" recover-state 5 .yolo-planning/phases
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.phase == 5'
   echo "$output" | jq -e '.status == "running"'
@@ -178,12 +170,12 @@ EOF
   cd "$TEST_TEMP_DIR"
   jq '.v3_event_recovery = false' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
     mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-  run bash "$SCRIPTS_DIR/recover-state.sh" 5
+  run "$YOLO_BIN" recover-state 5
   [ "$status" -eq 0 ]
   [ "$output" = "{}" ]
 }
 
-# --- route-monorepo.sh tests ---
+# --- route-monorepo tests (yolo route-monorepo) ---
 
 @test "route-monorepo: detects package roots from plan files" {
   cd "$TEST_TEMP_DIR"
@@ -212,7 +204,7 @@ must_haves: []
 - **Files:** `apps/web/app.js`
 EOF
 
-  run bash "$SCRIPTS_DIR/route-monorepo.sh" .yolo-planning/phases/01-test
+  run "$YOLO_BIN" route-monorepo .yolo-planning/phases/01-test
   [ "$status" -eq 0 ]
   echo "$output" | jq -e 'length == 2'
   echo "$output" | jq -e 'any(. == "packages/core")'
@@ -238,7 +230,7 @@ must_haves: []
 - **Files:** `src/main.js`
 EOF
 
-  run bash "$SCRIPTS_DIR/route-monorepo.sh" .yolo-planning/phases/01-test
+  run "$YOLO_BIN" route-monorepo .yolo-planning/phases/01-test
   [ "$status" -eq 0 ]
   [ "$output" = "[]" ]
 }
@@ -247,7 +239,7 @@ EOF
   cd "$TEST_TEMP_DIR"
   jq '.v3_monorepo_routing = false' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
     mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-  run bash "$SCRIPTS_DIR/route-monorepo.sh" .yolo-planning/phases/01-test
+  run "$YOLO_BIN" route-monorepo .yolo-planning/phases/01-test
   [ "$status" -eq 0 ]
   [ "$output" = "[]" ]
 }
