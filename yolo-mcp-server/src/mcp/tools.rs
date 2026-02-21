@@ -584,4 +584,140 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(&tmp);
     }
+
+    /// Sets up a full planning directory with all tier files for cross-agent tests.
+    fn setup_full_planning(prefix: &str) -> std::path::PathBuf {
+        let tmp = std::env::temp_dir().join(format!("yolo-test-{}-{}", prefix, std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".yolo-planning/codebase")).unwrap();
+        std::fs::write(tmp.join(".yolo-planning/codebase/CONVENTIONS.md"), "Convention rules").unwrap();
+        std::fs::write(tmp.join(".yolo-planning/codebase/STACK.md"), "Stack: Rust").unwrap();
+        std::fs::write(tmp.join(".yolo-planning/codebase/ARCHITECTURE.md"), "Architecture overview").unwrap();
+        std::fs::write(tmp.join(".yolo-planning/codebase/ROADMAP.md"), "Roadmap content").unwrap();
+        std::fs::write(tmp.join(".yolo-planning/codebase/REQUIREMENTS.md"), "Requirements list").unwrap();
+        tmp
+    }
+
+    #[tokio::test]
+    async fn test_tier1_identical_across_all_roles() {
+        let tmp = setup_full_planning("tier1-ident");
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
+
+        let roles = ["dev", "architect", "lead", "qa"];
+        let mut tier1s = Vec::new();
+        let mut tier1_hashes = Vec::new();
+
+        for role in &roles {
+            let result = handle_tool_call(
+                "compile_context",
+                Some(json!({"phase": 0, "role": role})),
+                state.clone(),
+            ).await;
+            tier1s.push(result["tier1_prefix"].as_str().unwrap().to_string());
+            tier1_hashes.push(result["tier1_hash"].as_str().unwrap().to_string());
+        }
+
+        // All tier1 content must be byte-identical
+        for i in 1..roles.len() {
+            assert_eq!(tier1s[0], tier1s[i], "tier1 mismatch for role {}", roles[i]);
+            assert_eq!(tier1_hashes[0], tier1_hashes[i], "tier1_hash mismatch for role {}", roles[i]);
+        }
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_tier2_identical_within_planning_family() {
+        let tmp = setup_full_planning("tier2-planning");
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
+
+        let lead = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "lead"})), state.clone()).await;
+        let arch = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "architect"})), state.clone()).await;
+
+        assert_eq!(
+            lead["tier2_prefix"].as_str().unwrap(),
+            arch["tier2_prefix"].as_str().unwrap(),
+        );
+        assert_eq!(
+            lead["tier2_hash"].as_str().unwrap(),
+            arch["tier2_hash"].as_str().unwrap(),
+        );
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_tier2_identical_within_execution_family() {
+        let tmp = setup_full_planning("tier2-exec");
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
+
+        let dev = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "dev"})), state.clone()).await;
+        let qa = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "qa"})), state.clone()).await;
+
+        assert_eq!(
+            dev["tier2_prefix"].as_str().unwrap(),
+            qa["tier2_prefix"].as_str().unwrap(),
+        );
+        assert_eq!(
+            dev["tier2_hash"].as_str().unwrap(),
+            qa["tier2_hash"].as_str().unwrap(),
+        );
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_tier2_different_across_families() {
+        let tmp = setup_full_planning("tier2-diff");
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
+
+        let dev = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "dev"})), state.clone()).await;
+        let lead = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "lead"})), state.clone()).await;
+
+        assert_ne!(
+            dev["tier2_hash"].as_str().unwrap(),
+            lead["tier2_hash"].as_str().unwrap(),
+        );
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_tier_separation_content_correctness() {
+        let tmp = setup_full_planning("tier-content");
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
+
+        // Check planning family tier content
+        let arch = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "architect"})), state.clone()).await;
+        let arch_tier1 = arch["tier1_prefix"].as_str().unwrap();
+        let arch_tier2 = arch["tier2_prefix"].as_str().unwrap();
+
+        // Tier 1 contains CONVENTIONS.md + STACK.md
+        assert!(arch_tier1.contains("Convention rules"));
+        assert!(arch_tier1.contains("Stack: Rust"));
+        // Tier 2 planning contains ARCHITECTURE.md, ROADMAP.md, REQUIREMENTS.md
+        assert!(arch_tier2.contains("Architecture overview"));
+        assert!(arch_tier2.contains("Roadmap content"));
+        assert!(arch_tier2.contains("Requirements list"));
+
+        // Check execution family tier content
+        let dev = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "dev"})), state.clone()).await;
+        let dev_tier1 = dev["tier1_prefix"].as_str().unwrap();
+        let dev_tier2 = dev["tier2_prefix"].as_str().unwrap();
+
+        // Tier 1 same as architect
+        assert!(dev_tier1.contains("Convention rules"));
+        assert!(dev_tier1.contains("Stack: Rust"));
+        // Tier 2 execution contains ROADMAP.md only
+        assert!(dev_tier2.contains("Roadmap content"));
+        assert!(!dev_tier2.contains("Architecture overview"));
+        assert!(!dev_tier2.contains("Requirements list"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
 }
