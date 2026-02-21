@@ -181,7 +181,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         "acquire" => {
             match acquire(resource, &owner, cwd) {
                 Ok(v) => Ok((v.to_string(), 0)),
-                Err(v) => Ok((v.to_string(), 1)),
+                Err(v) => Ok((v.to_string(), 2)),
             }
         }
         "release" => {
@@ -197,7 +197,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                 .map(|s| s.as_str())
                 .collect();
             let result = check(&resources, &owner, cwd);
-            let code = if result.get("has_conflicts").and_then(|v| v.as_bool()).unwrap_or(false) { 1 } else { 0 };
+            let code = if result.get("has_conflicts").and_then(|v| v.as_bool()).unwrap_or(false) { 2 } else { 0 };
             Ok((result.to_string(), code))
         }
         _ => Err(format!("Unknown lock action: {}. Use acquire, release, or check.", action)),
