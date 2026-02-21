@@ -303,11 +303,12 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         json!({ "value": serde_json::Value::Null, "source": serde_json::Value::Null })
     };
 
-    // --- Purpose extraction from CONCERNS.md ---
+    // --- Purpose extraction from CONCERNS.md, then README.md, then PROJECT.md ---
     let mut purpose_text = String::new();
+    let mut purpose_source = String::new();
     let mut concerns = Vec::new();
     let concerns_file = codebase_dir.join("CONCERNS.md");
-    
+
     if concerns_file.exists() {
         if let Ok(content) = fs::read_to_string(&concerns_file) {
             for line in content.lines() {
@@ -318,18 +319,90 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                 }
             }
         }
+        if !purpose_text.is_empty() {
+            purpose_source = "CONCERNS.md".to_string();
+        }
+    }
+
+    // Fallback: README.md at repo_root
+    if purpose_text.is_empty() {
+        let readme_file = repo_root.join("README.md");
+        if readme_file.exists() {
+            if let Ok(content) = fs::read_to_string(&readme_file) {
+                let mut past_title = false;
+                for line in content.lines() {
+                    if line.starts_with("# ") && !past_title {
+                        past_title = true;
+                        continue;
+                    }
+                    if past_title && !line.trim().is_empty() && !line.starts_with('#') {
+                        let mut text = line.trim().to_string();
+                        if text.len() > 200 {
+                            text.truncate(200);
+                        }
+                        purpose_text = text;
+                        purpose_source = "README.md".to_string();
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Fallback: PROJECT.md at repo_root
+    if purpose_text.is_empty() {
+        let project_file = repo_root.join("PROJECT.md");
+        if project_file.exists() {
+            if let Ok(content) = fs::read_to_string(&project_file) {
+                let mut in_description = false;
+                for line in content.lines() {
+                    if line.starts_with("## Description") {
+                        in_description = true;
+                        continue;
+                    }
+                    if in_description {
+                        if line.starts_with("##") {
+                            break;
+                        }
+                        if !line.trim().is_empty() {
+                            let mut text = line.trim().to_string();
+                            if text.len() > 200 {
+                                text.truncate(200);
+                            }
+                            purpose_text = text;
+                            purpose_source = "PROJECT.md".to_string();
+                            break;
+                        }
+                    }
+                }
+                // If no ## Description section, take first non-heading paragraph
+                if purpose_text.is_empty() {
+                    for line in content.lines() {
+                        if !line.trim().is_empty() && !line.starts_with('#') {
+                            let mut text = line.trim().to_string();
+                            if text.len() > 200 {
+                                text.truncate(200);
+                            }
+                            purpose_text = text;
+                            purpose_source = "PROJECT.md".to_string();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     let purpose_json = if !purpose_text.is_empty() && !concerns.is_empty() {
         let concerns_str = concerns.join(", ");
         json!({
             "value": format!("{} — key concerns: {}", purpose_text, concerns_str),
-            "source": "CONCERNS.md"
+            "source": purpose_source
         })
     } else if !purpose_text.is_empty() {
         json!({
             "value": purpose_text,
-            "source": "CONCERNS.md"
+            "source": purpose_source
         })
     } else {
         json!({ "value": serde_json::Value::Null, "source": serde_json::Value::Null })
