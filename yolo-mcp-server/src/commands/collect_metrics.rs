@@ -218,6 +218,32 @@ mod tests {
     }
 
     #[test]
+    fn test_collect_agent_token_usage() {
+        let dir = setup_test_env();
+        let data = vec![
+            ("input_tokens".to_string(), "5000".to_string()),
+            ("output_tokens".to_string(), "1200".to_string()),
+            ("cache_read_tokens".to_string(), "3000".to_string()),
+            ("cache_write_tokens".to_string(), "800".to_string()),
+            ("agent_role".to_string(), "dev".to_string()),
+        ];
+        let result = collect("agent_token_usage", "1", Some("1"), &data, dir.path());
+        assert!(result.is_ok());
+        let metrics_file = dir.path().join(".yolo-planning/.metrics/run-metrics.jsonl");
+        assert!(metrics_file.exists());
+        let content = fs::read_to_string(&metrics_file).unwrap();
+        let entry: serde_json::Value = serde_json::from_str(content.trim()).unwrap();
+        assert_eq!(entry["event"], "agent_token_usage");
+        assert_eq!(entry["phase"], 1);
+        assert_eq!(entry["plan"], 1);
+        assert_eq!(entry["data"]["input_tokens"], "5000");
+        assert_eq!(entry["data"]["output_tokens"], "1200");
+        assert_eq!(entry["data"]["cache_read_tokens"], "3000");
+        assert_eq!(entry["data"]["cache_write_tokens"], "800");
+        assert_eq!(entry["data"]["agent_role"], "dev");
+    }
+
+    #[test]
     fn test_multiple_appends() {
         let dir = setup_test_env();
         let _ = collect("event_a", "1", None, &[], dir.path());
