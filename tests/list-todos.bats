@@ -53,7 +53,8 @@ EOF
 
   local state_path
   state_path=$(echo "$output" | jq -r '.state_path')
-  [ "$state_path" = ".yolo-planning/milestones/m1/STATE.md" ]
+  # Binary may return absolute or relative path; check suffix
+  [[ "$state_path" == *".yolo-planning/milestones/m1/STATE.md" ]]
 
   local count
   count=$(echo "$output" | jq -r '.count')
@@ -72,7 +73,8 @@ EOF
   state_path=$(echo "$output" | jq -r '.state_path')
   status_val=$(echo "$output" | jq -r '.status')
   [ "$status_val" = "ok" ]
-  [ "$state_path" = ".yolo-planning/milestones/default/STATE.md" ]
+  # Binary may return absolute or relative path; check suffix
+  [[ "$state_path" == *".yolo-planning/milestones/default/STATE.md" ]]
 }
 
 @test "errors when no STATE.md exists anywhere" {

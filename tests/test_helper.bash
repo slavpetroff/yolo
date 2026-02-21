@@ -5,7 +5,12 @@
 export PROJECT_ROOT="${BATS_TEST_DIRNAME}/.."
 export SCRIPTS_DIR="${PROJECT_ROOT}/scripts"
 export CONFIG_DIR="${PROJECT_ROOT}/config"
-export YOLO_BIN="${HOME}/.cargo/bin/yolo"
+# Prefer project-local release build; fall back to cargo install path
+if [ -x "${PROJECT_ROOT}/yolo-mcp-server/target/release/yolo" ]; then
+  export YOLO_BIN="${PROJECT_ROOT}/yolo-mcp-server/target/release/yolo"
+else
+  export YOLO_BIN="${HOME}/.cargo/bin/yolo"
+fi
 
 # Run yolo CLI from a specific directory (defaults to TEST_TEMP_DIR)
 # Usage: yolo_cmd [subcommand...] or CWD=/path yolo_cmd [subcommand...]
