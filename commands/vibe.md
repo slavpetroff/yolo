@@ -181,6 +181,8 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 **Guard:** Initialized, phase exists in roadmap.
 **Phase auto-detection:** First phase without `*-CONTEXT.md`. All discussed: STOP "All phases discussed. Specify: `/yolo:vibe --discuss N`"
 
+**Subagent isolation:** When discussion requires codebase exploration (understanding existing patterns, verifying assumptions against code), use the Task tool with an Explore subagent. Keep the discussion context focused on the user's intent — delegate deep code dives to subagents and use only their summaries.
+
 **Steps:**
 1. Determine target phase from $ARGUMENTS or auto-detection.
 2. Read `${CLAUDE_PLUGIN_ROOT}/skills/discussion-engine/SKILL.md` and follow its protocol for the target phase.
@@ -211,6 +213,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
    - **If exists:** Include it in Lead's context for incremental refresh. Lead may update RESEARCH.md if new information emerges.
    - **On failure:** Log warning, continue planning without research. Do not block.
    - If `v3_plan_research_persist=false` or effort=turbo: skip entirely.
+   - **Subagent isolation:** When research exceeds 3 queries or explores unfamiliar code areas, use the Task tool with an Explore subagent to protect the planning context window. Consume only the subagent's structured findings — do not load full file contents into the orchestrator's context.
 4. **Context compilation:** If `config_context_compiler=true`, run `yolo compile-context {phase} lead {phases_dir}`. Read the output file `.context-lead.md` content into variable LEAD_CONTEXT for injection into the Lead agent's Task description. The compiled context format uses 3 tiers: `--- TIER 1: SHARED BASE ---` (project-wide, byte-identical across all roles), `--- TIER 2: ROLE FAMILY ({family}) ---` (byte-identical within planning or execution families), and `--- TIER 3: VOLATILE TAIL (phase={N}) ---` for phase-specific content. The compile-context CLI produces a single `.context-{role}.md` file with all 3 tiers concatenated in order.
 5. **Turbo shortcut:** If effort=turbo, skip Lead. Read phase reqs from ROADMAP.md, create single lightweight PLAN.md inline.
 6. **Other efforts:**
@@ -314,6 +317,7 @@ Missing name: STOP "Usage: `/yolo:vibe --add <phase-name>`"
    - Use your findings to write an informed phase goal and success criteria in ROADMAP.md. Write these structured findings to `{phase-dir}/{NN}-RESEARCH.md`.
    - On failure: log warning, write phase goal from $ARGUMENTS alone. Do not block.
    - **This eliminates duplicate research** — Plan mode step 3 checks for existing RESEARCH.md and skips research if found.
+   - **Subagent isolation:** For broad codebase exploration (3+ queries), use the Task tool with an Explore subagent to keep the orchestrator's context focused on phase scoping.
 7. Update ROADMAP.md: append phase list entry, append Phase Details section (using research findings if available), add progress row.
 8. Present: Phase Banner with milestone, position, goal. Checklist for roadmap update + dir creation. Next Up: `/yolo:vibe --discuss` or `/yolo:vibe --plan`.
 
