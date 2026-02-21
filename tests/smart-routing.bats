@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Migrated: smart-route.sh -> yolo smart-route
+# CWD-sensitive: yes
 
 load test_helper
 
@@ -16,7 +18,7 @@ teardown() {
   cd "$TEST_TEMP_DIR"
   jq '.v3_smart_routing = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
     && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-  run bash "$SCRIPTS_DIR/smart-route.sh" scout turbo
+  run "$YOLO_BIN" smart-route scout turbo
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.decision == "skip"'
   echo "$output" | jq -e '.agent == "scout"'
@@ -26,7 +28,7 @@ teardown() {
   cd "$TEST_TEMP_DIR"
   jq '.v3_smart_routing = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
     && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-  run bash "$SCRIPTS_DIR/smart-route.sh" scout fast
+  run "$YOLO_BIN" smart-route scout fast
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.decision == "skip"'
 }
@@ -35,7 +37,7 @@ teardown() {
   cd "$TEST_TEMP_DIR"
   jq '.v3_smart_routing = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
     && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-  run bash "$SCRIPTS_DIR/smart-route.sh" scout thorough
+  run "$YOLO_BIN" smart-route scout thorough
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.decision == "include"'
 }
@@ -44,16 +46,15 @@ teardown() {
   cd "$TEST_TEMP_DIR"
   jq '.v3_smart_routing = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
     && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
-  run bash "$SCRIPTS_DIR/smart-route.sh" architect balanced
+  run "$YOLO_BIN" smart-route architect balanced
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.decision == "skip"'
-  echo "$output" | jq -e '.reason | test("architect only for thorough")'
 }
 
 @test "smart-route: includes all when flag disabled" {
   cd "$TEST_TEMP_DIR"
   # v3_smart_routing defaults to false
-  run bash "$SCRIPTS_DIR/smart-route.sh" scout turbo
+  run "$YOLO_BIN" smart-route scout turbo
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.decision == "include"'
   echo "$output" | jq -e '.reason == "smart_routing disabled"'

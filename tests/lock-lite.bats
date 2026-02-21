@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Migrated: lock-lite.sh -> yolo lock
+# CWD-sensitive: yes
 
 load test_helper
 
@@ -11,95 +13,88 @@ teardown() {
   teardown_temp_dir
 }
 
-@test "lock-lite.sh exits 0 when v3_lock_lite=false" {
+@test "lock: exits 0 with skip when v3_lock_lite=false" {
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/lock-lite.sh" acquire "03-01-T1" "scripts/foo.sh"
+  run "$YOLO_BIN" lock acquire "scripts/foo.sh"
   [ "$status" -eq 0 ]
-  [ ! -d ".yolo-planning/.locks" ]
+  echo "$output" | jq -e '.reason == "v3_lock_lite=false"'
 }
 
-@test "lock-lite.sh acquire creates lock file" {
+@test "lock: acquire creates lock and returns acquired" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_lock_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  run bash "$SCRIPTS_DIR/lock-lite.sh" acquire "03-01-T1" "scripts/foo.sh" "config/bar.json"
+  run "$YOLO_BIN" lock acquire "scripts/foo.sh" --owner=task-1
   [ "$status" -eq 0 ]
-  [ "$output" = "acquired" ]
-  [ -f ".yolo-planning/.locks/03-01-T1.lock" ]
+  echo "$output" | jq -e '.result == "acquired"'
+  [ -d ".yolo-planning/.locks" ]
 }
 
-@test "lock-lite.sh lock file contains task_id and files" {
+@test "lock: lock file contains resource and owner" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_lock_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  bash "$SCRIPTS_DIR/lock-lite.sh" acquire "03-01-T1" "scripts/foo.sh" "config/bar.json"
+  "$YOLO_BIN" lock acquire "scripts/foo.sh" --owner=task-1 >/dev/null
 
-  run jq -r '.task_id' ".yolo-planning/.locks/03-01-T1.lock"
-  [ "$output" = "03-01-T1" ]
-
-  run jq -r '.files | length' ".yolo-planning/.locks/03-01-T1.lock"
-  [ "$output" = "2" ]
-
-  run jq -r '.files[0]' ".yolo-planning/.locks/03-01-T1.lock"
+  LOCK_FILE=$(ls .yolo-planning/.locks/*.lock 2>/dev/null | head -1)
+  [ -n "$LOCK_FILE" ]
+  run jq -r '.owner' "$LOCK_FILE"
+  [ "$output" = "task-1" ]
+  run jq -r '.resource' "$LOCK_FILE"
   [ "$output" = "scripts/foo.sh" ]
 }
 
-@test "lock-lite.sh release removes lock file" {
+@test "lock: release removes lock file" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_lock_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  bash "$SCRIPTS_DIR/lock-lite.sh" acquire "03-01-T1" "scripts/foo.sh"
-  [ -f ".yolo-planning/.locks/03-01-T1.lock" ]
+  "$YOLO_BIN" lock acquire "scripts/foo.sh" --owner=task-1 >/dev/null
 
-  run bash "$SCRIPTS_DIR/lock-lite.sh" release "03-01-T1"
+  run "$YOLO_BIN" lock release "scripts/foo.sh" --owner=task-1
   [ "$status" -eq 0 ]
-  [ "$output" = "released" ]
-  [ ! -f ".yolo-planning/.locks/03-01-T1.lock" ]
+  echo "$output" | jq -e '.result == "released"'
+  LOCK_COUNT=$(ls .yolo-planning/.locks/*.lock 2>/dev/null | wc -l | tr -d ' ')
+  [ "$LOCK_COUNT" = "0" ]
 }
 
-@test "lock-lite.sh check detects file conflict" {
+@test "lock: check detects conflict from different owner" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_lock_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  # First task acquires lock on scripts/foo.sh
-  bash "$SCRIPTS_DIR/lock-lite.sh" acquire "03-01-T1" "scripts/foo.sh"
+  # First owner acquires lock
+  "$YOLO_BIN" lock acquire "scripts/foo.sh" --owner=task-1 >/dev/null
 
-  # Second task checks for conflict on same file
-  run bash "$SCRIPTS_DIR/lock-lite.sh" check "03-01-T2" "scripts/foo.sh"
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"conflicts:1"* ]]
+  # Second owner checks for conflict
+  run "$YOLO_BIN" lock check "scripts/foo.sh" --owner=task-2
+  [ "$status" -eq 1 ]
+  echo "$output" | jq -e '.has_conflicts == true'
 }
 
-@test "lock-lite.sh check returns clear when no conflict" {
+@test "lock: check returns no conflict for same owner" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_lock_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  bash "$SCRIPTS_DIR/lock-lite.sh" acquire "03-01-T1" "scripts/foo.sh"
+  "$YOLO_BIN" lock acquire "scripts/foo.sh" --owner=task-1 >/dev/null
 
-  run bash "$SCRIPTS_DIR/lock-lite.sh" check "03-01-T2" "scripts/bar.sh"
+  run "$YOLO_BIN" lock check "scripts/foo.sh" --owner=task-1
   [ "$status" -eq 0 ]
-  [ "$output" = "clear" ]
+  echo "$output" | jq -e '.has_conflicts == false'
 }
 
-@test "lock-lite.sh conflict emits file_conflict metric" {
+@test "lock: check returns clear when no locks exist" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_lock_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
-  jq '.v3_metrics = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  bash "$SCRIPTS_DIR/lock-lite.sh" acquire "03-01-T1" "scripts/foo.sh"
-
-  # Acquire with conflict triggers metric
-  bash "$SCRIPTS_DIR/lock-lite.sh" acquire "03-01-T2" "scripts/foo.sh"
-
-  [ -f ".yolo-planning/.metrics/run-metrics.jsonl" ]
-  grep -q "file_conflict" ".yolo-planning/.metrics/run-metrics.jsonl"
+  run "$YOLO_BIN" lock check "scripts/bar.sh" --owner=task-2
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.has_conflicts == false'
 }
 
-@test "lock-lite.sh release returns no_lock when lock doesn't exist" {
+@test "lock: release returns not_held when lock doesn't exist" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_lock_lite = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  run bash "$SCRIPTS_DIR/lock-lite.sh" release "nonexistent-task"
+  run "$YOLO_BIN" lock release "nonexistent-file" --owner=task-1
   [ "$status" -eq 0 ]
-  [ "$output" = "no_lock" ]
+  echo "$output" | jq -e '.result == "not_held"'
 }

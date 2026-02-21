@@ -1,15 +1,14 @@
 #!/usr/bin/env bats
+# Migrated: rollout-stage.sh -> yolo rollout-stage (also: yolo rollout)
+# CWD-sensitive: yes
+# Note: Rust CLI uses named stages (canary/partial/full) instead of numbered stages.
+# The advance command does not support --stage=N or --dry-run flags.
 
 load test_helper
 
 setup() {
   setup_temp_dir
   create_test_config
-  # Copy rollout-stages.json to temp dir
-  mkdir -p "$TEST_TEMP_DIR/config"
-  cp "$CONFIG_DIR/../config/rollout-stages.json" "$TEST_TEMP_DIR/config/rollout-stages.json"
-  # Create scripts symlink so SCRIPT_DIR/../config resolves
-  mkdir -p "$TEST_TEMP_DIR/scripts"
 }
 
 teardown() {
@@ -25,150 +24,91 @@ create_event_log() {
   done
 }
 
-create_error_event_log() {
-  local clean="$1"
-  local error="$2"
-  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.events"
-  > "$TEST_TEMP_DIR/.yolo-planning/.events/event-log.jsonl"
-  for i in $(seq 1 "$clean"); do
-    echo "{\"ts\":\"2026-01-0${i}T00:00:00Z\",\"event_id\":\"evt-${i}\",\"event\":\"phase_end\",\"phase\":${i}}" >> "$TEST_TEMP_DIR/.yolo-planning/.events/event-log.jsonl"
-  done
-  for i in $(seq 1 "$error"); do
-    local idx=$((clean + i))
-    echo "{\"ts\":\"2026-01-0${idx}T00:00:00Z\",\"event_id\":\"evt-err-${i}\",\"event\":\"phase_end\",\"phase\":${idx},\"data\":{\"error\":\"failed\"}}" >> "$TEST_TEMP_DIR/.yolo-planning/.events/event-log.jsonl"
-  done
-}
-
-run_rollout() {
+@test "rollout-stage: check reports canary with no event log" {
   cd "$TEST_TEMP_DIR"
-  # Override STAGES_PATH by running from the temp dir where config/ exists
-  run bash "$SCRIPTS_DIR/rollout-stage.sh" "$@"
-}
-
-# --- Test 1: check reports stage 1 with no event log ---
-
-@test "rollout-stage: check reports stage 1 with no event log" {
-  run_rollout check
+  run "$YOLO_BIN" rollout-stage check
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.current_stage == 1'
+  echo "$output" | jq -e '.current_stage == "canary"'
   echo "$output" | jq -e '.completed_phases == 0'
 }
 
-# --- Test 2: check reports stage 2 after 2 completed phases ---
-
-@test "rollout-stage: check reports stage 2 after 2 completed phases" {
+@test "rollout-stage: check reports completed_phases after events" {
+  cd "$TEST_TEMP_DIR"
   create_event_log 2
-  run_rollout check
+  run "$YOLO_BIN" rollout-stage check
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.current_stage == 2'
   echo "$output" | jq -e '.completed_phases == 2'
 }
 
-# --- Test 3: check reports stage 3 after 5 completed phases ---
-
-@test "rollout-stage: check reports stage 3 after 5 completed phases" {
-  create_event_log 5
-  run_rollout check
+@test "rollout-stage: check reports can_advance when not at final" {
+  cd "$TEST_TEMP_DIR"
+  run "$YOLO_BIN" rollout-stage check
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.current_stage == 3'
-  echo "$output" | jq -e '.completed_phases == 5'
+  echo "$output" | jq -e '.can_advance == true'
+  echo "$output" | jq -e '.next_stage == "partial"'
 }
 
-# --- Test 4: advance stage 1 enables event_log and metrics ---
-
-@test "rollout-stage: advance stage 1 enables event_log and metrics" {
-  run_rollout advance --stage=1
+@test "rollout-stage: advance moves from canary to partial" {
+  cd "$TEST_TEMP_DIR"
+  run "$YOLO_BIN" rollout-stage advance
   [ "$status" -eq 0 ]
-  # Check config was updated
-  local val_event val_metrics val_delta
-  val_event=$(jq -r '.v3_event_log' "$TEST_TEMP_DIR/.yolo-planning/config.json")
-  val_metrics=$(jq -r '.v3_metrics' "$TEST_TEMP_DIR/.yolo-planning/config.json")
-  val_delta=$(jq -r '.v3_delta_context' "$TEST_TEMP_DIR/.yolo-planning/config.json")
-  [ "$val_event" = "true" ]
-  [ "$val_metrics" = "true" ]
-  [ "$val_delta" = "false" ]
+  echo "$output" | jq -e '.advanced == true'
+  echo "$output" | jq -e '.to_stage == "partial"'
+  # Config updated
+  run jq -r '.rollout_stage' "$TEST_TEMP_DIR/.yolo-planning/config.json"
+  [ "$output" = "partial" ]
 }
 
-# --- Test 5: advance stage 2 also enables stage 1 flags ---
-
-@test "rollout-stage: advance stage 2 also enables stage 1 flags" {
-  run_rollout advance --stage=2
-  [ "$status" -eq 0 ]
-  local val_event val_metrics val_delta val_cache val_routing
-  val_event=$(jq -r '.v3_event_log' "$TEST_TEMP_DIR/.yolo-planning/config.json")
-  val_metrics=$(jq -r '.v3_metrics' "$TEST_TEMP_DIR/.yolo-planning/config.json")
-  val_delta=$(jq -r '.v3_delta_context' "$TEST_TEMP_DIR/.yolo-planning/config.json")
-  val_cache=$(jq -r '.v3_context_cache' "$TEST_TEMP_DIR/.yolo-planning/config.json")
-  val_routing=$(jq -r '.v3_smart_routing' "$TEST_TEMP_DIR/.yolo-planning/config.json")
-  [ "$val_event" = "true" ]
-  [ "$val_metrics" = "true" ]
-  [ "$val_delta" = "true" ]
-  [ "$val_cache" = "true" ]
-  [ "$val_routing" = "false" ]
+@test "rollout-stage: advance sets max_agents in config" {
+  cd "$TEST_TEMP_DIR"
+  "$YOLO_BIN" rollout-stage advance >/dev/null
+  run jq -r '.max_agents' "$TEST_TEMP_DIR/.yolo-planning/config.json"
+  [ "$output" = "4" ]
+  run jq -r '.rollout_scope' "$TEST_TEMP_DIR/.yolo-planning/config.json"
+  [ "$output" = "expanded" ]
 }
 
-# --- Test 6: advance is idempotent ---
-
-@test "rollout-stage: advance is idempotent" {
-  # First advance
-  run_rollout advance --stage=1
+@test "rollout-stage: advance is idempotent at final stage" {
+  cd "$TEST_TEMP_DIR"
+  # Advance to partial
+  "$YOLO_BIN" rollout-stage advance >/dev/null
+  # Advance to full
+  "$YOLO_BIN" rollout-stage advance >/dev/null
+  # Try advance again at final
+  run "$YOLO_BIN" rollout-stage advance
   [ "$status" -eq 0 ]
-  # Second advance (idempotent)
-  run_rollout advance --stage=1
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.flags_enabled | length == 0'
-  echo "$output" | jq -e '.flags_already_enabled | length == 2'
+  [[ "$output" == *"Already at final"* ]]
 }
 
-# --- Test 7: dry-run does not modify config ---
-
-@test "rollout-stage: dry-run does not modify config" {
-  run_rollout advance --stage=1 --dry-run
+@test "rollout-stage: status outputs stage listing" {
+  cd "$TEST_TEMP_DIR"
+  run "$YOLO_BIN" rollout-stage status
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.dry_run == true'
-  echo "$output" | jq -e '.flags_enabled | length == 2'
-  # Config should still have false values
-  local val_event val_metrics
-  val_event=$(jq -r '.v3_event_log' "$TEST_TEMP_DIR/.yolo-planning/config.json")
-  val_metrics=$(jq -r '.v3_metrics' "$TEST_TEMP_DIR/.yolo-planning/config.json")
-  [ "$val_event" = "false" ]
-  [ "$val_metrics" = "false" ]
+  [[ "$output" == *"Rollout Stages"* ]]
+  [[ "$output" == *"canary"* ]]
+  [[ "$output" == *"partial"* ]]
+  [[ "$output" == *"full"* ]]
 }
 
-# --- Test 8: status outputs markdown table ---
-
-@test "rollout-stage: status outputs markdown table" {
-  run_rollout status
+@test "rollout-stage: status highlights current stage" {
+  cd "$TEST_TEMP_DIR"
+  "$YOLO_BIN" rollout-stage advance >/dev/null
+  run "$YOLO_BIN" rollout-stage status
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Rollout Status"* ]]
-  [[ "$output" == *"Flag"* ]]
-  [[ "$output" == *"Stage"* ]]
-  [[ "$output" == *"Enabled"* ]]
-  [[ "$output" == *"v3_event_log"* ]]
+  [[ "$output" == *">>> 2. partial"* ]]
 }
 
-# --- Test 9: exits 0 when config missing ---
-
-@test "rollout-stage: exits 0 when config missing" {
+@test "rollout-stage: check with missing config exits 0" {
+  cd "$TEST_TEMP_DIR"
   rm -f "$TEST_TEMP_DIR/.yolo-planning/config.json"
-  run_rollout check
+  run "$YOLO_BIN" rollout-stage check
   [ "$status" -eq 0 ]
 }
 
-# --- Test 10: advance respects phase threshold ---
-
-@test "rollout-stage: advance respects phase threshold" {
-  create_event_log 1
-  run_rollout advance
-  [ "$status" -eq 0 ]
-  # With 1 phase, only stage 1 is eligible (stage 2 needs 2)
-  local val_event val_metrics val_delta val_cache
-  val_event=$(jq -r '.v3_event_log' "$TEST_TEMP_DIR/.yolo-planning/config.json")
-  val_metrics=$(jq -r '.v3_metrics' "$TEST_TEMP_DIR/.yolo-planning/config.json")
-  val_delta=$(jq -r '.v3_delta_context' "$TEST_TEMP_DIR/.yolo-planning/config.json")
-  val_cache=$(jq -r '.v3_context_cache' "$TEST_TEMP_DIR/.yolo-planning/config.json")
-  [ "$val_event" = "true" ]
-  [ "$val_metrics" = "true" ]
-  [ "$val_delta" = "false" ]
-  [ "$val_cache" = "false" ]
+@test "rollout-stage: advance logs rollout_advance event" {
+  cd "$TEST_TEMP_DIR"
+  jq '.v3_event_log = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
+  "$YOLO_BIN" rollout-stage advance >/dev/null
+  [ -f ".yolo-planning/.events/event-log.jsonl" ]
+  grep -q "rollout_advance" ".yolo-planning/.events/event-log.jsonl"
 }

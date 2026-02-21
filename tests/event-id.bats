@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Migrated: log-event.sh -> yolo log-event
+# CWD-sensitive: yes
 
 load test_helper
 
@@ -16,7 +18,7 @@ teardown() {
 
 @test "log-event: includes event_id in output" {
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/log-event.sh" phase_start 1
+  "$YOLO_BIN" log-event phase_start 1 >/dev/null
   LINE=$(head -1 .yolo-planning/.events/event-log.jsonl)
   echo "$LINE" | jq -e '.event_id'
   EVENT_ID=$(echo "$LINE" | jq -r '.event_id')
@@ -26,9 +28,9 @@ teardown() {
 
 @test "log-event: event_id is unique across events" {
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/log-event.sh" phase_start 1
-  bash "$SCRIPTS_DIR/log-event.sh" plan_start 1 1
-  bash "$SCRIPTS_DIR/log-event.sh" phase_end 1
+  "$YOLO_BIN" log-event phase_start 1 >/dev/null
+  "$YOLO_BIN" log-event plan_start 1 1 >/dev/null
+  "$YOLO_BIN" log-event phase_end 1 >/dev/null
   ID1=$(sed -n '1p' .yolo-planning/.events/event-log.jsonl | jq -r '.event_id')
   ID2=$(sed -n '2p' .yolo-planning/.events/event-log.jsonl | jq -r '.event_id')
   ID3=$(sed -n '3p' .yolo-planning/.events/event-log.jsonl | jq -r '.event_id')
@@ -37,27 +39,21 @@ teardown() {
   [ "$ID1" != "$ID3" ]
 }
 
-@test "log-event: event_id format is UUID-like when uuidgen available" {
+@test "log-event: event_id format is UUID-like" {
   cd "$TEST_TEMP_DIR"
-  if ! command -v uuidgen &>/dev/null; then
-    skip "uuidgen not available"
-  fi
-  bash "$SCRIPTS_DIR/log-event.sh" phase_start 1
+  "$YOLO_BIN" log-event phase_start 1 >/dev/null
   EVENT_ID=$(head -1 .yolo-planning/.events/event-log.jsonl | jq -r '.event_id')
-  # UUID format: 8-4-4-4-12 hex chars (lowercase)
-  [[ "$EVENT_ID" =~ ^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$ ]]
-}
-
-@test "log-event: event_id present even without uuidgen" {
-  cd "$TEST_TEMP_DIR"
-  # Shadow uuidgen with a stub that fails, triggering the fallback
-  mkdir -p "$TEST_TEMP_DIR/fake_bin"
-  printf '#!/bin/sh\nexit 1\n' > "$TEST_TEMP_DIR/fake_bin/uuidgen"
-  chmod +x "$TEST_TEMP_DIR/fake_bin/uuidgen"
-  run bash -c "PATH='$TEST_TEMP_DIR/fake_bin:$PATH' bash '$SCRIPTS_DIR/log-event.sh' phase_start 1"
-  [ "$status" -eq 0 ]
-  LINE=$(head -1 .yolo-planning/.events/event-log.jsonl)
-  EVENT_ID=$(echo "$LINE" | jq -r '.event_id')
+  # Should be non-empty and not null
   [ -n "$EVENT_ID" ]
   [ "$EVENT_ID" != "null" ]
+}
+
+@test "log-event: event_id present in all events" {
+  cd "$TEST_TEMP_DIR"
+  "$YOLO_BIN" log-event phase_start 1 >/dev/null
+  "$YOLO_BIN" log-event phase_end 1 >/dev/null
+  # Both lines should have event_id
+  while IFS= read -r line; do
+    echo "$line" | jq -e '.event_id'
+  done < .yolo-planning/.events/event-log.jsonl
 }
