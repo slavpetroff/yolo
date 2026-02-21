@@ -48,20 +48,20 @@ simulate_agent_start() {
   local agent_type="$1"
   local pid="$2"
   echo "{\"agent_type\":\"$agent_type\",\"pid\":\"$pid\"}" \
-    | bash "$SCRIPTS_DIR/agent-start.sh"
+    | "$YOLO_BIN" hook SubagentStart
 }
 
 # Helper: simulate SubagentStop hook for a given PID
 simulate_agent_stop() {
   local pid="$1"
   echo "{\"pid\":\"$pid\"}" \
-    | bash "$SCRIPTS_DIR/agent-stop.sh"
+    | "$YOLO_BIN" hook SubagentStop
 }
 
-# Helper: simulate SessionStop hook with minimal metrics
+# Helper: simulate Stop hook with minimal metrics
 simulate_session_stop() {
   echo '{"cost_usd":0.01,"duration_ms":5000,"tokens_in":100,"tokens_out":50,"model":"test"}' \
-    | bash "$SCRIPTS_DIR/session-stop.sh"
+    | "$YOLO_BIN" hook Stop
 }
 
 # =============================================================================
@@ -144,7 +144,7 @@ simulate_session_stop() {
   # Simulate legacy state: marker but no count file
   echo "dev" > ".yolo-planning/.active-agent"
 
-  echo '{"pid":"99999"}' | bash "$SCRIPTS_DIR/agent-stop.sh"
+  echo '{"pid":"99999"}' | "$YOLO_BIN" hook SubagentStop
 
   [ ! -f ".yolo-planning/.active-agent" ]
 }
@@ -152,7 +152,7 @@ simulate_session_stop() {
 @test "agent-stop always exits 0" {
   cd "$TEST_TEMP_DIR"
   # Even with no markers at all
-  run bash -c 'echo "{}" | bash "'"$SCRIPTS_DIR"'/agent-stop.sh"'
+  run bash -c 'echo "{}" | "'"$YOLO_BIN"'" hook SubagentStop'
   [ "$status" -eq 0 ]
 }
 
@@ -255,22 +255,14 @@ simulate_session_stop() {
 # Full Chain: task-verify circuit breaker → agent-stop → session-stop
 # =============================================================================
 
-@test "full chain: circuit breaker state created during task-verify, cleaned by session-stop" {
+@test "full chain: PostToolUse advisory then agent-stop then session-stop cleanup" {
   cd "$TEST_TEMP_DIR"
 
-  # A commit that won't match the subject → triggers circuit breaker
-  echo "$RANDOM" >> dummy.txt && git add dummy.txt && git commit -q -m "docs: update README"
-
-  # First task-verify call: blocks (exit 2), creates .task-verify-seen
-  run bash -c 'echo "{\"task_subject\": \"Implement widget renderer\"}" | bash "'"$SCRIPTS_DIR"'/task-verify.sh"'
-  [ "$status" -eq 2 ]
-  [ -f ".yolo-planning/.task-verify-seen" ]
-
-  # Second call: circuit breaker fires (exit 0)
-  run bash -c 'echo "{\"task_subject\": \"Implement widget renderer\"}" | bash "'"$SCRIPTS_DIR"'/task-verify.sh"'
+  # PostToolUse is advisory-only in Rust (always exit 0, no circuit breaker)
+  run bash -c 'echo "{\"task_subject\": \"Implement widget renderer\"}" | "'"$YOLO_BIN"'" hook PostToolUse'
   [ "$status" -eq 0 ]
 
-  # Now simulate agent shutdown + session stop
+  # Simulate agent shutdown + session stop
   local pid
   pid=$(next_fake_pid)
   simulate_agent_start "yolo-dev" "$pid"
@@ -278,14 +270,13 @@ simulate_session_stop() {
   simulate_session_stop
 
   # All transient state should be clean
-  [ ! -f ".yolo-planning/.task-verify-seen" ]
   [ ! -f ".yolo-planning/.active-agent" ]
   [ ! -f ".yolo-planning/.active-agent-count" ]
   # Session marker preserved
   [ -f ".yolo-planning/.yolo-session" ]
 }
 
-@test "full chain: multi-agent start → task-verify blocks → circuit breaker → stops → session cleanup" {
+@test "full chain: multi-agent start → PostToolUse advisory → stops → session cleanup" {
   cd "$TEST_TEMP_DIR"
 
   # Start two agents
@@ -298,18 +289,11 @@ simulate_session_stop() {
   run cat ".yolo-planning/.active-agent-count"
   [ "$output" = "2" ]
 
-  # Dev-01 finishes task — no matching commit → blocks
-  echo "$RANDOM" >> dummy.txt && git add dummy.txt && git commit -q -m "docs: unrelated change"
-  run bash -c 'echo "{\"task_subject\": \"Execute 07-01: Create detail view\"}" | bash "'"$SCRIPTS_DIR"'/task-verify.sh"'
-  [ "$status" -eq 2 ]
-
-  # Retry (simulating Claude Code re-queue) → circuit breaker allows
-  run bash -c 'echo "{\"task_subject\": \"Execute 07-01: Create detail view\"}" | bash "'"$SCRIPTS_DIR"'/task-verify.sh"'
+  # PostToolUse is advisory-only in Rust (always exit 0)
+  run bash -c 'echo "{\"task_subject\": \"Execute 07-01: Create detail view\"}" | "'"$YOLO_BIN"'" hook PostToolUse'
   [ "$status" -eq 0 ]
 
-  # Dev-02 finishes task with matching commit → no block
-  echo "$RANDOM" >> dummy.txt && git add dummy.txt && git commit -q -m "feat(07-02): wire navigation to detail view"
-  run bash -c 'echo "{\"task_subject\": \"Execute 07-02: Wire navigation to detail view\"}" | bash "'"$SCRIPTS_DIR"'/task-verify.sh"'
+  run bash -c 'echo "{\"task_subject\": \"Execute 07-02: Wire navigation to detail view\"}" | "'"$YOLO_BIN"'" hook PostToolUse'
   [ "$status" -eq 0 ]
 
   # Both agents stop
@@ -324,7 +308,6 @@ simulate_session_stop() {
   simulate_session_stop
 
   # Everything cleaned
-  [ ! -f ".yolo-planning/.task-verify-seen" ]
   [ ! -f ".yolo-planning/.active-agent" ]
   [ ! -f ".yolo-planning/.agent-panes" ]
   [ -f ".yolo-planning/.yolo-session" ]
