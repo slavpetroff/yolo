@@ -1,18 +1,21 @@
 #!/usr/bin/env bats
+# Migrated: bootstrap-requirements.sh -> yolo bootstrap requirements
+# CWD-sensitive: yes
+
+load test_helper
 
 setup() {
-  export TEST_DIR=$(mktemp -d)
-  mkdir -p "$TEST_DIR/.yolo-planning"
-  export CLAUDE_PLUGIN_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
+  setup_temp_dir
+  create_test_config
 }
 
 teardown() {
-  rm -rf "$TEST_DIR"
+  teardown_temp_dir
 }
 
 @test "domain-research.md has 4 required sections" {
   # Simulate Scout writing research file
-  cat > "$TEST_DIR/.yolo-planning/domain-research.md" <<EOF
+  cat > "$TEST_TEMP_DIR/.yolo-planning/domain-research.md" <<EOF
 ## Table Stakes
 - Feature 1
 - Feature 2
@@ -28,28 +31,29 @@ teardown() {
 EOF
 
   # Verify structure
-  run grep -c "^## Table Stakes" "$TEST_DIR/.yolo-planning/domain-research.md"
+  run grep -c "^## Table Stakes" "$TEST_TEMP_DIR/.yolo-planning/domain-research.md"
   [ "$status" -eq 0 ]
   [ "$output" -eq 1 ]
 
-  run grep -c "^## Common Pitfalls" "$TEST_DIR/.yolo-planning/domain-research.md"
+  run grep -c "^## Common Pitfalls" "$TEST_TEMP_DIR/.yolo-planning/domain-research.md"
   [ "$output" -eq 1 ]
 
-  run grep -c "^## Architecture Patterns" "$TEST_DIR/.yolo-planning/domain-research.md"
+  run grep -c "^## Architecture Patterns" "$TEST_TEMP_DIR/.yolo-planning/domain-research.md"
   [ "$output" -eq 1 ]
 
-  run grep -c "^## Competitor Landscape" "$TEST_DIR/.yolo-planning/domain-research.md"
+  run grep -c "^## Competitor Landscape" "$TEST_TEMP_DIR/.yolo-planning/domain-research.md"
   [ "$output" -eq 1 ]
 }
 
-@test "bootstrap-requirements.sh accepts optional research file" {
+@test "bootstrap requirements accepts optional research file" {
+  cd "$TEST_TEMP_DIR"
   # Create discovery.json
-  cat > "$TEST_DIR/.yolo-planning/discovery.json" <<EOF
+  cat > "$TEST_TEMP_DIR/.yolo-planning/discovery.json" <<EOF
 {"answered":[{"question":"Test","answer":"Answer","category":"scope","phase":"bootstrap","date":"2026-02-13"}],"inferred":[]}
 EOF
 
   # Create research file
-  cat > "$TEST_DIR/.yolo-planning/domain-research.md" <<EOF
+  cat > "$TEST_TEMP_DIR/.yolo-planning/domain-research.md" <<EOF
 ## Table Stakes
 - Authentication
 
@@ -64,22 +68,22 @@ EOF
 EOF
 
   # Run with research file
-  run bash "$CLAUDE_PLUGIN_ROOT/scripts/bootstrap/bootstrap-requirements.sh" \
-    "$TEST_DIR/.yolo-planning/REQUIREMENTS.md" \
-    "$TEST_DIR/.yolo-planning/discovery.json" \
-    "$TEST_DIR/.yolo-planning/domain-research.md"
+  run "$YOLO_BIN" bootstrap requirements \
+    "$TEST_TEMP_DIR/.yolo-planning/REQUIREMENTS.md" \
+    "$TEST_TEMP_DIR/.yolo-planning/discovery.json" \
+    "$TEST_TEMP_DIR/.yolo-planning/domain-research.md"
 
   [ "$status" -eq 0 ]
-  [ -f "$TEST_DIR/.yolo-planning/REQUIREMENTS.md" ]
+  [ -f "$TEST_TEMP_DIR/.yolo-planning/REQUIREMENTS.md" ]
 }
 
-@test "bootstrap-requirements.sh integrates research findings into requirements" {
-  # Setup same as previous test
-  cat > "$TEST_DIR/.yolo-planning/discovery.json" <<EOF
+@test "bootstrap requirements integrates research findings into requirements" {
+  cd "$TEST_TEMP_DIR"
+  cat > "$TEST_TEMP_DIR/.yolo-planning/discovery.json" <<EOF
 {"answered":[{"question":"What features?","answer":"User accounts","category":"scope","phase":"bootstrap","date":"2026-02-13"}],"inferred":[{"text":"User authentication","priority":"Must-have"}]}
 EOF
 
-  cat > "$TEST_DIR/.yolo-planning/domain-research.md" <<EOF
+  cat > "$TEST_TEMP_DIR/.yolo-planning/domain-research.md" <<EOF
 ## Table Stakes
 - User authentication (every app has this)
 
@@ -93,27 +97,27 @@ EOF
 - App A: OAuth login
 EOF
 
-  run bash "$CLAUDE_PLUGIN_ROOT/scripts/bootstrap/bootstrap-requirements.sh" \
-    "$TEST_DIR/.yolo-planning/REQUIREMENTS.md" \
-    "$TEST_DIR/.yolo-planning/discovery.json" \
-    "$TEST_DIR/.yolo-planning/domain-research.md"
+  run "$YOLO_BIN" bootstrap requirements \
+    "$TEST_TEMP_DIR/.yolo-planning/REQUIREMENTS.md" \
+    "$TEST_TEMP_DIR/.yolo-planning/discovery.json" \
+    "$TEST_TEMP_DIR/.yolo-planning/domain-research.md"
 
   [ "$status" -eq 0 ]
 
   # Verify requirements were generated from inferred data
-  run grep "REQ-01: User authentication" "$TEST_DIR/.yolo-planning/REQUIREMENTS.md"
+  run grep "REQ-01: User authentication" "$TEST_TEMP_DIR/.yolo-planning/REQUIREMENTS.md"
   [ "$status" -eq 0 ]
 
-  # Verify script consumed research file without error (annotation logic tested separately)
-  [ -f "$TEST_DIR/.yolo-planning/REQUIREMENTS.md" ]
+  [ -f "$TEST_TEMP_DIR/.yolo-planning/REQUIREMENTS.md" ]
 }
 
 @test "discovery.json includes research_summary field" {
-  cat > "$TEST_DIR/.yolo-planning/discovery.json" <<EOF
+  cd "$TEST_TEMP_DIR"
+  cat > "$TEST_TEMP_DIR/.yolo-planning/discovery.json" <<EOF
 {"answered":[],"inferred":[]}
 EOF
 
-  cat > "$TEST_DIR/.yolo-planning/domain-research.md" <<EOF
+  cat > "$TEST_TEMP_DIR/.yolo-planning/domain-research.md" <<EOF
 ## Table Stakes
 - Feature
 
@@ -127,12 +131,12 @@ EOF
 - Competitor
 EOF
 
-  bash "$CLAUDE_PLUGIN_ROOT/scripts/bootstrap/bootstrap-requirements.sh" \
-    "$TEST_DIR/.yolo-planning/REQUIREMENTS.md" \
-    "$TEST_DIR/.yolo-planning/discovery.json" \
-    "$TEST_DIR/.yolo-planning/domain-research.md"
+  "$YOLO_BIN" bootstrap requirements \
+    "$TEST_TEMP_DIR/.yolo-planning/REQUIREMENTS.md" \
+    "$TEST_TEMP_DIR/.yolo-planning/discovery.json" \
+    "$TEST_TEMP_DIR/.yolo-planning/domain-research.md"
 
-  run jq -e '.research_summary.available' "$TEST_DIR/.yolo-planning/discovery.json"
+  run jq -e '.research_summary.available' "$TEST_TEMP_DIR/.yolo-planning/discovery.json"
   [ "$status" -eq 0 ]
   [ "$output" = "true" ]
 }

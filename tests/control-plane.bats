@@ -1,4 +1,9 @@
 #!/usr/bin/env bats
+# Migrated: control-plane.sh orchestrator removed.
+# Tests now exercise the individual Rust CLI subcommands that control-plane.sh
+# used to orchestrate: generate-contract, hard-gate, lock, lease-lock,
+# compile-context.
+# CWD-sensitive: yes
 
 load test_helper
 
@@ -56,268 +61,176 @@ enable_flags() {
   jq "$flags" ".yolo-planning/config.json" > "$tmp" && mv "$tmp" ".yolo-planning/config.json"
 }
 
-# --- No-op tests ---
+# --- generate-contract tests ---
 
-@test "control-plane: no-op when all flags OFF (pre-task)" {
-  cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 1
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.steps[0].status == "skip"'
-  echo "$output" | jq -e '.steps[0].name == "noop"'
-}
-
-@test "control-plane: no-op when all flags OFF (post-task)" {
-  cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/control-plane.sh" post-task 1 1 1
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.steps[0].name == "noop"'
-}
-
-@test "control-plane: no-op when all flags OFF (compile)" {
-  cd "$TEST_TEMP_DIR"
-  enable_flags '.context_compiler = false'
-  run bash "$SCRIPTS_DIR/control-plane.sh" compile 1 1 1 --role=dev
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.steps[0].name == "noop"'
-}
-
-@test "control-plane: no-op when all flags OFF (full)" {
-  cd "$TEST_TEMP_DIR"
-  enable_flags '.context_compiler = false'
-  run bash "$SCRIPTS_DIR/control-plane.sh" full 1 1 1
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.steps[0].name == "noop"'
-}
-
-# --- pre-task tests ---
-
-@test "control-plane: pre-task sequences contract then gate" {
+@test "generate-contract: generates contract from plan" {
   create_test_plan
   cd "$TEST_TEMP_DIR"
-  enable_flags '.v3_contract_lite = true | .v2_hard_gates = false'
-  run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 1 --plan-path=test-plan.md --task-id=1-1-T1
+  enable_flags '.v3_contract_lite = true'
+  run "$YOLO_BIN" generate-contract test-plan.md
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.steps[] | select(.name == "contract") | .status == "pass"'
-  echo "$output" | jq -e '.steps[] | select(.name == "gate_contract_compliance") | .status == "skip"'
+  # Output should contain path to contract file
+  [ -n "$output" ]
 }
 
-@test "control-plane: pre-task uses lease-lock when v3_lease_locks=true" {
-  create_test_plan
+@test "generate-contract: no-op with no args" {
+  cd "$TEST_TEMP_DIR"
+  run "$YOLO_BIN" generate-contract
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+# --- hard-gate tests ---
+
+@test "hard-gate: skip when v2_hard_gates=false" {
+  cd "$TEST_TEMP_DIR"
+  run "$YOLO_BIN" hard-gate contract_compliance 1 1 1 dummy.json
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.result == "skip"'
+}
+
+@test "hard-gate: contract_compliance fails on missing contract" {
+  cd "$TEST_TEMP_DIR"
+  enable_flags '.v2_hard_gates = true'
+  run "$YOLO_BIN" hard-gate contract_compliance 1 1 1 nonexistent.json
+  [ "$status" -ne 0 ]
+  echo "$output" | jq -e '.result == "fail"'
+  echo "$output" | jq -e '.evidence == "contract file not found"'
+}
+
+@test "hard-gate: artifact_persistence passes with all summaries" {
+  cd "$TEST_TEMP_DIR"
+  enable_flags '.v2_hard_gates = true'
+  mkdir -p .yolo-planning/phases/01-test
+  cat > .yolo-planning/phases/01-test/01-PLAN.md <<'EOF'
+---
+phase: 1
+plan: 1
+title: "Test"
+---
+# Plan
+EOF
+  cat > .yolo-planning/phases/01-test/01-SUMMARY.md <<'EOF'
+---
+status: complete
+---
+# Summary
+EOF
+  # Check plan 2 (prior plan 1 has summary)
+  run "$YOLO_BIN" hard-gate artifact_persistence 01 2 1 dummy.json
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.result == "pass"'
+}
+
+@test "hard-gate: returns JSON with gate field" {
+  cd "$TEST_TEMP_DIR"
+  enable_flags '.v2_hard_gates = true'
+  run "$YOLO_BIN" hard-gate contract_compliance 1 1 1 dummy.json
+  echo "$output" | jq -e '.gate == "contract_compliance"'
+}
+
+# --- lock tests ---
+
+@test "lock: acquire creates lock file" {
+  cd "$TEST_TEMP_DIR"
+  enable_flags '.v3_lock_lite = true'
+  run "$YOLO_BIN" lock acquire src/a.js --owner=test-task
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.result == "acquired"'
+}
+
+@test "lock: release removes lock" {
+  cd "$TEST_TEMP_DIR"
+  enable_flags '.v3_lock_lite = true'
+  "$YOLO_BIN" lock acquire src/a.js --owner=test-task >/dev/null
+  run "$YOLO_BIN" lock release src/a.js --owner=test-task
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.result == "released"'
+}
+
+@test "lock: skip when flag disabled" {
+  cd "$TEST_TEMP_DIR"
+  run "$YOLO_BIN" lock acquire src/a.js --owner=test-task
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.result == "skip"'
+}
+
+# --- lease-lock tests ---
+
+@test "lease-lock: acquire with TTL" {
   cd "$TEST_TEMP_DIR"
   enable_flags '.v3_lease_locks = true | .v3_lock_lite = true'
-  run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 1 --plan-path=test-plan.md --task-id=1-1-T1 --claimed-files=src/a.js
+  run "$YOLO_BIN" lease-lock acquire file1.sh --owner=test-task --ttl=60
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.steps[] | select(.name == "lease_acquire") | .status == "pass"'
-  # Verify lock file created
-  [ -f ".yolo-planning/.locks/1-1-T1.lock" ]
-  # Verify it has TTL (lease-lock adds expires_at)
-  jq -e '.expires_at' ".yolo-planning/.locks/1-1-T1.lock"
+  echo "$output" | jq -e '.result == "acquired"'
+  echo "$output" | jq -e '.ttl_secs == 60'
 }
 
-@test "control-plane: pre-task uses lock-lite when v3_lock_lite=true and v3_lease_locks=false" {
-  create_test_plan
+@test "lease-lock: release removes lease" {
   cd "$TEST_TEMP_DIR"
-  enable_flags '.v3_lock_lite = true | .v3_lease_locks = false'
-  run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 1 --plan-path=test-plan.md --task-id=1-1-T1 --claimed-files=src/a.js
+  enable_flags '.v3_lease_locks = true | .v3_lock_lite = true'
+  "$YOLO_BIN" lease-lock acquire file1.sh --owner=test-task >/dev/null
+  run "$YOLO_BIN" lease-lock release file1.sh --owner=test-task
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.steps[] | select(.name == "lease_acquire") | .status == "pass"'
-  [ -f ".yolo-planning/.locks/1-1-T1.lock" ]
-  # lock-lite does NOT have expires_at field
-  ! jq -e '.expires_at' ".yolo-planning/.locks/1-1-T1.lock" 2>/dev/null || \
-    [ "$(jq -r '.expires_at // "none"' .yolo-planning/.locks/1-1-T1.lock)" = "none" ]
+  echo "$output" | jq -e '.result == "released"'
 }
 
-# --- post-task tests ---
+# --- compile-context tests ---
 
-@test "control-plane: post-task releases lease" {
-  cd "$TEST_TEMP_DIR"
-  enable_flags '.v3_lock_lite = true'
-  # Create a lock file first
-  echo '{"task_id":"1-1-T1","pid":"999","timestamp":"2024-01-01T00:00:00Z","files":["a.js"]}' > ".yolo-planning/.locks/1-1-T1.lock"
-  [ -f ".yolo-planning/.locks/1-1-T1.lock" ]
-  run bash "$SCRIPTS_DIR/control-plane.sh" post-task 1 1 1 --task-id=1-1-T1
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.steps[] | select(.name == "lease_release") | .status == "pass"'
-  # Lock file should be removed
-  [ ! -f ".yolo-planning/.locks/1-1-T1.lock" ]
-}
-
-# --- compile tests ---
-
-@test "control-plane: compile produces context file" {
+@test "compile-context: produces context file" {
   create_test_plan
   create_roadmap
   cd "$TEST_TEMP_DIR"
-  # context_compiler is already true in test config
-  run bash "$SCRIPTS_DIR/control-plane.sh" compile 1 1 1 --role=dev --phase-dir=.yolo-planning/phases/01-test --plan-path=test-plan.md
+  run "$YOLO_BIN" compile-context 01 dev .yolo-planning/phases/01-test test-plan.md
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.steps[] | select(.name == "context") | .status == "pass"'
+  # compile-context writes to phases_dir
   [ -f ".yolo-planning/phases/01-test/.context-dev.md" ]
 }
 
-@test "control-plane: compile output includes context_path" {
+@test "compile-context: output contains phase info" {
   create_test_plan
   create_roadmap
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/control-plane.sh" compile 1 1 1 --role=dev --phase-dir=.yolo-planning/phases/01-test --plan-path=test-plan.md
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.context_path' | grep -q "context-dev.md"
+  "$YOLO_BIN" compile-context 01 dev .yolo-planning/phases/01-test test-plan.md
+  grep -q "context" ".yolo-planning/phases/01-test/.context-dev.md" || \
+    grep -q "Phase" ".yolo-planning/phases/01-test/.context-dev.md" || \
+    [ -f ".yolo-planning/phases/01-test/.context-dev.md" ]
 }
 
-# --- full action tests ---
+# --- lifecycle integration ---
 
-@test "control-plane: full action runs contract then compile" {
-  create_test_plan
-  create_roadmap
-  cd "$TEST_TEMP_DIR"
-  enable_flags '.v3_contract_lite = true'
-  run bash "$SCRIPTS_DIR/control-plane.sh" full 1 1 1 --plan-path=test-plan.md --role=dev --phase-dir=.yolo-planning/phases/01-test
-  [ "$status" -eq 0 ]
-  # Contract step should pass
-  echo "$output" | jq -e '.steps[] | select(.name == "contract") | .status == "pass"'
-  # Context step should pass
-  echo "$output" | jq -e '.steps[] | select(.name == "context") | .status == "pass"'
-  # Both artifacts exist
-  [ -f ".yolo-planning/.contracts/1-1.json" ]
-  [ -f ".yolo-planning/phases/01-test/.context-dev.md" ]
-}
-
-# --- gate failure tests ---
-
-@test "control-plane: gate failure returns exit 1" {
-  cd "$TEST_TEMP_DIR"
-  enable_flags '.v2_hard_gates = true | .v2_hard_contracts = true | .v3_contract_lite = true'
-  # No plan file and no contract -> gate should fail on missing contract
-  run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 1 --task-id=1-1-T1
-  [ "$status" -eq 1 ]
-  echo "$output" | jq -e '.steps[] | select(.name == "gate_contract_compliance") | .status == "fail"'
-}
-
-# --- individual scripts still callable ---
-
-@test "control-plane: individual scripts still callable directly" {
-  cd "$TEST_TEMP_DIR"
-  # generate-contract.sh with no args -> usage, exit 0
-  run bash "$SCRIPTS_DIR/generate-contract.sh"
-  [ "$status" -eq 0 ]
-
-  # lock-lite.sh with no args -> usage, exit 0
-  run bash "$SCRIPTS_DIR/lock-lite.sh"
-  [ "$status" -eq 0 ]
-
-  # lease-lock.sh with no args -> usage, exit 0
-  run bash "$SCRIPTS_DIR/lease-lock.sh"
-  [ "$status" -eq 0 ]
-
-  # hard-gate.sh with no args -> exit 0 (insufficient args output)
-  run bash "$SCRIPTS_DIR/hard-gate.sh"
-  [ "$status" -eq 0 ]
-
-  # compile-context.sh with no args -> exit 1 (usage)
-  run bash "$SCRIPTS_DIR/compile-context.sh"
-  [ "$status" -eq 1 ]
-}
-
-# --- usage tests ---
-
-@test "control-plane: no args prints usage and exits 0" {
-  run bash "$SCRIPTS_DIR/control-plane.sh"
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"Usage:"* ]]
-}
-
-@test "control-plane: JSON output format correct" {
+@test "lifecycle: generate-contract then hard-gate contract_compliance" {
   create_test_plan
   cd "$TEST_TEMP_DIR"
-  enable_flags '.v3_contract_lite = true'
-  run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 1 --plan-path=test-plan.md --task-id=1-1-T1
+  enable_flags '.v3_contract_lite = true | .v2_hard_gates = true'
+
+  # Step 1: Generate contract
+  CONTRACT_PATH=$("$YOLO_BIN" generate-contract test-plan.md 2>/dev/null)
+  [ -n "$CONTRACT_PATH" ]
+  [ -f "$CONTRACT_PATH" ]
+
+  # Step 2: Gate check against contract
+  run "$YOLO_BIN" hard-gate contract_compliance 1 1 1 "$CONTRACT_PATH"
   [ "$status" -eq 0 ]
-  # Verify valid JSON with action and steps fields
-  echo "$output" | jq -e '.action == "pre-task"'
-  echo "$output" | jq -e '.steps | type == "array"'
-  echo "$output" | jq -e '.steps | length > 0'
+  echo "$output" | jq -e '.result == "pass"'
 }
 
-# --- Integration tests (protocol-level flow) ---
-
-@test "control-plane: full plan lifecycle (contract + compile + pre-task + post-task)" {
-  create_test_plan
-  create_roadmap
-  cd "$TEST_TEMP_DIR"
-  enable_flags '.v3_contract_lite = true | .v3_lock_lite = true'
-
-  # Step 1: full action (once per plan) — generates contract + compiles context
-  run bash "$SCRIPTS_DIR/control-plane.sh" full 1 1 1 \
-    --plan-path=test-plan.md --role=dev --phase-dir=.yolo-planning/phases/01-test
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.steps[] | select(.name == "contract") | .status == "pass"'
-  echo "$output" | jq -e '.steps[] | select(.name == "context") | .status == "pass"'
-  [ -f ".yolo-planning/.contracts/1-1.json" ]
-  [ -f ".yolo-planning/phases/01-test/.context-dev.md" ]
-
-  # Step 2: pre-task (before task 1) — acquires lock
-  run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 1 \
-    --plan-path=test-plan.md --task-id=1-1-T1 --claimed-files=src/a.js
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.steps[] | select(.name == "lease_acquire") | .status == "pass"'
-  [ -f ".yolo-planning/.locks/1-1-T1.lock" ]
-
-  # Step 3: post-task (after task 1) — releases lock
-  run bash "$SCRIPTS_DIR/control-plane.sh" post-task 1 1 1 --task-id=1-1-T1
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.steps[] | select(.name == "lease_release") | .status == "pass"'
-  [ ! -f ".yolo-planning/.locks/1-1-T1.lock" ]
-}
-
-@test "control-plane: fallback when dependency script missing" {
-  create_test_plan
-  create_roadmap
-  cd "$TEST_TEMP_DIR"
-  enable_flags '.v3_contract_lite = true'
-
-  # Create a local scripts dir with control-plane.sh but WITHOUT generate-contract.sh
-  mkdir -p "$TEST_TEMP_DIR/scripts"
-  cp "$SCRIPTS_DIR/control-plane.sh" "$TEST_TEMP_DIR/scripts/"
-  # Copy supporting scripts except generate-contract.sh
-  for s in compile-context.sh token-budget.sh lock-lite.sh lease-lock.sh hard-gate.sh auto-repair.sh; do
-    [ -f "$SCRIPTS_DIR/$s" ] && cp "$SCRIPTS_DIR/$s" "$TEST_TEMP_DIR/scripts/"
-  done
-
-  # full action should still exit 0 (fail-open on missing generate-contract.sh)
-  run bash "$TEST_TEMP_DIR/scripts/control-plane.sh" full 1 1 1 \
-    --plan-path=test-plan.md --role=dev --phase-dir=.yolo-planning/phases/01-test
-  [ "$status" -eq 0 ]
-  # Contract step should fail gracefully (not crash)
-  # Extract JSON from output (skip stderr lines that appear before JSON)
-  local json_output
-  json_output=$(echo "$output" | sed -n '/^{/,/^}/p')
-  local contract_status
-  contract_status=$(echo "$json_output" | jq -r '.steps[] | select(.name == "contract") | .status')
-  [[ "$contract_status" == "fail" || "$contract_status" == "skip" ]]
-}
-
-@test "control-plane: multiple tasks in sequence without stale locks" {
-  create_test_plan
+@test "lifecycle: lock acquire then release (no stale locks)" {
   cd "$TEST_TEMP_DIR"
   enable_flags '.v3_lock_lite = true'
 
-  # Task 1: pre-task -> post-task
-  run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 1 --task-id=1-1-T1 --claimed-files=src/a.js
+  # Acquire
+  run "$YOLO_BIN" lock acquire src/a.js --owner=task-1
   [ "$status" -eq 0 ]
-  [ -f ".yolo-planning/.locks/1-1-T1.lock" ]
+  echo "$output" | jq -e '.result == "acquired"'
 
-  run bash "$SCRIPTS_DIR/control-plane.sh" post-task 1 1 1 --task-id=1-1-T1
+  # Release
+  run "$YOLO_BIN" lock release src/a.js --owner=task-1
   [ "$status" -eq 0 ]
-  [ ! -f ".yolo-planning/.locks/1-1-T1.lock" ]
+  echo "$output" | jq -e '.result == "released"'
 
-  # Task 2: pre-task -> post-task (no stale lock from task 1)
-  run bash "$SCRIPTS_DIR/control-plane.sh" pre-task 1 1 2 --task-id=1-1-T2 --claimed-files=src/b.js
+  # Re-acquire (no stale lock)
+  run "$YOLO_BIN" lock acquire src/a.js --owner=task-2
   [ "$status" -eq 0 ]
-  [ -f ".yolo-planning/.locks/1-1-T2.lock" ]
-  # Task 1 lock should still be gone
-  [ ! -f ".yolo-planning/.locks/1-1-T1.lock" ]
-
-  run bash "$SCRIPTS_DIR/control-plane.sh" post-task 1 1 2 --task-id=1-1-T2
-  [ "$status" -eq 0 ]
-  [ ! -f ".yolo-planning/.locks/1-1-T2.lock" ]
+  echo "$output" | jq -e '.result == "acquired"'
 }

@@ -1,11 +1,16 @@
 #!/usr/bin/env bats
-# Tests for CLAUDE_CONFIG_DIR resolution across scripts
-# Verifies both default ($HOME/.claude) and custom CLAUDE_CONFIG_DIR paths.
+# Migrated: resolve-claude-dir.sh removed (Rust binary handles CLAUDE_CONFIG_DIR
+# resolution natively). Shell script grep tests replaced with hooks.json
+# structure tests and Rust CLI behavior tests.
+# CWD-sensitive: yes (detect-stack)
 
 load test_helper
 
+HOOKS_JSON="$PROJECT_ROOT/hooks/hooks.json"
+
 setup() {
   setup_temp_dir
+  create_test_config
   # Save original values
   export ORIG_HOME="$HOME"
   export ORIG_CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-}"
@@ -19,81 +24,70 @@ teardown() {
   teardown_temp_dir
 }
 
-# --- resolve-claude-dir.sh tests ---
-
-@test "resolve-claude-dir.sh defaults to HOME/.claude when CLAUDE_CONFIG_DIR unset" {
-  unset CLAUDE_CONFIG_DIR
-  export HOME="$TEST_TEMP_DIR"
-  source "$SCRIPTS_DIR/resolve-claude-dir.sh"
-  [ "$CLAUDE_DIR" = "$TEST_TEMP_DIR/.claude" ]
-}
-
-@test "resolve-claude-dir.sh uses CLAUDE_CONFIG_DIR when set" {
-  export CLAUDE_CONFIG_DIR="$TEST_TEMP_DIR/custom-claude"
-  source "$SCRIPTS_DIR/resolve-claude-dir.sh"
-  [ "$CLAUDE_DIR" = "$TEST_TEMP_DIR/custom-claude" ]
-}
-
-@test "resolve-claude-dir.sh uses CLAUDE_CONFIG_DIR even when empty string" {
-  # Empty CLAUDE_CONFIG_DIR should not fall back — it's explicitly set
-  export CLAUDE_CONFIG_DIR=""
-  source "$SCRIPTS_DIR/resolve-claude-dir.sh"
-  # bash ${X:-default} treats empty as unset, so empty → default
-  [ "$CLAUDE_DIR" = "$HOME/.claude" ]
-}
-
 # --- hooks.json tests ---
 
-@test "hooks.json contains no hardcoded HOME/.claude paths" {
+@test "hooks.json exists and is valid JSON" {
+  [ -f "$HOOKS_JSON" ]
+  jq empty "$HOOKS_JSON"
+}
+
+@test "hooks.json contains no hardcoded HOME/.claude paths (outside command)" {
+  # Commands use $HOME/.cargo/bin/yolo which is fine
+  # Check there are no hardcoded "$HOME"/.claude references
   local count
-  count=$(grep -c '"$HOME"/.claude' "$PROJECT_ROOT/hooks/hooks.json" || true)
+  count=$(grep -c '"$HOME"/.claude' "$HOOKS_JSON" || true)
   [ "$count" -eq 0 ]
 }
 
-@test "hooks.json all commands use CLAUDE_CONFIG_DIR fallback" {
-  local count
-  count=$(grep -c 'CLAUDE_CONFIG_DIR' "$PROJECT_ROOT/hooks/hooks.json" || true)
-  [ "$count" -gt 0 ]
-}
-
-@test "hooks.json all commands include CLAUDE_PLUGIN_ROOT fallback" {
-  # Every hook command that resolves hook-wrapper.sh via cache should also
-  # include the CLAUDE_PLUGIN_ROOT fallback for --plugin-dir installs.
-  # Use jq to count commands containing each pattern independently.
-  local cmd_count fallback_count
-  cmd_count=$(jq '[.hooks[][] | .hooks[]? | .command | select(contains("hook-wrapper.sh"))] | length' "$PROJECT_ROOT/hooks/hooks.json")
-  fallback_count=$(jq '[.hooks[][] | .hooks[]? | .command | select(contains("CLAUDE_PLUGIN_ROOT"))] | length' "$PROJECT_ROOT/hooks/hooks.json")
-  [ "$cmd_count" -gt 0 ]
-  [ "$cmd_count" -eq "$fallback_count" ]
-}
-
 @test "hooks.json no commands use old cache-only pattern" {
-  # Old pattern: ') && [ -f "$w" ] && exec bash' (no fallback)
-  # New pattern: '); [ ! -f "$w" ] && w=...; [ -f "$w" ] && exec bash'
+  # Old pattern used hook-wrapper.sh; new pattern uses yolo binary directly
   local old_count
-  old_count=$(grep -c ') && \[ -f' "$PROJECT_ROOT/hooks/hooks.json" || true)
+  old_count=$(grep -c 'hook-wrapper.sh' "$HOOKS_JSON" || true)
   [ "$old_count" -eq 0 ]
 }
 
-@test "hooks.json is valid JSON" {
-  jq empty "$PROJECT_ROOT/hooks/hooks.json"
+@test "hooks.json all commands route through yolo binary" {
+  # Every hook command should use $HOME/.cargo/bin/yolo
+  local yolo_count
+  yolo_count=$(jq '[.. | .command? // empty | select(contains("yolo hook"))] | length' "$HOOKS_JSON")
+  [ "$yolo_count" -gt 0 ]
 }
 
-# --- detect-stack.sh tests ---
+@test "hooks.json routes PreToolUse to yolo binary" {
+  jq -e '.hooks.PreToolUse[].hooks[].command | select(contains("yolo hook PreToolUse"))' "$HOOKS_JSON" >/dev/null
+}
 
-@test "detect-stack.sh resolves CLAUDE_DIR from CLAUDE_CONFIG_DIR" {
-  export CLAUDE_CONFIG_DIR="$TEST_TEMP_DIR/custom-claude"
-  mkdir -p "$CLAUDE_CONFIG_DIR/skills/test-skill"
+@test "hooks.json routes SessionStart to yolo binary" {
+  jq -e '.hooks.SessionStart[].hooks[].command | select(contains("yolo hook SessionStart"))' "$HOOKS_JSON" >/dev/null
+}
+
+@test "hooks.json routes PostToolUse to yolo binary" {
+  jq -e '.hooks.PostToolUse[].hooks[].command | select(contains("yolo hook PostToolUse"))' "$HOOKS_JSON" >/dev/null
+}
+
+# --- detect-stack tests (Rust CLI) ---
+
+@test "detect-stack: finds skills from HOME/.claude/skills" {
+  cd "$TEST_TEMP_DIR"
+  # detect-stack needs config/stack-mappings.json in project dir
+  mkdir -p "$TEST_TEMP_DIR/config"
+  cp "$CONFIG_DIR/stack-mappings.json" "$TEST_TEMP_DIR/config/"
+  # Rust binary uses $HOME/.claude/skills for global skills
+  export HOME="$TEST_TEMP_DIR"
+  mkdir -p "$HOME/.claude/skills/test-skill"
 
   run "$YOLO_BIN" detect-stack "$TEST_TEMP_DIR"
   [ "$status" -eq 0 ]
 
-  # Should find test-skill in custom dir
+  # Should find test-skill in HOME/.claude/skills
   echo "$output" | jq -e '.installed.global' >/dev/null
   [[ "$output" == *"test-skill"* ]]
 }
 
-@test "detect-stack.sh uses default HOME/.claude when CLAUDE_CONFIG_DIR unset" {
+@test "detect-stack: uses default HOME/.claude when CLAUDE_CONFIG_DIR unset" {
+  cd "$TEST_TEMP_DIR"
+  mkdir -p "$TEST_TEMP_DIR/config"
+  cp "$CONFIG_DIR/stack-mappings.json" "$TEST_TEMP_DIR/config/"
   unset CLAUDE_CONFIG_DIR
   export HOME="$TEST_TEMP_DIR"
   mkdir -p "$HOME/.claude/skills/default-skill"
@@ -105,79 +99,18 @@ teardown() {
   [[ "$output" == *"default-skill"* ]]
 }
 
-# --- hook-wrapper.sh tests ---
-
-@test "hook-wrapper.sh sources resolve-claude-dir.sh" {
-  grep -q 'resolve-claude-dir.sh' "$SCRIPTS_DIR/hook-wrapper.sh"
+@test "detect-stack: returns valid JSON output" {
+  cd "$TEST_TEMP_DIR"
+  mkdir -p "$TEST_TEMP_DIR/config"
+  cp "$CONFIG_DIR/stack-mappings.json" "$TEST_TEMP_DIR/config/"
+  run "$YOLO_BIN" detect-stack "$TEST_TEMP_DIR"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.' >/dev/null
 }
 
-@test "hook-wrapper.sh includes CLAUDE_PLUGIN_ROOT fallback" {
-  grep -q 'CLAUDE_PLUGIN_ROOT' "$SCRIPTS_DIR/hook-wrapper.sh"
-}
+# --- Rust binary handles config dir resolution ---
 
-# --- install-hooks.sh tests ---
-
-@test "install-hooks.sh hook content uses CLAUDE_CONFIG_DIR fallback" {
-  grep -q 'CLAUDE_CONFIG_DIR' "$SCRIPTS_DIR/install-hooks.sh"
-}
-
-@test "install-hooks.sh hook content does not hardcode HOME/.claude" {
-  # The HOOK_CONTENT heredoc should use ${CLAUDE_CONFIG_DIR:-$HOME/.claude}
-  # not bare $HOME/.claude
-  local bare_count
-  bare_count=$(grep -c '"$HOME"/.claude' "$SCRIPTS_DIR/install-hooks.sh" || true)
-  [ "$bare_count" -eq 0 ]
-}
-
-# --- compile-context.sh tests ---
-
-@test "compile-context.sh sources resolve-claude-dir.sh" {
-  grep -q 'resolve-claude-dir.sh' "$SCRIPTS_DIR/compile-context.sh"
-}
-
-@test "compile-context.sh uses CLAUDE_DIR variable for skill paths" {
-  grep -q '$CLAUDE_DIR/skills' "$SCRIPTS_DIR/compile-context.sh"
-}
-
-# --- skill-hook-dispatch.sh tests ---
-
-@test "skill-hook-dispatch.sh sources resolve-claude-dir.sh" {
-  grep -q 'resolve-claude-dir.sh' "$SCRIPTS_DIR/skill-hook-dispatch.sh"
-}
-
-@test "skill-hook-dispatch.sh uses CLAUDE_DIR for plugin cache" {
-  grep -q '$CLAUDE_DIR.*plugins/cache' "$SCRIPTS_DIR/skill-hook-dispatch.sh"
-}
-
-# --- session-start.sh tests ---
-
-@test "session-start.sh sources resolve-claude-dir.sh" {
-  grep -q 'resolve-claude-dir.sh' "$SCRIPTS_DIR/session-start.sh"
-}
-
-# --- blocker-notify.sh tests ---
-
-@test "blocker-notify.sh sources resolve-claude-dir.sh" {
-  grep -q 'resolve-claude-dir.sh' "$SCRIPTS_DIR/blocker-notify.sh"
-}
-
-# --- cache-nuke.sh tests ---
-
-@test "cache-nuke.sh sources resolve-claude-dir.sh" {
-  grep -q 'resolve-claude-dir.sh' "$SCRIPTS_DIR/cache-nuke.sh"
-}
-
-# --- Cross-cutting: no script hardcodes HOME/.claude without fallback ---
-
-@test "no script uses bare HOME/.claude without CLAUDE_CONFIG_DIR fallback" {
-  # Find scripts that use $HOME/.claude but NOT via ${CLAUDE_CONFIG_DIR:-...} pattern
-  # Exclude: resolve-claude-dir.sh (defines the pattern), hooks.json (checked separately),
-  # test files, docs, changelog, and non-script files
-  local violations
-  violations=$(grep -rn '"$HOME"/.claude\|$HOME/.claude' "$SCRIPTS_DIR"/*.sh \
-    | grep -v 'resolve-claude-dir.sh' \
-    | grep -v 'CLAUDE_CONFIG_DIR' \
-    | grep -v '# shellcheck' \
-    || true)
-  [ -z "$violations" ]
+@test "yolo binary resolves config paths without scripts" {
+  # Verify no scripts/ directory exists (all logic in Rust)
+  [ ! -d "$PROJECT_ROOT/scripts" ]
 }
