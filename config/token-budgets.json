@@ -18,6 +18,11 @@
     ],
     "per_task_budget_enabled": true
   },
+  "role_families": {
+    "planning": ["lead", "architect"],
+    "execution": ["dev", "senior", "qa", "security", "debugger"],
+    "default": ["docs", "reviewer"]
+  },
   "truncation_strategy": "head",
   "overage_action": "truncate_and_log"
 }
