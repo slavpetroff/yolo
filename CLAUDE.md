@@ -20,9 +20,9 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** No active milestone
+**Work:** Token & Cache Architecture Optimization (4 phases)
 **Last shipped:** yolo-v2.3.0 (2026-02-21) — 7 phases, 50 tasks, 30 commits
-**Next action:** Run /yolo:vibe to scope the next milestone
+**Next action:** Run /yolo:vibe --plan 1 to plan Phase 1: Token Economics Baseline
 
 ## VBW Rules
 

@@ -1,0 +1,105 @@
+{
+  "answered": [
+    {
+      "answer": "Cross-phase reuse first, then cross-agent sharing, then size minimization",
+      "area": "agent-prompt-architecture",
+      "date": "2026-02-21",
+      "phase": "bootstrap",
+      "question": "What is the priority order for cache optimization?"
+    },
+    {
+      "answer": "Hybrid 2-tier: Tier 1 shared across all agents (tools, project meta), Tier 2 shared within role families (planning vs execution), Tier 3 role-specific volatile tail",
+      "area": "agent-prompt-architecture",
+      "date": "2026-02-21",
+      "phase": "bootstrap",
+      "question": "How should the prefix be structured for cross-agent sharing?"
+    },
+    {
+      "answer": "Moderate pruning to ~40 lines. Move verbose sections (isolation, conventions) to skills. Keep critical rules",
+      "area": "context-budget-strategy",
+      "date": "2026-02-21",
+      "phase": "bootstrap",
+      "question": "How aggressively should CLAUDE.md be pruned?"
+    },
+    {
+      "answer": "No — current role-based filtering is sufficient. Task-level scoping adds complexity for marginal gains",
+      "area": "context-budget-strategy",
+      "date": "2026-02-21",
+      "phase": "bootstrap",
+      "question": "Should codebase mapping injection be task-scoped?"
+    },
+    {
+      "answer": "Unknown — need measurement first. Telemetry (v3_metrics, v3_event_log) exists but hasn't been analyzed",
+      "area": "workflow-token-economics",
+      "date": "2026-02-21",
+      "phase": "bootstrap",
+      "question": "Where is the biggest token waste?"
+    },
+    {
+      "answer": "Comprehensive dashboard: per-agent cost breakdown with cache hit rates, waste identification, and ROI per phase",
+      "area": "workflow-token-economics",
+      "date": "2026-02-21",
+      "phase": "bootstrap",
+      "question": "What metrics should be surfaced?"
+    },
+    {
+      "answer": "All: skills system, hooks for automation, subagent architecture — systematic audit and optimization",
+      "area": "feature-utilization",
+      "date": "2026-02-21",
+      "phase": "bootstrap",
+      "question": "Which Claude Code features should YOLO leverage more?"
+    },
+    {
+      "answer": "Selective — convert only the largest/least-used references. Keep frequently-used ones (brand essentials, effort profiles) always-loaded",
+      "area": "feature-utilization",
+      "date": "2026-02-21",
+      "phase": "bootstrap",
+      "question": "Should protocol references become skills?"
+    }
+  ],
+  "deferred": [],
+  "inferred": [
+    {
+      "id": "REQ-01",
+      "priority": "Must-have",
+      "source": "Discussion: agent prompt architecture",
+      "text": "Hybrid 2-tier cache prefix: shared base (Tier 1) + role-family (Tier 2) + volatile tail (Tier 3)"
+    },
+    {
+      "id": "REQ-02",
+      "priority": "Must-have",
+      "source": "Discussion: workflow token economics",
+      "text": "Token economics dashboard with per-agent cost, cache hit rates, waste identification, and ROI metrics"
+    },
+    {
+      "id": "REQ-03",
+      "priority": "Should-have",
+      "source": "Discussion: context budget strategy",
+      "text": "CLAUDE.md moderate pruning to ~40 lines with verbose sections moved to on-demand skills"
+    },
+    {
+      "id": "REQ-04",
+      "priority": "Should-have",
+      "source": "Discussion: feature utilization",
+      "text": "Selective migration of largest protocol references to skills system"
+    },
+    {
+      "id": "REQ-05",
+      "priority": "Should-have",
+      "source": "Discussion: feature utilization",
+      "text": "Hook-based automation for linting, test validation, cache warming, and compaction triggers"
+    },
+    {
+      "id": "REQ-06",
+      "priority": "Should-have",
+      "source": "Discussion: feature utilization",
+      "text": "Subagent isolation patterns for research and verification to protect main context"
+    }
+  ],
+  "research_summary": {
+    "available": true,
+    "date": "2026-02-21",
+    "domain": "",
+    "key_findings": []
+  }
+}
