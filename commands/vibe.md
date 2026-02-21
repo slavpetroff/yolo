@@ -211,7 +211,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
    - **If exists:** Include it in Lead's context for incremental refresh. Lead may update RESEARCH.md if new information emerges.
    - **On failure:** Log warning, continue planning without research. Do not block.
    - If `v3_plan_research_persist=false` or effort=turbo: skip entirely.
-4. **Context compilation:** If `config_context_compiler=true`, run `yolo compile-context {phase} lead {phases_dir}`. Read the output file `.context-lead.md` content into variable LEAD_CONTEXT for injection into the Lead agent's Task description. The compiled context format uses `--- COMPILED CONTEXT (role={role}) ---` as the stable prefix header (no phase number — enables cross-phase cache reuse) and `--- VOLATILE TAIL (phase={phase}) ---` for phase-specific content.
+4. **Context compilation:** If `config_context_compiler=true`, run `yolo compile-context {phase} lead {phases_dir}`. Read the output file `.context-lead.md` content into variable LEAD_CONTEXT for injection into the Lead agent's Task description. The compiled context format uses 3 tiers: `--- TIER 1: SHARED BASE ---` (project-wide, byte-identical across all roles), `--- TIER 2: ROLE FAMILY ({family}) ---` (byte-identical within planning or execution families), and `--- TIER 3: VOLATILE TAIL (phase={N}) ---` for phase-specific content. The compile-context CLI produces a single `.context-{role}.md` file with all 3 tiers concatenated in order.
 5. **Turbo shortcut:** If effort=turbo, skip Lead. Read phase reqs from ROADMAP.md, create single lightweight PLAN.md inline.
 6. **Other efforts:**
    - Resolve Lead model:
