@@ -74,3 +74,25 @@ create_test_config() {
 }
 CONF
 }
+
+# Seed an agent_token_usage event into run-metrics.jsonl
+# Usage: seed_agent_token_event <role> <phase> <input> <output> <cache_read> <cache_write>
+seed_agent_token_event() {
+  local role="$1" phase="$2" input="$3" output="$4" cache_read="$5" cache_write="$6"
+  local metrics_dir="$TEST_TEMP_DIR/.yolo-planning/.metrics"
+  mkdir -p "$metrics_dir"
+  printf '{"ts":"2026-02-20T10:00:00Z","event":"agent_token_usage","phase":%s,"data":{"role":"%s","input_tokens":"%s","output_tokens":"%s","cache_read_tokens":"%s","cache_write_tokens":"%s"}}\n' \
+    "$phase" "$role" "$input" "$output" "$cache_read" "$cache_write" \
+    >> "$metrics_dir/run-metrics.jsonl"
+}
+
+# Seed a task_completed_confirmed event into event-log.jsonl
+# Usage: seed_task_completed <phase> <task_id>
+seed_task_completed() {
+  local phase="$1" task_id="$2"
+  local events_dir="$TEST_TEMP_DIR/.yolo-planning/.events"
+  mkdir -p "$events_dir"
+  printf '{"ts":"2026-02-20T10:00:00Z","event_id":"evt-%s","event":"task_completed_confirmed","phase":%s,"data":{"task":"%s"}}\n' \
+    "$task_id" "$phase" "$task_id" \
+    >> "$events_dir/event-log.jsonl"
+}
