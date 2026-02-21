@@ -25,6 +25,14 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                 return Ok((files, 0));
             }
         }
+        // Git ran but found nothing — try SUMMARY.md fallback
+        if phase_dir.is_dir() {
+            let files = summary_strategy(&phase_dir);
+            if !files.is_empty() {
+                return Ok((files, 0));
+            }
+        }
+        return Ok((r#"{"files":[],"strategy":"git","note":"no uncommitted or recent changes"}"#.to_string(), 0));
     }
 
     // Strategy 2: SUMMARY.md extraction (no git)
@@ -36,7 +44,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     }
 
     // No sources available
-    Ok((String::new(), 0))
+    Ok((r#"{"files":[],"strategy":"none","note":"no sources available"}"#.to_string(), 0))
 }
 
 /// Git-based delta file detection.
