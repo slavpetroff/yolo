@@ -1,6 +1,7 @@
 use serde_json::{json, Value};
 use tokio::fs;
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tokio::process::Command;
 
@@ -140,11 +141,31 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
                 return json!({ "content": [{"type": "text", "text": "No test_path provided"}], "isError": true });
             }
             
-            let output = Command::new("npm")
-                .arg("test")
-                .arg(test_path)
-                .output()
-                .await;
+            // Auto-detect test runner from project context
+            let mut cmd = if Path::new("Cargo.toml").exists() {
+                let mut c = Command::new("cargo");
+                c.arg("test");
+                if !test_path.is_empty() {
+                    c.arg("--").arg(test_path);
+                }
+                c
+            } else if Path::new("tests").is_dir() && has_bats_files("tests") {
+                let mut c = Command::new("bats");
+                c.arg(test_path);
+                c
+            } else if Path::new("pytest.ini").exists() || has_pytest_config() {
+                let mut c = Command::new("pytest");
+                c.arg(test_path);
+                c
+            } else if Path::new("package.json").exists() {
+                let mut c = Command::new("npm");
+                c.arg("test").arg("--").arg(test_path);
+                c
+            } else {
+                return json!({ "content": [{"type": "text", "text": "No test runner detected. Looked for: Cargo.toml, tests/*.bats, pytest.ini/pyproject.toml, package.json"}], "isError": true });
+            };
+
+            let output = cmd.output().await;
                 
             match output {
                 Ok(out) => {
@@ -173,6 +194,26 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
         }
         _ => json!({ "content": [{"type": "text", "text": format!("Unknown tool: {}", name)}], "isError": true })
     }
+}
+
+/// Check if a directory contains .bats test files.
+fn has_bats_files(dir: &str) -> bool {
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            if entry.path().extension().is_some_and(|e| e == "bats") {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Check if pyproject.toml contains a [tool.pytest] section.
+fn has_pytest_config() -> bool {
+    if let Ok(content) = std::fs::read_to_string("pyproject.toml") {
+        return content.contains("[tool.pytest");
+    }
+    false
 }
 
 #[cfg(test)]
