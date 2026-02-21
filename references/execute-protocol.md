@@ -149,11 +149,15 @@ The existing individual script call sections (V3 Contract-Lite, V2 Hard Gates, C
 
 **Context compilation (REQ-11):** If yolo control-plane `full` action was used above and returned a `context_path`, use that path directly. Otherwise, if `config_context_compiler=true` from Context block above, before creating Dev tasks run:
 `"$HOME/.cargo/bin/yolo" compile-context {phase} dev {phases_dir} {plan_path}`
-This produces `{phase-dir}/.context-dev.md` with phase goal and conventions.
+This produces `{phase-dir}/.context-dev.md` with phase goal and conventions. The output file contains three clearly marked sections:
+- `--- TIER 1: SHARED BASE ---` (byte-identical for all roles in the same project)
+- `--- TIER 2: ROLE FAMILY (execution) ---` (byte-identical for dev/qa/senior/debugger/security)
+- `--- TIER 3: VOLATILE TAIL (phase={N}) ---` (phase-specific goal, requirements, delta)
+
 The plan_path argument enables skill bundling: yolo compile-context reads skills_used from the plan's frontmatter and bundles referenced SKILL.md content into .context-dev.md. If the plan has no skills_used, this is a no-op.
 If compilation fails, proceed without it — Dev reads files directly.
 
-**Prefix-first injection (cache-optimal):** Read the compiled context file content into a variable BEFORE creating Dev tasks. All sibling Dev agents MUST receive byte-identical prefix content for cache hits. When multiple Dev agents receive the same content from position 0 in their Task description, the API caches the shared prefix and subsequent agents get cache reads instead of cold reads.
+**Prefix-first injection (cache-optimal):** Read the compiled context file content into a variable BEFORE creating Dev tasks. All sibling Dev agents MUST receive byte-identical Tier 1 + Tier 2 content for cache hits. When multiple Dev agents receive the same content from position 0 in their Task description, the API caches the shared prefix and subsequent agents get cache reads instead of cold reads. When the MCP `compile_context` tool is used instead of CLI, the response contains `tier1_prefix`, `tier2_prefix`, and `volatile_tail` as separate fields. Callers should concatenate them in order.
 
 ```bash
 DEV_CONTEXT=""
@@ -162,17 +166,19 @@ if [ -f "{phase-dir}/.context-dev.md" ]; then
 fi
 ```
 
-**Compiled context format:** Phase number is excluded from the stable prefix to enable cross-phase cache reuse. It appears in the volatile tail instead. The compiled context uses this structure:
+**Compiled context format:** The compiled context uses a 3-tier structure to maximize Anthropic API prompt prefix caching. Tier 1 is byte-identical across all roles for the same project, enabling cache hits even across different agent types. Tier 2 is byte-identical within role families (planning or execution), enabling cache hits across same-family agents. Tier 3 contains phase-specific content that changes per phase.
 
 ```
---- COMPILED CONTEXT (role={role}) ---
-{stable prefix: architecture, conventions, patterns}
---- VOLATILE TAIL (phase={phase}) ---
+--- TIER 1: SHARED BASE ---
+{project-wide: architecture, conventions — byte-identical for all roles}
+--- TIER 2: ROLE FAMILY ({family}) ---
+{family-scoped: patterns, codebase structure — byte-identical within planning or execution families}
+--- TIER 3: VOLATILE TAIL (phase={N}) ---
 {phase-specific: goal, requirements, delta}
 --- END COMPILED CONTEXT ---
 ```
 
-The stable prefix (`--- COMPILED CONTEXT (role={role}) ---`) contains role-gated content that is identical across phases. The volatile tail (`--- VOLATILE TAIL (phase={phase}) ---`) contains phase-specific content. This separation means the API can cache the stable prefix across phase transitions — only the tail changes.
+Tier 1 (`--- TIER 1: SHARED BASE ---`) contains project-wide content shared by every agent. Tier 2 (`--- TIER 2: ROLE FAMILY ({family}) ---`) contains family-scoped content (e.g., all execution agents share the same Tier 2). Tier 3 (`--- TIER 3: VOLATILE TAIL (phase={N}) ---`) contains phase-specific content. This 3-tier separation means the API caches Tier 1 across all concurrent agents, and Tier 1 + Tier 2 across same-family agents — only Tier 3 changes per phase.
 
 **V2 Token Budgets (REQ-12):** If yolo control-plane `compile` or `full` action was used and included token budget enforcement, skip this step. Otherwise, if `v2_token_budgets=true` in config:
 
