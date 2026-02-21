@@ -6,7 +6,7 @@ use std::path::Path;
 /// Read-only: never modifies any files.
 pub fn execute(_args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let vibe = cwd.join("commands/vibe.md");
-    let protocol = cwd.join("references/execute-protocol.md");
+    let protocol = cwd.join("skills/execute-protocol/SKILL.md");
     let commands_dir = cwd.join("commands");
     let readme = cwd.join("README.md");
     let claude_md = cwd.join("CLAUDE.md");
@@ -80,13 +80,13 @@ pub fn execute(_args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         let mut gf = 0u32;
         output.push_str("\n=== GROUP 3: Execution Protocol (REQ-16, REQ-17) ===\n");
 
-        chk(&mut output, &mut gp, &mut gf, "REQ-16", "execute-protocol.md exists in references/", protocol.exists());
+        chk(&mut output, &mut gp, &mut gf, "REQ-16", "execute-protocol SKILL.md exists in skills/", protocol.exists());
         chk(&mut output, &mut gp, &mut gf, "REQ-16", "execute-protocol.md NOT in commands/", !commands_dir.join("execute-protocol.md").exists());
-        chk(&mut output, &mut gp, &mut gf, "REQ-16", "execute-protocol.md has no name: frontmatter", !file_has_line(&protocol, "name:"));
-        chk(&mut output, &mut gp, &mut gf, "REQ-16", "execute-protocol.md contains Step 2", file_contains(&protocol, "Step 2"));
-        chk(&mut output, &mut gp, &mut gf, "REQ-16", "execute-protocol.md contains Step 3", file_contains(&protocol, "Step 3"));
-        chk(&mut output, &mut gp, &mut gf, "REQ-16", "execute-protocol.md contains Step 4", file_contains(&protocol, "Step 4"));
-        chk(&mut output, &mut gp, &mut gf, "REQ-16", "execute-protocol.md contains Step 5", file_contains(&protocol, "Step 5"));
+        chk(&mut output, &mut gp, &mut gf, "REQ-16", "execute-protocol SKILL.md has name: frontmatter", file_has_line(&protocol, "name:"));
+        chk(&mut output, &mut gp, &mut gf, "REQ-16", "execute-protocol SKILL.md contains Step 2", file_contains(&protocol, "Step 2"));
+        chk(&mut output, &mut gp, &mut gf, "REQ-16", "execute-protocol SKILL.md contains Step 3", file_contains(&protocol, "Step 3"));
+        chk(&mut output, &mut gp, &mut gf, "REQ-16", "execute-protocol SKILL.md contains Step 4", file_contains(&protocol, "Step 4"));
+        chk(&mut output, &mut gp, &mut gf, "REQ-16", "execute-protocol SKILL.md contains Step 5", file_contains(&protocol, "Step 5"));
         chk(&mut output, &mut gp, &mut gf, "REQ-17", "vibe.md Execute mode reads execute-protocol.md", file_contains(&vibe, "Read") && file_contains(&vibe, "execute-protocol"));
 
         group_end(&mut output, "Execution Protocol", gp, gf);

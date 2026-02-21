@@ -299,11 +299,11 @@ load test_helper
 }
 
 @test "execute-protocol discovered issues specifies merge strategy" {
-  sed -n '/Discovered Issues/,/display-only/p' "$PROJECT_ROOT/references/execute-protocol.md" | grep -qi 'first.*error.*message'
+  sed -n '/Discovered Issues/,/display-only/p' "$PROJECT_ROOT/skills/execute-protocol/SKILL.md" | grep -qi 'first.*error.*message'
 }
 
 @test "execute-protocol discovered issues caps list size" {
-  sed -n '/Discovered Issues/,/display-only/p' "$PROJECT_ROOT/references/execute-protocol.md" | grep -qi 'cap.*20'
+  sed -n '/Discovered Issues/,/display-only/p' "$PROJECT_ROOT/skills/execute-protocol/SKILL.md" | grep -qi 'cap.*20'
 }
 
 @test "lead agent aggregation mentions debugger_report" {
@@ -319,7 +319,7 @@ load test_helper
 # =============================================================================
 
 @test "execute-protocol discovered issues specifies bullet display format" {
-  sed -n '/Discovered Issues/,/display-only/p' "$PROJECT_ROOT/references/execute-protocol.md" | grep -q 'testName.*path.*error'
+  sed -n '/Discovered Issues/,/display-only/p' "$PROJECT_ROOT/skills/execute-protocol/SKILL.md" | grep -q 'testName.*path.*error'
 }
 
 # =============================================================================
@@ -422,7 +422,7 @@ load test_helper
 # =============================================================================
 
 @test "execute-protocol discovered issues has de-duplication instruction" {
-  sed -n '/Discovered Issues/,/display-only/p' "$PROJECT_ROOT/references/execute-protocol.md" | grep -qi 'de-duplicate'
+  sed -n '/Discovered Issues/,/display-only/p' "$PROJECT_ROOT/skills/execute-protocol/SKILL.md" | grep -qi 'de-duplicate'
 }
 
 # =============================================================================
@@ -458,12 +458,12 @@ load test_helper
 # =============================================================================
 
 @test "execute-protocol still has discovered issues section" {
-  grep -q 'Discovered Issues' "$PROJECT_ROOT/references/execute-protocol.md"
+  grep -q 'Discovered Issues' "$PROJECT_ROOT/skills/execute-protocol/SKILL.md"
 }
 
 @test "all discovered issues sections use display-only constraint" {
   local failed=""
-  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md references/execute-protocol.md; do
+  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md skills/execute-protocol/SKILL.md; do
     if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
       if ! grep -q 'display-only' "$PROJECT_ROOT/$file"; then
         failed="${failed} ${file}"
@@ -475,7 +475,7 @@ load test_helper
 
 @test "all discovered issues sections suggest /yolo:todo" {
   local failed=""
-  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md references/execute-protocol.md; do
+  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md skills/execute-protocol/SKILL.md; do
     if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
       if ! grep -q '/yolo:todo' "$PROJECT_ROOT/$file"; then
         failed="${failed} ${file}"
@@ -499,7 +499,7 @@ load test_helper
 
 @test "all discovered issues sections specify testName format" {
   local failed=""
-  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md references/execute-protocol.md; do
+  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md skills/execute-protocol/SKILL.md; do
     if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
       if ! grep -q 'testName.*path/to/file.*error' "$PROJECT_ROOT/$file"; then
         failed="${failed} ${file}"
@@ -538,12 +538,12 @@ load test_helper
 # =============================================================================
 
 @test "execute-protocol discovered issues includes STOP after display" {
-  sed -n '/Discovered Issues/,/suggest-next/p' "$PROJECT_ROOT/references/execute-protocol.md" | grep -qi 'STOP.*Do not take further action'
+  sed -n '/Discovered Issues/,/suggest-next/p' "$PROJECT_ROOT/skills/execute-protocol/SKILL.md" | grep -qi 'STOP.*Do not take further action'
 }
 
 @test "all discovered issues sections have de-duplication instruction" {
   local failed=""
-  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md references/execute-protocol.md; do
+  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md skills/execute-protocol/SKILL.md; do
     if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
       if ! grep -qi 'de-duplicate\|De-duplicate' "$PROJECT_ROOT/$file"; then
         failed="${failed} ${file}"
@@ -555,7 +555,7 @@ load test_helper
 
 @test "all discovered issues sections have cap at 20" {
   local failed=""
-  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md references/execute-protocol.md; do
+  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md skills/execute-protocol/SKILL.md; do
     if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
       if ! grep -qi 'cap.*20\|Cap.*20' "$PROJECT_ROOT/$file"; then
         failed="${failed} ${file}"

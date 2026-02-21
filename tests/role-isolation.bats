@@ -149,8 +149,8 @@ CONTRACT
 # --- Lease integration in protocol ---
 
 @test "execute-protocol references lease in V2 gate sequence" {
-  run grep -c "Lease acquisition" "$PROJECT_ROOT/references/execute-protocol.md"
+  run grep -c "Lease acquisition" "$PROJECT_ROOT/skills/execute-protocol/SKILL.md"
   [ "$output" -ge 1 ]
-  run grep -c "Lease release" "$PROJECT_ROOT/references/execute-protocol.md"
+  run grep -c "Lease release" "$PROJECT_ROOT/skills/execute-protocol/SKILL.md"
   [ "$output" -ge 1 ]
 }

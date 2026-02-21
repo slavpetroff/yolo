@@ -281,11 +281,11 @@ generate_chars() {
 # --- Protocol integration ---
 
 @test "execute-protocol references token budgets" {
-  run grep -c "token_budget" "$PROJECT_ROOT/references/execute-protocol.md"
+  run grep -c "token-budget" "$PROJECT_ROOT/skills/execute-protocol/SKILL.md"
   [ "$output" -ge 1 ]
 }
 
 @test "execute-protocol references metrics report" {
-  run grep -c "metrics-report.sh" "$PROJECT_ROOT/references/execute-protocol.md"
+  run grep -c "metrics-report" "$PROJECT_ROOT/skills/execute-protocol/SKILL.md"
   [ "$output" -ge 1 ]
 }

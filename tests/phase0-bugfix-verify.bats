@@ -200,7 +200,7 @@ CONV
 # =============================================================================
 
 @test "execute-protocol.md contains blocked agent notification" {
-  grep -q "Blocked agent notification" "$PROJECT_ROOT/references/execute-protocol.md"
+  grep -q "Blocked agent notification" "$PROJECT_ROOT/skills/execute-protocol/SKILL.md"
 }
 
 # =============================================================================

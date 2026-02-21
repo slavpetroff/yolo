@@ -183,11 +183,11 @@ CONTRACT
 # --- Execute protocol integration ---
 
 @test "execute-protocol references two-phase completion" {
-  run grep -c "two-phase-complete.sh" "$PROJECT_ROOT/references/execute-protocol.md"
+  run grep -c "two-phase-complete" "$PROJECT_ROOT/skills/execute-protocol/SKILL.md"
   [ "$output" -ge 1 ]
 }
 
 @test "execute-protocol references all 13 V2 event types" {
-  run bash -c "grep -oE 'phase_planned|task_created|task_claimed|task_started|artifact_written|gate_passed|gate_failed|task_completed_candidate|task_completed_confirmed|task_blocked|task_reassigned|shutdown_sent|shutdown_received' '$PROJECT_ROOT/references/execute-protocol.md' | sort -u | wc -l | tr -d ' '"
+  run bash -c "grep -oE 'phase_planned|task_created|task_claimed|task_started|artifact_written|gate_passed|gate_failed|task_completed_candidate|task_completed_confirmed|task_blocked|task_reassigned|shutdown_sent|shutdown_received' '$PROJECT_ROOT/skills/execute-protocol/SKILL.md' | sort -u | wc -l | tr -d ' '"
   [ "$output" -ge 13 ]
 }

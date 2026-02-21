@@ -812,7 +812,7 @@ Some flags require other flags to be enabled first. YOLO warns at session start 
 - `v2_hard_gates` requires `v2_hard_contracts=true` — strict gates need strict contracts to enforce against.
 - `v2_two_phase_completion` requires `v3_event_log=true` — artifact registration is tracked via events.
 
-For implementation details, see `references/execute-protocol.md` and session-start checks in `yolo-mcp-server/src/hooks/session_start.rs`.
+For implementation details, see `skills/execute-protocol/SKILL.md` and session-start checks in `yolo-mcp-server/src/hooks/session_start.rs`.
 
 <br>
 
