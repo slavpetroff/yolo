@@ -112,3 +112,20 @@ teardown() {
   run "$YOLO_BIN" report-tokens
   [ "$status" -eq 0 ]
 }
+
+@test "report-tokens: handles tier-level cache hit fields gracefully" {
+  cd "$TEST_TEMP_DIR"
+  # Seed events with extra tier cache hit fields (forward-looking)
+  local metrics_dir="$TEST_TEMP_DIR/.yolo-planning/.metrics"
+  mkdir -p "$metrics_dir"
+  printf '{"ts":"2026-02-20T10:00:00Z","event":"agent_token_usage","phase":1,"data":{"role":"dev","input_tokens":5000,"output_tokens":1200,"cache_read_tokens":3000,"cache_write_tokens":800,"tier1_cache_hit":true,"tier2_cache_hit":true}}\n' \
+    >> "$metrics_dir/run-metrics.jsonl"
+  printf '{"ts":"2026-02-20T10:01:00Z","event":"agent_token_usage","phase":1,"data":{"role":"architect","input_tokens":8000,"output_tokens":2000,"cache_read_tokens":5000,"cache_write_tokens":1000,"tier1_cache_hit":true,"tier2_cache_hit":false}}\n' \
+    >> "$metrics_dir/run-metrics.jsonl"
+
+  run "$YOLO_BIN" report-tokens
+  [ "$status" -eq 0 ]
+  # Core report still works — per-agent data present
+  [[ "$output" == *"dev"* ]]
+  [[ "$output" == *"architect"* ]]
+}
