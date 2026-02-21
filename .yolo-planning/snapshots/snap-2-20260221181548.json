@@ -1,0 +1,41 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "19720321-c57c-4cb9-bdbc-c356b6d21b10",
+    "phase": 2,
+    "phase_name": "02-hybrid-cache-prefix-architecture",
+    "plans": [
+      {
+        "id": "02-01",
+        "status": "complete",
+        "title": "Define 3-tier context builder module with Rust unit tests",
+        "wave": 1
+      },
+      {
+        "id": "02-02",
+        "status": "complete",
+        "title": "Update agent injection points for 3-tier context structure",
+        "wave": 1
+      },
+      {
+        "id": "02-03",
+        "status": "complete",
+        "title": "Integrate 3-tier builder into MCP compile_context tool",
+        "wave": 2
+      },
+      {
+        "id": "02-04",
+        "status": "complete",
+        "title": "Integrate 3-tier builder into CLI compile-context and add bats tests",
+        "wave": 2
+      }
+    ],
+    "started_at": "2026-02-21T13:30:00Z",
+    "status": "complete",
+    "total_waves": 2,
+    "wave": 2
+  },
+  "matcher": "auto",
+  "phase": "2",
+  "timestamp": "2026-02-21T18:15:48Z"
+}
