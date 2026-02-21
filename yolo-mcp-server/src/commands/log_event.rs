@@ -19,6 +19,8 @@ const ALLOWED_EVENT_TYPES: &[&str] = &[
     "token_overage", "token_cap_escalated", "file_conflict", "smart_route",
     "contract_revision", "cache_hit", "task_completion_rejected",
     "snapshot_restored", "state_recovered", "message_rejected",
+    // Token tracking
+    "agent_token_usage",
 ];
 
 /// Parse key=value pairs from a slice of args, also extracting the first non-kv arg as plan.
@@ -312,6 +314,27 @@ mod tests {
         assert!(result.is_ok());
         let (_, code) = result.unwrap();
         assert_eq!(code, 0);
+    }
+
+    #[test]
+    fn test_agent_token_usage_accepted_by_typed_protocol() {
+        let dir = setup_test_env(true, true);
+        let data = vec![
+            ("role".to_string(), "dev".to_string()),
+            ("input_tokens".to_string(), "5000".to_string()),
+            ("output_tokens".to_string(), "1200".to_string()),
+            ("cache_read".to_string(), "3000".to_string()),
+            ("cache_write".to_string(), "800".to_string()),
+        ];
+        let result = log("agent_token_usage", "1", None, &data, dir.path());
+        assert!(result.is_ok());
+        let events_file = dir.path().join(".yolo-planning/.events/event-log.jsonl");
+        assert!(events_file.exists());
+        let content = fs::read_to_string(&events_file).unwrap();
+        let entry: serde_json::Value = serde_json::from_str(content.trim()).unwrap();
+        assert_eq!(entry["event"], "agent_token_usage");
+        assert_eq!(entry["data"]["input_tokens"], "5000");
+        assert_eq!(entry["data"]["role"], "dev");
     }
 
     #[test]
