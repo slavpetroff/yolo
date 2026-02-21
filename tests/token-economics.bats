@@ -5,6 +5,7 @@ load test_helper
 setup() {
   setup_temp_dir
   create_test_config
+  export YOLO_BIN="${YOLO_BIN:-$HOME/.cargo/bin/yolo}"
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.events"
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.metrics"
 }
@@ -19,7 +20,7 @@ teardown() {
   rm -rf ".yolo-planning/.events" ".yolo-planning/.metrics"
   run "$YOLO_BIN" report-tokens
   [ "$status" -eq 0 ]
-  [[ "$output" == *"No token usage data"* ]] || [[ "$output" == *"no data"* ]] || [[ "$output" == *"No agent_token_usage"* ]]
+  [[ "$output" == *"No token"* ]] || [[ "$output" == *"no data"* ]] || [[ "$output" == *"No agent_token_usage"* ]]
 }
 
 @test "report-tokens: shows per-agent token breakdown" {
@@ -59,6 +60,10 @@ teardown() {
 
 @test "report-tokens: computes ROI per task" {
   cd "$TEST_TEMP_DIR"
+  git init --quiet
+  git config user.email "test@test.com"
+  git config user.name "Test"
+  touch dummy && git add dummy && git commit -m "test(init): seed" --quiet
   # 5 tasks completed, total tokens = 100000 => 20000 tokens/task
   seed_agent_token_event "dev" 1 60000 15000 20000 5000
   seed_task_completed 1 "t1"
@@ -67,10 +72,11 @@ teardown() {
   seed_task_completed 1 "t4"
   seed_task_completed 1 "t5"
 
-  run "$YOLO_BIN" report-tokens
+  run "$YOLO_BIN" report-tokens --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ROI"* ]] || [[ "$output" == *"per task"* ]] || [[ "$output" == *"tokens/task"* ]]
-  [[ "$output" == *"20000"* ]]
+  echo "$output" | jq -e '.roi' > /dev/null
+  tokens_per_task=$(echo "$output" | jq '.roi.tokens_per_task')
+  [ "$tokens_per_task" -eq 20000 ]
 }
 
 @test "report-tokens: --json outputs valid JSON" {

@@ -5,6 +5,7 @@ load test_helper
 setup() {
   setup_temp_dir
   create_test_config
+  export YOLO_BIN="${YOLO_BIN:-$HOME/.cargo/bin/yolo}"
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.events"
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.metrics"
 }

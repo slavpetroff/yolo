@@ -5,15 +5,9 @@ load test_helper
 setup() {
   setup_temp_dir
   create_test_config
+  export YOLO_BIN="${YOLO_BIN:-$HOME/.cargo/bin/yolo}"
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.events"
   mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.metrics"
-  # Copy token-budgets.json to test dir so SCRIPT_DIR/../config resolves
-  mkdir -p "$TEST_TEMP_DIR/config"
-  cp "$CONFIG_DIR/token-budgets.json" "$TEST_TEMP_DIR/config/token-budgets.json"
-  # Create a wrapper script in test dir that sources the real script
-  mkdir -p "$TEST_TEMP_DIR/scripts"
-  cp "$SCRIPTS_DIR/token-baseline.sh" "$TEST_TEMP_DIR/scripts/token-baseline.sh"
-  chmod +x "$TEST_TEMP_DIR/scripts/token-baseline.sh"
 }
 
 teardown() {
