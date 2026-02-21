@@ -350,4 +350,55 @@ mod tests {
         assert_eq!(recommended.len(), 1);
         assert_eq!(recommended[0].as_str().unwrap(), "react-patterns");
     }
+
+    #[test]
+    fn test_detect_stack_glob_pattern() {
+        let dir = tempdir().unwrap();
+        let config_dir = dir.path().join("config");
+        fs::create_dir_all(&config_dir).unwrap();
+        fs::write(config_dir.join("stack-mappings.json"), r#"{
+            "languages": {
+                "dotnet": { "skills": ["dotnet-skill"], "detect": ["*.csproj"] }
+            }
+        }"#).unwrap();
+        fs::write(dir.path().join("MyApp.csproj"), "<Project/>").unwrap();
+        let (out, _) = execute(&["yolo".into(), "detect-stack".into(), dir.path().to_string_lossy().to_string()], dir.path()).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert!(parsed["detected_stack"].as_array().unwrap().iter().any(|v| v == "dotnet"),
+            "Expected dotnet in detected_stack, got: {}", out);
+    }
+
+    #[test]
+    fn test_detect_stack_glob_no_match() {
+        let dir = tempdir().unwrap();
+        let config_dir = dir.path().join("config");
+        fs::create_dir_all(&config_dir).unwrap();
+        fs::write(config_dir.join("stack-mappings.json"), r#"{
+            "languages": {
+                "dotnet": { "skills": ["dotnet-skill"], "detect": ["*.csproj"] }
+            }
+        }"#).unwrap();
+        // No .csproj file present
+        let (out, _) = execute(&["yolo".into(), "detect-stack".into(), dir.path().to_string_lossy().to_string()], dir.path()).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert!(parsed["detected_stack"].as_array().unwrap().is_empty(),
+            "Expected empty detected_stack, got: {}", out);
+    }
+
+    #[test]
+    fn test_detect_stack_glob_sln_pattern() {
+        let dir = tempdir().unwrap();
+        let config_dir = dir.path().join("config");
+        fs::create_dir_all(&config_dir).unwrap();
+        fs::write(config_dir.join("stack-mappings.json"), r#"{
+            "languages": {
+                "dotnet": { "skills": ["dotnet-skill"], "detect": ["*.sln"] }
+            }
+        }"#).unwrap();
+        fs::write(dir.path().join("MyApp.sln"), "").unwrap();
+        let (out, _) = execute(&["yolo".into(), "detect-stack".into(), dir.path().to_string_lossy().to_string()], dir.path()).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert!(parsed["detected_stack"].as_array().unwrap().iter().any(|v| v == "dotnet"),
+            "Expected dotnet via *.sln pattern, got: {}", out);
+    }
 }

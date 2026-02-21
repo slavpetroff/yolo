@@ -516,4 +516,18 @@ mod tests {
 
         let _ = std::fs::remove_file(&path);
     }
+
+    #[test]
+    fn test_routed_verify_commands() {
+        let path = std::env::temp_dir().join(format!("yolo-test-route-{}.db", std::process::id()));
+        // These should not return "Unknown command" errors
+        for cmd in &["verify-init-todo", "verify-vibe", "pre-push", "clean-stale-teams", "tmux-watchdog", "verify-claude-bootstrap"] {
+            let result = run_cli(vec!["yolo".into(), cmd.to_string()], path.clone());
+            // May fail for other reasons, but should NOT be "Unknown command"
+            if let Err(e) = &result {
+                assert!(!e.contains("Unknown command"), "Command {} should be routed but got: {}", cmd, e);
+            }
+        }
+        let _ = std::fs::remove_file(&path);
+    }
 }
