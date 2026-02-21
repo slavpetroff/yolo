@@ -2,6 +2,12 @@ use chrono::Utc;
 use serde_json::json;
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
+
+pub struct CollectResult {
+    pub written: bool,
+    pub metrics_file: String,
+}
 
 /// Parse key=value pairs from a slice of args, also extracting the first non-kv arg as plan.
 fn parse_args(args: &[String]) -> (Option<String>, Vec<(String, String)>) {
@@ -23,14 +29,14 @@ fn parse_args(args: &[String]) -> (Option<String>, Vec<(String, String)>) {
 
 /// Core metrics collection function callable from other Rust code.
 /// Appends a JSON line to `.yolo-planning/.metrics/run-metrics.jsonl`.
-/// Never fails fatally — returns Ok(()) on any error.
+/// Never fails fatally — returns Ok with CollectResult.
 pub fn collect(
     event: &str,
     phase: &str,
     plan: Option<&str>,
     data_pairs: &[(String, String)],
     cwd: &Path,
-) -> Result<(), String> {
+) -> Result<CollectResult, String> {
     let planning_dir = cwd.join(".yolo-planning");
     let metrics_dir = planning_dir.join(".metrics");
 
@@ -73,11 +79,16 @@ pub fn collect(
         let _ = file.write_all(line.as_bytes());
     }
 
-    Ok(())
+    Ok(CollectResult {
+        written: true,
+        metrics_file: metrics_file.to_string_lossy().to_string(),
+    })
 }
 
 /// CLI entry point: `yolo collect-metrics <event> <phase> [plan] [key=value...]`
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
+    let start = Instant::now();
+
     // args[0] = "yolo", args[1] = "collect-metrics", args[2] = event, args[3] = phase, ...
     if args.len() < 4 {
         return Err("Usage: yolo collect-metrics <event> <phase> [plan] [key=value...]".to_string());
@@ -89,9 +100,21 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
     let (plan, data_pairs) = parse_args(&remaining.to_vec());
 
-    let _ = collect(event, phase, plan.as_deref(), &data_pairs, cwd);
+    let result = collect(event, phase, plan.as_deref(), &data_pairs, cwd)?;
 
-    Ok(("".to_string(), 0))
+    let envelope = json!({
+        "ok": true,
+        "cmd": "collect-metrics",
+        "delta": {
+            "event": event,
+            "phase": phase.parse::<i64>().unwrap_or(0),
+            "written": result.written,
+            "metrics_file": result.metrics_file
+        },
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
+
+    Ok((serde_json::to_string(&envelope).unwrap_or_default(), 0))
 }
 
 #[cfg(test)]
