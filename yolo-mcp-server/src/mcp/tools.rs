@@ -1,4 +1,5 @@
 use serde_json::{json, Value};
+use sha2::{Sha256, Digest};
 use tokio::fs;
 use std::collections::HashMap;
 use std::path::Path;
@@ -26,7 +27,8 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
                 .and_then(|r| r.as_str())
                 .unwrap_or("default");
 
-            let mut prefix = format!("--- COMPILED CONTEXT (phase={}, role={}) ---\n", phase, role);
+            // Build stable prefix: role-gated reference files only (no phase number)
+            let mut stable_prefix = format!("--- COMPILED CONTEXT (role={}) ---\n", role);
 
             let files_to_read: Vec<&str> = match role {
                 "architect" | "lead" => vec![
@@ -53,13 +55,21 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
 
             for path in files_to_read {
                 if let Ok(content) = fs::read_to_string(path).await {
-                    prefix.push_str(&format!("\n# {}\n{}\n", path, content));
+                    stable_prefix.push_str(&format!("\n# {}\n{}\n", path, content));
                 }
             }
-            
-            prefix.push_str("\n--- END COMPILED CONTEXT ---\n\n--- VOLATILE TAIL ---\n");
 
-            // Include phase-specific plan files when phase > 0
+            // Compute prefix hash and size before appending sentinel
+            let prefix_hash = {
+                let mut hasher = Sha256::new();
+                hasher.update(stable_prefix.as_bytes());
+                format!("{:x}", hasher.finalize())
+            };
+            let prefix_bytes = stable_prefix.len();
+
+            // Build volatile tail: phase-specific plans and git diff
+            let mut volatile_tail = format!("--- VOLATILE TAIL (phase={}) ---\n", phase);
+
             if phase > 0 {
                 let phase_dir = format!(".yolo-planning/phases/{:02}", phase);
                 if let Ok(mut entries) = tokio::fs::read_dir(&phase_dir).await {
@@ -70,7 +80,7 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
                         let name_str = name.to_string_lossy();
                         if name_str.ends_with("-PLAN.md") {
                             if let Ok(content) = fs::read_to_string(entry.path()).await {
-                                prefix.push_str(&format!("\n# Phase {} Plan: {}\n{}\n", phase, name_str, content));
+                                volatile_tail.push_str(&format!("\n# Phase {} Plan: {}\n{}\n", phase, name_str, content));
                                 plan_count += 1;
                             }
                         }
@@ -78,22 +88,30 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
                 }
             }
 
-            // Try to get git diff for volatile tail
             if let Ok(diff) = Command::new("git").arg("diff").arg("HEAD").output().await {
                 let diff_str = String::from_utf8_lossy(&diff.stdout);
                 if !diff_str.trim().is_empty() {
-                    prefix.push_str("Recent Uncommitted Diffs:\n```diff\n");
-                    prefix.push_str(&diff_str);
-                    prefix.push_str("\n```\n");
+                    volatile_tail.push_str("Recent Uncommitted Diffs:\n```diff\n");
+                    volatile_tail.push_str(&diff_str);
+                    volatile_tail.push_str("\n```\n");
                 } else {
-                    prefix.push_str("No recent file diffs found.\n");
+                    volatile_tail.push_str("No recent file diffs found.\n");
                 }
             } else {
-                prefix.push_str("No recent file diffs found.\n");
+                volatile_tail.push_str("No recent file diffs found.\n");
             }
-            
+
+            volatile_tail.push_str("\n--- END COMPILED CONTEXT ---\n");
+
+            // Combined text preserves backward compat
+            let combined = format!("{}\n{}", stable_prefix, volatile_tail);
+
             json!({
-                "content": [{"type": "text", "text": prefix}]
+                "content": [{"type": "text", "text": combined}],
+                "stable_prefix": stable_prefix,
+                "volatile_tail": volatile_tail,
+                "prefix_hash": prefix_hash,
+                "prefix_bytes": prefix_bytes
             })
         }
         "acquire_lock" => {
@@ -259,6 +277,19 @@ mod tests {
         assert!(text.contains("COMPILED CONTEXT"));
         assert!(text.contains("role=architect"));
         assert!(text.contains("DUMMY ARCH CONTENT"));
+
+        // Verify new stable/volatile split fields
+        assert!(result.get("stable_prefix").is_some());
+        assert!(result.get("volatile_tail").is_some());
+        assert!(result.get("prefix_hash").is_some());
+        assert!(result.get("prefix_bytes").is_some());
+
+        let stable = result["stable_prefix"].as_str().unwrap();
+        let volatile = result["volatile_tail"].as_str().unwrap();
+        assert!(stable.contains("role=architect"));
+        assert!(!stable.contains("phase="));
+        assert!(volatile.contains("VOLATILE TAIL (phase=4)"));
+        assert!(stable.contains("DUMMY ARCH CONTENT"));
 
         let _ = std::fs::remove_dir_all(&tmp);
     }

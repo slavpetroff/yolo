@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, token_budget, lock_lite, lease_lock, two_phase_complete, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, log_event, collect_metrics, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary, cache_context, cache_nuke, delta_files, help_output, bump_version, doctor_cleanup, auto_repair, rollout_stage, verify, install_hooks, migrate_config, migrate_orphaned_state};
 use crate::hooks;
-pub fn generate_report(total_calls: i64, compile_calls: i64) -> String {
+pub fn generate_report(total_calls: i64, compile_calls: i64, avg_output_length: f64, unique_sessions: Option<i64>) -> String {
     let mut out = String::new();
     out.push_str("============================================================\n");
     out.push_str("             YOLO EXPERT ROI & TELEMETRY DASHBOARD           \n");
@@ -13,29 +13,41 @@ pub fn generate_report(total_calls: i64, compile_calls: i64) -> String {
     out.push_str(&format!("Total Intercepted Tool Calls: {}\n", total_calls));
     out.push_str(&format!("Context Compilations (Cache hits): {}\n", compile_calls));
 
-    let assumed_prefix_size = 80_000_f64;
+    let prefix_size = avg_output_length;
+    let is_measured = avg_output_length != 80_000.0;
     let cold_cost_per_m = 3.00;
     let caching_write_cost_per_m = 3.75;
     let caching_read_cost_per_m = 0.30;
 
-    let total_tokens_pushed = compile_calls as f64 * assumed_prefix_size;
+    let total_tokens_pushed = compile_calls as f64 * prefix_size;
     let expected_cold_cost = (total_tokens_pushed / 1_000_000.0) * cold_cost_per_m;
 
-    let writes = (compile_calls as f64 / 10.0).max(1.0);
-    let reads = compile_calls as f64 - writes;
-    
-    let actual_hot_cost = ((writes * assumed_prefix_size) / 1_000_000.0) * caching_write_cost_per_m + 
-                          ((reads * assumed_prefix_size) / 1_000_000.0) * caching_read_cost_per_m;
+    // Session-based write/read split when available, else fallback to 1:10
+    let (writes, reads) = if let Some(sessions) = unique_sessions {
+        let w = (sessions as f64).max(1.0);
+        let r = (compile_calls as f64 - w).max(0.0);
+        (w, r)
+    } else {
+        let w = (compile_calls as f64 / 10.0).max(1.0);
+        let r = compile_calls as f64 - w;
+        (w, r)
+    };
+
+    let actual_hot_cost = ((writes * prefix_size) / 1_000_000.0) * caching_write_cost_per_m +
+                          ((reads * prefix_size) / 1_000_000.0) * caching_read_cost_per_m;
     let savings = expected_cold_cost - actual_hot_cost;
 
+    let label = if is_measured { "Measured" } else { "Projected (no data)" };
     out.push_str("------------------------------------------------------------\n");
-    out.push_str("📊 Token Efficiency Analysis (Projected vs Actual)\n");
+    out.push_str(&format!("Token Efficiency Analysis ({})\n", label));
     out.push_str("------------------------------------------------------------\n");
+    out.push_str(&format!("Avg Prefix Size (tokens):        {:.0}\n", prefix_size));
     out.push_str(&format!("Estimated Total Tokens Pushed:   {:.0} million\n", total_tokens_pushed / 1_000_000.0));
     out.push_str(&format!("Expected Cold Cache Cost:        ${:.2}\n", expected_cold_cost));
     out.push_str(&format!("Actual Hot Cache Cost (with Prefix): ${:.2}\n", actual_hot_cost));
+    out.push_str(&format!("Cache Writes / Reads:            {:.0} / {:.0}\n", writes, reads));
     out.push_str("------------------------------------------------------------\n");
-    out.push_str(&format!("💲 TOTAL SAVINGS:                 +${:.2}\n", savings));
+    out.push_str(&format!("TOTAL SAVINGS:                   +${:.2}\n", savings));
     out.push_str("============================================================\n");
     out
 }
@@ -59,7 +71,26 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
             let compile_query = "SELECT COUNT(*) FROM tool_usage WHERE tool_name = 'compile_context'";
             let compile_calls: i64 = conn.query_row(compile_query, [], |row| row.get(0)).unwrap_or(0);
 
-            Ok((generate_report(total_calls, compile_calls), 0))
+            // Query measured avg output length; fall back to 80K if no data
+            let avg_output_length: f64 = conn
+                .query_row(
+                    "SELECT AVG(output_length) FROM tool_usage WHERE tool_name = 'compile_context' AND output_length > 0",
+                    [],
+                    |row| row.get::<_, f64>(0),
+                )
+                .unwrap_or(80_000.0);
+
+            // Query unique sessions for write/read split; None if column missing
+            let unique_sessions: Option<i64> = conn
+                .query_row(
+                    "SELECT COUNT(DISTINCT session_id) FROM tool_usage WHERE tool_name = 'compile_context'",
+                    [],
+                    |row| row.get(0),
+                )
+                .ok()
+                .filter(|&v: &i64| v > 0);
+
+            Ok((generate_report(total_calls, compile_calls, avg_output_length, unique_sessions), 0))
         }
         "update-state" => {
             if args.len() < 3 {
@@ -339,7 +370,8 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
                 planning_dir.join("REQUIREMENTS.md"),
             ];
 
-            let mut context = format!("--- COMPILED CONTEXT (phase={}, role={}) ---\n", phase, role);
+            // Stable prefix: reference files only, no phase number in header
+            let mut context = format!("--- COMPILED CONTEXT (role={}) ---\n", role);
 
             for path in &files_to_read {
                 if path.exists() {
@@ -348,6 +380,12 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
                     }
                 }
             }
+
+            // Sentinel marks boundary between stable prefix and volatile tail
+            context.push_str("\n<!-- STABLE_PREFIX_END -->\n");
+
+            // Volatile tail: phase-specific plans
+            context.push_str(&format!("--- VOLATILE TAIL (phase={}) ---\n", phase));
 
             // Include plan file if provided
             if let Some(pp) = plan_path {
@@ -437,10 +475,22 @@ mod tests {
 
     #[test]
     fn test_generate_report() {
-        let report = generate_report(100, 50);
+        let report = generate_report(100, 50, 80_000.0, None);
         assert!(report.contains("Total Intercepted Tool Calls: 100"));
         assert!(report.contains("Context Compilations (Cache hits): 50"));
         assert!(report.contains("TOTAL SAVINGS"));
+        assert!(report.contains("Projected (no data)"));
+    }
+
+    #[test]
+    fn test_generate_report_measured() {
+        let report = generate_report(100, 50, 45_000.0, Some(5));
+        assert!(report.contains("Total Intercepted Tool Calls: 100"));
+        assert!(report.contains("Measured"));
+        assert!(!report.contains("Projected"));
+        assert!(report.contains("Avg Prefix Size (tokens):        45000"));
+        // With 5 sessions: writes=5, reads=45
+        assert!(report.contains("Cache Writes / Reads:            5 / 45"));
     }
 
     #[test]
@@ -460,13 +510,18 @@ mod tests {
         let _ = std::fs::remove_file(&path);
         let conn = Connection::open(&path).unwrap();
         conn.execute(
-            "CREATE TABLE tool_usage (tool_name TEXT)",
+            "CREATE TABLE tool_usage (tool_name TEXT, output_length INTEGER, session_id TEXT)",
             [],
         ).unwrap();
-        conn.execute("INSERT INTO tool_usage (tool_name) VALUES ('compile_context')", []).unwrap();
+        conn.execute(
+            "INSERT INTO tool_usage (tool_name, output_length, session_id) VALUES ('compile_context', 50000, 'sess-1')",
+            [],
+        ).unwrap();
 
         let (report, code) = run_cli(vec!["yolo".into(), "report".into()], path.clone()).unwrap();
         assert!(report.contains("Total Intercepted Tool Calls: 1"));
+        assert!(report.contains("Measured"));
+        assert!(report.contains("Avg Prefix Size (tokens):        50000"));
         assert_eq!(code, 0);
 
         let _ = std::fs::remove_file(&path);
