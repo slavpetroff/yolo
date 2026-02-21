@@ -51,13 +51,14 @@ fn build_measurement(cwd: &Path, phase_filter: Option<&str>) -> Value {
     let mut total_escalations = 0;
 
     for phase in target_phases {
+        let phase_as_i64 = phase.parse::<i64>().ok();
         let mut p_overages = 0;
         let mut p_truncated = 0;
         let mut p_tasks = 0;
         let mut p_escalations = 0;
 
         for e in &events {
-            let matches_phase = e["phase"].as_str() == Some(&phase) || e["phase"].as_i64() == phase.parse::<i64>().ok();
+            let matches_phase = e["phase"].as_str() == Some(&phase) || e["phase"].as_i64() == phase_as_i64;
             if matches_phase {
                 if e["event"] == "task_started" { p_tasks += 1; }
                 if e["event"] == "token_cap_escalated" { p_escalations += 1; }
@@ -65,7 +66,7 @@ fn build_measurement(cwd: &Path, phase_filter: Option<&str>) -> Value {
         }
 
         for m in &metrics {
-            let matches_phase = m["phase"].as_str() == Some(&phase) || m["phase"].as_i64() == phase.parse::<i64>().ok();
+            let matches_phase = m["phase"].as_str() == Some(&phase) || m["phase"].as_i64() == phase_as_i64;
             if matches_phase {
                 if m["event"] == "token_overage" {
                     p_overages += 1;
