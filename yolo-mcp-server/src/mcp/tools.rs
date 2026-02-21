@@ -56,8 +56,11 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
 
             ctx.tier3.push_str("\n--- END COMPILED CONTEXT ---\n");
 
-            // Recompute combined after appending git diff
-            ctx.combined = format!("{}\n{}\n{}", ctx.tier1, ctx.tier2, ctx.tier3);
+            // Capture tier sizes before recomputing combined
+            let tier1_size = ctx.tier1.len();
+            let tier2_size = ctx.tier2.len();
+            let tier3_size = ctx.tier3.len();
+            let total_size = tier1_size + tier2_size + tier3_size;
 
             // Backward-compatible stable_prefix = tier1 + "\n" + tier2
             let stable_prefix = format!("{}\n{}", ctx.tier1, ctx.tier2);
@@ -66,21 +69,40 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
             let volatile_bytes = ctx.tier3.len();
 
             // Determine cache hit/miss by comparing prefix_hash to previous call for this role
-            let (cache_read_tokens_estimate, cache_write_tokens_estimate) = {
+            let (cache_hit, cache_read_tokens_estimate, cache_write_tokens_estimate) = {
                 let mut hashes = state.last_prefix_hashes.lock().unwrap();
                 let prev = hashes.get(role).cloned();
                 hashes.insert(role.to_string(), prefix_hash.clone());
                 match prev {
                     Some(ref old_hash) if old_hash == &prefix_hash => {
-                        (prefix_bytes, 0usize)
+                        (true, prefix_bytes, 0usize)
                     }
                     _ => {
-                        (0usize, prefix_bytes)
+                        (false, 0usize, prefix_bytes)
                     }
                 }
             };
 
             let input_tokens_estimate = prefix_bytes + volatile_bytes;
+
+            // Build structured metadata and append as trailing comment
+            let meta = json!({
+                "ok": true,
+                "cmd": "compile-context",
+                "tier1_size": tier1_size,
+                "tier2_size": tier2_size,
+                "tier3_size": tier3_size,
+                "total_size": total_size,
+                "cache_hit": cache_hit,
+                "output_path": ".yolo-planning",
+                "role": role,
+                "phase": phase
+            });
+            let meta_str = serde_json::to_string(&meta).unwrap_or_default();
+
+            // Recompute combined after appending git diff + meta comment
+            ctx.combined = format!("{}\n{}\n{}\n<!-- compile_context_meta: {} -->",
+                ctx.tier1, ctx.tier2, ctx.tier3, meta_str);
 
             json!({
                 "content": [{"type": "text", "text": ctx.combined}],
@@ -94,6 +116,11 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
                 "prefix_bytes": prefix_bytes,
                 "volatile_bytes": volatile_bytes,
                 "input_tokens_estimate": input_tokens_estimate,
+                "cache_hit": cache_hit,
+                "tier1_size": tier1_size,
+                "tier2_size": tier2_size,
+                "tier3_size": tier3_size,
+                "total_size": total_size,
                 "cache_read_tokens_estimate": cache_read_tokens_estimate,
                 "cache_write_tokens_estimate": cache_write_tokens_estimate
             })
@@ -288,6 +315,20 @@ mod tests {
         // Architecture content is in tier 2 for planning family
         assert!(tier2.contains("DUMMY ARCH CONTENT"));
 
+        // Verify structured metadata comment in combined text
+        assert!(text.contains("<!-- compile_context_meta:"));
+        // Verify tier size fields in response
+        assert!(result.get("tier1_size").is_some());
+        assert!(result.get("tier2_size").is_some());
+        assert!(result.get("tier3_size").is_some());
+        assert!(result.get("total_size").is_some());
+        assert!(result.get("cache_hit").is_some());
+        let total = result["total_size"].as_u64().unwrap();
+        let t1 = result["tier1_size"].as_u64().unwrap();
+        let t2 = result["tier2_size"].as_u64().unwrap();
+        let t3 = result["tier3_size"].as_u64().unwrap();
+        assert_eq!(total, t1 + t2 + t3);
+
         let _ = std::fs::remove_dir_all(&tmp);
     }
 
@@ -321,6 +362,7 @@ mod tests {
         assert_eq!(prefix_bytes as usize, tier1.len() + tier2.len() + 1);
 
         // First call should be cache write (no previous hash)
+        assert_eq!(result["cache_hit"].as_bool().unwrap(), false);
         assert_eq!(result["cache_read_tokens_estimate"].as_u64().unwrap(), 0);
         assert!(result["cache_write_tokens_estimate"].as_u64().unwrap() > 0);
 
@@ -341,12 +383,14 @@ mod tests {
         // First call
         let r1 = handle_tool_call("compile_context", params.clone(), state.clone()).await;
         let hash1 = r1["prefix_hash"].as_str().unwrap().to_string();
+        assert_eq!(r1["cache_hit"].as_bool().unwrap(), false);
 
         // Second call with same role — prefix_hash should match
         let r2 = handle_tool_call("compile_context", params, state).await;
         let hash2 = r2["prefix_hash"].as_str().unwrap().to_string();
 
         assert_eq!(hash1, hash2);
+        assert_eq!(r2["cache_hit"].as_bool().unwrap(), true);
 
         // Second call should be cache read
         assert!(r2["cache_read_tokens_estimate"].as_u64().unwrap() > 0);
