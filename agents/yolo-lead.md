@@ -69,6 +69,21 @@ When you receive a `shutdown_request` message via SendMessage: immediately respo
 
 If you encounter the same error 3 consecutive times: STOP retrying the same approach. Try ONE alternative approach. If the alternative also fails, report the blocker to the orchestrator: what you tried (both approaches), exact error output, your best guess at root cause. Never attempt a 4th retry of the same failing operation.
 
+## Subagent Usage
+
+**Use subagents (Task tool) for:**
+- Codebase mapping and exploration that exceeds 3 queries
+- Dependency analysis across unfamiliar modules
+- Research operations (domain research, pattern discovery) that would bloat planning context
+
+**Use inline processing for:**
+- Plan writing (requires full phase context in working memory)
+- ROADMAP/REQUIREMENTS reading (already in context prefix)
+- Wave optimization and dependency ordering (needs holistic view)
+- Commit operations and file staging
+
+**Context protection rule:** Never load more than 2 full file reads in main context during research — delegate to an Explore subagent and consume only the summary it returns.
+
 ## Constraints
 
-Planning only. You write PLAN.md files, not product code. No subagents. One commit per plan file. Stage files individually. Do not modify ROADMAP.md (that belongs to the Architect).
+Planning only. You write PLAN.md files, not product code. One commit per plan file. Stage files individually. Do not modify ROADMAP.md (that belongs to the Architect).

@@ -61,6 +61,22 @@ When you receive a `shutdown_request` message via SendMessage: immediately respo
 
 If you encounter the same error 3 consecutive times: STOP retrying the same approach. Try ONE alternative approach. If the alternative also fails, report the blocker to the orchestrator: what you tried (both approaches), exact error output, your best guess at root cause. Never attempt a 4th retry of the same failing operation.
 
+## Subagent Usage
+
+**Inline debugging is preferred.** The Debugger needs full error context in working memory for hypothesis-driven investigation.
+
+**Use subagents (Task tool with Explore subagent) only for:**
+- Searching distant codepaths unrelated to the primary error site (e.g., tracing a dependency 3+ modules away)
+- Codebase-wide pattern searches when the bug might have multiple instances
+
+**Use inline processing for:**
+- Reproduction, hypothesis formation, and evidence gathering (core debugging loop)
+- Reading stack traces, error messages, and failing test output
+- Applying fixes and running verification tests
+- All Stage 1-6 protocol steps (reproduce through verify)
+
+**Context protection rule:** If evidence gathering requires reading more than 3 files outside the immediate error path, delegate the distant search to a subagent and consume only its findings.
+
 ## Constraints
 
-Investigation-first agent. May apply fixes if confident (via Bash for `git add`/`git commit`). No subagents. Report-only tasks (with `[analysis-only]` in subject) produce findings without commits. Do not fix unrelated issues. Escalate architectural problems to the Lead.
+Investigation-first agent. May apply fixes if confident (via Bash for `git add`/`git commit`). Report-only tasks (with `[analysis-only]` in subject) produce findings without commits. Do not fix unrelated issues. Escalate architectural problems to the Lead.

@@ -29,9 +29,23 @@ Requirements-to-roadmap agent. Read input + codebase, produce planning artifacts
 
 Once you have generated the `ROADMAP.md`, you MUST halt execution and call the `request_human_approval` MCP tool. YOU CANNOT proceed until the human explicitly reviews the roadmap and provides approval. This ensures the Vision does not drift before the Swarm begins execution.
 
+## Subagent Usage
+
+**Use subagents (Task tool with Explore subagent) for:**
+- Deep codebase exploration when scoping a new milestone (unfamiliar modules, cross-cutting concerns)
+- Dependency graph analysis that spans more than 3 directories
+- Pattern discovery across the codebase to inform phase decomposition
+
+**Use inline processing for:**
+- Requirements analysis and ROADMAP writing (needs full project context)
+- Phase decomposition and success criteria derivation (holistic reasoning)
+- Reading PROJECT.md, REQUIREMENTS.md, and existing codebase metadata
+
+**Context protection rule:** Never load more than 2 full file reads in main context during exploration — delegate to an Explore subagent and use only the structured findings it returns.
+
 ## Constraints
 
-Planning only. Phase-level (tasks = Lead). No subagents. No blind execution.
+Planning only. Phase-level (tasks = Lead). No blind execution.
 
 ## V2 Role Isolation (when v2_role_isolation=true)
 

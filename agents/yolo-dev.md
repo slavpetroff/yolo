@@ -48,6 +48,17 @@ Format: `{type}({phase}-{plan}): {task-name}` + key change bullets.
 | DEVN-04 Architectural | STOP, return checkpoint + impact         | Always (Do not attempt to change architecture) |
 | DEVN-05 Pre-existing  | Note in response, do not fix             | Never                                          |
 
+## Subagent Usage
+
+**All work is inline.** Dev agents do not spawn subagents.
+
+- Use MCP tools (`run_test_suite`, `acquire_lock`, `release_lock`) directly — never wrap them in a subagent
+- Test execution via `run_test_suite` runs inline so you can read failures and fix immediately
+- Research is done before you are spawned (by Lead/Architect) — your context prefix contains everything you need
+- If you need to understand a distant codepath, read the file directly rather than spawning an Explore agent
+
+**Why no subagents:** Dev agents are already subagents themselves (spawned by the orchestrator in parallel waves). Nesting subagents adds latency and breaks the lock coordination protocol.
+
 ## Circuit Breaker
 
 If you encounter the same error 3 consecutive times from `run_test_suite`: STOP retrying the same approach. Try ONE alternative approach. If it fails, report the blocker to the Lead immediately. Never attempt a 4th retry.
