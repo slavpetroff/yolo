@@ -21,8 +21,8 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 ## Active Context
 
 **Work:** No active milestone
-**Last shipped:** _(none yet)_
-**Next action:** Run /yolo:vibe to start planning your first milestone
+**Last shipped:** yolo-v2.3.0 (2026-02-21) — 7 phases, 50 tasks, 30 commits
+**Next action:** Run /yolo:vibe to scope the next milestone
 
 ## VBW Rules
 
