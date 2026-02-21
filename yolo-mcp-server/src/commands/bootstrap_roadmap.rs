@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 
 fn slugify(name: &str) -> String {
     let lower = name.to_lowercase();
@@ -28,9 +29,16 @@ fn slugify(name: &str) -> String {
 }
 
 pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
+    let start = Instant::now();
     // args: ["roadmap", OUTPUT_PATH, PROJECT_NAME, PHASES_JSON]
     if args.len() < 4 {
-        return Err("Usage: yolo bootstrap roadmap <output_path> <project_name> <phases_json>".to_string());
+        let response = serde_json::json!({
+            "ok": false,
+            "cmd": "bootstrap-roadmap",
+            "error": "Usage: yolo bootstrap roadmap <output_path> <project_name> <phases_json>",
+            "elapsed_ms": start.elapsed().as_millis() as u64
+        });
+        return Ok((response.to_string(), 1));
     }
 
     let output_path = Path::new(&args[1]);
@@ -135,17 +143,33 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
     fs::write(output_path, &out)
         .map_err(|e| format!("Failed to write {}: {}", output_path.display(), e))?;
 
-    // Create phase directories
+    // Create phase directories and collect changed paths
+    let mut changed: Vec<String> = vec![output_path.to_string_lossy().to_string()];
+    let mut phase_dir_names: Vec<String> = Vec::new();
     for (i, phase) in phases_arr.iter().enumerate() {
         let num = format!("{:02}", i + 1);
         let name = phase.get("name").and_then(|v| v.as_str()).unwrap_or("");
         let slug = slugify(name);
-        let dir = phases_dir.join(format!("{}-{}", num, slug));
+        let dir_name = format!("{}-{}", num, slug);
+        let dir = phases_dir.join(&dir_name);
         fs::create_dir_all(&dir)
             .map_err(|e| format!("Failed to create phase dir: {}", e))?;
+        phase_dir_names.push(dir_name);
+        changed.push(dir.to_string_lossy().to_string());
     }
 
-    Ok((String::new(), 0))
+    let response = serde_json::json!({
+        "ok": true,
+        "cmd": "bootstrap-roadmap",
+        "changed": changed,
+        "delta": {
+            "project_name": project_name,
+            "phase_count": phase_count,
+            "phase_dirs_created": phase_dir_names
+        },
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
+    Ok((response.to_string(), 0))
 }
 
 #[cfg(test)]
