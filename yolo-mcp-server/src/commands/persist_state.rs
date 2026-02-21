@@ -1,8 +1,19 @@
+use serde_json::json;
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
+
+struct PersistDelta {
+    has_decisions: bool,
+    has_todos: bool,
+    has_blockers: bool,
+    has_codebase_profile: bool,
+}
 
 /// CLI entry: `yolo persist-state <archived_state_path> <output_path> <project_name>`
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
+    let start = Instant::now();
+
     if args.len() < 3 {
         return Err("Usage: yolo persist-state <archived_state_path> <output_path> <project_name>".to_string());
     }
@@ -12,10 +23,15 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let project_name = &args[2];
 
     if !archived_path.is_file() {
-        return Err(format!(
-            "ERROR: Archived STATE.md not found: {}",
-            archived_path.display()
-        ));
+        let envelope = json!({
+            "ok": false,
+            "cmd": "persist-state",
+            "delta": {
+                "error": format!("Archived STATE.md not found: {}", archived_path.display())
+            },
+            "elapsed_ms": start.elapsed().as_millis() as u64
+        });
+        return Ok((serde_json::to_string(&envelope).unwrap_or_default(), 1));
     }
 
     if let Some(parent) = output_path.parent() {
@@ -25,22 +41,39 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let content = fs::read_to_string(&archived_path)
         .map_err(|e| format!("Failed to read archived state: {}", e))?;
 
-    let output = generate_root_state(&content, project_name);
+    let (output, delta) = generate_root_state(&content, project_name);
 
     fs::write(&output_path, &output)
         .map_err(|e| format!("Failed to write output: {}", e))?;
 
-    Ok((output_path.to_string_lossy().to_string(), 0))
+    let output_path_str = output_path.to_string_lossy().to_string();
+
+    let envelope = json!({
+        "ok": true,
+        "cmd": "persist-state",
+        "changed": [&output_path_str],
+        "delta": {
+            "has_decisions": delta.has_decisions,
+            "has_todos": delta.has_todos,
+            "has_blockers": delta.has_blockers,
+            "has_codebase_profile": delta.has_codebase_profile,
+            "project_name": project_name
+        },
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
+
+    Ok((serde_json::to_string(&envelope).unwrap_or_default(), 0))
 }
 
-fn generate_root_state(archived_content: &str, project_name: &str) -> String {
+fn generate_root_state(archived_content: &str, project_name: &str) -> (String, PersistDelta) {
     let mut out = String::new();
     out.push_str("# State\n\n");
     out.push_str(&format!("**Project:** {}\n\n", project_name));
 
     // Decisions (including Skills subsection) — matches "## Decisions" or "## Key Decisions"
     let decisions = extract_decisions_with_skills(archived_content);
-    if section_has_body(&decisions) {
+    let has_decisions = section_has_body(&decisions);
+    if has_decisions {
         out.push_str(&decisions);
         out.push('\n');
     } else {
@@ -49,7 +82,8 @@ fn generate_root_state(archived_content: &str, project_name: &str) -> String {
 
     // Todos
     let todos = extract_section(archived_content, "todos");
-    if section_has_body(&todos) {
+    let has_todos = section_has_body(&todos);
+    if has_todos {
         out.push_str(&todos);
         out.push('\n');
     } else {
@@ -58,7 +92,8 @@ fn generate_root_state(archived_content: &str, project_name: &str) -> String {
 
     // Blockers
     let blockers = extract_section(archived_content, "blockers");
-    if section_has_body(&blockers) {
+    let has_blockers = section_has_body(&blockers);
+    if has_blockers {
         out.push_str(&blockers);
         out.push('\n');
     } else {
@@ -67,12 +102,20 @@ fn generate_root_state(archived_content: &str, project_name: &str) -> String {
 
     // Codebase Profile (optional)
     let codebase = extract_section(archived_content, "codebase profile");
-    if section_has_body(&codebase) {
+    let has_codebase_profile = section_has_body(&codebase);
+    if has_codebase_profile {
         out.push_str(&codebase);
         out.push('\n');
     }
 
-    out
+    let delta = PersistDelta {
+        has_decisions,
+        has_todos,
+        has_blockers,
+        has_codebase_profile,
+    };
+
+    (out, delta)
 }
 
 /// Extract a section by heading (case-insensitive), merging duplicate headings.
