@@ -5,6 +5,14 @@
 export PROJECT_ROOT="${BATS_TEST_DIRNAME}/.."
 export SCRIPTS_DIR="${PROJECT_ROOT}/scripts"
 export CONFIG_DIR="${PROJECT_ROOT}/config"
+export YOLO_BIN="${HOME}/.cargo/bin/yolo"
+
+# Run yolo CLI from a specific directory (defaults to TEST_TEMP_DIR)
+# Usage: yolo_cmd [subcommand...] or CWD=/path yolo_cmd [subcommand...]
+yolo_cmd() {
+  local cwd="${CWD:-${TEST_TEMP_DIR:-.}}"
+  ( cd "$cwd" && "$YOLO_BIN" "$@" )
+}
 
 # Create temp directory for test isolation
 setup_temp_dir() {
