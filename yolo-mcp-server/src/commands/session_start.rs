@@ -3,28 +3,40 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use sysinfo::System;
 use reqwest::blocking::Client;
 use std::time::Duration;
 
 pub fn execute_session_start(cwd: &Path) -> Result<(String, i32), String> {
+    let start = Instant::now();
     let planning_dir = cwd.join(".yolo-planning");
     let script_dir = cwd.join("scripts");
     let claude_dir = get_claude_dir(cwd);
+    let mut steps: Vec<&str> = Vec::new();
+    let mut warnings: Vec<String> = Vec::new();
 
     // 1. Dependency check (jq)
-    // We actually don't NEED jq in Rust, but if bash scripts still run, maybe?
-    // Rust doesn't need jq. So we can skip it, OR check it just to warn.
     if Command::new("jq").arg("--version").output().is_err() {
         let out = json!({
             "hookSpecificOutput": {
                 "hookEventName": "SessionStart",
                 "additionalContext": "YOLO: jq not found. Install: brew install jq (macOS) / apt install jq (Linux). All 17 YOLO quality gates are disabled until jq is installed -- no commit validation, no security filtering, no file guarding."
+            },
+            "structuredResult": {
+                "ok": false,
+                "cmd": "session-start",
+                "delta": {
+                    "steps_completed": ["dependency_check"],
+                    "warnings": ["jq not found"],
+                    "next_action": "install jq"
+                },
+                "elapsed_ms": start.elapsed().as_millis() as u64
             }
         });
         return Ok((out.to_string(), 0));
     }
+    steps.push("dependency_check");
 
     // 2. Compaction check
     let cm_path = planning_dir.join(".compaction-marker");
@@ -41,6 +53,7 @@ pub fn execute_session_start(cwd: &Path) -> Result<(String, i32), String> {
         }
         let _ = fs::remove_file(&cm_path);
     }
+    steps.push("compaction_check");
 
     // 3. Config migration (native Rust)
     let config_path = planning_dir.join("config.json");
@@ -48,6 +61,7 @@ pub fn execute_session_start(cwd: &Path) -> Result<(String, i32), String> {
         let defaults_path = cwd.join("config").join("defaults.json");
         let _ = super::migrate_config::migrate_config(&config_path, &defaults_path);
     }
+    steps.push("config_migration");
 
     // 4. CLAUDE.md migration
     let claude_md_migrated = planning_dir.join(".claude-md-migrated");
@@ -63,27 +77,41 @@ pub fn execute_session_start(cwd: &Path) -> Result<(String, i32), String> {
         }
         let _ = fs::write(&claude_md_migrated, "1");
     }
+    steps.push("claude_md_migration");
 
     // 5. Todos hierarchy migration
     flatten_todos_migration(&planning_dir);
+    steps.push("todos_migration");
 
     // 6. Orphaned state migration (native Rust)
     let _ = super::migrate_orphaned_state::migrate_orphaned_state(&planning_dir);
+    steps.push("orphaned_state_migration");
 
     // 7. Config Cache & Warnings
-    let (config_cache_done, flag_warnings) = write_config_cache_and_validate(&planning_dir);
+    let (_config_cache_done, flag_warnings) = write_config_cache_and_validate(&planning_dir);
+    if !flag_warnings.is_empty() {
+        warnings.push(flag_warnings.trim().to_string());
+    }
+    steps.push("config_cache");
 
     // 8. First run welcome
     let welcome_msg = check_first_run(&claude_dir);
+    steps.push("first_run_check");
 
     // 9. Update Check
     let update_msg = check_for_updates(&script_dir);
+    if !update_msg.is_empty() {
+        warnings.push(update_msg.trim().to_string());
+    }
+    steps.push("update_check");
 
     // 10. StatusLine & Tmux migration
     migrate_statusline_and_tmux(&claude_dir, &planning_dir);
+    steps.push("statusline_migration");
 
     // 11. Cache cleanup and syncing
     cleanup_and_sync_cache(&claude_dir);
+    steps.push("cache_cleanup");
 
     // 12. Hook installation & stale team cleanup (native Rust)
     let _ = super::install_hooks::install_hooks();
@@ -91,25 +119,48 @@ pub fn execute_session_start(cwd: &Path) -> Result<(String, i32), String> {
         let log_file = planning_dir.join(".hook-errors.log");
         super::clean_stale_teams::clean_stale_teams(&claude_dir, &log_file);
     }
-    
+    steps.push("hook_installation");
+
     // 13. Reconcile execution state & Orphan Agents
     let state_msg = reconcile_execution_state(&planning_dir);
-    
     cleanup_orphaned_agents(&planning_dir);
+    steps.push("execution_state_reconcile");
 
     // 14. Tmux watchdog (native Rust)
     if let Some(session) = super::tmux_watchdog::get_tmux_session() {
         let _ = super::tmux_watchdog::spawn_watchdog(&planning_dir, &session);
     }
+    steps.push("tmux_watchdog");
 
     // 15. Determine Next Action & Build Context
-    let ctx = build_context(&cwd, &planning_dir, &state_msg);
+    let ctx = build_context(cwd, &planning_dir, &state_msg);
+    steps.push("build_context");
+
+    let structured = json!({
+        "ok": true,
+        "cmd": "session-start",
+        "delta": {
+            "steps_completed": steps,
+            "warnings": warnings,
+            "next_action": ctx.next_action,
+            "milestone": ctx.milestone,
+            "phase": ctx.phase_pos,
+            "phase_total": ctx.phase_total,
+            "config": {
+                "effort": ctx.config_effort,
+                "autonomy": ctx.config_autonomy,
+                "auto_push": ctx.config_auto_push
+            }
+        },
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
 
     let out = json!({
         "hookSpecificOutput": {
             "hookEventName": "SessionStart",
-            "additionalContext": format!("{}{}{}{}", welcome_msg, ctx, update_msg, flag_warnings)
-        }
+            "additionalContext": format!("{}{}{}{}", welcome_msg, ctx.text, update_msg, flag_warnings)
+        },
+        "structuredResult": structured
     });
 
     Ok((out.to_string(), 0))
@@ -577,7 +628,18 @@ fn cleanup_orphaned_agents(planning_dir: &Path) {
     }
 }
 
-fn build_context(cwd: &Path, planning_dir: &Path, state_msg: &str) -> String {
+struct ContextResult {
+    text: String,
+    next_action: String,
+    milestone: String,
+    phase_pos: String,
+    phase_total: String,
+    config_effort: String,
+    config_autonomy: String,
+    config_auto_push: String,
+}
+
+fn build_context(cwd: &Path, planning_dir: &Path, state_msg: &str) -> ContextResult {
     let mut ctx = String::from("YOLO project detected.");
 
     let mut config_effort = "balanced".to_string();
@@ -620,7 +682,7 @@ fn build_context(cwd: &Path, planning_dir: &Path, state_msg: &str) -> String {
     } else {
         planning_dir.to_path_buf()
     };
-    
+
     let phases_dir = if milestone_slug != "none" && milestone_dir.join("phases").exists() {
         milestone_dir.join("phases")
     } else {
@@ -690,7 +752,7 @@ fn build_context(cwd: &Path, planning_dir: &Path, state_msg: &str) -> String {
                     if e.path().is_dir() { d.push(e.path()); }
                 }
                 d.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
-                
+
                 for pdir in d {
                     let pname = pdir.file_name().unwrap_or_default().to_string_lossy().to_string();
                     let mut plan_c = 0;
@@ -722,7 +784,17 @@ fn build_context(cwd: &Path, planning_dir: &Path, state_msg: &str) -> String {
     }
 
     ctx.push_str(&format!(" Next: {}.", next_action));
-    ctx
+
+    ContextResult {
+        text: ctx,
+        next_action,
+        milestone: milestone_slug,
+        phase_pos,
+        phase_total,
+        config_effort,
+        config_autonomy,
+        config_auto_push,
+    }
 }
 
 fn get_claude_dir(cwd: &Path) -> PathBuf {
@@ -884,8 +956,10 @@ mod tests {
         fs::create_dir(&plan_dir).unwrap();
 
         let ctx = build_context(dir.path(), &plan_dir, "");
-        assert!(ctx.contains("YOLO project detected"));
-        assert!(ctx.contains("Next: /yolo:init"));
+        assert!(ctx.text.contains("YOLO project detected"));
+        assert!(ctx.text.contains("Next: /yolo:init"));
+        assert_eq!(ctx.next_action, "/yolo:init");
+        assert_eq!(ctx.milestone, "none");
     }
 
     #[test]
@@ -896,7 +970,8 @@ mod tests {
         fs::write(plan_dir.join("PROJECT.md"), "# My Project").unwrap();
 
         let ctx = build_context(dir.path(), &plan_dir, "");
-        assert!(ctx.contains("needs scoping"));
+        assert!(ctx.text.contains("needs scoping"));
+        assert!(ctx.next_action.contains("needs scoping"));
     }
 
     #[test]
