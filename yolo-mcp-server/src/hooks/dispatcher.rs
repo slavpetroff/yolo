@@ -157,7 +157,7 @@ fn value_to_hook_output(value: &Value, exit_code: i32) -> HookOutput {
 }
 
 /// SessionStart handler: detects compact-triggered sessions and runs post_compact.
-/// For non-compact sessions, runs map_staleness check.
+/// For non-compact sessions, runs map_staleness check and optional cache warming.
 fn handle_session_start(input: &HookInput) -> Result<HookOutput, String> {
     // Check if this is a compact-triggered session start
     let is_compact = input.data.get("compact")
@@ -174,7 +174,58 @@ fn handle_session_start(input: &HookInput) -> Result<HookOutput, String> {
     }
 
     // Non-compact session: check codebase map staleness
-    map_staleness::handle(input, true)
+    let staleness_result = map_staleness::handle(input, true)?;
+
+    // Cache warming (advisory, feature-gated)
+    warm_session_cache();
+
+    Ok(staleness_result)
+}
+
+/// Pre-compile tier 1 context prefix on session start.
+/// Gated behind `v4_session_cache_warm` feature flag.
+/// Always succeeds (errors are silently swallowed).
+fn warm_session_cache() {
+    use crate::commands::tier_context;
+
+    let cwd = match std::env::current_dir() {
+        Ok(d) => d,
+        Err(_) => return,
+    };
+
+    let planning_dir = match utils::get_planning_dir(&cwd) {
+        Some(d) => d,
+        None => return,
+    };
+
+    // Check feature flag
+    let config_path = planning_dir.join("config.json");
+    let enabled = std::fs::read_to_string(&config_path)
+        .ok()
+        .and_then(|c| serde_json::from_str::<serde_json::Value>(&c).ok())
+        .and_then(|v| v.get("v4_session_cache_warm")?.as_bool())
+        .unwrap_or(false);
+
+    if !enabled {
+        return;
+    }
+
+    // Build tier 1 content
+    let tier1_content = tier_context::build_tier1(&planning_dir);
+    if tier1_content.trim().is_empty() {
+        return;
+    }
+
+    // Write to cache directory
+    let cache_dir = planning_dir.join(".context-cache");
+    if std::fs::create_dir_all(&cache_dir).is_err() {
+        return;
+    }
+
+    let cache_path = cache_dir.join("tier1.md");
+    let ts = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let content = format!("<!-- cached: {} ttl: 300s -->\n{}", ts, tier1_content);
+    let _ = std::fs::write(&cache_path, content);
 }
 
 /// PreCompact handler: inject agent-specific summarization priorities.
