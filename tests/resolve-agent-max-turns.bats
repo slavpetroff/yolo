@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Migrated: resolve-agent-max-turns.sh -> yolo resolve-turns
+# CWD-sensitive: no (takes config_path as argument)
 
 load test_helper
 
@@ -12,7 +14,7 @@ teardown() {
 }
 
 @test "legacy 2-arg invocation resolves using config/default effort" {
-  run bash "$SCRIPTS_DIR/resolve-agent-max-turns.sh" debugger "$TEST_TEMP_DIR/.yolo-planning/config.json"
+  run "$YOLO_BIN" resolve-turns debugger "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "80" ]
 }
@@ -21,17 +23,17 @@ teardown() {
   jq '.effort = "thorough"' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp"
   mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
 
-  run bash "$SCRIPTS_DIR/resolve-agent-max-turns.sh" debugger "$TEST_TEMP_DIR/.yolo-planning/config.json"
+  run "$YOLO_BIN" resolve-turns debugger "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$status" -eq 0 ]
   [ "$output" = "120" ]
 }
 
 @test "accepts high/medium/low aliases" {
-  run bash "$SCRIPTS_DIR/resolve-agent-max-turns.sh" dev "$TEST_TEMP_DIR/.yolo-planning/config.json" high
+  run "$YOLO_BIN" resolve-turns dev "$TEST_TEMP_DIR/.yolo-planning/config.json" high
   [ "$status" -eq 0 ]
   [ "$output" = "113" ]
 
-  run bash "$SCRIPTS_DIR/resolve-agent-max-turns.sh" dev "$TEST_TEMP_DIR/.yolo-planning/config.json" low
+  run "$YOLO_BIN" resolve-turns dev "$TEST_TEMP_DIR/.yolo-planning/config.json" low
   [ "$status" -eq 0 ]
   [ "$output" = "45" ]
 }
@@ -40,7 +42,7 @@ teardown() {
   jq '.agent_max_turns.debugger = {"thorough": 140, "balanced": 90, "fast": 70, "turbo": 50}' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp"
   mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
 
-  run bash "$SCRIPTS_DIR/resolve-agent-max-turns.sh" debugger "$TEST_TEMP_DIR/.yolo-planning/config.json" fast
+  run "$YOLO_BIN" resolve-turns debugger "$TEST_TEMP_DIR/.yolo-planning/config.json" fast
   [ "$status" -eq 0 ]
   [ "$output" = "70" ]
 }
@@ -49,13 +51,13 @@ teardown() {
   jq '.agent_max_turns.debugger = false' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp"
   mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
 
-  run bash "$SCRIPTS_DIR/resolve-agent-max-turns.sh" debugger "$TEST_TEMP_DIR/.yolo-planning/config.json" thorough
+  run "$YOLO_BIN" resolve-turns debugger "$TEST_TEMP_DIR/.yolo-planning/config.json" thorough
   [ "$status" -eq 0 ]
   [ "$output" = "0" ]
 }
 
 @test "falls back to defaults when config is missing" {
-  run bash "$SCRIPTS_DIR/resolve-agent-max-turns.sh" dev "$TEST_TEMP_DIR/.yolo-planning/does-not-exist.json" turbo
+  run "$YOLO_BIN" resolve-turns dev "$TEST_TEMP_DIR/.yolo-planning/does-not-exist.json" turbo
   [ "$status" -eq 0 ]
   [ "$output" = "45" ]
 }
@@ -63,12 +65,12 @@ teardown() {
 @test "falls back to defaults when config is malformed" {
   echo '{ invalid json' > "$TEST_TEMP_DIR/.yolo-planning/config.json"
 
-  run bash "$SCRIPTS_DIR/resolve-agent-max-turns.sh" qa "$TEST_TEMP_DIR/.yolo-planning/config.json" balanced
+  run "$YOLO_BIN" resolve-turns qa "$TEST_TEMP_DIR/.yolo-planning/config.json" balanced
   [ "$status" -eq 0 ]
   [ "$output" = "25" ]
 }
 
 @test "rejects invalid agent name" {
-  run bash "$SCRIPTS_DIR/resolve-agent-max-turns.sh" invalid "$TEST_TEMP_DIR/.yolo-planning/config.json" balanced
+  run "$YOLO_BIN" resolve-turns invalid "$TEST_TEMP_DIR/.yolo-planning/config.json" balanced
   [ "$status" -eq 1 ]
 }

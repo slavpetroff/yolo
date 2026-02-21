@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# Migrated: resolve-agent-model.sh -> yolo resolve-model
+# CWD-sensitive: no (takes config_path and profiles_path as arguments)
 
 load test_helper
 
@@ -9,17 +11,16 @@ setup() {
 
 teardown() {
   teardown_temp_dir
-  rm -f /tmp/yolo-model-* 2>/dev/null
 }
 
 @test "resolves dev model from quality profile" {
-  run bash "$SCRIPTS_DIR/resolve-agent-model.sh" dev "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
+  run "$YOLO_BIN" resolve-model dev "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
   [ "$status" -eq 0 ]
   [ "$output" = "opus" ]
 }
 
 @test "resolves scout model from quality profile" {
-  run bash "$SCRIPTS_DIR/resolve-agent-model.sh" scout "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
+  run "$YOLO_BIN" resolve-model scout "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
   [ "$status" -eq 0 ]
   [ "$output" = "haiku" ]
 }
@@ -27,7 +28,7 @@ teardown() {
 @test "resolves dev model from balanced profile" {
   jq '.model_profile = "balanced"' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp"
   mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
-  run bash "$SCRIPTS_DIR/resolve-agent-model.sh" dev "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
+  run "$YOLO_BIN" resolve-model dev "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
   [ "$status" -eq 0 ]
   [ "$output" = "sonnet" ]
 }
@@ -36,28 +37,17 @@ teardown() {
   jq '.model_overrides.dev = "opus"' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp"
   mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
 
-  run bash "$SCRIPTS_DIR/resolve-agent-model.sh" dev "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
+  run "$YOLO_BIN" resolve-model dev "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
   [ "$status" -eq 0 ]
   [ "$output" = "opus" ]
 }
 
 @test "rejects invalid agent name" {
-  run bash "$SCRIPTS_DIR/resolve-agent-model.sh" invalid "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
+  run "$YOLO_BIN" resolve-model invalid "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
   [ "$status" -eq 1 ]
 }
 
 @test "rejects missing config file" {
-  run bash "$SCRIPTS_DIR/resolve-agent-model.sh" dev "/nonexistent/config.json" "$CONFIG_DIR/model-profiles.json"
+  run "$YOLO_BIN" resolve-model dev "/nonexistent/config.json" "$CONFIG_DIR/model-profiles.json"
   [ "$status" -eq 1 ]
-}
-
-@test "uses cache on second call" {
-  # First call populates cache
-  run bash "$SCRIPTS_DIR/resolve-agent-model.sh" dev "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
-  [ "$status" -eq 0 ]
-  [ "$output" = "opus" ]
-
-  # Verify cache file exists
-  MTIME=$(stat -c %Y "$TEST_TEMP_DIR/.yolo-planning/config.json" 2>/dev/null || stat -f %m "$TEST_TEMP_DIR/.yolo-planning/config.json" 2>/dev/null)
-  [ -f "/tmp/yolo-model-dev-${MTIME}" ]
 }
