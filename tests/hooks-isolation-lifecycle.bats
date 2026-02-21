@@ -538,7 +538,7 @@ load test_helper
 }
 
 @test "hooks matcher includes prefixed YOLO agent names" {
-  run bash -c "grep -q 'yolo:yolo-scout' '$PROJECT_ROOT/hooks/hooks.json'"
+  run bash -c "grep -q 'yolo:yolo-debugger' '$PROJECT_ROOT/hooks/hooks.json'"
   [ "$status" -eq 0 ]
 }
 

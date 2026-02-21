@@ -28,7 +28,7 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "yolo-lead|yolo-dev|yolo-qa|yolo-scout|yolo-debugger|yolo-architect|yolo-docs|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-qa|yolo:yolo-scout|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|lead|dev|qa|scout|debugger|architect|docs|team-lead|team-dev|team-qa|team-scout|team-debugger|team-architect|team-docs",
+        "matcher": "yolo-lead|yolo-dev|yolo-debugger|yolo-architect|yolo-docs|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|lead|dev|debugger|architect|docs|team-lead|team-dev|team-debugger|team-architect|team-docs",
         "hooks": [
           {
             "type": "command",
@@ -40,7 +40,7 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "yolo-lead|yolo-dev|yolo-qa|yolo-scout|yolo-debugger|yolo-architect|yolo-docs|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-qa|yolo:yolo-scout|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|lead|dev|qa|scout|debugger|architect|docs|team-lead|team-dev|team-qa|team-scout|team-debugger|team-architect|team-docs",
+        "matcher": "yolo-lead|yolo-dev|yolo-debugger|yolo-architect|yolo-docs|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|lead|dev|debugger|architect|docs|team-lead|team-dev|team-debugger|team-architect|team-docs",
         "hooks": [
           {
             "type": "command",
@@ -52,7 +52,7 @@
     ],
     "TeammateIdle": [
       {
-        "matcher": "yolo-lead|yolo-dev|yolo-qa|yolo-scout|yolo-debugger|yolo-architect|yolo-docs|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-qa|yolo:yolo-scout|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|lead|dev|qa|scout|debugger|architect|docs|team-lead|team-dev|team-qa|team-scout|team-debugger|team-architect|team-docs",
+        "matcher": "yolo-lead|yolo-dev|yolo-debugger|yolo-architect|yolo-docs|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|lead|dev|debugger|architect|docs|team-lead|team-dev|team-debugger|team-architect|team-docs",
         "hooks": [
           {
             "type": "command",
@@ -64,7 +64,7 @@
     ],
     "TaskCompleted": [
       {
-        "matcher": "yolo-lead|yolo-dev|yolo-qa|yolo-scout|yolo-debugger|yolo-architect|yolo-docs|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-qa|yolo:yolo-scout|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|lead|dev|qa|scout|debugger|architect|docs|team-lead|team-dev|team-qa|team-scout|team-debugger|team-architect|team-docs",
+        "matcher": "yolo-lead|yolo-dev|yolo-debugger|yolo-architect|yolo-docs|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|lead|dev|debugger|architect|docs|team-lead|team-dev|team-debugger|team-architect|team-docs",
         "hooks": [
           {
             "type": "command",

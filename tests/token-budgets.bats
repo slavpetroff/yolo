@@ -267,15 +267,15 @@ generate_chars() {
 
 # --- Token budgets config ---
 
-@test "token-budgets.json has all 7 roles" {
+@test "token-budgets.json has all 5 roles" {
   run jq '.budgets | keys | length' "$CONFIG_DIR/token-budgets.json"
-  [ "$output" = "7" ]
+  [ "$output" = "5" ]
 }
 
-@test "token-budgets.json scout cap is lowest" {
-  SCOUT=$(jq '.budgets.scout.max_chars' "$CONFIG_DIR/token-budgets.json")
+@test "token-budgets.json docs cap is lowest" {
+  DOCS=$(jq '.budgets.docs.max_chars' "$CONFIG_DIR/token-budgets.json")
   DEV=$(jq '.budgets.dev.max_chars' "$CONFIG_DIR/token-budgets.json")
-  [ "$SCOUT" -lt "$DEV" ]
+  [ "$DOCS" -lt "$DEV" ]
 }
 
 # --- Protocol integration ---
