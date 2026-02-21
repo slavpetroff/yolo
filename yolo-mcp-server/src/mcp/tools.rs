@@ -224,23 +224,22 @@ mod tests {
     #[tokio::test]
     async fn test_compile_context_returns_content() {
         let state = Arc::new(ToolState::new());
-        let params = Some(json!({"phase": 4}));
+        let params = Some(json!({"phase": 4, "role": "architect"}));
 
-        // Use a temp dir to avoid race conditions with parallel tests
         let tmp = std::env::temp_dir().join(format!("yolo-test-compile-ctx-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(tmp.join(".yolo-planning/codebase")).unwrap();
         std::fs::write(tmp.join(".yolo-planning/codebase/ARCHITECTURE.md"), "DUMMY ARCH CONTENT").unwrap();
 
         let orig_dir = std::env::current_dir().unwrap();
-        // Safety: set_current_dir is not unsafe, but affects the process-wide cwd
         let _ = std::env::set_current_dir(&tmp);
 
         let result = handle_tool_call("compile_context", params, state).await;
         let content_arr = result.get("content").unwrap().as_array().unwrap();
         let text = content_arr[0].get("text").unwrap().as_str().unwrap();
 
-        assert!(text.contains("GLOBAL PROJECT STATE"));
+        assert!(text.contains("COMPILED CONTEXT"));
+        assert!(text.contains("role=architect"));
         assert!(text.contains("DUMMY ARCH CONTENT"));
 
         let _ = std::env::set_current_dir(&orig_dir);
@@ -347,5 +346,143 @@ mod tests {
 
         let res2 = handle_tool_call("release_lock", Some(json!({"task_id": "T-02", "file_path": "f2"})), state.clone()).await;
         assert!(res2.get("content").is_some());
+    }
+
+    #[tokio::test]
+    async fn test_compile_context_role_filtering() {
+        let state = Arc::new(ToolState::new());
+
+        let tmp = std::env::temp_dir().join(format!("yolo-test-role-filter-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".yolo-planning/codebase")).unwrap();
+        std::fs::write(tmp.join(".yolo-planning/codebase/ARCHITECTURE.md"), "ARCH_CONTENT_MARKER").unwrap();
+        std::fs::write(tmp.join(".yolo-planning/codebase/STACK.md"), "STACK_CONTENT_MARKER").unwrap();
+        std::fs::write(tmp.join(".yolo-planning/codebase/CONVENTIONS.md"), "CONV_CONTENT_MARKER").unwrap();
+        std::fs::write(tmp.join(".yolo-planning/ROADMAP.md"), "ROADMAP_CONTENT_MARKER").unwrap();
+        std::fs::write(tmp.join(".yolo-planning/REQUIREMENTS.md"), "REQ_CONTENT_MARKER").unwrap();
+
+        let orig_dir = std::env::current_dir().unwrap();
+        let _ = std::env::set_current_dir(&tmp);
+
+        // Dev role should get CONVENTIONS, STACK, ROADMAP but NOT ARCHITECTURE or REQUIREMENTS
+        let dev_result = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "dev"})), state.clone()).await;
+        let dev_text = dev_result["content"][0]["text"].as_str().unwrap();
+        assert!(dev_text.contains("CONV_CONTENT_MARKER"));
+        assert!(dev_text.contains("STACK_CONTENT_MARKER"));
+        assert!(dev_text.contains("ROADMAP_CONTENT_MARKER"));
+        assert!(!dev_text.contains("ARCH_CONTENT_MARKER"));
+        assert!(!dev_text.contains("REQ_CONTENT_MARKER"));
+
+        // Architect role should get all 5 files
+        let arch_result = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "architect"})), state.clone()).await;
+        let arch_text = arch_result["content"][0]["text"].as_str().unwrap();
+        assert!(arch_text.contains("ARCH_CONTENT_MARKER"));
+        assert!(arch_text.contains("STACK_CONTENT_MARKER"));
+        assert!(arch_text.contains("CONV_CONTENT_MARKER"));
+        assert!(arch_text.contains("ROADMAP_CONTENT_MARKER"));
+        assert!(arch_text.contains("REQ_CONTENT_MARKER"));
+
+        // QA role should get CONVENTIONS and REQUIREMENTS only
+        let qa_result = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "qa"})), state.clone()).await;
+        let qa_text = qa_result["content"][0]["text"].as_str().unwrap();
+        assert!(qa_text.contains("CONV_CONTENT_MARKER"));
+        assert!(qa_text.contains("REQ_CONTENT_MARKER"));
+        assert!(!qa_text.contains("ARCH_CONTENT_MARKER"));
+        assert!(!qa_text.contains("STACK_CONTENT_MARKER"));
+
+        let _ = std::env::set_current_dir(&orig_dir);
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_compile_context_phase_filtering() {
+        let state = Arc::new(ToolState::new());
+
+        let tmp = std::env::temp_dir().join(format!("yolo-test-phase-filter-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".yolo-planning/codebase")).unwrap();
+        std::fs::create_dir_all(tmp.join(".yolo-planning/phases/03")).unwrap();
+        std::fs::write(tmp.join(".yolo-planning/codebase/CONVENTIONS.md"), "CONV").unwrap();
+        std::fs::write(tmp.join(".yolo-planning/phases/03/03-01-PLAN.md"), "PHASE3_PLAN_CONTENT").unwrap();
+
+        let orig_dir = std::env::current_dir().unwrap();
+        let _ = std::env::set_current_dir(&tmp);
+
+        // Phase 3 should include the plan file
+        let result = handle_tool_call("compile_context", Some(json!({"phase": 3, "role": "dev"})), state.clone()).await;
+        let text = result["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains("PHASE3_PLAN_CONTENT"));
+        assert!(text.contains("Phase 3 Plan"));
+
+        // Phase 0 should NOT include the plan file
+        let result0 = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "dev"})), state.clone()).await;
+        let text0 = result0["content"][0]["text"].as_str().unwrap();
+        assert!(!text0.contains("PHASE3_PLAN_CONTENT"));
+
+        let _ = std::env::set_current_dir(&orig_dir);
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_run_test_suite_detects_cargo() {
+        let state = Arc::new(ToolState::new());
+
+        let tmp = std::env::temp_dir().join(format!("yolo-test-cargo-detect-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(tmp.join("Cargo.toml"), "[package]\nname = \"test\"").unwrap();
+
+        let orig_dir = std::env::current_dir().unwrap();
+        let _ = std::env::set_current_dir(&tmp);
+
+        let result = handle_tool_call("run_test_suite", Some(json!({"test_path": "my_test"})), state).await;
+        let text = result["content"][0]["text"].as_str().unwrap();
+        // cargo test will fail in the temp dir (no real project), but the error should
+        // reference cargo, not npm
+        assert!(text.contains("cargo") || text.contains("Cargo") || text.contains("STDOUT"));
+
+        let _ = std::env::set_current_dir(&orig_dir);
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_run_test_suite_detects_bats() {
+        let state = Arc::new(ToolState::new());
+
+        let tmp = std::env::temp_dir().join(format!("yolo-test-bats-detect-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join("tests")).unwrap();
+        std::fs::write(tmp.join("tests/foo.bats"), "@test 'hello' { true; }").unwrap();
+
+        let orig_dir = std::env::current_dir().unwrap();
+        let _ = std::env::set_current_dir(&tmp);
+
+        let result = handle_tool_call("run_test_suite", Some(json!({"test_path": "tests/foo.bats"})), state).await;
+        let text = result["content"][0]["text"].as_str().unwrap();
+        // Should attempt bats, not npm
+        assert!(!text.contains("npm"));
+
+        let _ = std::env::set_current_dir(&orig_dir);
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_run_test_suite_no_runner() {
+        let state = Arc::new(ToolState::new());
+
+        let tmp = std::env::temp_dir().join(format!("yolo-test-no-runner-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+
+        let orig_dir = std::env::current_dir().unwrap();
+        let _ = std::env::set_current_dir(&tmp);
+
+        let result = handle_tool_call("run_test_suite", Some(json!({"test_path": "some_test"})), state).await;
+        assert_eq!(result.get("isError").unwrap(), true);
+        let text = result["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains("No test runner detected"));
+
+        let _ = std::env::set_current_dir(&orig_dir);
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }
