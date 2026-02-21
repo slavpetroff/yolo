@@ -272,7 +272,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 
 ### Mode: Execute
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/execute-protocol.md` and follow its instructions.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/execute-protocol/SKILL.md` and follow its instructions.
 
 This mode delegates entirely to the protocol file. Before reading:
 1. **Parse arguments:** Phase number (auto-detect if omitted), --effort, --plan=NN.
