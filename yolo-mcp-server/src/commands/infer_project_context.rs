@@ -89,6 +89,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
     // --- Tech stack extraction from STACK.md ---
     let mut stack_items = Vec::new();
+    let mut stack_source = String::new();
     let stack_file = codebase_dir.join("STACK.md");
     if stack_file.exists() {
         if let Ok(content) = fs::read_to_string(&stack_file) {
@@ -96,21 +97,28 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
             let mut in_key_tech = false;
 
             for line in content.lines() {
-                if line == "## Languages" {
-                    in_languages = true;
-                    in_key_tech = false;
-                    continue;
-                } else if line == "## Key Technologies" {
-                    in_key_tech = true;
-                    in_languages = false;
-                    continue;
-                } else if line.starts_with("##") {
-                    in_languages = false;
-                    in_key_tech = false;
-                    continue;
+                if line.starts_with("## ") {
+                    let heading_lower = line.to_lowercase();
+                    if heading_lower.contains("language") {
+                        in_languages = true;
+                        in_key_tech = false;
+                        continue;
+                    } else if heading_lower.contains("framework")
+                        || heading_lower.contains("technolog")
+                        || heading_lower.contains("librar")
+                    {
+                        in_key_tech = true;
+                        in_languages = false;
+                        continue;
+                    } else {
+                        in_languages = false;
+                        in_key_tech = false;
+                        continue;
+                    }
                 }
 
                 if in_languages {
+                    // Table format: | Rust | ...
                     if line.starts_with("| ") && !line.starts_with("| Language") && !line.starts_with("|--") && !line.starts_with("|-") {
                         let parts: Vec<&str> = line.split('|').collect();
                         if parts.len() > 1 {
@@ -118,6 +126,21 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                             if !lang.is_empty() {
                                 stack_items.push(lang.to_string());
                             }
+                        }
+                    }
+                    // Bullet format: - **Rust** (90 files) — ...
+                    if line.starts_with("- ") {
+                        let item = line.trim_start_matches("- ");
+                        let item = item.trim_start_matches("**");
+                        let name = if let Some(pos) = item.find("**") {
+                            item[..pos].to_string()
+                        } else if let Some(pos) = item.find(" (") {
+                            item[..pos].to_string()
+                        } else {
+                            item.split_whitespace().next().unwrap_or("").to_string()
+                        };
+                        if !name.is_empty() {
+                            stack_items.push(name);
                         }
                     }
                 }
@@ -136,12 +159,110 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                 }
             }
         }
+        if !stack_items.is_empty() {
+            stack_source = "STACK.md".to_string();
+        }
+    }
+
+    // --- Manifest-based fallback when STACK.md yields no results ---
+    if stack_items.is_empty() {
+        let mut manifest_sources = Vec::new();
+
+        // Cargo.toml → Rust
+        if repo_root.join("Cargo.toml").exists() {
+            stack_items.push("Rust".to_string());
+            manifest_sources.push("Cargo.toml");
+        }
+
+        // pyproject.toml → Python + framework deps
+        let pyproject = repo_root.join("pyproject.toml");
+        if pyproject.exists() {
+            stack_items.push("Python".to_string());
+            manifest_sources.push("pyproject.toml");
+            if let Ok(content) = fs::read_to_string(&pyproject) {
+                let lower = content.to_lowercase();
+                for fw in &["fastapi", "django", "flask"] {
+                    if lower.contains(fw) {
+                        stack_items.push(fw.to_string());
+                    }
+                }
+            }
+        }
+
+        // requirements.txt → Python + framework deps
+        let reqtxt = repo_root.join("requirements.txt");
+        if reqtxt.exists() && !stack_items.contains(&"Python".to_string()) {
+            stack_items.push("Python".to_string());
+            manifest_sources.push("requirements.txt");
+            if let Ok(content) = fs::read_to_string(&reqtxt) {
+                let lower = content.to_lowercase();
+                for fw in &["fastapi", "django", "flask"] {
+                    if lower.contains(fw) && !stack_items.contains(&fw.to_string()) {
+                        stack_items.push(fw.to_string());
+                    }
+                }
+            }
+        }
+
+        // package.json → JavaScript/TypeScript + framework deps
+        let pkgjson = repo_root.join("package.json");
+        if pkgjson.exists() {
+            stack_items.push("JavaScript/TypeScript".to_string());
+            manifest_sources.push("package.json");
+            if let Ok(content) = fs::read_to_string(&pkgjson) {
+                let lower = content.to_lowercase();
+                for fw in &["react", "vue", "next", "express"] {
+                    if lower.contains(fw) {
+                        stack_items.push(fw.to_string());
+                    }
+                }
+            }
+        }
+
+        // go.mod → Go
+        if repo_root.join("go.mod").exists() {
+            stack_items.push("Go".to_string());
+            manifest_sources.push("go.mod");
+        }
+
+        // Gemfile → Ruby
+        if repo_root.join("Gemfile").exists() {
+            stack_items.push("Ruby".to_string());
+            manifest_sources.push("Gemfile");
+        }
+
+        // mix.exs → Elixir
+        if repo_root.join("mix.exs").exists() {
+            stack_items.push("Elixir".to_string());
+            manifest_sources.push("mix.exs");
+        }
+
+        // composer.json → PHP
+        if repo_root.join("composer.json").exists() {
+            stack_items.push("PHP".to_string());
+            manifest_sources.push("composer.json");
+        }
+
+        // pom.xml / build.gradle → Java
+        if repo_root.join("pom.xml").exists() || repo_root.join("build.gradle").exists() {
+            stack_items.push("Java".to_string());
+            if repo_root.join("pom.xml").exists() {
+                manifest_sources.push("pom.xml");
+            }
+            if repo_root.join("build.gradle").exists() {
+                manifest_sources.push("build.gradle");
+            }
+        }
+
+        if !manifest_sources.is_empty() {
+            stack_source = format!("manifest:{}", manifest_sources.join(","));
+        }
     }
 
     let stack_json = if !stack_items.is_empty() {
         json!({
             "value": stack_items,
-            "source": "STACK.md"
+            "source": stack_source
         })
     } else {
         json!({ "value": serde_json::Value::Null, "source": serde_json::Value::Null })
