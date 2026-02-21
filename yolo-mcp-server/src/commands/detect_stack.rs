@@ -116,12 +116,30 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let pom_xml = read_manifest("pom.xml", project_dir);
     let build_gradle = read_manifest("build.gradle", project_dir);
 
+    /// Minimal glob match: supports `*.ext` and `prefix*` patterns.
+    fn glob_matches(pattern: &str, name: &str) -> bool {
+        if let Some(suffix) = pattern.strip_prefix('*') {
+            // *.ext — match any name ending with suffix
+            name.ends_with(suffix)
+        } else if let Some(prefix) = pattern.strip_suffix('*') {
+            // prefix* — match any name starting with prefix
+            name.starts_with(prefix)
+        } else if let Some(star_pos) = pattern.find('*') {
+            // pre*suf — match prefix and suffix
+            let prefix = &pattern[..star_pos];
+            let suffix = &pattern[star_pos + 1..];
+            name.starts_with(prefix) && name.ends_with(suffix) && name.len() >= prefix.len() + suffix.len()
+        } else {
+            pattern == name
+        }
+    }
+
     fn check_pattern(pattern: &str, project_dir: &Path, manifests: &[(&str, &str)]) -> bool {
         if pattern.contains(':') {
             let parts: Vec<&str> = pattern.splitn(2, ':').collect();
             let file = parts[0];
             let dep = parts[1];
-            
+
             for (m_file, m_content) in manifests {
                 if file == *m_file {
                     if file.ends_with(".json") {
@@ -132,6 +150,43 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                         // Very naive word match for non-json
                         if m_content.to_lowercase().contains(&dep.to_lowercase()) {
                             return true;
+                        }
+                    }
+                }
+            }
+            false
+        } else if pattern.contains('*') {
+            // Glob-style: scan directory entries for matching filenames
+            fn scan_dir_glob(dir: &Path, pattern: &str, glob_fn: &dyn Fn(&str, &str) -> bool) -> bool {
+                if let Ok(entries) = fs::read_dir(dir) {
+                    for e in entries.filter_map(|x| x.ok()) {
+                        if let Some(name) = e.file_name().to_str() {
+                            if glob_fn(pattern, name) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                false
+            }
+            // Check project root
+            if scan_dir_glob(project_dir, pattern, &glob_matches) {
+                return true;
+            }
+            // Check subdirectories
+            let dirs_to_search = ["packages", "apps", "src", "tests"];
+            for dir_name in dirs_to_search {
+                let search_dir = project_dir.join(dir_name);
+                if search_dir.exists() && search_dir.is_dir() {
+                    if scan_dir_glob(&search_dir, pattern, &glob_matches) {
+                        return true;
+                    }
+                    // Check one level deeper
+                    if let Ok(entries) = fs::read_dir(&search_dir) {
+                        for e in entries.filter_map(|x| x.ok()) {
+                            if e.path().is_dir() && scan_dir_glob(&e.path(), pattern, &glob_matches) {
+                                return true;
+                            }
                         }
                     }
                 }
