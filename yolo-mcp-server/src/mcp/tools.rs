@@ -220,19 +220,37 @@ fn has_pytest_config() -> bool {
 mod tests {
     use super::*;
     use serde_json::json;
+    // Serialize tests that change process-wide cwd to avoid race conditions.
+    static CWD_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    /// RAII guard that restores the working directory on drop (even on panic).
+    /// Must be created AFTER acquiring CWD_MUTEX so it drops BEFORE the mutex guard.
+    struct CwdGuard(std::path::PathBuf);
+    impl Drop for CwdGuard {
+        fn drop(&mut self) {
+            let _ = std::env::set_current_dir(&self.0);
+        }
+    }
+
+    /// Acquire the CWD mutex (handles poison from prior panics) and save/restore cwd.
+    fn lock_and_chdir(target: &std::path::Path) -> (std::sync::MutexGuard<'static, ()>, CwdGuard) {
+        let guard = CWD_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
+        let orig = std::env::current_dir().expect("cwd must be valid when mutex is held");
+        let cwd_guard = CwdGuard(orig);
+        std::env::set_current_dir(target).expect("failed to chdir to temp dir");
+        (guard, cwd_guard)
+    }
 
     #[tokio::test]
     async fn test_compile_context_returns_content() {
-        let state = Arc::new(ToolState::new());
-        let params = Some(json!({"phase": 4, "role": "architect"}));
-
         let tmp = std::env::temp_dir().join(format!("yolo-test-compile-ctx-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(tmp.join(".yolo-planning/codebase")).unwrap();
         std::fs::write(tmp.join(".yolo-planning/codebase/ARCHITECTURE.md"), "DUMMY ARCH CONTENT").unwrap();
 
-        let orig_dir = std::env::current_dir().unwrap();
-        let _ = std::env::set_current_dir(&tmp);
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
+        let params = Some(json!({"phase": 4, "role": "architect"}));
 
         let result = handle_tool_call("compile_context", params, state).await;
         let content_arr = result.get("content").unwrap().as_array().unwrap();
@@ -242,7 +260,6 @@ mod tests {
         assert!(text.contains("role=architect"));
         assert!(text.contains("DUMMY ARCH CONTENT"));
 
-        let _ = std::env::set_current_dir(&orig_dir);
         let _ = std::fs::remove_dir_all(&tmp);
     }
 
@@ -350,8 +367,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_compile_context_role_filtering() {
-        let state = Arc::new(ToolState::new());
-
         let tmp = std::env::temp_dir().join(format!("yolo-test-role-filter-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(tmp.join(".yolo-planning/codebase")).unwrap();
@@ -361,8 +376,8 @@ mod tests {
         std::fs::write(tmp.join(".yolo-planning/ROADMAP.md"), "ROADMAP_CONTENT_MARKER").unwrap();
         std::fs::write(tmp.join(".yolo-planning/REQUIREMENTS.md"), "REQ_CONTENT_MARKER").unwrap();
 
-        let orig_dir = std::env::current_dir().unwrap();
-        let _ = std::env::set_current_dir(&tmp);
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
 
         // Dev role should get CONVENTIONS, STACK, ROADMAP but NOT ARCHITECTURE or REQUIREMENTS
         let dev_result = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "dev"})), state.clone()).await;
@@ -390,14 +405,11 @@ mod tests {
         assert!(!qa_text.contains("ARCH_CONTENT_MARKER"));
         assert!(!qa_text.contains("STACK_CONTENT_MARKER"));
 
-        let _ = std::env::set_current_dir(&orig_dir);
         let _ = std::fs::remove_dir_all(&tmp);
     }
 
     #[tokio::test]
     async fn test_compile_context_phase_filtering() {
-        let state = Arc::new(ToolState::new());
-
         let tmp = std::env::temp_dir().join(format!("yolo-test-phase-filter-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(tmp.join(".yolo-planning/codebase")).unwrap();
@@ -405,8 +417,8 @@ mod tests {
         std::fs::write(tmp.join(".yolo-planning/codebase/CONVENTIONS.md"), "CONV").unwrap();
         std::fs::write(tmp.join(".yolo-planning/phases/03/03-01-PLAN.md"), "PHASE3_PLAN_CONTENT").unwrap();
 
-        let orig_dir = std::env::current_dir().unwrap();
-        let _ = std::env::set_current_dir(&tmp);
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
 
         // Phase 3 should include the plan file
         let result = handle_tool_call("compile_context", Some(json!({"phase": 3, "role": "dev"})), state.clone()).await;
@@ -419,21 +431,18 @@ mod tests {
         let text0 = result0["content"][0]["text"].as_str().unwrap();
         assert!(!text0.contains("PHASE3_PLAN_CONTENT"));
 
-        let _ = std::env::set_current_dir(&orig_dir);
         let _ = std::fs::remove_dir_all(&tmp);
     }
 
     #[tokio::test]
     async fn test_run_test_suite_detects_cargo() {
-        let state = Arc::new(ToolState::new());
-
         let tmp = std::env::temp_dir().join(format!("yolo-test-cargo-detect-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
         std::fs::write(tmp.join("Cargo.toml"), "[package]\nname = \"test\"").unwrap();
 
-        let orig_dir = std::env::current_dir().unwrap();
-        let _ = std::env::set_current_dir(&tmp);
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
 
         let result = handle_tool_call("run_test_suite", Some(json!({"test_path": "my_test"})), state).await;
         let text = result["content"][0]["text"].as_str().unwrap();
@@ -441,48 +450,41 @@ mod tests {
         // reference cargo, not npm
         assert!(text.contains("cargo") || text.contains("Cargo") || text.contains("STDOUT"));
 
-        let _ = std::env::set_current_dir(&orig_dir);
         let _ = std::fs::remove_dir_all(&tmp);
     }
 
     #[tokio::test]
     async fn test_run_test_suite_detects_bats() {
-        let state = Arc::new(ToolState::new());
-
         let tmp = std::env::temp_dir().join(format!("yolo-test-bats-detect-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(tmp.join("tests")).unwrap();
         std::fs::write(tmp.join("tests/foo.bats"), "@test 'hello' { true; }").unwrap();
 
-        let orig_dir = std::env::current_dir().unwrap();
-        let _ = std::env::set_current_dir(&tmp);
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
 
         let result = handle_tool_call("run_test_suite", Some(json!({"test_path": "tests/foo.bats"})), state).await;
         let text = result["content"][0]["text"].as_str().unwrap();
         // Should attempt bats, not npm
         assert!(!text.contains("npm"));
 
-        let _ = std::env::set_current_dir(&orig_dir);
         let _ = std::fs::remove_dir_all(&tmp);
     }
 
     #[tokio::test]
     async fn test_run_test_suite_no_runner() {
-        let state = Arc::new(ToolState::new());
-
         let tmp = std::env::temp_dir().join(format!("yolo-test-no-runner-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
 
-        let orig_dir = std::env::current_dir().unwrap();
-        let _ = std::env::set_current_dir(&tmp);
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
 
         let result = handle_tool_call("run_test_suite", Some(json!({"test_path": "some_test"})), state).await;
         assert_eq!(result.get("isError").unwrap(), true);
         let text = result["content"][0]["text"].as_str().unwrap();
         assert!(text.contains("No test runner detected"));
 
-        let _ = std::env::set_current_dir(&orig_dir);
         let _ = std::fs::remove_dir_all(&tmp);
     }
 }

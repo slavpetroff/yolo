@@ -472,8 +472,8 @@ mod tests {
 
     #[test]
     fn test_handle_no_planning_dir() {
+        let orig_dir = std::env::current_dir().unwrap();
         let dir = TempDir::new().unwrap();
-        // Set CWD to temp dir
         let _ = std::env::set_current_dir(dir.path());
         let input = HookInput {
             data: serde_json::json!({}),
@@ -482,6 +482,7 @@ mod tests {
         assert!(result.is_ok());
         let output = result.unwrap();
         assert_eq!(output.exit_code, 0);
+        let _ = std::env::set_current_dir(&orig_dir);
     }
 
     #[test]
