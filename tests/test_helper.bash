@@ -81,7 +81,7 @@ seed_agent_token_event() {
   local role="$1" phase="$2" input="$3" output="$4" cache_read="$5" cache_write="$6"
   local metrics_dir="$TEST_TEMP_DIR/.yolo-planning/.metrics"
   mkdir -p "$metrics_dir"
-  printf '{"ts":"2026-02-20T10:00:00Z","event":"agent_token_usage","phase":%s,"data":{"role":"%s","input_tokens":"%s","output_tokens":"%s","cache_read_tokens":"%s","cache_write_tokens":"%s"}}\n' \
+  printf '{"ts":"2026-02-20T10:00:00Z","event":"agent_token_usage","phase":%s,"data":{"role":"%s","input_tokens":%s,"output_tokens":%s,"cache_read_tokens":%s,"cache_write_tokens":%s}}\n' \
     "$phase" "$role" "$input" "$output" "$cache_read" "$cache_write" \
     >> "$metrics_dir/run-metrics.jsonl"
 }

@@ -754,4 +754,115 @@ mod tests {
         assert_eq!(code, 0);
         assert!(output.contains("No token economics data found"));
     }
+
+    #[test]
+    fn test_zero_division_safety_cache_hit_rate() {
+        // When no tokens recorded, cache hit rate should be 0% not NaN/panic
+        let stats: BTreeMap<(String, String), AgentTokenStats> = BTreeMap::new();
+        let (overall, per_agent) = calc_cache_hit_rates(&stats);
+        assert_eq!(overall, 0.0, "Empty stats should yield 0% cache hit rate");
+        assert!(per_agent.is_empty(), "No agents means no per-agent rates");
+
+        // Agent with all zeros
+        let mut stats2: BTreeMap<(String, String), AgentTokenStats> = BTreeMap::new();
+        stats2.insert(
+            ("dev".to_string(), "1".to_string()),
+            AgentTokenStats {
+                input: 0,
+                output: 0,
+                cache_read: 0,
+                cache_write: 0,
+            },
+        );
+        let (overall2, per_agent2) = calc_cache_hit_rates(&stats2);
+        assert_eq!(overall2, 0.0, "All-zero tokens should yield 0%");
+        assert_eq!(per_agent2["dev"], 0.0, "Dev with zero tokens should be 0%");
+    }
+
+    #[test]
+    fn test_missing_fields_default_to_zero() {
+        // JSONL event with partial data (no cache_write)
+        let metrics = vec![
+            serde_json::from_str::<Value>(
+                r#"{"event":"agent_token_usage","phase":1,"data":{"role":"dev","input_tokens":1000,"output_tokens":200}}"#,
+            )
+            .unwrap(),
+        ];
+        let stats = build_agent_stats(&metrics, None);
+        let s = &stats[&("dev".to_string(), "1".to_string())];
+        assert_eq!(s.input, 1000);
+        assert_eq!(s.output, 200);
+        assert_eq!(s.cache_read, 0, "Missing cache_read should default to 0");
+        assert_eq!(s.cache_write, 0, "Missing cache_write should default to 0");
+
+        // JSONL event with no data fields at all (only role)
+        let metrics2 = vec![
+            serde_json::from_str::<Value>(
+                r#"{"event":"agent_token_usage","phase":1,"data":{"role":"empty-agent"}}"#,
+            )
+            .unwrap(),
+        ];
+        let stats2 = build_agent_stats(&metrics2, None);
+        let s2 = &stats2[&("empty-agent".to_string(), "1".to_string())];
+        assert_eq!(s2.input, 0);
+        assert_eq!(s2.output, 0);
+        assert_eq!(s2.cache_read, 0);
+        assert_eq!(s2.cache_write, 0);
+    }
+
+    #[test]
+    fn test_large_dataset_aggregation() {
+        // 100+ events across 5 phases, verify aggregation completes and totals are correct
+        let mut lines = Vec::new();
+        for phase in 1..=5 {
+            for i in 0..20 {
+                let role = match i % 4 {
+                    0 => "dev",
+                    1 => "architect",
+                    2 => "qa",
+                    _ => "lead",
+                };
+                lines.push(format!(
+                    r#"{{"event":"agent_token_usage","phase":{},"data":{{"role":"{}","input_tokens":100,"output_tokens":50,"cache_read_tokens":30,"cache_write_tokens":10}}}}"#,
+                    phase, role
+                ));
+            }
+        }
+        // 100 events total: 20 per phase, 5 per role per phase
+        assert_eq!(lines.len(), 100);
+
+        let metrics: Vec<Value> = lines
+            .iter()
+            .map(|l| serde_json::from_str(l).unwrap())
+            .collect();
+
+        let stats = build_agent_stats(&metrics, None);
+        // 5 phases x 4 roles = 20 unique (role, phase) pairs
+        assert_eq!(stats.len(), 20, "Should have 20 unique (role, phase) pairs");
+
+        // Each (role, phase) pair has 5 events with 100 input each = 500
+        for s in stats.values() {
+            assert_eq!(s.input, 500, "Each bucket should have 5 * 100 = 500 input");
+            assert_eq!(s.output, 250, "Each bucket should have 5 * 50 = 250 output");
+            assert_eq!(s.cache_read, 150, "Each bucket should have 5 * 30 = 150 cache_read");
+            assert_eq!(s.cache_write, 50, "Each bucket should have 5 * 10 = 50 cache_write");
+        }
+
+        // Verify total across all
+        let total: i64 = stats.values().map(|s| s.total()).sum();
+        // 100 events * (100+50+30+10) = 100 * 190 = 19000
+        assert_eq!(total, 19000, "Grand total should be 19000");
+    }
+
+    #[test]
+    fn test_roi_with_zero_tasks() {
+        // With no task_completed_confirmed events, tokens_per_task should be 0 (not panic)
+        let events: Vec<Value> = vec![
+            serde_json::from_str(r#"{"event":"phase_start","phase":1}"#).unwrap(),
+        ];
+        let dir = tempdir().unwrap();
+        let (_tasks, _commits, tokens_per_task, _tokens_per_commit) =
+            calc_roi(&events, dir.path(), None, 50000);
+        assert_eq!(tokens_per_task, 0.0, "Zero tasks should yield 0 tokens/task, not panic");
+    }
 }
