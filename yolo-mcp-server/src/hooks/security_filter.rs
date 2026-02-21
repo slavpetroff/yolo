@@ -16,6 +16,12 @@ const MARKER_MAX_AGE_SECS: u64 = 86400;
 /// Fail-CLOSED: returns exit 2 on any parse error (never allow unvalidated input through).
 /// Extracts `file_path` from `tool_input.file_path`, `tool_input.path`, or `tool_input.pattern`.
 pub fn handle(input: &HookInput) -> Result<HookOutput, String> {
+    // Skip file-path validation for tools that don't operate on files (e.g., Bash)
+    let tool_name = input.data.get("tool_name").and_then(|v| v.as_str()).unwrap_or("");
+    if tool_name == "Bash" {
+        return Ok(HookOutput::empty());
+    }
+
     let file_path = extract_file_path(&input.data);
 
     // Fail-closed: if we can't extract a path, block
@@ -254,9 +260,18 @@ mod tests {
     }
 
     #[test]
-    fn test_fail_closed_no_tool_input() {
+    fn test_bash_tool_skips_file_path_check() {
         let input = HookInput {
             data: json!({ "tool_name": "Bash" }),
+        };
+        let result = handle(&input).unwrap();
+        assert_eq!(result.exit_code, 0, "Bash tool should skip file path validation");
+    }
+
+    #[test]
+    fn test_fail_closed_no_tool_input() {
+        let input = HookInput {
+            data: json!({ "tool_name": "Read" }),
         };
         let result = handle(&input).unwrap();
         assert_eq!(result.exit_code, 2);

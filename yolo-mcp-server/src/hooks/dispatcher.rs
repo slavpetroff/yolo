@@ -294,11 +294,19 @@ mod tests {
     }
 
     #[test]
-    fn test_dispatch_pre_tool_use_blocks_without_tool_input() {
-        // security_filter is fail-closed: no tool_input => exit 2
+    fn test_dispatch_pre_tool_use_bash_passes_through() {
+        // Bash tool skips security filter file-path check
         let stdin = r#"{"tool_name":"Bash"}"#;
         let (_output, code) = dispatch(&HookEvent::PreToolUse, stdin);
-        assert_eq!(code, 2, "PreToolUse without tool_input should block (fail-closed)");
+        assert_eq!(code, 0, "PreToolUse for Bash should pass through (no file path to validate)");
+    }
+
+    #[test]
+    fn test_dispatch_pre_tool_use_blocks_without_tool_input() {
+        // security_filter is fail-closed for file-based tools: no tool_input => exit 2
+        let stdin = r#"{"tool_name":"Read"}"#;
+        let (_output, code) = dispatch(&HookEvent::PreToolUse, stdin);
+        assert_eq!(code, 2, "PreToolUse for Read without tool_input should block (fail-closed)");
     }
 
     #[test]
