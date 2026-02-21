@@ -1,0 +1,35 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "82cbfb04-4459-4d58-bf59-924263041f37",
+    "phase": 1,
+    "phase_name": "01-general-improvements",
+    "plans": [
+      {
+        "id": "01-01",
+        "status": "complete",
+        "title": "Fix wrong subcommand names in command markdowns",
+        "wave": 1
+      },
+      {
+        "id": "01-02",
+        "status": "complete",
+        "title": "Wire unrouted modules and add missing CLI subcommands",
+        "wave": 1
+      },
+      {
+        "id": "01-03",
+        "status": "complete",
+        "title": "Enhance help command with per-command help and error recovery",
+        "wave": 1
+      }
+    ],
+    "started_at": "2026-02-21T00:00:00Z",
+    "status": "complete",
+    "total_waves": 1,
+    "wave": 1
+  },
+  "matcher": "auto",
+  "phase": "1",
+  "timestamp": "2026-02-20T23:36:32Z"
+}
