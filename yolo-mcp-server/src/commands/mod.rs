@@ -56,4 +56,5 @@ pub mod verify_vibe;
 pub mod verify_claude_bootstrap;
 pub mod token_economics_report;
 pub mod verify;
+pub mod structured_response;
 pub mod tier_context;
