@@ -9,14 +9,14 @@
 |-------|--------|-------|-------|----------|
 | 1 | Complete | 3/3 | 12 | 12 |
 | 2 | Complete | 1/1 | 4 | 2 |
-| 5 | Pending | 0 | 0 | 0 |
+| 5 | Complete | 3/3 | 13 | 11 |
 
 ---
 
 ## Phase List
 - [x] [Phase 1: General Improvements](#phase-1-general-improvements)
 - [x] [Phase 2: Fix Statusline](#phase-2-fix-statusline)
-- [ ] [Phase 5: MCP Server Audit & Fixes](#phase-5-mcp-server-audit--fixes)
+- [x] [Phase 5: MCP Server Audit & Fixes](#phase-5-mcp-server-audit--fixes)
 
 ---
 
