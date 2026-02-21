@@ -1,0 +1,29 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "87f5b1ce-b969-4e95-810f-f68f0eff8aa2",
+    "phase": 6,
+    "phase_name": "06-integration-wiring-audit",
+    "plans": [
+      {
+        "id": "06-01",
+        "status": "complete",
+        "title": "Create missing yolo-lead and yolo-debugger agent definitions",
+        "wave": 1
+      },
+      {
+        "id": "06-02",
+        "status": "complete",
+        "title": "Clean up stale hook matchers and update agent inventory",
+        "wave": 1
+      }
+    ],
+    "started_at": "2026-02-21T23:45:00Z",
+    "status": "complete",
+    "total_waves": 1,
+    "wave": 1
+  },
+  "matcher": "auto",
+  "phase": "6",
+  "timestamp": "2026-02-21T09:48:22Z"
+}
