@@ -2,7 +2,7 @@
 
 **Goal:** YOLO
 
-**Scope:** 3 phases
+**Scope:** 4 phases
 
 ## Progress
 | Phase | Status | Plans | Tasks | Commits |
@@ -10,6 +10,7 @@
 | 1 | Complete | 3/3 | 12 | 12 |
 | 2 | Complete | 1/1 | 4 | 2 |
 | 5 | Complete | 3/3 | 13 | 11 |
+| 6 | Pending | 0 | 0 | 0 |
 
 ---
 
@@ -17,6 +18,7 @@
 - [x] [Phase 1: General Improvements](#phase-1-general-improvements)
 - [x] [Phase 2: Fix Statusline](#phase-2-fix-statusline)
 - [x] [Phase 5: MCP Server Audit & Fixes](#phase-5-mcp-server-audit--fixes)
+- [ ] [Phase 6: Integration Wiring Audit](#phase-6-integration-wiring-audit)
 
 ---
 
@@ -71,5 +73,23 @@
 - bootstrap_claude uses HashSet for O(N+M) deduplication instead of O(N*M)
 - All existing tests pass + new tests for concurrent handling and role-filtered context
 - cargo build succeeds with no warnings
+
+**Dependencies:** None
+
+---
+
+## Phase 6: Integration Wiring Audit
+
+**Goal:** Create missing agent definitions (yolo-lead, yolo-debugger), clean up stale hook matchers referencing deprecated agents (yolo-qa, yolo-scout), and verify all MCP tools, CLI commands, agent references, and hook scripts are properly wired end-to-end
+
+**Requirements:** REQ-08
+
+**Success Criteria:**
+- `agents/yolo-lead.md` exists with planning orchestration protocol, matching vibe.md Plan mode expectations
+- `agents/yolo-debugger.md` exists with scientific debugging protocol, matching debug command expectations
+- `hooks/hooks.json` matchers only reference agents that have definitions (remove yolo-qa, yolo-scout)
+- Every agent's `allowed-tools` frontmatter includes the MCP tools it actually references in its body
+- All existing tests pass
+- No orphaned references: every agent name in hooks, commands, and references maps to an existing agent file
 
 **Dependencies:** None
