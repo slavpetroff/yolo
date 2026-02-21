@@ -25,7 +25,7 @@ pub fn execute_gate(args: &[String], cwd: &Path) -> Result<(String, i32), String
                 "evidence": "insufficient arguments",
                 "ts": "unknown"
             }).to_string(),
-            0
+            2
         ));
     }
 
@@ -179,6 +179,7 @@ pub fn execute_gate(args: &[String], cwd: &Path) -> Result<(String, i32), String
             }
 
             let output = Command::new("git")
+                .args(["diff", "--name-only", "--cached"])
                 .current_dir(cwd)
                 .output()
                 .ok();
@@ -267,6 +268,7 @@ pub fn execute_gate(args: &[String], cwd: &Path) -> Result<(String, i32), String
 
         "commit_hygiene" => {
             let output = Command::new("git")
+                .args(["log", "-1", "--pretty=%s"])
                 .current_dir(cwd)
                 .output()
                 .ok();
@@ -468,7 +470,7 @@ mod tests {
     fn test_execute_gate_missing_args() {
         let args = vec!["yolo".to_string(), "hard-gate".to_string()];
         let (output, code) = execute_gate(&args, Path::new(".")).unwrap();
-        assert_eq!(code, 0);
+        assert_eq!(code, 2);
         let res: Value = serde_json::from_str(&output).unwrap();
         assert_eq!(res["gate"], "unknown");
         assert_eq!(res["result"], "error");
