@@ -3,7 +3,14 @@ use serde_json::{json, Value};
 use std::env;
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 use uuid::Uuid;
+
+pub struct LogResult {
+    pub written: bool,
+    pub event_id: Option<String>,
+    pub reason: Option<String>,
+}
 
 /// Allowed event types for v2_typed_protocol validation.
 const ALLOWED_EVENT_TYPES: &[&str] = &[
@@ -43,14 +50,14 @@ fn parse_args(args: &[String]) -> (Option<String>, Vec<(String, String)>) {
 
 /// Core logging function callable from other Rust code.
 /// Appends a JSON line to `.yolo-planning/.events/event-log.jsonl`.
-/// Never fails fatally — returns Ok(()) on any error.
+/// Never fails fatally — returns Ok with LogResult on any path.
 pub fn log(
     event_type: &str,
     phase: &str,
     plan: Option<&str>,
     data_pairs: &[(String, String)],
     cwd: &Path,
-) -> Result<(), String> {
+) -> Result<LogResult, String> {
     let planning_dir = cwd.join(".yolo-planning");
     let config_path = planning_dir.join("config.json");
 
@@ -60,7 +67,11 @@ pub fn log(
             if let Ok(config) = serde_json::from_str::<Value>(&config_str) {
                 let enabled = config.get("v3_event_log").and_then(|v| v.as_bool()).unwrap_or(false);
                 if !enabled {
-                    return Ok(());
+                    return Ok(LogResult {
+                        written: false,
+                        event_id: None,
+                        reason: Some("v3_event_log disabled".to_string()),
+                    });
                 }
             }
         }
@@ -76,7 +87,11 @@ pub fn log(
                         "[log-event] WARNING: unknown event type '{}' rejected by v2_typed_protocol",
                         event_type
                     );
-                    return Ok(());
+                    return Ok(LogResult {
+                        written: false,
+                        event_id: None,
+                        reason: Some("unknown event type rejected".to_string()),
+                    });
                 }
             }
         }
@@ -143,11 +158,17 @@ pub fn log(
         let _ = file.write_all(line.as_bytes());
     }
 
-    Ok(())
+    Ok(LogResult {
+        written: true,
+        event_id: Some(event_id),
+        reason: None,
+    })
 }
 
 /// CLI entry point: `yolo log-event <type> <phase> [plan] [key=value...]`
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
+    let start = Instant::now();
+
     // args[0] = "yolo", args[1] = "log-event", args[2] = type, args[3] = phase, ...
     if args.len() < 4 {
         return Err("Usage: yolo log-event <type> <phase> [plan] [key=value...]".to_string());
@@ -159,9 +180,29 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
     let (plan, data_pairs) = parse_args(&remaining.to_vec());
 
-    let _ = log(event_type, phase, plan.as_deref(), &data_pairs, cwd);
+    let result = log(event_type, phase, plan.as_deref(), &data_pairs, cwd)?;
 
-    Ok(("".to_string(), 0))
+    let mut delta = serde_json::Map::new();
+    delta.insert("written".to_string(), json!(result.written));
+    if let Some(eid) = &result.event_id {
+        delta.insert("event_type".to_string(), json!(event_type));
+        delta.insert("phase".to_string(), json!(phase.parse::<i64>().unwrap_or(0)));
+        delta.insert("event_id".to_string(), json!(eid));
+    }
+    if let Some(reason) = &result.reason {
+        delta.insert("reason".to_string(), json!(reason));
+    }
+
+    let exit_code = if result.written { 0 } else { 3 };
+
+    let envelope = json!({
+        "ok": true,
+        "cmd": "log-event",
+        "delta": delta,
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
+
+    Ok((serde_json::to_string(&envelope).unwrap_or_default(), exit_code))
 }
 
 #[cfg(test)]
