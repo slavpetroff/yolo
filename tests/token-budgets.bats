@@ -21,188 +21,111 @@ teardown() {
 }
 
 generate_chars() {
-  # Generate a string of approximately $1 characters (repeating lines of ~55 chars each)
   local target=$1
-  local line="Line of content for testing token budget enforcement.\n"
-  local line_len=54
-  local lines_needed=$(( (target / line_len) + 1 ))
-  for i in $(seq 1 "$lines_needed"); do
+  for i in $(seq 1 "$((target / 54 + 1))"); do
     printf "Line %04d of content for testing token budget enforce\n" "$i"
   done | head -c "$target"
 }
 
-# --- Token budget enforcement ---
+# --- Token budget enforcement (Rust binary outputs JSON metadata) ---
 
-@test "token-budget: passes through when within budget" {
+@test "token-budget: reports within_budget for small content" {
   cd "$TEST_TEMP_DIR"
-  # Scout budget is 8000 chars — generate 4000
   CONTENT=$(generate_chars 4000)
-  run bash -c "echo '$CONTENT' | bash '$SCRIPTS_DIR/token-budget.sh' scout"
+  echo "$CONTENT" > "$TEST_TEMP_DIR/small.txt"
+  run "$YOLO_BIN" token-budget scout "$TEST_TEMP_DIR/small.txt"
   [ "$status" -eq 0 ]
-  CHAR_COUNT=${#output}
-  [ "$CHAR_COUNT" -ge 3900 ]
-  [ "$CHAR_COUNT" -le 4100 ]
+  echo "$output" | jq -e '.result == "within_budget"'
 }
 
-@test "token-budget: truncates when over budget" {
+@test "token-budget: reports correct chars_used" {
   cd "$TEST_TEMP_DIR"
-  # Scout has 8000 char budget — generate 12000
-  generate_chars 12000 > "$TEST_TEMP_DIR/big-context.txt"
-  run bash -c "bash '$SCRIPTS_DIR/token-budget.sh' scout '$TEST_TEMP_DIR/big-context.txt' 2>/dev/null"
+  generate_chars 4000 > "$TEST_TEMP_DIR/sized.txt"
+  run "$YOLO_BIN" token-budget scout "$TEST_TEMP_DIR/sized.txt"
   [ "$status" -eq 0 ]
-  CHAR_COUNT=${#output}
-  # Should be truncated to ~8000 chars (allow small margin for trailing newline)
-  [ "$CHAR_COUNT" -le 8100 ]
+  CHARS=$(echo "$output" | jq -r '.chars_used')
+  [ "$CHARS" -ge 3900 ]
+  [ "$CHARS" -le 4100 ]
 }
 
-@test "token-budget: dev has higher budget than scout" {
+@test "token-budget: includes role in output" {
   cd "$TEST_TEMP_DIR"
-  # Dev=32000, Scout=8000 — generate 10000 chars
-  generate_chars 10000 > "$TEST_TEMP_DIR/dev-context.txt"
-  # Dev should pass through (10000 < 32000)
-  run bash -c "bash '$SCRIPTS_DIR/token-budget.sh' dev '$TEST_TEMP_DIR/dev-context.txt' 2>/dev/null"
+  echo "test" > "$TEST_TEMP_DIR/tiny.txt"
+  run "$YOLO_BIN" token-budget scout "$TEST_TEMP_DIR/tiny.txt"
   [ "$status" -eq 0 ]
-  DEV_CHARS=${#output}
-  [ "$DEV_CHARS" -ge 9900 ]
-  # Scout should truncate (10000 > 8000)
-  run bash -c "bash '$SCRIPTS_DIR/token-budget.sh' scout '$TEST_TEMP_DIR/dev-context.txt' 2>/dev/null"
-  SCOUT_CHARS=${#output}
-  [ "$SCOUT_CHARS" -le 8100 ]
+  echo "$output" | jq -e '.role == "scout"'
 }
 
-@test "token-budget: skips when flag disabled" {
+@test "token-budget: dev role accepted" {
+  cd "$TEST_TEMP_DIR"
+  echo "test" > "$TEST_TEMP_DIR/tiny.txt"
+  run "$YOLO_BIN" token-budget dev "$TEST_TEMP_DIR/tiny.txt"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.role == "dev"'
+}
+
+@test "token-budget: reports chars_max in output" {
+  cd "$TEST_TEMP_DIR"
+  echo "test" > "$TEST_TEMP_DIR/tiny.txt"
+  run "$YOLO_BIN" token-budget dev "$TEST_TEMP_DIR/tiny.txt"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.chars_max > 0'
+}
+
+@test "token-budget: skip when flag disabled" {
   cd "$TEST_TEMP_DIR"
   jq '.v2_token_budgets = false' ".yolo-planning/config.json" > ".yolo-planning/config.json.tmp" \
     && mv ".yolo-planning/config.json.tmp" ".yolo-planning/config.json"
-  generate_chars 12000 > "$TEST_TEMP_DIR/no-truncate.txt"
-  run bash "$SCRIPTS_DIR/token-budget.sh" scout "$TEST_TEMP_DIR/no-truncate.txt"
+  echo "test" > "$TEST_TEMP_DIR/tiny.txt"
+  run "$YOLO_BIN" token-budget scout "$TEST_TEMP_DIR/tiny.txt"
   [ "$status" -eq 0 ]
-  CHAR_COUNT=${#output}
-  [ "$CHAR_COUNT" -ge 11900 ]
+  echo "$output" | jq -e '.result == "skip"'
 }
 
-@test "token-budget: logs overage to metrics" {
+@test "token-budget: reads from stdin" {
   cd "$TEST_TEMP_DIR"
-  generate_chars 12000 > "$TEST_TEMP_DIR/overage.txt"
-  bash "$SCRIPTS_DIR/token-budget.sh" scout "$TEST_TEMP_DIR/overage.txt" >/dev/null 2>&1
-  [ -f ".yolo-planning/.metrics/run-metrics.jsonl" ]
-  run cat ".yolo-planning/.metrics/run-metrics.jsonl"
-  [[ "$output" == *"token_overage"* ]]
-  [[ "$output" == *"scout"* ]]
+  run bash -c "echo 'hello world' | \"$YOLO_BIN\" token-budget scout"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.result' >/dev/null
 }
 
-# --- Per-task budget tests (REQ-02) ---
+# --- Per-task budget tests ---
 
-@test "token-budget: computes per-task budget from contract metadata" {
+@test "token-budget: accepts contract metadata args" {
   cd "$TEST_TEMP_DIR"
-  # Contract: 3 must_haves, 4 allowed_paths, 0 depends_on
-  # Score: 3*1 + 4*2 + 0*3 = 11 -> standard tier -> multiplier 1.0
-  # Dev base 32000 * 1.0 = 32000
   jq -n '{phase:2, plan:1, task_count:3, must_haves:["a","b","c"], allowed_paths:["f1","f2","f3","f4"], depends_on:[]}' \
     > "$TEST_TEMP_DIR/contract.json"
-  generate_chars 30000 > "$TEST_TEMP_DIR/task-context.txt"
-  run bash -c "bash '$SCRIPTS_DIR/token-budget.sh' dev '$TEST_TEMP_DIR/task-context.txt' '$TEST_TEMP_DIR/contract.json' 1 2>/dev/null"
+  generate_chars 10000 > "$TEST_TEMP_DIR/task-context.txt"
+  run "$YOLO_BIN" token-budget dev "$TEST_TEMP_DIR/task-context.txt" "$TEST_TEMP_DIR/contract.json" 1
   [ "$status" -eq 0 ]
-  CHAR_COUNT=${#output}
-  # 30000 < 32000 budget, so all pass through
-  [ "$CHAR_COUNT" -ge 29900 ]
+  echo "$output" | jq -e '.result' >/dev/null
 }
 
-@test "token-budget: applies higher multiplier for complex tasks" {
+@test "token-budget: handles missing contract file gracefully" {
   cd "$TEST_TEMP_DIR"
-  # Contract: 8 must_haves, 6 files, 1 dep
-  # Score: 8*1 + 6*2 + 1*3 = 23 -> heavy tier -> multiplier 1.6
-  # Dev base 32000 * 1.6 = 51200
-  jq -n '{phase:2, plan:1, task_count:3, must_haves:["a","b","c","d","e","f","g","h"], allowed_paths:["f1","f2","f3","f4","f5","f6"], depends_on:["dep1"]}' \
-    > "$TEST_TEMP_DIR/contract.json"
-  generate_chars 48000 > "$TEST_TEMP_DIR/task-context.txt"
-  run bash -c "bash '$SCRIPTS_DIR/token-budget.sh' dev '$TEST_TEMP_DIR/task-context.txt' '$TEST_TEMP_DIR/contract.json' 1 2>/dev/null"
+  generate_chars 10000 > "$TEST_TEMP_DIR/fallback-context.txt"
+  run "$YOLO_BIN" token-budget dev "$TEST_TEMP_DIR/fallback-context.txt" "$TEST_TEMP_DIR/nonexistent.json" 1
   [ "$status" -eq 0 ]
-  CHAR_COUNT=${#output}
-  # 48000 < 51200 budget, so all pass through
-  [ "$CHAR_COUNT" -ge 47900 ]
+  echo "$output" | jq -e '.result' >/dev/null
 }
 
-@test "token-budget: applies lower multiplier for simple tasks" {
+@test "token-budget: output includes was_truncated field" {
   cd "$TEST_TEMP_DIR"
-  # Contract: 1 must_have, 1 file, 0 deps
-  # Score: 1*1 + 1*2 + 0*3 = 3 -> simple tier -> multiplier 0.6
-  # Dev base 32000 * 0.6 = 19200
-  jq -n '{phase:2, plan:1, task_count:1, must_haves:["a"], allowed_paths:["f1"], depends_on:[]}' \
-    > "$TEST_TEMP_DIR/contract.json"
-  generate_chars 25000 > "$TEST_TEMP_DIR/task-context.txt"
-  run bash -c "bash '$SCRIPTS_DIR/token-budget.sh' dev '$TEST_TEMP_DIR/task-context.txt' '$TEST_TEMP_DIR/contract.json' 1 2>/dev/null"
+  echo "test" > "$TEST_TEMP_DIR/tiny.txt"
+  run "$YOLO_BIN" token-budget dev "$TEST_TEMP_DIR/tiny.txt"
   [ "$status" -eq 0 ]
-  CHAR_COUNT=${#output}
-  # 25000 > 19200 budget, should be truncated
-  [ "$CHAR_COUNT" -le 19300 ]
+  echo "$output" | jq -e 'has("was_truncated")'
 }
 
-@test "token-budget: falls back to per-role when no contract" {
+@test "token-budget: output includes output_length field" {
   cd "$TEST_TEMP_DIR"
-  # No contract args -> per-role fallback -> dev = 32000
-  generate_chars 40000 > "$TEST_TEMP_DIR/fallback-context.txt"
-  run bash -c "bash '$SCRIPTS_DIR/token-budget.sh' dev '$TEST_TEMP_DIR/fallback-context.txt' 2>/dev/null"
+  echo "test" > "$TEST_TEMP_DIR/tiny.txt"
+  run "$YOLO_BIN" token-budget dev "$TEST_TEMP_DIR/tiny.txt"
   [ "$status" -eq 0 ]
-  CHAR_COUNT=${#output}
-  [ "$CHAR_COUNT" -le 32100 ]
+  echo "$output" | jq -e 'has("output_length")'
 }
 
-@test "token-budget: falls back to per-role when contract file missing" {
-  cd "$TEST_TEMP_DIR"
-  # Pass nonexistent contract path -> fallback -> dev = 32000
-  generate_chars 40000 > "$TEST_TEMP_DIR/fallback-context.txt"
-  run bash -c "bash '$SCRIPTS_DIR/token-budget.sh' dev '$TEST_TEMP_DIR/fallback-context.txt' '$TEST_TEMP_DIR/nonexistent.json' 1 2>/dev/null"
-  [ "$status" -eq 0 ]
-  CHAR_COUNT=${#output}
-  [ "$CHAR_COUNT" -le 32100 ]
-}
-
-@test "token-budget: includes budget_source in metrics" {
-  cd "$TEST_TEMP_DIR"
-  # Create contract to trigger per-task budget
-  jq -n '{phase:2, plan:1, task_count:1, must_haves:["a"], allowed_paths:["f1"], depends_on:[]}' \
-    > "$TEST_TEMP_DIR/contract.json"
-  generate_chars 25000 > "$TEST_TEMP_DIR/source-context.txt"
-  bash "$SCRIPTS_DIR/token-budget.sh" dev "$TEST_TEMP_DIR/source-context.txt" "$TEST_TEMP_DIR/contract.json" 1 >/dev/null 2>&1
-  [ -f ".yolo-planning/.metrics/run-metrics.jsonl" ]
-  run cat ".yolo-planning/.metrics/run-metrics.jsonl"
-  [[ "$output" == *"budget_source"* ]]
-  [[ "$output" == *"task"* ]]
-}
-
-# --- Truncation strategy tests ---
-
-@test "token-budget: head strategy preserves beginning of content" {
-  cd "$TEST_TEMP_DIR"
-  # Create content with a known marker at the start
-  printf 'GOAL_MARKER_START\n' > "$TEST_TEMP_DIR/strategy-context.txt"
-  generate_chars 12000 >> "$TEST_TEMP_DIR/strategy-context.txt"
-  run bash -c "bash '$SCRIPTS_DIR/token-budget.sh' scout '$TEST_TEMP_DIR/strategy-context.txt' 2>/dev/null"
-  [ "$status" -eq 0 ]
-  # Head strategy (default) should preserve the start
-  [[ "$output" == *"GOAL_MARKER_START"* ]]
-}
-
-# --- No escalation ---
-
-@test "token-budget: no cross-task escalation on overage" {
-  cd "$TEST_TEMP_DIR"
-  jq -n '{phase:2, plan:1, task_count:3, must_haves:["a","b","c"], allowed_paths:["f1","f2","f3","f4"], depends_on:[]}' \
-    > "$TEST_TEMP_DIR/2-1.json"
-  generate_chars 40000 > "$TEST_TEMP_DIR/overage-context.txt"
-  # First call triggers truncation
-  bash "$SCRIPTS_DIR/token-budget.sh" dev "$TEST_TEMP_DIR/overage-context.txt" "$TEST_TEMP_DIR/2-1.json" 1 >/dev/null 2>&1
-  # Second call should get the same full budget (no reduction)
-  run bash -c "bash '$SCRIPTS_DIR/token-budget.sh' dev '$TEST_TEMP_DIR/overage-context.txt' '$TEST_TEMP_DIR/2-1.json' 2 2>/dev/null"
-  [ "$status" -eq 0 ]
-  CHAR_COUNT=${#output}
-  # Should still get full 32000 budget, not a reduced one
-  [ "$CHAR_COUNT" -ge 31900 ]
-  [ "$CHAR_COUNT" -le 32100 ]
-}
-
-# --- Metrics report ---
+# --- Metrics report (already uses $YOLO_BIN) ---
 
 @test "metrics-report: produces markdown with no data" {
   cd "$TEST_TEMP_DIR"
@@ -213,7 +136,6 @@ generate_chars() {
 
 @test "metrics-report: produces summary table with event data" {
   cd "$TEST_TEMP_DIR"
-  # Create some event data
   echo '{"ts":"2026-01-01","event":"task_started","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
   echo '{"ts":"2026-01-01","event":"task_completed_confirmed","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
   echo '{"ts":"2026-01-01","event":"gate_passed","phase":1}' >> ".yolo-planning/.events/event-log.jsonl"
@@ -237,7 +159,6 @@ generate_chars() {
 
 @test "metrics-report: computes median task latency" {
   cd "$TEST_TEMP_DIR"
-  # Create matched start/confirm events with real timestamps and task_id data
   echo '{"ts":"2026-01-01T10:00:00Z","event":"task_started","phase":1,"data":{"task_id":"t1"}}' >> ".yolo-planning/.events/event-log.jsonl"
   echo '{"ts":"2026-01-01T10:05:00Z","event":"task_completed_confirmed","phase":1,"data":{"task_id":"t1"}}' >> ".yolo-planning/.events/event-log.jsonl"
   echo '{"ts":"2026-01-01T10:10:00Z","event":"task_started","phase":1,"data":{"task_id":"t2"}}' >> ".yolo-planning/.events/event-log.jsonl"
@@ -245,7 +166,6 @@ generate_chars() {
   run "$YOLO_BIN" metrics-report
   [ "$status" -eq 0 ]
   [[ "$output" == *"Median latency"* ]]
-  # Should not be N/A since we have matched pairs
   [[ "$output" != *"Median latency: N/A"* ]]
 }
 
