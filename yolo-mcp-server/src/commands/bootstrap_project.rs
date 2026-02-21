@@ -1,10 +1,18 @@
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 
 pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
+    let start = Instant::now();
     // args: ["project", OUTPUT_PATH, NAME, DESCRIPTION, [CORE_VALUE]]
     if args.len() < 4 {
-        return Err("Usage: yolo bootstrap project <output_path> <name> <description> [core_value]".to_string());
+        let response = serde_json::json!({
+            "ok": false,
+            "cmd": "bootstrap-project",
+            "error": "Usage: yolo bootstrap project <output_path> <name> <description> [core_value]",
+            "elapsed_ms": start.elapsed().as_millis() as u64
+        });
+        return Ok((response.to_string(), 1));
     }
 
     let output_path = Path::new(&args[1]);
@@ -46,10 +54,25 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
         core_value = core_value,
     );
 
+    let section_count = content.matches("\n## ").count();
+
     fs::write(output_path, &content)
         .map_err(|e| format!("Failed to write {}: {}", output_path.display(), e))?;
 
-    Ok((String::new(), 0))
+    let response = serde_json::json!({
+        "ok": true,
+        "cmd": "bootstrap-project",
+        "changed": [output_path.to_string_lossy()],
+        "delta": {
+            "name": name,
+            "description": description,
+            "section_count": section_count,
+            "has_requirements": true,
+            "has_constraints": true
+        },
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
+    Ok((response.to_string(), 0))
 }
 
 #[cfg(test)]
