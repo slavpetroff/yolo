@@ -19,6 +19,10 @@ Defined: 2026-02-21
 ### REQ-05: Bats test coverage for all features
 **Should-have**
 
+### REQ-09: Token cache architecture alignment
+**Must-have**
+Prefix-first prompt assembly, stable/volatile context split, measured ROI telemetry, token budget enforcement. Aligns implementation with the YOLO Expert architecture blueprint for maximizing Anthropic API prompt cache hits across parallel agent swarms.
+
 ## Out of Scope
 
 _(To be defined)_

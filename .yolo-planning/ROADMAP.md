@@ -2,7 +2,7 @@
 
 **Goal:** YOLO
 
-**Scope:** 4 phases
+**Scope:** 5 phases
 
 ## Progress
 | Phase | Status | Plans | Tasks | Commits |
@@ -11,6 +11,7 @@
 | 2 | Complete | 1/1 | 4 | 2 |
 | 5 | Complete | 3/3 | 13 | 11 |
 | 6 | Complete | 2/2 | 8 | 2 |
+| 7 | Pending | 0 | 0 | 0 |
 
 ---
 
@@ -19,6 +20,7 @@
 - [x] [Phase 2: Fix Statusline](#phase-2-fix-statusline)
 - [x] [Phase 5: MCP Server Audit & Fixes](#phase-5-mcp-server-audit--fixes)
 - [x] [Phase 6: Integration Wiring Audit](#phase-6-integration-wiring-audit)
+- [ ] [Phase 7: Token Cache Architecture](#phase-7-token-cache-architecture)
 
 ---
 
@@ -91,5 +93,26 @@
 - Every agent's `allowed-tools` frontmatter includes the MCP tools it actually references in its body
 - All existing tests pass
 - No orphaned references: every agent name in hooks, commands, and references maps to an existing agent file
+
+**Dependencies:** None
+
+---
+
+## Phase 7: Token Cache Architecture
+
+**Goal:** Realign with the YOLO Expert architecture blueprint: restructure agent prompt assembly so compiled context is injected verbatim at the TOP of every Task prompt (prefix-first pattern for Anthropic API cache hits), split compile_context output into stable prefix + volatile tail, upgrade the ROI telemetry dashboard from hardcoded projections to measured data, and enable token budget enforcement
+
+**Requirements:** REQ-09
+
+**Success Criteria:**
+- Execute-protocol injects compiled context content (not file path) as the first block of every Dev agent's Task description
+- Vibe Plan mode injects compiled context content at the top of Lead agent's Task description
+- compile_context MCP tool returns separate `stable_prefix` and `volatile_tail` fields (plus `prefix_hash` and `prefix_bytes`)
+- compile-context CLI emits `<!-- STABLE_PREFIX_END -->` sentinel between stable and volatile sections
+- `yolo report` uses actual `AVG(output_length)` from telemetry DB instead of hardcoded 80K assumption
+- `v2_token_budgets=true` in config, token truncation enforced and logged
+- `v3_metrics=true` and `v3_event_log=true` enabled for observability
+- All existing tests pass + new tests for stable/volatile split
+- Phase number moved from stable prefix header to volatile tail (enables cross-phase cache reuse)
 
 **Dependencies:** None
