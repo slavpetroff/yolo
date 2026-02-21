@@ -138,7 +138,7 @@ pub fn revise(old_contract_path: &Path, plan_path: &Path, cwd: &Path) -> String 
 /// CLI entry point: `yolo contract-revision <old-contract-path> <plan-path>`
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     if args.len() < 4 {
-        return Ok(("".to_string(), 0));
+        return Err("Usage: yolo contract-revision <old-contract-path> <plan-path>".to_string());
     }
 
     let old_contract_path = cwd.join(&args[2]);
@@ -331,12 +331,11 @@ forbidden_paths:
     #[test]
     fn test_execute_missing_args() {
         let tmp = TempDir::new().unwrap();
-        let (output, code) = execute(
+        let result = execute(
             &["yolo".to_string(), "contract-revision".to_string()],
             tmp.path(),
-        )
-        .unwrap();
-        assert_eq!(code, 0);
-        assert!(output.is_empty());
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Usage:"));
     }
 }

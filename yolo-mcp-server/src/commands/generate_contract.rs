@@ -258,7 +258,7 @@ pub fn generate(plan_path: &Path, cwd: &Path) -> Option<(Value, String)> {
 /// CLI entry point: `yolo generate-contract <plan-path>`
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     if args.len() < 3 {
-        return Ok(("".to_string(), 0));
+        return Err("Usage: yolo generate-contract <plan-path>".to_string());
     }
 
     let plan_path = cwd.join(&args[2]);
@@ -460,13 +460,12 @@ Final task.
     #[test]
     fn test_execute_missing_args() {
         let tmp = TempDir::new().unwrap();
-        let (output, code) = execute(
+        let result = execute(
             &["yolo".to_string(), "generate-contract".to_string()],
             tmp.path(),
-        )
-        .unwrap();
-        assert_eq!(code, 0);
-        assert!(output.is_empty());
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Usage:"));
     }
 
     #[test]

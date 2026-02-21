@@ -150,7 +150,7 @@ pub fn log(
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     // args[0] = "yolo", args[1] = "log-event", args[2] = type, args[3] = phase, ...
     if args.len() < 4 {
-        return Ok(("".to_string(), 0));
+        return Err("Usage: yolo log-event <type> <phase> [plan] [key=value...]".to_string());
     }
 
     let event_type = &args[2];
@@ -311,9 +311,8 @@ mod tests {
         let dir = setup_test_env(true, false);
         let args: Vec<String> = vec!["yolo".into(), "log-event".into()];
         let result = execute(&args, dir.path());
-        assert!(result.is_ok());
-        let (_, code) = result.unwrap();
-        assert_eq!(code, 0);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Usage:"));
     }
 
     #[test]

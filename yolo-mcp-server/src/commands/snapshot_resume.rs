@@ -7,7 +7,7 @@ use std::process::Command;
 /// CLI entry: `yolo snapshot-resume <save|restore> <phase> [args...]`
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     if args.len() < 2 {
-        return Ok(("".to_string(), 0));
+        return Err("Usage: yolo snapshot-resume <save|restore> <phase> [args...]".to_string());
     }
 
     let action = &args[0];
