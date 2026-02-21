@@ -1,90 +1,101 @@
-# Token & Cache Architecture Optimization Roadmap
+# CLI Intelligence & Token Optimization Roadmap
 
-**Goal:** Token & Cache Architecture Optimization
+**Goal:** Fix incomplete CLI commands, add structured JSON returns to all state-changing operations, reduce token overhead by 10-15%, and split vibe.md for on-demand mode loading
 
 **Scope:** 4 phases
 
 ## Progress
 | Phase | Status | Plans | Tasks | Commits |
 |-------|--------|-------|-------|----------|
-| 1 | Complete | 3 | 10 | 9 |
-| 2 | Complete | 4 | 11 | 10 |
-| 3 | Complete | 4 | 16 | 12 |
-| 4 | Complete | 6 | 24 | 24 |
+| 1 | Pending | 0 | 0 | 0 |
+| 2 | Pending | 0 | 0 | 0 |
+| 3 | Pending | 0 | 0 | 0 |
+| 4 | Pending | 0 | 0 | 0 |
 
 ---
 
 ## Phase List
-- [x] [Phase 1: Token Economics Baseline](#phase-1-token-economics-baseline)
-- [x] [Phase 2: Hybrid Cache Prefix Architecture](#phase-2-hybrid-cache-prefix-architecture)
-- [x] [Phase 3: Context Pruning & Skills Migration](#phase-3-context-pruning-skills-migration)
-- [x] [Phase 4: Automation Hooks & Subagent Patterns](#phase-4-automation-hooks-subagent-patterns)
+- [ ] [Phase 1: Incomplete CLI & MCP Command Fixes](#phase-1-incomplete-cli--mcp-command-fixes)
+- [ ] [Phase 2: Rust CLI Structured Returns](#phase-2-rust-cli-structured-returns)
+- [ ] [Phase 3: Token Reduction Sweep](#phase-3-token-reduction-sweep)
+- [ ] [Phase 4: Hot Path & vibe.md Mode Splitting](#phase-4-hot-path--vibemd-mode-splitting)
 
 ---
 
-## Phase 1: Token Economics Baseline
+## Phase 1: Incomplete CLI & MCP Command Fixes
 
-**Goal:** Instrument telemetry to measure current token spend per agent, cache hit/miss rates, and waste patterns. Build the dashboard (CLI report command) that surfaces per-agent cost breakdown, waste identification, and ROI per phase. This is measurement-first: no optimization changes, just visibility.
+**Goal:** Fix broken and incomplete Rust CLI commands so every path produces correct, complete output. This is foundational — structured returns and token optimizations depend on commands actually working.
 
-**Requirements:** REQ-02
+**Requirements:** REQ-01 (CLI completeness)
 
 **Success Criteria:**
-- yolo report shows per-agent token spend (input/output/cache_read/cache_write) per phase
-- Cache hit rate percentage calculated from telemetry data
-- Waste metric: tokens loaded but never referenced in output (heuristic)
-- ROI metric: tokens spent per commit/task delivered
-- Dashboard renders in terminal with YOLO brand formatting
+- `yolo infer` correctly detects tech stack (languages, frameworks, tools) from pyproject.toml, Cargo.toml, package.json, go.mod, etc.
+- `yolo infer` extracts project purpose from README.md, PROJECT.md, or package description
+- `yolo detect-stack` returns complete JSON with all detected signals
+- `yolo delta-files` returns distinguishable empty vs no-strategy-worked responses
+- `yolo hard-gate` exits 2 on conflict (not 0)
+- `yolo lock` exits 2 on conflict (not 0)
+- All 56 CLI commands audited for stubs, silent failures, and unrouted modules
+- End-to-end test: `yolo infer` on alpine-notetaker correctly detects FastAPI + Redis + Python
 
 **Dependencies:** None
 
 ---
 
-## Phase 2: Hybrid Cache Prefix Architecture
+## Phase 2: Rust CLI Structured Returns
 
-**Goal:** Restructure compile_context to produce a 3-tier prefix: Tier 1 (shared base: tools, project meta, stack — identical for all agents), Tier 2 (role-family: planning roles vs execution roles get different reference sets), Tier 3 (volatile tail: phase-specific plans, task context). Update the MCP tool, CLI command, and all agent injection points (vibe.md, execute-protocol) to use the new structure.
+**Goal:** Make all state-changing CLI commands return structured JSON with operation deltas, eliminating 50-150 wasted LLM tool calls per phase execution.
 
-**Requirements:** REQ-01
+**Requirements:** REQ-02 (LLM efficiency)
 
 **Success Criteria:**
-- compile_context returns tier1_prefix, tier2_prefix, volatile_tail as separate fields
-- Tier 1 is byte-identical across all agent roles for the same project
-- Tier 2 is byte-identical within role families (lead+architect share, dev+qa share)
-- Existing tests pass + new tests for tier separation and cross-agent prefix identity
-- Measured cache hit rate improvement vs baseline (Phase 1 dashboard)
+- 12 fire-and-forget commands return structured JSON: `{"ok": bool, "cmd": "...", "changed": [...], "delta": {...}, "elapsed_ms": N}`
+- Exit code standardization: 0=success, 1=error, 2=partial/conflict, 3=skipped
+- LLM caller never needs to re-read a file just to understand what a command did
+- `update-state` returns delta showing before/after state
+- `compile-context` returns tier sizes, cache hit info, output path
+- `planning-git commit-boundary` returns commit hash or "skipped" with reason
+- `bootstrap *` returns content summary of generated file
+- `suggest-next` returns reasoning along with suggestion
+- All existing tests pass with JSON output parsing
 
 **Dependencies:** Phase 1
 
 ---
 
-## Phase 3: Context Pruning & Skills Migration
+## Phase 3: Token Reduction Sweep
 
-**Goal:** Prune CLAUDE.md to ~40 lines by moving verbose sections (plugin isolation, context isolation, detailed conventions) into on-demand skills. Selectively migrate the largest protocol references (execute-protocol, discussion-engine, verification-protocol) to skills that load only when their command is invoked. Keep frequently-used references (brand essentials, effort profiles) always-loaded.
+**Goal:** Reduce static token overhead by 10-15% per workflow cycle through deduplication, conditional loading, and reference consolidation.
 
-**Requirements:** REQ-03, REQ-04
+**Requirements:** REQ-03 (token efficiency)
 
 **Success Criteria:**
-- CLAUDE.md under 45 lines with no loss of critical rules
-- At least 3 protocol references converted to skills with SKILL.md + frontmatter
-- Skills load correctly when their parent command is invoked
-- No behavioral regression: agents still follow conventions and isolation rules
-- Measured context window savings from CLAUDE.md reduction
+- V3 experimental features extracted from execute-protocol.md to optional file (loaded only when enabled)
+- Shared "Agent Base Patterns" reference created, deduplicating Circuit Breaker/Context Injection/Shutdown across 5 agents
+- 4 effort profile MDs consolidated into 1 JSON + summary doc
+- 3 dead redirect references removed (execute-protocol.md, discussion-engine.md, verify-protocol.md in references/)
+- Handoff-schemas.md reduced via schema-driven approach (JSON examples → config reference)
+- Measured token reduction via `yolo report-tokens` shows 10%+ improvement
+- No behavioral regression (all tests pass, agents follow conventions)
 
 **Dependencies:** Phase 2
 
 ---
 
-## Phase 4: Automation Hooks & Subagent Patterns
+## Phase 4: Hot Path & vibe.md Mode Splitting
 
-**Goal:** Add hooks for automated quality gates (lint after edit, test validation, cache warming on session start) and establish subagent isolation patterns so research and verification run in separate contexts. Document patterns for when to use subagents vs inline processing.
+**Goal:** Optimize highest-frequency code paths. Split vibe.md monolith into mode-specific files for on-demand loading, reducing per-invocation token cost from 7,220 to ~1,500.
 
-**Requirements:** REQ-05, REQ-06
+**Requirements:** REQ-04 (hot path optimization)
 
 **Success Criteria:**
-- At least 2 new automation hooks implemented and registered in hooks.json
-- Subagent usage documented in agent definitions with context isolation guidelines
-- Research operations (map, discuss, research) use subagents to protect main context
-- Hook-based test validation runs after Dev agent edits (configurable)
-- All existing tests pass + new tests for hook behavior
+- vibe.md split into mode-specific files (plan.md content, execute.md content, etc.) loaded on demand
+- Each /yolo:vibe invocation loads only the active mode (~1,500 tokens) instead of all 11 (~7,220 tokens)
+- Tier 1 mtime caching in compile-context (skip recompilation when architecture unchanged)
+- `v2_token_budgets=true` enabled by default with safe defaults
+- `session-start` reports step-level success/failure for all 15 init steps
+- Measured tokens-per-phase improvement via `yolo report-tokens`
+- No behavioral regression across all workflow paths (plan, execute, verify, discuss, archive)
 
 **Dependencies:** Phase 3
 

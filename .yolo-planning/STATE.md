@@ -1,36 +1,28 @@
 # YOLO State
 
-**Project:** Token & Cache Architecture Optimization
-**Milestone:** Token & Cache Architecture Optimization
-**Current Phase:** Phase 4
-**Status:** Complete
-**Started:** 2026-02-21
-**Progress:** 100%
+**Project:** CLI Intelligence & Token Optimization
+**Milestone:** CLI Intelligence & Token Optimization
+**Current Phase:** Phase 1
+**Status:** Pending planning
+**Started:** 2026-02-22
+**Progress:** 0%
 
 ## Phase Status
-- **Phase 1:** Complete (3 plans, 10 tasks, 9 commits, effort: balanced)
-- **Phase 2:** Complete (4 plans, 11 tasks, 10 commits, effort: balanced)
-- **Phase 3:** Complete (4 plans, 16 tasks, 12 commits, effort: balanced)
-- **Phase 4:** Complete (6 plans, 24 tasks, 24 commits, effort: balanced)
+- **Phase 1:** Pending planning
+- **Phase 2:** Pending
+- **Phase 3:** Pending
+- **Phase 4:** Pending
 
 ## Key Decisions
 | Decision | Date | Rationale |
 |----------|------|-----------|
-| Fix CLI names in commands | 2026-02-21 | 4 wrong subcommand names caused runtime failures |
-| Wire 3 unrouted modules | 2026-02-21 | install-hooks, migrate-config, migrate-orphaned-state compiled but inaccessible |
-| Add compile-context + install-mcp CLIs | 2026-02-21 | Commands referenced these but they didn't exist |
-| Enhance help with per-command + troubleshooting | 2026-02-21 | No error recovery guidance existed |
+| Always JSON output | 2026-02-22 | All state-changing commands return JSON. Simpler, consistent, LLMs parse natively |
+| Split vibe.md modes | 2026-02-22 | 7,220 tokens loaded per invocation but only 1 mode used. On-demand loading saves ~80% |
+| Fix before optimize | 2026-02-22 | Incomplete commands (infer, detect-stack) must work before adding structured returns |
 
 ## Todos
 None
 
 ## Recent Activity
-- 2026-02-21: Phase 4 complete (6 plans, 24 tasks, 24 commits, 649 tests passing)
-- 2026-02-21: Phase 4 planned (6 plans, 24 tasks, wave 1: 4 plans, wave 2: 2 plans)
-- 2026-02-21: Phase 3 complete (4 plans, 16 tasks, 12 commits, 2 deviations)
-- 2026-02-21: Phase 3 planned (4 plans, 16 tasks, wave 1: 3 plans, wave 2: 1 plan)
-- 2026-02-21: Phase 2 complete (4 plans, 11 tasks, 10 commits, 1 deviation)
-- 2026-02-21: Phase 2 planned (4 plans, 11 tasks, wave 1: 2 plans, wave 2: 2 plans)
-- 2026-02-21: Phase 1 complete (3 plans, 10 tasks, 9 commits, 2 deviations)
-- 2026-02-21: Phase 1 planned (3 plans, 10 tasks, wave 1: 3 plans)
-- 2026-02-21: Created Token & Cache Architecture Optimization milestone (4 phases)
+- 2026-02-22: Archived "Token & Cache Architecture Optimization" milestone (4 phases, 61 tasks, 55 commits)
+- 2026-02-22: Created "CLI Intelligence & Token Optimization" milestone (4 phases)
