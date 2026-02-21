@@ -508,4 +508,119 @@ mod tests {
         assert_eq!(features.len(), 1);
         assert_eq!(features[0].as_str().unwrap(), "Logging");
     }
+
+    #[test]
+    fn test_infer_manifest_python() {
+        let dir = tempdir().unwrap();
+        let codebase_dir = dir.path().join("codebase");
+        fs::create_dir_all(&codebase_dir).unwrap();
+        // No STACK.md — manifest fallback should kick in
+        fs::write(dir.path().join("pyproject.toml"),
+            "[project]\nname = \"myapp\"\ndependencies = [\"fastapi\", \"uvicorn\"]"
+        ).unwrap();
+
+        let (out, _) = execute(&[
+            "yolo".into(), "infer".into(),
+            codebase_dir.to_string_lossy().to_string(),
+            dir.path().to_string_lossy().to_string(),
+        ], dir.path()).unwrap();
+
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+        let tech = parsed["tech_stack"]["value"].as_array().unwrap();
+        let names: Vec<&str> = tech.iter().map(|v| v.as_str().unwrap()).collect();
+        assert!(names.contains(&"Python"), "expected Python in {:?}", names);
+        assert!(names.contains(&"fastapi"), "expected fastapi in {:?}", names);
+        assert!(parsed["tech_stack"]["source"].as_str().unwrap().starts_with("manifest:"));
+    }
+
+    #[test]
+    fn test_infer_manifest_rust() {
+        let dir = tempdir().unwrap();
+        let codebase_dir = dir.path().join("codebase");
+        fs::create_dir_all(&codebase_dir).unwrap();
+        fs::write(dir.path().join("Cargo.toml"),
+            "[package]\nname = \"mylib\"\nversion = \"0.1.0\""
+        ).unwrap();
+
+        let (out, _) = execute(&[
+            "yolo".into(), "infer".into(),
+            codebase_dir.to_string_lossy().to_string(),
+            dir.path().to_string_lossy().to_string(),
+        ], dir.path()).unwrap();
+
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+        let tech = parsed["tech_stack"]["value"].as_array().unwrap();
+        assert_eq!(tech[0].as_str().unwrap(), "Rust");
+        assert_eq!(parsed["tech_stack"]["source"].as_str().unwrap(), "manifest:Cargo.toml");
+    }
+
+    #[test]
+    fn test_infer_readme_purpose() {
+        let dir = tempdir().unwrap();
+        let codebase_dir = dir.path().join("codebase");
+        fs::create_dir_all(&codebase_dir).unwrap();
+        // No CONCERNS.md — README fallback should kick in
+        fs::write(dir.path().join("README.md"),
+            "# My App\n\nA web service for managing notes.\n\n## Installation\n..."
+        ).unwrap();
+
+        let (out, _) = execute(&[
+            "yolo".into(), "infer".into(),
+            codebase_dir.to_string_lossy().to_string(),
+            dir.path().to_string_lossy().to_string(),
+        ], dir.path()).unwrap();
+
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+        let purpose = parsed["purpose"]["value"].as_str().unwrap();
+        assert!(purpose.contains("web service"), "expected 'web service' in: {}", purpose);
+        assert_eq!(parsed["purpose"]["source"].as_str().unwrap(), "README.md");
+    }
+
+    #[test]
+    fn test_infer_project_md_purpose() {
+        let dir = tempdir().unwrap();
+        let codebase_dir = dir.path().join("codebase");
+        fs::create_dir_all(&codebase_dir).unwrap();
+        // No CONCERNS.md, no README.md — PROJECT.md fallback
+        fs::write(dir.path().join("PROJECT.md"),
+            "# Project\n\n## Description\nTask management platform for distributed teams.\n\n## Goals"
+        ).unwrap();
+
+        let (out, _) = execute(&[
+            "yolo".into(), "infer".into(),
+            codebase_dir.to_string_lossy().to_string(),
+            dir.path().to_string_lossy().to_string(),
+        ], dir.path()).unwrap();
+
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+        let purpose = parsed["purpose"]["value"].as_str().unwrap();
+        assert!(purpose.contains("Task management"), "expected 'Task management' in: {}", purpose);
+        assert_eq!(parsed["purpose"]["source"].as_str().unwrap(), "PROJECT.md");
+    }
+
+    #[test]
+    fn test_infer_broadened_stack_headings() {
+        let dir = tempdir().unwrap();
+        let codebase_dir = dir.path().join("codebase");
+        fs::create_dir_all(&codebase_dir).unwrap();
+        // Use headings that match the project's actual STACK.md format
+        fs::write(codebase_dir.join("STACK.md"),
+            "## Primary Languages\n- **Rust** (90 files) — MCP server\n- **Bash** (54 files)\n## Frameworks & Libraries\n- **tokio** 1.49\n- **serde** 1.0\n## Other"
+        ).unwrap();
+
+        let (out, _) = execute(&[
+            "yolo".into(), "infer".into(),
+            codebase_dir.to_string_lossy().to_string(),
+            dir.path().to_string_lossy().to_string(),
+        ], dir.path()).unwrap();
+
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+        let tech = parsed["tech_stack"]["value"].as_array().unwrap();
+        let names: Vec<&str> = tech.iter().map(|v| v.as_str().unwrap()).collect();
+        assert!(names.contains(&"Rust"), "expected Rust in {:?}", names);
+        assert!(names.contains(&"Bash"), "expected Bash in {:?}", names);
+        assert!(names.contains(&"tokio"), "expected tokio in {:?}", names);
+        assert!(names.contains(&"serde"), "expected serde in {:?}", names);
+        assert_eq!(parsed["tech_stack"]["source"].as_str().unwrap(), "STACK.md");
+    }
 }
