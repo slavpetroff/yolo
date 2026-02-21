@@ -3,6 +3,10 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
+/// Maximum number of files returned from fallback strategies (tag-based, HEAD~5).
+/// A massive diff is not useful context, so we cap fallback results.
+const MAX_FALLBACK_FILES: usize = 50;
+
 /// Output changed files (one per line) for delta context compilation.
 /// Strategy 1 (git): diff --name-only HEAD + cached, deduplicate.
 /// Fallback: last 5 commits or since last tag.
@@ -64,8 +68,11 @@ fn git_strategy(cwd: &Path) -> Option<String> {
         if !tag.is_empty() {
             if let Some(tag_files) = git_diff_names(cwd, &["diff", "--name-only", &format!("{}..HEAD", tag)]) {
                 if !tag_files.is_empty() {
-                    let sorted: BTreeSet<String> = tag_files.into_iter().collect();
-                    return Some(sorted.into_iter().collect::<Vec<_>>().join("\n"));
+                    // Skip tag-based fallback entirely if diff exceeds cap (not useful context)
+                    if tag_files.len() <= MAX_FALLBACK_FILES {
+                        let sorted: BTreeSet<String> = tag_files.into_iter().collect();
+                        return Some(sorted.into_iter().collect::<Vec<_>>().join("\n"));
+                    }
                 }
             }
         }
@@ -75,7 +82,14 @@ fn git_strategy(cwd: &Path) -> Option<String> {
     if let Some(recent) = git_diff_names(cwd, &["diff", "--name-only", "HEAD~5..HEAD"]) {
         if !recent.is_empty() {
             let sorted: BTreeSet<String> = recent.into_iter().collect();
-            return Some(sorted.into_iter().collect::<Vec<_>>().join("\n"));
+            let sorted_vec: Vec<String> = sorted.into_iter().collect();
+            if sorted_vec.len() > MAX_FALLBACK_FILES {
+                let total = sorted_vec.len();
+                let mut truncated: Vec<String> = sorted_vec.into_iter().take(MAX_FALLBACK_FILES).collect();
+                truncated.push(format!("... (truncated, showing first {} of {} files)", MAX_FALLBACK_FILES, total));
+                return Some(truncated.join("\n"));
+            }
+            return Some(sorted_vec.join("\n"));
         }
     }
 
