@@ -258,22 +258,35 @@ mod tests {
         let content_arr = result.get("content").unwrap().as_array().unwrap();
         let text = content_arr[0].get("text").unwrap().as_str().unwrap();
 
-        assert!(text.contains("COMPILED CONTEXT"));
-        assert!(text.contains("role=architect"));
+        // Combined text contains tier headers and content
+        assert!(text.contains("TIER 1: SHARED BASE"));
+        assert!(text.contains("TIER 2: ROLE FAMILY (planning)"));
         assert!(text.contains("DUMMY ARCH CONTENT"));
 
-        // Verify new stable/volatile split fields
+        // Verify backward-compat and new tier fields
         assert!(result.get("stable_prefix").is_some());
         assert!(result.get("volatile_tail").is_some());
         assert!(result.get("prefix_hash").is_some());
         assert!(result.get("prefix_bytes").is_some());
+        assert!(result.get("tier1_prefix").is_some());
+        assert!(result.get("tier2_prefix").is_some());
+        assert!(result.get("tier1_hash").is_some());
+        assert!(result.get("tier2_hash").is_some());
 
+        let tier1 = result["tier1_prefix"].as_str().unwrap();
+        let tier2 = result["tier2_prefix"].as_str().unwrap();
         let stable = result["stable_prefix"].as_str().unwrap();
         let volatile = result["volatile_tail"].as_str().unwrap();
-        assert!(stable.contains("role=architect"));
-        assert!(!stable.contains("phase="));
-        assert!(volatile.contains("VOLATILE TAIL (phase=4)"));
-        assert!(stable.contains("DUMMY ARCH CONTENT"));
+
+        // Tier 1 has shared base header, tier 2 has role family header
+        assert!(tier1.contains("TIER 1: SHARED BASE"));
+        assert!(tier2.contains("TIER 2: ROLE FAMILY (planning)"));
+        // stable_prefix = tier1 + "\n" + tier2
+        assert_eq!(stable, &format!("{}\n{}", tier1, tier2));
+        // Volatile tail contains tier 3 header
+        assert!(volatile.contains("TIER 3: VOLATILE TAIL (phase=4)"));
+        // Architecture content is in tier 2 for planning family
+        assert!(tier2.contains("DUMMY ARCH CONTENT"));
 
         let _ = std::fs::remove_dir_all(&tmp);
     }
@@ -291,7 +304,7 @@ mod tests {
 
         let result = handle_tool_call("compile_context", params, state).await;
 
-        // Verify new token estimate fields exist
+        // Verify token estimate fields exist
         assert!(result.get("input_tokens_estimate").is_some());
         assert!(result.get("cache_read_tokens_estimate").is_some());
         assert!(result.get("cache_write_tokens_estimate").is_some());
@@ -301,6 +314,11 @@ mod tests {
         let prefix_bytes = result["prefix_bytes"].as_u64().unwrap();
         let volatile_bytes = result["volatile_bytes"].as_u64().unwrap();
         assert_eq!(input_est, prefix_bytes + volatile_bytes);
+
+        // prefix_bytes = tier1.len() + tier2.len() + 1 (newline separator)
+        let tier1 = result["tier1_prefix"].as_str().unwrap();
+        let tier2 = result["tier2_prefix"].as_str().unwrap();
+        assert_eq!(prefix_bytes as usize, tier1.len() + tier2.len() + 1);
 
         // First call should be cache write (no previous hash)
         assert_eq!(result["cache_read_tokens_estimate"].as_u64().unwrap(), 0);
@@ -447,37 +465,42 @@ mod tests {
         std::fs::write(tmp.join(".yolo-planning/codebase/ARCHITECTURE.md"), "ARCH_CONTENT_MARKER").unwrap();
         std::fs::write(tmp.join(".yolo-planning/codebase/STACK.md"), "STACK_CONTENT_MARKER").unwrap();
         std::fs::write(tmp.join(".yolo-planning/codebase/CONVENTIONS.md"), "CONV_CONTENT_MARKER").unwrap();
-        std::fs::write(tmp.join(".yolo-planning/ROADMAP.md"), "ROADMAP_CONTENT_MARKER").unwrap();
-        std::fs::write(tmp.join(".yolo-planning/REQUIREMENTS.md"), "REQ_CONTENT_MARKER").unwrap();
+        std::fs::write(tmp.join(".yolo-planning/codebase/ROADMAP.md"), "ROADMAP_CONTENT_MARKER").unwrap();
+        std::fs::write(tmp.join(".yolo-planning/codebase/REQUIREMENTS.md"), "REQ_CONTENT_MARKER").unwrap();
 
         let (_lock, _cwd) = lock_and_chdir(&tmp);
         let state = Arc::new(ToolState::new());
 
-        // Dev role should get CONVENTIONS, STACK, ROADMAP but NOT ARCHITECTURE or REQUIREMENTS
+        // Dev (execution family): tier1=CONVENTIONS+STACK, tier2=ROADMAP only
         let dev_result = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "dev"})), state.clone()).await;
-        let dev_text = dev_result["content"][0]["text"].as_str().unwrap();
-        assert!(dev_text.contains("CONV_CONTENT_MARKER"));
-        assert!(dev_text.contains("STACK_CONTENT_MARKER"));
-        assert!(dev_text.contains("ROADMAP_CONTENT_MARKER"));
-        assert!(!dev_text.contains("ARCH_CONTENT_MARKER"));
-        assert!(!dev_text.contains("REQ_CONTENT_MARKER"));
+        let dev_tier1 = dev_result["tier1_prefix"].as_str().unwrap();
+        let dev_tier2 = dev_result["tier2_prefix"].as_str().unwrap();
+        // Tier 1: CONVENTIONS + STACK (shared base for all roles)
+        assert!(dev_tier1.contains("CONV_CONTENT_MARKER"));
+        assert!(dev_tier1.contains("STACK_CONTENT_MARKER"));
+        // Tier 2 execution: ROADMAP only
+        assert!(dev_tier2.contains("ROADMAP_CONTENT_MARKER"));
+        assert!(!dev_tier2.contains("ARCH_CONTENT_MARKER"));
+        assert!(!dev_tier2.contains("REQ_CONTENT_MARKER"));
 
-        // Architect role should get all 5 files
+        // Architect (planning family): tier1=CONVENTIONS+STACK, tier2=ARCHITECTURE+ROADMAP+REQUIREMENTS
         let arch_result = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "architect"})), state.clone()).await;
-        let arch_text = arch_result["content"][0]["text"].as_str().unwrap();
-        assert!(arch_text.contains("ARCH_CONTENT_MARKER"));
-        assert!(arch_text.contains("STACK_CONTENT_MARKER"));
-        assert!(arch_text.contains("CONV_CONTENT_MARKER"));
-        assert!(arch_text.contains("ROADMAP_CONTENT_MARKER"));
-        assert!(arch_text.contains("REQ_CONTENT_MARKER"));
+        let arch_tier1 = arch_result["tier1_prefix"].as_str().unwrap();
+        let arch_tier2 = arch_result["tier2_prefix"].as_str().unwrap();
+        assert!(arch_tier1.contains("CONV_CONTENT_MARKER"));
+        assert!(arch_tier1.contains("STACK_CONTENT_MARKER"));
+        assert!(arch_tier2.contains("ARCH_CONTENT_MARKER"));
+        assert!(arch_tier2.contains("ROADMAP_CONTENT_MARKER"));
+        assert!(arch_tier2.contains("REQ_CONTENT_MARKER"));
 
-        // QA role should get CONVENTIONS and REQUIREMENTS only
+        // QA (execution family): same tier structure as dev
         let qa_result = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "qa"})), state.clone()).await;
-        let qa_text = qa_result["content"][0]["text"].as_str().unwrap();
-        assert!(qa_text.contains("CONV_CONTENT_MARKER"));
-        assert!(qa_text.contains("REQ_CONTENT_MARKER"));
-        assert!(!qa_text.contains("ARCH_CONTENT_MARKER"));
-        assert!(!qa_text.contains("STACK_CONTENT_MARKER"));
+        let qa_tier1 = qa_result["tier1_prefix"].as_str().unwrap();
+        let qa_tier2 = qa_result["tier2_prefix"].as_str().unwrap();
+        assert!(qa_tier1.contains("CONV_CONTENT_MARKER"));
+        assert!(qa_tier1.contains("STACK_CONTENT_MARKER"));
+        assert!(qa_tier2.contains("ROADMAP_CONTENT_MARKER"));
+        assert!(!qa_tier2.contains("ARCH_CONTENT_MARKER"));
 
         let _ = std::fs::remove_dir_all(&tmp);
     }
