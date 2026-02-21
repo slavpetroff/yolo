@@ -297,4 +297,25 @@ Nothing else.
         assert_eq!(files.len(), 1);
         assert_eq!(files[0], "src/a.rs");
     }
+
+    #[test]
+    fn test_max_fallback_constant() {
+        assert_eq!(MAX_FALLBACK_FILES, 50);
+    }
+
+    #[test]
+    fn test_summary_strategy_large_file_list() {
+        // summary_strategy is NOT capped -- only git fallbacks are capped.
+        // Verify that 100+ files are all returned from summary_strategy.
+        let dir = TempDir::new().unwrap();
+        let mut content = String::from("## Files Modified\n");
+        for i in 0..120 {
+            content.push_str(&format!("- src/file_{:03}.rs\n", i));
+        }
+        fs::write(dir.path().join("01-SUMMARY.md"), &content).unwrap();
+
+        let result = summary_strategy(dir.path());
+        let files: Vec<&str> = result.lines().collect();
+        assert_eq!(files.len(), 120, "summary_strategy should return all files without capping");
+    }
 }
