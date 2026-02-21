@@ -137,11 +137,21 @@ mod tests {
         let dir = tempdir().unwrap();
         let output = dir.path().join("STATE.md");
 
-        let (_, code) = execute(
+        let (out, code) = execute(
             &["state".into(), output.to_string_lossy().to_string(), "MyApp".into(), "Initial Release".into(), "3".into()],
             dir.path(),
         ).unwrap();
         assert_eq!(code, 0);
+
+        let json: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(json["ok"], true);
+        assert_eq!(json["cmd"], "bootstrap-state");
+        assert!(json["changed"].as_array().unwrap().len() > 0);
+        assert_eq!(json["delta"]["project_name"], "MyApp");
+        assert_eq!(json["delta"]["milestone_name"], "Initial Release");
+        assert_eq!(json["delta"]["phase_count"], 3);
+        assert_eq!(json["delta"]["preserved_todos"], false);
+        assert_eq!(json["delta"]["preserved_decisions"], false);
 
         let content = fs::read_to_string(&output).unwrap();
         assert!(content.contains("# YOLO State"));
@@ -162,10 +172,14 @@ mod tests {
         // Write initial state with todos
         fs::write(&output, "# YOLO State\n\n## Todos\n- [ ] Fix bug #42\n- [x] Review PR\n\n## Key Decisions\n| D | R |\n").unwrap();
 
-        execute(
+        let (out, _) = execute(
             &["state".into(), output.to_string_lossy().to_string(), "MyApp".into(), "v2".into(), "2".into()],
             dir.path(),
         ).unwrap();
+
+        let json: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(json["delta"]["preserved_todos"], true);
+        assert_eq!(json["delta"]["preserved_decisions"], true);
 
         let content = fs::read_to_string(&output).unwrap();
         assert!(content.contains("- [ ] Fix bug #42"));
@@ -179,10 +193,13 @@ mod tests {
 
         fs::write(&output, "# YOLO State\n\n## Key Decisions\n| Decision | Date | Rationale |\n|---|---|---|\n| Use Rust | 2026-01-01 | Performance |\n\n## Todos\nNone.\n").unwrap();
 
-        execute(
+        let (out, _) = execute(
             &["state".into(), output.to_string_lossy().to_string(), "MyApp".into(), "v2".into(), "1".into()],
             dir.path(),
         ).unwrap();
+
+        let json: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(json["delta"]["preserved_decisions"], true);
 
         let content = fs::read_to_string(&output).unwrap();
         assert!(content.contains("Use Rust"));
@@ -192,12 +209,15 @@ mod tests {
     #[test]
     fn test_missing_args() {
         let dir = tempdir().unwrap();
-        let result = execute(
+        let (out, code) = execute(
             &["state".into(), "/tmp/test.md".into(), "MyApp".into()],
             dir.path(),
-        );
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Usage:"));
+        ).unwrap();
+        assert_eq!(code, 1);
+        let json: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(json["ok"], false);
+        assert_eq!(json["cmd"], "bootstrap-state");
+        assert!(json["error"].as_str().unwrap().contains("Usage:"));
     }
 
     #[test]

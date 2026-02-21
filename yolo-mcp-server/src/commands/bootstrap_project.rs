@@ -85,11 +85,20 @@ mod tests {
         let dir = tempdir().unwrap();
         let output = dir.path().join("PROJECT.md");
 
-        let (_, code) = execute(
+        let (out, code) = execute(
             &["project".into(), output.to_string_lossy().to_string(), "MyApp".into(), "A task manager".into()],
             dir.path(),
         ).unwrap();
         assert_eq!(code, 0);
+
+        let json: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(json["ok"], true);
+        assert_eq!(json["cmd"], "bootstrap-project");
+        assert!(json["changed"].as_array().unwrap().len() > 0);
+        assert_eq!(json["delta"]["name"], "MyApp");
+        assert_eq!(json["delta"]["has_requirements"], true);
+        assert_eq!(json["delta"]["has_constraints"], true);
+        assert!(json["delta"]["section_count"].as_u64().unwrap() >= 2);
 
         let content = fs::read_to_string(&output).unwrap();
         assert!(content.starts_with("# MyApp\n"));
@@ -104,10 +113,14 @@ mod tests {
         let dir = tempdir().unwrap();
         let output = dir.path().join("PROJECT.md");
 
-        execute(
+        let (out, _) = execute(
             &["project".into(), output.to_string_lossy().to_string(), "MyApp".into(), "A task manager".into(), "Simplify life".into()],
             dir.path(),
         ).unwrap();
+
+        let json: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(json["ok"], true);
+        assert_eq!(json["delta"]["description"], "A task manager");
 
         let content = fs::read_to_string(&output).unwrap();
         assert!(content.contains("**Core value:** Simplify life"));
@@ -116,12 +129,15 @@ mod tests {
     #[test]
     fn test_missing_args() {
         let dir = tempdir().unwrap();
-        let result = execute(
+        let (out, code) = execute(
             &["project".into(), "/tmp/test.md".into()],
             dir.path(),
-        );
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Usage:"));
+        ).unwrap();
+        assert_eq!(code, 1);
+        let json: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(json["ok"], false);
+        assert_eq!(json["cmd"], "bootstrap-project");
+        assert!(json["error"].as_str().unwrap().contains("Usage:"));
     }
 
     #[test]

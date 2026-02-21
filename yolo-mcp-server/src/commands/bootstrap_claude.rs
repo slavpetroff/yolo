@@ -425,8 +425,17 @@ mod tests {
     fn test_greenfield() {
         let dir = tempdir().unwrap();
         let out = dir.path().join("CLAUDE.md");
-        run_bootstrap(&[out.to_str().unwrap(), "Demo Project", "Demo core value"], dir.path()).unwrap();
-        
+        let (result, code) = run_bootstrap(&[out.to_str().unwrap(), "Demo Project", "Demo core value"], dir.path()).unwrap();
+        assert_eq!(code, 0);
+
+        let json: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(json["ok"], true);
+        assert_eq!(json["cmd"], "bootstrap-claude");
+        assert!(json["changed"].as_array().unwrap().len() > 0);
+        assert_eq!(json["delta"]["mode"], "greenfield");
+        assert_eq!(json["delta"]["sections_stripped"], 0);
+        assert_eq!(json["delta"]["decisions_migrated"], 0);
+
         assert!(out.exists());
         let c = fs::read_to_string(&out).unwrap();
         assert!(c.contains("# Demo Project\n"));
@@ -442,7 +451,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let plan_dir = dir.path().join(".yolo-planning");
         fs::create_dir_all(&plan_dir).unwrap();
-        
+
         let state_path = plan_dir.join("STATE.md");
         fs::write(&state_path, "# State\n\n## Key Decisions\n\n| Decision | Date | Rationale |\n|---|---|---|\n| _(No decisions yet)_ | | |\n\n## Todos\n").unwrap();
 
@@ -451,7 +460,12 @@ mod tests {
 
         let out = dir.path().join("CLAUDE.md");
         let sys_path = out.to_str().unwrap();
-        run_bootstrap(&[sys_path, "Demo Project", "Demo core value", existing.to_str().unwrap()], dir.path()).unwrap();
+        let (result, _) = run_bootstrap(&[sys_path, "Demo Project", "Demo core value", existing.to_str().unwrap()], dir.path()).unwrap();
+
+        let json: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(json["ok"], true);
+        assert_eq!(json["delta"]["mode"], "brownfield");
+        assert!(json["delta"]["sections_stripped"].as_u64().unwrap() > 0);
 
         assert!(check(&out, "## Custom Notes"));
         assert!(check(&out, "## Team Notes"));
@@ -502,8 +516,17 @@ mod tests {
     fn test_edge_cases() {
         let dir = tempdir().unwrap();
         let out = dir.path().join("CLAUDE.md");
-        assert!(run_bootstrap(&[out.to_str().unwrap(), "", "Some"], dir.path()).is_err());
-        assert!(run_bootstrap(&[out.to_str().unwrap(), "Some", ""], dir.path()).is_err());
+
+        let (result, code) = run_bootstrap(&[out.to_str().unwrap(), "", "Some"], dir.path()).unwrap();
+        assert_eq!(code, 1);
+        let json: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(json["ok"], false);
+        assert_eq!(json["cmd"], "bootstrap-claude");
+
+        let (result2, code2) = run_bootstrap(&[out.to_str().unwrap(), "Some", ""], dir.path()).unwrap();
+        assert_eq!(code2, 1);
+        let json2: serde_json::Value = serde_json::from_str(&result2).unwrap();
+        assert_eq!(json2["ok"], false);
     }
 
     #[test]

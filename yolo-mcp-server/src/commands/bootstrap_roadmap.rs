@@ -191,11 +191,19 @@ mod tests {
             {"name": "Core Setup", "goal": "Set up basics", "requirements": ["REQ-01"], "success_criteria": ["Tests pass"]}
         ]"#);
 
-        let (_, code) = execute(
+        let (out, code) = execute(
             &["roadmap".into(), output.to_string_lossy().to_string(), "MyApp".into(), phases],
             dir.path(),
         ).unwrap();
         assert_eq!(code, 0);
+
+        let json: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(json["ok"], true);
+        assert_eq!(json["cmd"], "bootstrap-roadmap");
+        assert_eq!(json["delta"]["phase_count"], 1);
+        assert_eq!(json["delta"]["project_name"], "MyApp");
+        assert_eq!(json["delta"]["phase_dirs_created"].as_array().unwrap().len(), 1);
+        assert!(json["changed"].as_array().unwrap().len() >= 2);
 
         let content = fs::read_to_string(&output).unwrap();
         assert!(content.contains("# MyApp Roadmap"));
@@ -213,10 +221,18 @@ mod tests {
             {"name": "Features", "goal": "Add features", "requirements": ["REQ-01"], "success_criteria": ["All tests pass", "Docs updated"]}
         ]"#);
 
-        execute(
+        let (out, _) = execute(
             &["roadmap".into(), output.to_string_lossy().to_string(), "TestProj".into(), phases],
             dir.path(),
         ).unwrap();
+
+        let json: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(json["ok"], true);
+        assert_eq!(json["delta"]["phase_count"], 2);
+        let phase_dirs = json["delta"]["phase_dirs_created"].as_array().unwrap();
+        assert_eq!(phase_dirs.len(), 2);
+        assert_eq!(phase_dirs[0], "01-foundation");
+        assert_eq!(phase_dirs[1], "02-features");
 
         let content = fs::read_to_string(&output).unwrap();
         assert!(content.contains("**Scope:** 2 phases"));
@@ -236,6 +252,20 @@ mod tests {
         assert_eq!(slugify("Phase 1: Setup"), "phase-1-setup");
         assert_eq!(slugify("  Leading Spaces  "), "leading-spaces");
         assert_eq!(slugify("special!!chars##here"), "special-chars-here");
+    }
+
+    #[test]
+    fn test_missing_args() {
+        let dir = tempdir().unwrap();
+        let (out, code) = execute(
+            &["roadmap".into(), "/tmp/out.md".into()],
+            dir.path(),
+        ).unwrap();
+        assert_eq!(code, 1);
+        let json: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(json["ok"], false);
+        assert_eq!(json["cmd"], "bootstrap-roadmap");
+        assert!(json["error"].as_str().unwrap().contains("Usage:"));
     }
 
     #[test]
@@ -273,10 +303,13 @@ mod tests {
             {"name": "C", "goal": "G3", "requirements": [], "success_criteria": []}
         ]"#);
 
-        execute(
+        let (out, _) = execute(
             &["roadmap".into(), output.to_string_lossy().to_string(), "Test".into(), phases],
             dir.path(),
         ).unwrap();
+
+        let json: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(json["delta"]["phase_count"], 3);
 
         let content = fs::read_to_string(&output).unwrap();
         assert!(content.contains("| 1 | Pending | 0 | 0 | 0 |"));

@@ -137,11 +137,19 @@ mod tests {
             ]
         }"#).unwrap();
 
-        let (_, code) = execute(
+        let (out, code) = execute(
             &["requirements".into(), output.to_string_lossy().to_string(), discovery.to_string_lossy().to_string()],
             dir.path(),
         ).unwrap();
         assert_eq!(code, 0);
+
+        let json: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(json["ok"], true);
+        assert_eq!(json["cmd"], "bootstrap-requirements");
+        assert_eq!(json["delta"]["requirement_count"], 2);
+        assert_eq!(json["delta"]["research_available"], false);
+        assert_eq!(json["delta"]["discovery_updated"], true);
+        assert!(json["changed"].as_array().unwrap().len() >= 2);
 
         let content = fs::read_to_string(&output).unwrap();
         assert!(content.contains("### REQ-01: User authentication"));
@@ -180,10 +188,15 @@ mod tests {
         }"#).unwrap();
         fs::write(&research, "# Research\nSome findings").unwrap();
 
-        execute(
+        let (out, _) = execute(
             &["requirements".into(), output.to_string_lossy().to_string(), discovery.to_string_lossy().to_string(), research.to_string_lossy().to_string()],
             dir.path(),
         ).unwrap();
+
+        let json: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(json["ok"], true);
+        assert_eq!(json["delta"]["research_available"], true);
+        assert_eq!(json["delta"]["requirement_count"], 1);
 
         let updated: serde_json::Value = serde_json::from_str(&fs::read_to_string(&discovery).unwrap()).unwrap();
         assert_eq!(updated["research_summary"]["available"], true);
