@@ -3,7 +3,7 @@ use std::env;
 use std::io::Read;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
-use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, token_budget, token_economics_report, lock_lite, lease_lock, two_phase_complete, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, log_event, collect_metrics, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary, cache_context, cache_nuke, delta_files, help_output, bump_version, doctor_cleanup, auto_repair, rollout_stage, verify, install_hooks, migrate_config, migrate_orphaned_state};
+use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, token_budget, token_economics_report, lock_lite, lease_lock, two_phase_complete, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, log_event, collect_metrics, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary, cache_context, cache_nuke, delta_files, help_output, bump_version, doctor_cleanup, auto_repair, rollout_stage, verify, install_hooks, migrate_config, migrate_orphaned_state, tier_context};
 use crate::hooks;
 pub fn generate_report(total_calls: i64, compile_calls: i64, avg_output_length: f64, unique_sessions: Option<i64>) -> String {
     let mut out = String::new();
@@ -363,58 +363,15 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
             let phase = &args[2];
             let role = &args[3];
             let phases_dir = std::path::Path::new(&args[4]);
-            let plan_path = args.get(5).map(|s| s.as_str());
+            let plan_path_opt = args.get(5).map(|s| std::path::Path::new(s.as_str()));
 
             let planning_dir = PathBuf::from(".yolo-planning");
-            let files_to_read = vec![
-                planning_dir.join("codebase").join("ARCHITECTURE.md"),
-                planning_dir.join("codebase").join("STACK.md"),
-                planning_dir.join("codebase").join("CONVENTIONS.md"),
-                planning_dir.join("ROADMAP.md"),
-                planning_dir.join("REQUIREMENTS.md"),
-            ];
+            let phase_i64 = phase.parse::<i64>().unwrap_or(0);
+            let ctx = tier_context::build_tiered_context(
+                &planning_dir, role, phase_i64, Some(phases_dir), plan_path_opt,
+            );
 
-            // Stable prefix: reference files only, no phase number in header
-            let mut context = format!("--- COMPILED CONTEXT (role={}) ---\n", role);
-
-            for path in &files_to_read {
-                if path.exists() {
-                    if let Ok(content) = std::fs::read_to_string(path) {
-                        context.push_str(&format!("\n# {}\n{}\n", path.display(), content));
-                    }
-                }
-            }
-
-            // Sentinel marks boundary between stable prefix and volatile tail
-            context.push_str("\n<!-- STABLE_PREFIX_END -->\n");
-
-            // Volatile tail: phase-specific plans
-            context.push_str(&format!("--- VOLATILE TAIL (phase={}) ---\n", phase));
-
-            // Include plan file if provided
-            if let Some(pp) = plan_path {
-                let pp_path = std::path::Path::new(pp);
-                if pp_path.exists() {
-                    if let Ok(content) = std::fs::read_to_string(pp_path) {
-                        context.push_str(&format!("\n# Plan: {}\n{}\n", pp, content));
-                    }
-                }
-            }
-
-            // Try to include phase-specific plan files from phases_dir
-            if phases_dir.is_dir() {
-                if let Ok(entries) = std::fs::read_dir(phases_dir) {
-                    for entry in entries.flatten() {
-                        let name = entry.file_name().to_string_lossy().to_string();
-                        if name.ends_with("-PLAN.md") || name.ends_with(".plan.jsonl") {
-                            if let Ok(content) = std::fs::read_to_string(entry.path()) {
-                                context.push_str(&format!("\n# {}\n{}\n", name, content));
-                            }
-                        }
-                    }
-                }
-            }
-
+            let mut context = ctx.combined;
             context.push_str("\n--- END COMPILED CONTEXT ---\n");
 
             // Write to .context-{role}.md in phases_dir
