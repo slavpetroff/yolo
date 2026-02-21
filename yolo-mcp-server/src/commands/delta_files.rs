@@ -249,7 +249,32 @@ Nothing else.
         let args: Vec<String> = vec!["yolo".into(), "delta-files".into()];
         let (output, code) = execute(&args, dir.path()).unwrap();
         assert_eq!(code, 0);
-        assert!(output.is_empty());
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(parsed["strategy"], "none");
+        assert_eq!(parsed["files"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn test_execute_empty_git_repo() {
+        // Create a temp dir and init a git repo with at least one commit
+        let dir = TempDir::new().unwrap();
+        std::process::Command::new("git")
+            .args(["init"])
+            .current_dir(dir.path())
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "--allow-empty", "-m", "init"])
+            .current_dir(dir.path())
+            .output()
+            .unwrap();
+
+        let args: Vec<String> = vec!["yolo".into(), "delta-files".into()];
+        let (output, code) = execute(&args, dir.path()).unwrap();
+        assert_eq!(code, 0);
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(parsed["strategy"], "git");
+        assert_eq!(parsed["files"].as_array().unwrap().len(), 0);
     }
 
     #[test]
