@@ -1,0 +1,35 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "d74f35f4-74ac-4b0e-b6be-83d14950ce56",
+    "phase": 7,
+    "phase_name": "07-token-cache-architecture",
+    "plans": [
+      {
+        "id": "07-01",
+        "status": "complete",
+        "title": "Prefix-first prompt assembly in protocol and vibe",
+        "wave": 1
+      },
+      {
+        "id": "07-02",
+        "status": "complete",
+        "title": "Stable/volatile split in Rust + report upgrade",
+        "wave": 1
+      },
+      {
+        "id": "07-03",
+        "status": "complete",
+        "title": "Enable config flags and verify end-to-end",
+        "wave": 2
+      }
+    ],
+    "started_at": "2026-02-21T09:55:00Z",
+    "status": "complete",
+    "total_waves": 2,
+    "wave": 2
+  },
+  "matcher": "auto",
+  "phase": "7",
+  "timestamp": "2026-02-21T12:55:43Z"
+}
