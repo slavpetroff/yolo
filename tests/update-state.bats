@@ -1,43 +1,61 @@
 #!/usr/bin/env bats
+# Migrated: update-state.sh -> yolo update-state
+# CLI signature: yolo update-state <file_path>
+# Behavior: triggers STATE.md / ROADMAP.md updates when a PLAN or SUMMARY file is written
 
 load test_helper
 
+YOLO_BIN="${YOLO_BIN:-$HOME/.cargo/bin/yolo}"
+
 setup() {
   setup_temp_dir
-  echo "line1" > "$TEST_TEMP_DIR/test.txt"
-  echo "line2" >> "$TEST_TEMP_DIR/test.txt"
+  create_test_config
+  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/phases/01-test-phase"
+  cat > "$TEST_TEMP_DIR/.yolo-planning/STATE.md" <<'EOF'
+Phase: 1 of 1 (Test Phase)
+Plans: 0/0
+Progress: 0%
+Status: ready
+EOF
+  cat > "$TEST_TEMP_DIR/.yolo-planning/ROADMAP.md" <<'EOF'
+- [ ] Phase 1: Test Phase
+
+| Phase | Progress | Status | Completed |
+|------|----------|--------|-----------|
+| 1 - Test Phase | 0/0 | planned | - |
+EOF
 }
 
 teardown() {
   teardown_temp_dir
 }
 
-@test "appends line to file" {
-  run bash "$SCRIPTS_DIR/update-state.sh" "$TEST_TEMP_DIR/test.txt" append "line3"
+@test "update-state: PLAN trigger updates plan count in STATE.md" {
+  echo "# plan" > "$TEST_TEMP_DIR/.yolo-planning/phases/01-test-phase/01-01-PLAN.md"
+  run "$YOLO_BIN" update-state "$TEST_TEMP_DIR/.yolo-planning/phases/01-test-phase/01-01-PLAN.md"
   [ "$status" -eq 0 ]
-  grep -q "line3" "$TEST_TEMP_DIR/test.txt"
+  grep -q 'Plans: 0/1' "$TEST_TEMP_DIR/.yolo-planning/STATE.md"
 }
 
-@test "replaces text in file" {
-  run bash "$SCRIPTS_DIR/update-state.sh" "$TEST_TEMP_DIR/test.txt" replace "line1" "replaced1"
+@test "update-state: PLAN trigger flips Status ready to active" {
+  echo "# plan" > "$TEST_TEMP_DIR/.yolo-planning/phases/01-test-phase/01-01-PLAN.md"
+  run "$YOLO_BIN" update-state "$TEST_TEMP_DIR/.yolo-planning/phases/01-test-phase/01-01-PLAN.md"
   [ "$status" -eq 0 ]
-  grep -q "replaced1" "$TEST_TEMP_DIR/test.txt"
-  ! grep -q "line1" "$TEST_TEMP_DIR/test.txt"
+  grep -q 'Status: active' "$TEST_TEMP_DIR/.yolo-planning/STATE.md"
 }
 
-@test "updates JSON file" {
-  echo '{"status":"pending"}' > "$TEST_TEMP_DIR/test.json"
-  run bash "$SCRIPTS_DIR/update-state.sh" "$TEST_TEMP_DIR/test.json" json '.status = "complete"'
+@test "update-state: non-PLAN/SUMMARY file exits 0 silently" {
+  echo "random" > "$TEST_TEMP_DIR/test.txt"
+  run "$YOLO_BIN" update-state "$TEST_TEMP_DIR/test.txt"
   [ "$status" -eq 0 ]
-  jq -e '.status == "complete"' "$TEST_TEMP_DIR/test.json"
 }
 
-@test "rejects unknown operation" {
-  run bash "$SCRIPTS_DIR/update-state.sh" "$TEST_TEMP_DIR/test.txt" invalid "arg"
-  [ "$status" -eq 1 ]
+@test "update-state: nonexistent file exits 0 with message" {
+  run "$YOLO_BIN" update-state "$TEST_TEMP_DIR/nonexistent.md"
+  [ "$status" -eq 0 ]
 }
 
-@test "rejects missing arguments" {
-  run bash "$SCRIPTS_DIR/update-state.sh" "$TEST_TEMP_DIR/test.txt"
-  [ "$status" -eq 1 ]
+@test "update-state: missing arguments exits with error" {
+  run "$YOLO_BIN" update-state
+  [ "$status" -ne 0 ]
 }

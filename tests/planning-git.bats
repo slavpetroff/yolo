@@ -1,4 +1,7 @@
 #!/usr/bin/env bats
+# Migrated: planning-git.sh -> yolo planning-git
+# CLI signature: yolo planning-git <subcommand> [args...]
+# CWD-sensitive: yes (reads .yolo-planning/ from cwd)
 
 load test_helper
 
@@ -27,7 +30,7 @@ teardown() {
 }
 EOF
 
-  run bash "$SCRIPTS_DIR/planning-git.sh" sync-ignore .yolo-planning/config.json
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' planning-git sync-ignore .yolo-planning/config.json"
   [ "$status" -eq 0 ]
 
   run grep -qx '\.yolo-planning/' .gitignore
@@ -46,7 +49,7 @@ EOF
 }
 EOF
 
-  run bash "$SCRIPTS_DIR/planning-git.sh" sync-ignore .yolo-planning/config.json
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' planning-git sync-ignore .yolo-planning/config.json"
   [ "$status" -eq 0 ]
 
   run grep -qx '\.yolo-planning/' .gitignore
@@ -67,7 +70,7 @@ EOF
 }
 EOF
 
-  run bash "$SCRIPTS_DIR/planning-git.sh" sync-ignore .yolo-planning/config.json
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' planning-git sync-ignore .yolo-planning/config.json"
   [ "$status" -eq 0 ]
 
   expected_entries=(
@@ -144,7 +147,7 @@ EOF
   mkdir -p .yolo-planning/.active-agent-count.lock
   echo 'stale' > .yolo-planning/.active-agent-count.lock/stale.lock
 
-  run bash "$SCRIPTS_DIR/planning-git.sh" commit-boundary "phase complete" .yolo-planning/config.json
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' planning-git commit-boundary 'phase complete' .yolo-planning/config.json"
   [ "$status" -eq 0 ]
 
   # STATE.md should be committed
@@ -193,7 +196,7 @@ EOF
 Updated
 EOF
 
-  run bash "$SCRIPTS_DIR/planning-git.sh" commit-boundary "bootstrap project" .yolo-planning/config.json
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' planning-git commit-boundary 'bootstrap project' .yolo-planning/config.json"
   [ "$status" -eq 0 ]
 
   run git log -1 --pretty=%s
@@ -217,7 +220,7 @@ EOF
 
   BEFORE=$(git rev-list --count HEAD)
 
-  run bash "$SCRIPTS_DIR/planning-git.sh" commit-boundary "phase update" .yolo-planning/config.json
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' planning-git commit-boundary 'phase update' .yolo-planning/config.json"
   [ "$status" -eq 0 ]
 
   AFTER=$(git rev-list --count HEAD)

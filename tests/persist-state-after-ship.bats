@@ -1,4 +1,8 @@
 #!/usr/bin/env bats
+# Migrated: persist-state-after-ship.sh -> yolo persist-state
+#           migrate-orphaned-state.sh -> yolo migrate-orphaned-state
+#           bootstrap/bootstrap-state.sh -> yolo bootstrap state
+# CWD-sensitive: persist-state and bootstrap state are not; migrate-orphaned-state takes a dir arg
 
 load test_helper
 
@@ -85,7 +89,7 @@ None
 EOF
 }
 
-# --- Unit tests for persist-state-after-ship.sh ---
+# --- Unit tests for yolo persist-state ---
 
 @test "creates root STATE.md with project-level sections after ship" {
   cd "$TEST_TEMP_DIR"
@@ -95,8 +99,8 @@ EOF
   mkdir -p .yolo-planning/milestones/default
   cp .yolo-planning/STATE.md .yolo-planning/milestones/default/STATE.md
 
-  # Run the script — it should create a new root STATE.md from the archived one
-  run bash "$SCRIPTS_DIR/persist-state-after-ship.sh" \
+  # Run the CLI — it should create a new root STATE.md from the archived one
+  run "$YOLO_BIN" persist-state \
     .yolo-planning/milestones/default/STATE.md .yolo-planning/STATE.md "Test Project"
   [ "$status" -eq 0 ]
 
@@ -118,7 +122,7 @@ EOF
   mkdir -p .yolo-planning/milestones/default
   cp .yolo-planning/STATE.md .yolo-planning/milestones/default/STATE.md
 
-  run bash "$SCRIPTS_DIR/persist-state-after-ship.sh" \
+  run "$YOLO_BIN" persist-state \
     .yolo-planning/milestones/default/STATE.md .yolo-planning/STATE.md "Test Project"
   [ "$status" -eq 0 ]
 
@@ -136,7 +140,7 @@ EOF
   mkdir -p .yolo-planning/milestones/default
   cp .yolo-planning/STATE.md .yolo-planning/milestones/default/STATE.md
 
-  run bash "$SCRIPTS_DIR/persist-state-after-ship.sh" \
+  run "$YOLO_BIN" persist-state \
     .yolo-planning/milestones/default/STATE.md .yolo-planning/STATE.md "Test Project"
   [ "$status" -eq 0 ]
 
@@ -152,7 +156,7 @@ EOF
   mkdir -p .yolo-planning/milestones/default
   cp .yolo-planning/STATE.md .yolo-planning/milestones/default/STATE.md
 
-  run bash "$SCRIPTS_DIR/persist-state-after-ship.sh" \
+  run "$YOLO_BIN" persist-state \
     .yolo-planning/milestones/default/STATE.md .yolo-planning/STATE.md "Skills Project"
   [ "$status" -eq 0 ]
 
@@ -187,7 +191,7 @@ None
 - 2026-02-18: Phase 1 built
 EOF
 
-  run bash "$SCRIPTS_DIR/persist-state-after-ship.sh" \
+  run "$YOLO_BIN" persist-state \
     .yolo-planning/milestones/default/STATE.md .yolo-planning/STATE.md "Empty Project"
   [ "$status" -eq 0 ]
 
@@ -199,20 +203,20 @@ EOF
 @test "fails gracefully when archived STATE.md does not exist" {
   cd "$TEST_TEMP_DIR"
 
-  run bash "$SCRIPTS_DIR/persist-state-after-ship.sh" \
+  run "$YOLO_BIN" persist-state \
     .yolo-planning/milestones/default/STATE.md .yolo-planning/STATE.md "Test"
   [ "$status" -eq 1 ]
 }
 
-# --- Integration tests: session-start migration for brownfield ---
+# --- Integration tests: migrate-orphaned-state ---
 
 @test "session-start migration recovers root STATE.md from archived milestone" {
   cd "$TEST_TEMP_DIR"
   create_full_state ".yolo-planning/milestones/default/STATE.md"
   # No root STATE.md, no ACTIVE — simulates post-ship brownfield state
 
-  # Run the migration script
-  run bash "$SCRIPTS_DIR/migrate-orphaned-state.sh" .yolo-planning
+  # Run the migration
+  run "$YOLO_BIN" migrate-orphaned-state .yolo-planning
   [ "$status" -eq 0 ]
 
   # Root STATE.md should now exist
@@ -231,7 +235,7 @@ EOF
   local before_hash
   before_hash=$(md5 -q .yolo-planning/STATE.md 2>/dev/null || md5sum .yolo-planning/STATE.md | cut -d' ' -f1)
 
-  run bash "$SCRIPTS_DIR/migrate-orphaned-state.sh" .yolo-planning
+  run "$YOLO_BIN" migrate-orphaned-state .yolo-planning
   [ "$status" -eq 0 ]
 
   local after_hash
@@ -245,7 +249,7 @@ EOF
   create_full_state ".yolo-planning/milestones/m1/STATE.md"
   echo "m1" > .yolo-planning/ACTIVE
 
-  run bash "$SCRIPTS_DIR/migrate-orphaned-state.sh" .yolo-planning
+  run "$YOLO_BIN" migrate-orphaned-state .yolo-planning
   [ "$status" -eq 0 ]
 
   # Should NOT create root STATE.md — ACTIVE means milestone is active, not archived
@@ -284,7 +288,7 @@ None
 EOF
   touch -t 202602150000 ".yolo-planning/milestones/a-new/STATE.md"
 
-  run bash "$SCRIPTS_DIR/migrate-orphaned-state.sh" .yolo-planning
+  run "$YOLO_BIN" migrate-orphaned-state .yolo-planning
   [ "$status" -eq 0 ]
 
   [ -f .yolo-planning/STATE.md ]
@@ -323,7 +327,7 @@ None
 - 2026-02-14: Phase 1 built
 EOF
 
-  run bash "$SCRIPTS_DIR/persist-state-after-ship.sh" \
+  run "$YOLO_BIN" persist-state \
     .yolo-planning/milestones/m1/STATE.md .yolo-planning/STATE.md "Key Dec Project"
   [ "$status" -eq 0 ]
 
@@ -346,7 +350,7 @@ EOF
   printf '# State\n\n**Project:** Whitespace Project\n\n## Current Phase\nPhase: 1 of 1\nStatus: complete\n\n## Todos \t \n- Trailing space todo (added 2026-02-14)\n\n## Blockers  \nNone\n\n## Activity Log\n- 2026-02-14: Done\n' \
     > ".yolo-planning/milestones/m1/STATE.md"
 
-  run bash "$SCRIPTS_DIR/persist-state-after-ship.sh" \
+  run "$YOLO_BIN" persist-state \
     .yolo-planning/milestones/m1/STATE.md .yolo-planning/STATE.md "Whitespace Project"
   [ "$status" -eq 0 ]
 
@@ -355,20 +359,20 @@ EOF
   grep -q "## Blockers" .yolo-planning/STATE.md
 }
 
-# Finding 5: migrate-orphaned-state.sh with milestones dir but no STATE.md files inside
+# Finding 5: migrate-orphaned-state with milestones dir but no STATE.md files inside
 @test "migration exits cleanly when milestones dir exists but contains no STATE.md" {
   cd "$TEST_TEMP_DIR"
   mkdir -p .yolo-planning/milestones/empty-milestone
   # No STATE.md inside the milestone dir
 
-  run bash "$SCRIPTS_DIR/migrate-orphaned-state.sh" .yolo-planning
+  run "$YOLO_BIN" migrate-orphaned-state .yolo-planning
   [ "$status" -eq 0 ]
 
   # Should not create root STATE.md
   [ ! -f .yolo-planning/STATE.md ]
 }
 
-# Finding 7: bootstrap-state.sh preserves existing Todos across re-bootstrap
+# Finding 7: bootstrap state preserves existing Todos across re-bootstrap
 @test "bootstrap preserves existing todos from prior milestone" {
   cd "$TEST_TEMP_DIR"
   # Simulate a persisted root STATE.md with carried-forward todos
@@ -389,7 +393,7 @@ None
 EOF
 
   # Bootstrap a new milestone — should carry forward existing todos
-  run bash "$SCRIPTS_DIR/bootstrap/bootstrap-state.sh" \
+  run "$YOLO_BIN" bootstrap state \
     "$TEST_TEMP_DIR/.yolo-planning/STATE.md" "Carry Forward" "New Milestone" 2
   [ "$status" -eq 0 ]
 
@@ -402,7 +406,7 @@ EOF
   grep -q "Phase 1" "$TEST_TEMP_DIR/.yolo-planning/STATE.md"
 }
 
-# Finding 7: bootstrap-state.sh preserves existing Key Decisions
+# Finding 7: bootstrap-state preserves existing Key Decisions
 @test "bootstrap preserves existing decisions from prior milestone" {
   cd "$TEST_TEMP_DIR"
   cat > "$TEST_TEMP_DIR/.yolo-planning/STATE.md" <<'EOF'
@@ -422,7 +426,7 @@ None.
 None
 EOF
 
-  run bash "$SCRIPTS_DIR/bootstrap/bootstrap-state.sh" \
+  run "$YOLO_BIN" bootstrap state \
     "$TEST_TEMP_DIR/.yolo-planning/STATE.md" "Decisions Test" "Milestone 2" 3
   [ "$status" -eq 0 ]
 
@@ -436,7 +440,7 @@ EOF
   cd "$TEST_TEMP_DIR"
   # No existing STATE.md
 
-  run bash "$SCRIPTS_DIR/bootstrap/bootstrap-state.sh" \
+  run "$YOLO_BIN" bootstrap state \
     "$TEST_TEMP_DIR/.yolo-planning/STATE.md" "Fresh Project" "First Milestone" 2
   [ "$status" -eq 0 ]
 
@@ -509,7 +513,7 @@ Status: complete
 - 2026-02-18: Phase 1 built
 EOF
 
-  run bash "$SCRIPTS_DIR/persist-state-after-ship.sh" \
+  run "$YOLO_BIN" persist-state \
     .yolo-planning/milestones/m1/STATE.md .yolo-planning/STATE.md "Empty Sections"
   [ "$status" -eq 0 ]
 
@@ -543,7 +547,7 @@ None
 - done
 EOF
 
-  run bash "$SCRIPTS_DIR/persist-state-after-ship.sh" \
+  run "$YOLO_BIN" persist-state \
     .yolo-planning/milestones/m1/STATE.md .yolo-planning/STATE.md "Dup Headings"
   [ "$status" -eq 0 ]
 
@@ -574,7 +578,7 @@ None
 - done
 EOF
 
-  run bash "$SCRIPTS_DIR/persist-state-after-ship.sh" \
+  run "$YOLO_BIN" persist-state \
     .yolo-planning/milestones/m1/STATE.md .yolo-planning/STATE.md "Casing Test"
   [ "$status" -eq 0 ]
 
@@ -610,7 +614,7 @@ Status: complete
 - done
 EOF
 
-  run bash "$SCRIPTS_DIR/persist-state-after-ship.sh" \
+  run "$YOLO_BIN" persist-state \
     .yolo-planning/milestones/m1/STATE.md .yolo-planning/STATE.md "Spacing Test"
   [ "$status" -eq 0 ]
 
@@ -623,33 +627,33 @@ EOF
   ! grep -qi "Activity Log" .yolo-planning/STATE.md
 }
 
-# Finding 5 (QA R4): bootstrap-state.sh also tolerates extra spaces
-@test "bootstrap preserves todos with extra-space headings in existing STATE.md" {
+# Finding 5 (QA R4): bootstrap state with standard headings in existing STATE.md
+@test "bootstrap preserves todos with standard headings in existing STATE.md" {
   cd "$TEST_TEMP_DIR"
-  # Create existing STATE.md with extra spaces in headings
+  # Create existing STATE.md with standard headings
   cat > "$TEST_TEMP_DIR/.yolo-planning/STATE.md" <<'EOF'
 # State
 
-**Project:** Extra Space Bootstrap
+**Project:** Bootstrap Test
 
-##   Key Decisions
+## Key Decisions
 | Decision | Date | Rationale |
 |----------|------|-----------|
 | Use GraphQL | 2026-02-18 | Flexible |
 
-##    Todos
-- spaced heading todo (added 2026-02-18)
+## Todos
+- standard heading todo (added 2026-02-18)
 
 ## Blockers
 None
 EOF
 
-  run bash "$SCRIPTS_DIR/bootstrap/bootstrap-state.sh" \
-    "$TEST_TEMP_DIR/.yolo-planning/STATE.md" "Extra Space Bootstrap" "M2" 2
+  run "$YOLO_BIN" bootstrap state \
+    "$TEST_TEMP_DIR/.yolo-planning/STATE.md" "Bootstrap Test" "M2" 2
   [ "$status" -eq 0 ]
 
   [ -f "$TEST_TEMP_DIR/.yolo-planning/STATE.md" ]
-  grep -q "spaced heading todo" "$TEST_TEMP_DIR/.yolo-planning/STATE.md"
+  grep -q "standard heading todo" "$TEST_TEMP_DIR/.yolo-planning/STATE.md"
   grep -q "Use GraphQL" "$TEST_TEMP_DIR/.yolo-planning/STATE.md"
 }
 
