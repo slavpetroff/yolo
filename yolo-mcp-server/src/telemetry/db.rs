@@ -1,22 +1,24 @@
 use rusqlite::{Connection, Result};
 use chrono::Utc;
 use std::path::PathBuf;
+use std::sync::Mutex;
 
 pub struct TelemetryDb {
-    conn: Connection,
+    conn: Mutex<Connection>,
 }
 
 impl TelemetryDb {
     pub fn new(path: PathBuf) -> Result<Self> {
         let conn = Connection::open(&path)?;
-        
-        let db = Self { conn };
+
+        let db = Self { conn: Mutex::new(conn) };
         db.init()?;
         Ok(db)
     }
 
     fn init(&self) -> Result<()> {
-        self.conn.execute(
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
             "CREATE TABLE IF NOT EXISTS tool_usage (
                 id INTEGER PRIMARY KEY,
                 tool_name TEXT NOT NULL,
@@ -44,8 +46,9 @@ impl TelemetryDb {
         success: bool,
     ) -> Result<()> {
         let ts = Utc::now().to_rfc3339();
-        self.conn.execute(
-            "INSERT INTO tool_usage (tool_name, agent_role, session_id, input_length, output_length, execution_time_ms, success, timestamp) 
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO tool_usage (tool_name, agent_role, session_id, input_length, output_length, execution_time_ms, success, timestamp)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             (
                 tool_name,
@@ -88,7 +91,8 @@ mod tests {
         assert!(result.is_ok());
 
         // Verify insertion
-        let count: i64 = db.conn.query_row("SELECT COUNT(*) FROM tool_usage", [], |row| row.get(0)).unwrap();
+        let conn = db.conn.lock().unwrap();
+        let count: i64 = conn.query_row("SELECT COUNT(*) FROM tool_usage", [], |row| row.get(0)).unwrap();
         assert_eq!(count, 1);
 
         // Clean up

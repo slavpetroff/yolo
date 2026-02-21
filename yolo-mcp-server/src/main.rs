@@ -12,7 +12,7 @@ use crate::mcp::tools::ToolState;
 
 #[cfg(not(test))]
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let args: Vec<String> = std::env::args().collect();
     let db_path = std::path::PathBuf::from(".yolo-telemetry.db");
 

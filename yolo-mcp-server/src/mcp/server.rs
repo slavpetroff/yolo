@@ -6,12 +6,27 @@ use crate::mcp::jsonrpc::{IncomingMessage, JsonRpcError, Notification, Request, 
 use crate::telemetry::db::TelemetryDb;
 use crate::mcp::tools::{self, ToolState};
 
-pub async fn run_server<R: AsyncBufReadExt + Unpin, W: AsyncWriteExt + Unpin>(
+pub async fn run_server<R: AsyncBufReadExt + Unpin, W: AsyncWriteExt + Unpin + Send + 'static>(
     mut reader: R,
-    mut stdout: W,
+    stdout: W,
     telemetry: Arc<TelemetryDb>,
     tool_state: Arc<ToolState>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(64);
+
+    // Writer task: drains the channel and writes to stdout sequentially
+    let writer_handle = tokio::spawn(async move {
+        let mut stdout = stdout;
+        while let Some(msg) = rx.recv().await {
+            if stdout.write_all(msg.as_bytes()).await.is_err() {
+                break;
+            }
+            if stdout.flush().await.is_err() {
+                break;
+            }
+        }
+    });
+
     let mut line = String::new();
     while reader.read_line(&mut line).await? > 0 {
         if line.trim().is_empty() {
@@ -19,12 +34,19 @@ pub async fn run_server<R: AsyncBufReadExt + Unpin, W: AsyncWriteExt + Unpin>(
             continue;
         }
 
+        let input_len = line.len();
+
         match serde_json::from_str::<IncomingMessage>(&line) {
             Ok(IncomingMessage::Request(req)) => {
-                let response = handle_request(req, telemetry.clone(), tool_state.clone()).await;
-                let response_str = serde_json::to_string(&response)? + "\n";
-                stdout.write_all(response_str.as_bytes()).await?;
-                stdout.flush().await?;
+                let tel = telemetry.clone();
+                let ts = tool_state.clone();
+                let resp_tx = tx.clone();
+                tokio::spawn(async move {
+                    let response = handle_request(req, tel, ts, input_len).await;
+                    if let Ok(response_str) = serde_json::to_string(&response) {
+                        let _ = resp_tx.send(response_str + "\n").await;
+                    }
+                });
             }
             Ok(IncomingMessage::Notification(notif)) => {
                 handle_notification(notif).await;
@@ -41,20 +63,31 @@ pub async fn run_server<R: AsyncBufReadExt + Unpin, W: AsyncWriteExt + Unpin>(
                         "message": format!("Parse error: {}", e)
                     }
                 });
-                let response_str = serde_json::to_string(&error_res)? + "\n";
-                stdout.write_all(response_str.as_bytes()).await?;
-                stdout.flush().await?;
+                if let Ok(response_str) = serde_json::to_string(&error_res) {
+                    let _ = tx.send(response_str + "\n").await;
+                }
             }
         }
         line.clear();
     }
+
+    // Drop the sender so the writer task can finish
+    drop(tx);
+    let _ = writer_handle.await;
+
     Ok(())
 }
 
-async fn handle_request(req: Request, telemetry: Arc<TelemetryDb>, tool_state: Arc<ToolState>) -> Response {
+async fn handle_request(
+    req: Request,
+    telemetry: Arc<TelemetryDb>,
+    tool_state: Arc<ToolState>,
+    input_len: usize,
+) -> Response {
     let start_time = std::time::Instant::now();
     let method = req.method.as_str();
     let mut success = true;
+    let mut telemetry_name = method.to_string();
 
     let result = match method {
         "initialize" => {
@@ -139,7 +172,12 @@ async fn handle_request(req: Request, telemetry: Arc<TelemetryDb>, tool_state: A
             let params = req.params.clone().unwrap_or(json!({}));
             let name = params.get("name").and_then(|v| v.as_str()).unwrap_or("");
             let arguments = params.get("arguments").cloned();
-            
+
+            // Record actual tool name for telemetry instead of generic "tools/call"
+            if !name.is_empty() {
+                telemetry_name = name.to_string();
+            }
+
             let tool_res = tools::handle_tool_call(name, arguments, tool_state.clone()).await;
             Some(tool_res)
         }
@@ -169,15 +207,18 @@ async fn handle_request(req: Request, telemetry: Arc<TelemetryDb>, tool_state: A
         }
     };
 
+    // Compute output byte length from the serialized response
+    let output_len = serde_json::to_string(&response).map(|s| s.len()).unwrap_or(0);
+
     let elapsed = start_time.elapsed().as_millis() as u64;
     let _ = telemetry.record_tool_call(
-        method, 
-        None, 
-        None, 
-        0, 
-        0, 
-        elapsed, 
-        success
+        &telemetry_name,
+        None,
+        None,
+        input_len,
+        output_len,
+        elapsed,
+        success,
     );
 
     response
@@ -211,7 +252,7 @@ mod tests {
             params: None,
         };
 
-        let response = handle_request(req, telemetry, tool_state).await;
+        let response = handle_request(req, telemetry, tool_state, 50).await;
         let result = response.result.unwrap();
         assert_eq!(result.get("serverInfo").unwrap().get("name").unwrap().as_str().unwrap(), "yolo-expert-mcp");
         let _ = std::fs::remove_file(&db_path);
@@ -231,7 +272,7 @@ mod tests {
             params: None,
         };
 
-        let response = handle_request(req, telemetry, tool_state).await;
+        let response = handle_request(req, telemetry, tool_state, 48).await;
         let result = response.result.unwrap();
         let tools = result.get("tools").unwrap().as_array().unwrap();
         assert!(tools.len() > 0);
@@ -255,7 +296,7 @@ mod tests {
             })),
         };
 
-        let response = handle_request(req, telemetry, tool_state).await;
+        let response = handle_request(req, telemetry, tool_state, 80).await;
         let result = response.result.unwrap();
         assert_eq!(result.get("isError").unwrap().as_bool().unwrap(), true);
         let _ = std::fs::remove_file(&db_path);
@@ -275,7 +316,7 @@ mod tests {
             params: None,
         };
 
-        let response = handle_request(req, telemetry, tool_state).await;
+        let response = handle_request(req, telemetry, tool_state, 55).await;
         assert!(response.error.is_some());
         assert_eq!(response.error.unwrap().code, -32601);
         let _ = std::fs::remove_file(&db_path);
@@ -289,7 +330,7 @@ mod tests {
             params: None,
         };
         handle_notification(notif).await;
-        
+
         let notif2 = Notification {
             jsonrpc: "2.0".to_string(),
             method: "unknown".to_string(),
@@ -310,16 +351,139 @@ mod tests {
                           {\"jsonrpc\": \"2.0\", \"result\": {}}\n\
                           invalid json\n\
                           \n";
-                          
-        let reader = tokio::io::BufReader::new(input_data.as_bytes());
-        let mut writer = Vec::new();
 
-        let res = run_server(reader, &mut writer, telemetry, tool_state).await;
+        let reader = tokio::io::BufReader::new(input_data.as_bytes());
+        let (writer, mut read_half) = tokio::io::duplex(8192);
+
+        let server_handle = tokio::spawn(async move {
+            run_server(reader, writer, telemetry, tool_state).await
+        });
+
+        // Read all output from the server
+        let mut output_buf = Vec::new();
+        tokio::io::AsyncReadExt::read_to_end(&mut read_half, &mut output_buf).await.unwrap();
+
+        let res = server_handle.await.unwrap();
         assert!(res.is_ok());
 
-        let output = String::from_utf8(writer).unwrap();
+        let output = String::from_utf8(output_buf).unwrap();
         assert!(output.contains("yolo-expert-mcp"));
         assert!(output.contains("-32700"));
+
+        let _ = std::fs::remove_file(&db_path);
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_requests() {
+        let db_path = temp_db_path("concurrent");
+        let _ = std::fs::remove_file(&db_path);
+        let telemetry = Arc::new(TelemetryDb::new(db_path.clone()).unwrap());
+        let tool_state = Arc::new(ToolState::new());
+
+        // Send multiple requests that will be dispatched concurrently
+        let mut input = String::new();
+        for i in 1..=5 {
+            input.push_str(&format!(
+                "{{\"jsonrpc\": \"2.0\", \"id\": {}, \"method\": \"initialize\"}}\n",
+                i
+            ));
+        }
+
+        let (mut input_writer, input_reader) = tokio::io::duplex(8192);
+        let reader = tokio::io::BufReader::new(input_reader);
+        let (writer, mut read_half) = tokio::io::duplex(8192);
+
+        // Write all input then close
+        tokio::io::AsyncWriteExt::write_all(&mut input_writer, input.as_bytes()).await.unwrap();
+        drop(input_writer);
+
+        let server_handle = tokio::spawn(async move {
+            run_server(reader, writer, telemetry, tool_state).await
+        });
+
+        let mut output_buf = Vec::new();
+        tokio::io::AsyncReadExt::read_to_end(&mut read_half, &mut output_buf).await.unwrap();
+
+        let res = server_handle.await.unwrap();
+        assert!(res.is_ok());
+
+        let output = String::from_utf8(output_buf).unwrap();
+
+        // All 5 responses must be present (each is a separate JSON line)
+        let response_lines: Vec<&str> = output.lines().filter(|l| !l.trim().is_empty()).collect();
+        assert_eq!(response_lines.len(), 5, "Expected 5 responses, got {}", response_lines.len());
+
+        // Each response should be valid JSON with a result
+        for line in &response_lines {
+            let parsed: Value = serde_json::from_str(line).expect("Response line should be valid JSON");
+            assert!(parsed.get("result").is_some());
+        }
+
+        let _ = std::fs::remove_file(&db_path);
+    }
+
+    #[tokio::test]
+    async fn test_telemetry_records_byte_lengths() {
+        let db_path = temp_db_path("telemetry-bytes");
+        let _ = std::fs::remove_file(&db_path);
+        let telemetry = Arc::new(TelemetryDb::new(db_path.clone()).unwrap());
+        let tool_state = Arc::new(ToolState::new());
+
+        let input_line = r#"{"jsonrpc": "2.0", "id": 1, "method": "initialize"}"#;
+        let input_len = input_line.len();
+
+        let req = Request {
+            jsonrpc: "2.0".to_string(),
+            id: json!(1),
+            method: "initialize".to_string(),
+            params: None,
+        };
+
+        let _ = handle_request(req, telemetry.clone(), tool_state, input_len).await;
+
+        // Query the telemetry DB file directly via rusqlite
+        let conn = rusqlite::Connection::open(&db_path).unwrap();
+        let row: (i64, i64) = conn.query_row(
+            "SELECT input_length, output_length FROM tool_usage ORDER BY id DESC LIMIT 1",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        ).expect("Should have a telemetry record");
+
+        assert!(row.0 > 0, "input_length should be > 0, got {}", row.0);
+        assert!(row.1 > 0, "output_length should be > 0, got {}", row.1);
+        assert_eq!(row.0, input_len as i64);
+
+        let _ = std::fs::remove_file(&db_path);
+    }
+
+    #[tokio::test]
+    async fn test_telemetry_records_tool_name() {
+        let db_path = temp_db_path("telemetry-name");
+        let _ = std::fs::remove_file(&db_path);
+        let telemetry = Arc::new(TelemetryDb::new(db_path.clone()).unwrap());
+        let tool_state = Arc::new(ToolState::new());
+
+        let req = Request {
+            jsonrpc: "2.0".to_string(),
+            id: json!(5),
+            method: "tools/call".to_string(),
+            params: Some(json!({
+                "name": "acquire_lock",
+                "arguments": {"task_id": "T-99", "file_path": "test.rs"}
+            })),
+        };
+
+        let _ = handle_request(req, telemetry.clone(), tool_state, 100).await;
+
+        // Query the telemetry DB file directly via rusqlite
+        let conn = rusqlite::Connection::open(&db_path).unwrap();
+        let tool_name: String = conn.query_row(
+            "SELECT tool_name FROM tool_usage ORDER BY id DESC LIMIT 1",
+            [],
+            |row| row.get(0),
+        ).expect("Should have a telemetry record");
+
+        assert_eq!(tool_name, "acquire_lock");
 
         let _ = std::fs::remove_file(&db_path);
     }
