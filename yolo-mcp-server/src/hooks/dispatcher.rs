@@ -12,6 +12,7 @@ use super::security_filter;
 use super::map_staleness;
 use super::session_stop;
 use super::skill_hook_dispatch;
+use super::test_validation;
 use super::validate_summary;
 use super::types::{HookEvent, HookInput, HookOutput};
 use super::utils;
@@ -115,9 +116,18 @@ fn handle_post_tool_use(input: &HookInput) -> Result<HookOutput, String> {
     // Run skill_hook_dispatch (advisory, may invoke user scripts)
     let (_, _) = skill_hook_dispatch::skill_hook_dispatch("PostToolUse", &input.data);
 
+    // Run test_validation (advisory, feature-gated)
+    let (test_output, _) = test_validation::handle(&input.data);
+
     // Return summary validation advisory if present
     if !summary_output.is_null() {
         let stdout = serde_json::to_string(&summary_output).unwrap_or_default();
+        return Ok(HookOutput::ok(stdout));
+    }
+
+    // Return test validation advisory if present
+    if !test_output.is_null() {
+        let stdout = serde_json::to_string(&test_output).unwrap_or_default();
         return Ok(HookOutput::ok(stdout));
     }
 

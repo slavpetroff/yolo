@@ -52,6 +52,9 @@ pub mod session_stop;
 // Cache/delta hooks (dev-10)
 pub mod map_staleness;
 
+// Automation hooks (dev-05, plan 05)
+pub mod test_validation;
+
 #[cfg(test)]
 mod no_bash_regression {
     use std::fs;
