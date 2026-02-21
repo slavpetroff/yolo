@@ -10,7 +10,7 @@
 | 1 | Complete | 3/3 | 12 | 12 |
 | 2 | Complete | 1/1 | 4 | 2 |
 | 5 | Complete | 3/3 | 13 | 11 |
-| 6 | Pending | 0 | 0 | 0 |
+| 6 | Complete | 2/2 | 8 | 2 |
 
 ---
 
@@ -18,7 +18,7 @@
 - [x] [Phase 1: General Improvements](#phase-1-general-improvements)
 - [x] [Phase 2: Fix Statusline](#phase-2-fix-statusline)
 - [x] [Phase 5: MCP Server Audit & Fixes](#phase-5-mcp-server-audit--fixes)
-- [ ] [Phase 6: Integration Wiring Audit](#phase-6-integration-wiring-audit)
+- [x] [Phase 6: Integration Wiring Audit](#phase-6-integration-wiring-audit)
 
 ---
 
