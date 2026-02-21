@@ -4,7 +4,6 @@
 
 A Claude Code plugin that adds structured development workflows — planning, execution, and verification — using specialized agent teams.
 
-
 ## Plugin Rules
 
 - **Commit format:** `{type}({scope}): {description}` — types: feat, fix, test, refactor, perf, docs, style, chore.
@@ -23,7 +22,6 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 **Last shipped:** yolo-v2.3.0 (2026-02-21) — 7 phases, 50 tasks, 30 commits
 **Next action:** Run /yolo:vibe --plan 1 to plan Phase 1: Token Economics Baseline
 
-
 ## Installed Skills
 
 **Global:** python-backend-architecture-review, kubernetes-health, fastapi-expert, find-skills, design-md, reactcomponents, docker-expert, fastapi-templates, kubernetes-expert, github-actions-templates, async-python-patterns, stitch-loop, managing-infra, clean-architecture, python-backend, rust-async-patterns, rust-best-practices
@@ -36,6 +34,7 @@ Enforced from `config/` and `.yolo-planning/codebase/CONVENTIONS.md`. Run /yolo:
 
 Run /yolo:status for current progress.
 Run /yolo:help for all available commands.
+
 ## Plugin Isolation
 
 Hook-enforced. See `references/plugin-isolation.md`.
