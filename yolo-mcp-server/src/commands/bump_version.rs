@@ -1,6 +1,7 @@
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 
 /// Read version from VERSION file, trimmed.
 fn read_version_file(cwd: &Path) -> Result<String, String> {
@@ -108,7 +109,7 @@ fn version_files() -> VersionFiles {
 }
 
 /// Verify mode: read all version sources and report mismatches.
-fn verify_versions(cwd: &Path) -> Result<(String, i32), String> {
+fn verify_versions(cwd: &Path, start: Instant) -> Result<(String, i32), String> {
     let vf = version_files();
     let mut versions: Vec<(String, String)> = Vec::new();
     let mut errors: Vec<String> = Vec::new();
@@ -128,32 +129,41 @@ fn verify_versions(cwd: &Path) -> Result<(String, i32), String> {
         }
     }
 
-    let mut output = String::new();
-
-    if !errors.is_empty() {
-        for e in &errors {
-            output.push_str(&format!("ERROR: {}\n", e));
-        }
-    }
-
     if versions.is_empty() {
-        return Ok((format!("{}No version files found", output), 1));
+        let response = json!({
+            "ok": false,
+            "cmd": "bump-version",
+            "delta": { "mode": "verify", "versions": [], "all_match": false, "errors": errors },
+            "elapsed_ms": start.elapsed().as_millis() as u64
+        });
+        return Ok((response.to_string(), 1));
     }
 
     let first_ver = &versions[0].1;
     let mut mismatch = false;
+    let mut version_entries: Vec<Value> = Vec::new();
 
     for (file, ver) in &versions {
         let status = if ver == first_ver { "OK" } else { mismatch = true; "MISMATCH" };
-        output.push_str(&format!("{}: {} [{}]\n", file, ver, status));
+        version_entries.push(json!({"file": file, "version": ver, "status": status}));
     }
 
-    if mismatch || !errors.is_empty() {
-        Ok((output.trim_end().to_string(), 1))
-    } else {
-        output.push_str("All versions match.\n");
-        Ok((output.trim_end().to_string(), 0))
-    }
+    let all_match = !mismatch && errors.is_empty();
+    let code = if all_match { 0 } else { 1 };
+
+    let response = json!({
+        "ok": all_match,
+        "cmd": "bump-version",
+        "delta": {
+            "mode": "verify",
+            "versions": version_entries,
+            "all_match": all_match,
+            "errors": errors
+        },
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
+
+    Ok((response.to_string(), code))
 }
 
 /// Fetch remote VERSION from GitHub (raw content URL).
@@ -175,7 +185,7 @@ fn fetch_remote_version(offline: bool) -> Option<String> {
 }
 
 /// Bump mode: increment patch, write to all files.
-fn bump_version(cwd: &Path, offline: bool) -> Result<(String, i32), String> {
+fn bump_version(cwd: &Path, offline: bool, start: Instant) -> Result<(String, i32), String> {
     let local_version = read_version_file(cwd)?;
 
     let remote_version = fetch_remote_version(offline);
@@ -186,13 +196,15 @@ fn bump_version(cwd: &Path, offline: bool) -> Result<(String, i32), String> {
 
     let new_version = increment_patch(base_version);
     let vf = version_files();
-    let mut output = String::new();
+    let mut files_updated: Vec<Value> = Vec::new();
+    let mut changed: Vec<String> = Vec::new();
 
     // Write VERSION file
     let version_path = cwd.join(vf.version_file);
     fs::write(&version_path, format!("{}\n", new_version))
         .map_err(|e| format!("Failed to write VERSION: {}", e))?;
-    output.push_str(&format!("Updated {}: {} -> {}\n", vf.version_file, local_version, new_version));
+    files_updated.push(json!({"path": vf.version_file, "old": local_version, "new": new_version}));
+    changed.push(vf.version_file.to_string());
 
     // Write JSON files
     for (path, pointer) in &vf.json_files {
@@ -200,28 +212,37 @@ fn bump_version(cwd: &Path, offline: bool) -> Result<(String, i32), String> {
         if full.exists() {
             let old = read_json_version(&full, pointer).unwrap_or_else(|_| "unknown".to_string());
             write_json_version(&full, pointer, &new_version)?;
-            output.push_str(&format!("Updated {}: {} -> {}\n", path, old, new_version));
+            files_updated.push(json!({"path": path, "old": old, "new": new_version}));
+            changed.push(path.to_string());
         }
     }
 
-    if let Some(rv) = &remote_version {
-        output.push_str(&format!("Remote version: {}\n", rv));
-    } else if !offline {
-        output.push_str("Remote fetch failed (proceeding with local version)\n");
-    }
+    let response = json!({
+        "ok": true,
+        "cmd": "bump-version",
+        "changed": changed,
+        "delta": {
+            "old_version": local_version,
+            "new_version": new_version,
+            "remote_version": remote_version,
+            "files_updated": files_updated
+        },
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
 
-    Ok((output.trim_end().to_string(), 0))
+    Ok((response.to_string(), 0))
 }
 
 /// CLI entry point: `yolo bump-version [--verify] [--offline]`
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
+    let start = Instant::now();
     let verify = args.iter().any(|a| a == "--verify");
     let offline = args.iter().any(|a| a == "--offline");
 
     if verify {
-        verify_versions(cwd)
+        verify_versions(cwd, start)
     } else {
-        bump_version(cwd, offline)
+        bump_version(cwd, offline, start)
     }
 }
 
@@ -241,7 +262,7 @@ mod tests {
         fs::create_dir_all(&plugin_dir).unwrap();
         fs::write(
             plugin_dir.join("plugin.json"),
-            serde_json::to_string_pretty(&serde_json::json!({
+            serde_json::to_string_pretty(&json!({
                 "name": "test",
                 "version": "1.2.3"
             })).unwrap(),
@@ -250,7 +271,7 @@ mod tests {
         // .claude-plugin/marketplace.json
         fs::write(
             plugin_dir.join("marketplace.json"),
-            serde_json::to_string_pretty(&serde_json::json!({
+            serde_json::to_string_pretty(&json!({
                 "plugins": [{"name": "test", "version": "1.2.3"}]
             })).unwrap(),
         ).unwrap();
@@ -258,7 +279,7 @@ mod tests {
         // Root marketplace.json
         fs::write(
             dir.path().join("marketplace.json"),
-            serde_json::to_string_pretty(&serde_json::json!({
+            serde_json::to_string_pretty(&json!({
                 "plugins": [{"name": "test", "version": "1.2.3"}]
             })).unwrap(),
         ).unwrap();
@@ -269,28 +290,43 @@ mod tests {
     #[test]
     fn test_verify_all_match() {
         let dir = setup_test_env();
-        let (output, code) = verify_versions(dir.path()).unwrap();
+        let (output, code) = verify_versions(dir.path(), Instant::now()).unwrap();
         assert_eq!(code, 0);
-        assert!(output.contains("All versions match"));
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["ok"], true);
+        assert_eq!(j["delta"]["mode"], "verify");
+        assert_eq!(j["delta"]["all_match"], true);
+        let versions = j["delta"]["versions"].as_array().unwrap();
+        assert!(versions.iter().all(|v| v["status"] == "OK"));
     }
 
     #[test]
     fn test_verify_mismatch() {
         let dir = setup_test_env();
         fs::write(dir.path().join("VERSION"), "1.2.4\n").unwrap();
-        let (output, code) = verify_versions(dir.path()).unwrap();
+        let (output, code) = verify_versions(dir.path(), Instant::now()).unwrap();
         assert_eq!(code, 1);
-        assert!(output.contains("MISMATCH"));
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["ok"], false);
+        assert_eq!(j["delta"]["all_match"], false);
+        let versions = j["delta"]["versions"].as_array().unwrap();
+        assert!(versions.iter().any(|v| v["status"] == "MISMATCH"));
     }
 
     #[test]
     fn test_bump_offline() {
         let dir = setup_test_env();
-        let (output, code) = bump_version(dir.path(), true).unwrap();
+        let (output, code) = bump_version(dir.path(), true, Instant::now()).unwrap();
         assert_eq!(code, 0);
-        assert!(output.contains("1.2.3 -> 1.2.4"));
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["ok"], true);
+        assert_eq!(j["cmd"], "bump-version");
+        assert_eq!(j["delta"]["old_version"], "1.2.3");
+        assert_eq!(j["delta"]["new_version"], "1.2.4");
+        let files = j["delta"]["files_updated"].as_array().unwrap();
+        assert!(files.iter().any(|f| f["path"] == "VERSION" && f["old"] == "1.2.3" && f["new"] == "1.2.4"));
 
-        // Verify all files updated
+        // Verify all files actually updated
         let new_ver = fs::read_to_string(dir.path().join("VERSION")).unwrap();
         assert_eq!(new_ver.trim(), "1.2.4");
 
@@ -325,7 +361,8 @@ mod tests {
         let args: Vec<String> = vec!["yolo".into(), "bump-version".into(), "--verify".into()];
         let (output, code) = execute(&args, dir.path()).unwrap();
         assert_eq!(code, 0);
-        assert!(output.contains("All versions match"));
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["delta"]["all_match"], true);
     }
 
     #[test]
@@ -334,7 +371,10 @@ mod tests {
         let args: Vec<String> = vec!["yolo".into(), "bump-version".into(), "--offline".into()];
         let (output, code) = execute(&args, dir.path()).unwrap();
         assert_eq!(code, 0);
-        assert!(output.contains("1.2.4"));
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["delta"]["new_version"], "1.2.4");
+        let changed = j["changed"].as_array().unwrap();
+        assert!(changed.iter().any(|c| c == "VERSION"));
     }
 
     #[test]
