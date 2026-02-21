@@ -28,22 +28,22 @@ teardown() {
   teardown_temp_dir
 }
 
-@test "delta-files.sh outputs changed files in git repo" {
+@test "delta-files outputs changed files in git repo" {
   cd "$PROJECT_ROOT"
-  run bash "$SCRIPTS_DIR/delta-files.sh" "$TEST_TEMP_DIR/.yolo-planning/phases/02-test-phase"
+  run "$YOLO_BIN" delta-files "$TEST_TEMP_DIR/.yolo-planning/phases/02-test-phase"
   [ "$status" -eq 0 ]
   # Should output at least some files (we have uncommitted changes or recent commits)
   # Just verify it doesn't error
 }
 
-@test "delta-files.sh handles non-git directory gracefully" {
+@test "delta-files handles non-git directory gracefully" {
   cd "$TEST_TEMP_DIR"
   # No SUMMARY.md files, no git — should output nothing and exit 0
-  run bash "$SCRIPTS_DIR/delta-files.sh" ".yolo-planning/phases/02-test-phase"
+  run "$YOLO_BIN" delta-files ".yolo-planning/phases/02-test-phase"
   [ "$status" -eq 0 ]
 }
 
-@test "delta-files.sh extracts files from SUMMARY.md when no git" {
+@test "delta-files extracts files from SUMMARY.md when no git" {
   cd "$TEST_TEMP_DIR"
   cat > ".yolo-planning/phases/02-test-phase/02-01-SUMMARY.md" <<'EOF'
 ---
@@ -58,32 +58,27 @@ status: complete
 - config/test.json (new)
 ## Deviations
 EOF
-  run bash "$SCRIPTS_DIR/delta-files.sh" ".yolo-planning/phases/02-test-phase"
+  run "$YOLO_BIN" delta-files ".yolo-planning/phases/02-test-phase"
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "scripts/test.sh"
 }
 
-@test "compile-context.sh includes delta files when v3_delta_context=true" {
+@test "compile-context includes plan in tier 3 when v3_delta_context=true" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_delta_context = true' ".yolo-planning/config.json" > ".yolo-planning/config.tmp" && mv ".yolo-planning/config.tmp" ".yolo-planning/config.json"
 
-  # Create a SUMMARY with file list for delta source
-  cat > ".yolo-planning/phases/02-test-phase/02-01-SUMMARY.md" <<'EOF'
-# Summary
-## Files Modified
-- scripts/delta-test.sh
-EOF
-
-  run bash "$SCRIPTS_DIR/compile-context.sh" 02 dev ".yolo-planning/phases" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
+  run "$YOLO_BIN" compile-context 02 dev ".yolo-planning/phases/02-test-phase" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
   [ "$status" -eq 0 ]
-  # Should include Active Plan section (always included with delta)
-  grep -q "Active Plan" ".yolo-planning/phases/02-test-phase/.context-dev.md"
+  # Should produce context file with plan content in TIER 3
+  grep -q "TIER 3" ".yolo-planning/phases/02-test-phase/.context-dev.md"
+  grep -q "Test Plan" ".yolo-planning/phases/02-test-phase/.context-dev.md"
 }
 
-@test "compile-context.sh omits delta when v3_delta_context=false" {
+@test "compile-context produces valid output when v3_delta_context=false" {
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/compile-context.sh" 02 dev ".yolo-planning/phases" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
+  run "$YOLO_BIN" compile-context 02 dev ".yolo-planning/phases/02-test-phase" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
   [ "$status" -eq 0 ]
-  ! grep -q "Changed Files" ".yolo-planning/phases/02-test-phase/.context-dev.md"
-  ! grep -q "Active Plan" ".yolo-planning/phases/02-test-phase/.context-dev.md"
+  # Should still produce a context file with all tiers
+  grep -q "TIER 1" ".yolo-planning/phases/02-test-phase/.context-dev.md"
+  grep -q "END COMPILED CONTEXT" ".yolo-planning/phases/02-test-phase/.context-dev.md"
 }

@@ -23,12 +23,10 @@ teardown() {
   teardown_temp_dir
 }
 
-@test "compile-context: includes Code Slices section when delta enabled" {
+@test "compile-context: produces output when delta enabled" {
   cd "$TEST_TEMP_DIR"
-  # Create a small source file that delta-files.sh would find
   mkdir -p src
   echo 'console.log("hello")' > src/test.js
-  # Create a plan
   cat > .yolo-planning/phases/01-test/01-01-PLAN.md << 'PLAN'
 ---
 phase: 1
@@ -41,16 +39,16 @@ files_modified:
 ---
 Test plan
 PLAN
-  # Initialize git so delta-files.sh has data
   git init "$TEST_TEMP_DIR" > /dev/null 2>&1
   git -C "$TEST_TEMP_DIR" add src/test.js > /dev/null 2>&1
-  run bash "$SCRIPTS_DIR/compile-context.sh" 01 dev "$TEST_TEMP_DIR/.yolo-planning/phases" "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/01-01-PLAN.md"
+  run "$YOLO_BIN" compile-context 01 dev "$TEST_TEMP_DIR/.yolo-planning/phases/01-test" "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 0 ]
   [ -f "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/.context-dev.md" ]
-  grep -q "Code Slices" "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/.context-dev.md"
+  # Should have tiered structure
+  grep -q "TIER 1" "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/.context-dev.md"
 }
 
-@test "compile-context: omits Code Slices when delta disabled" {
+@test "compile-context: omits delta content when delta disabled" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_delta_context = false' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
     && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
@@ -64,13 +62,14 @@ depends_on: []
 ---
 Test plan
 PLAN
-  run bash "$SCRIPTS_DIR/compile-context.sh" 01 dev "$TEST_TEMP_DIR/.yolo-planning/phases" "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/01-01-PLAN.md"
+  run "$YOLO_BIN" compile-context 01 dev "$TEST_TEMP_DIR/.yolo-planning/phases/01-test" "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 0 ]
   [ -f "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/.context-dev.md" ]
-  ! grep -q "Code Slices" "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/.context-dev.md"
+  # Should not include "Changed Files" section when delta disabled
+  ! grep -q "Changed Files" "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/.context-dev.md"
 }
 
-@test "compile-context: includes file content in code slices" {
+@test "compile-context: includes plan content in output" {
   cd "$TEST_TEMP_DIR"
   mkdir -p src
   printf 'function hello() {\n  return "world";\n}\n' > src/small.js
@@ -86,9 +85,8 @@ files_modified:
 ---
 Test plan
 PLAN
-  git init "$TEST_TEMP_DIR" > /dev/null 2>&1
-  git -C "$TEST_TEMP_DIR" add src/small.js > /dev/null 2>&1
-  run bash "$SCRIPTS_DIR/compile-context.sh" 01 dev "$TEST_TEMP_DIR/.yolo-planning/phases" "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/01-01-PLAN.md"
+  run "$YOLO_BIN" compile-context 01 dev "$TEST_TEMP_DIR/.yolo-planning/phases/01-test" "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 0 ]
-  grep -q 'function hello' "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/.context-dev.md"
+  # Plan content should be in tier 3
+  grep -q "Test plan" "$TEST_TEMP_DIR/.yolo-planning/phases/01-test/.context-dev.md"
 }

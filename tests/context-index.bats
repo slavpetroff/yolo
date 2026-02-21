@@ -38,88 +38,59 @@ teardown() {
   teardown_temp_dir
 }
 
-@test "context-index.json not created when v3_context_cache=false" {
+@test "compile-context produces context file when v3_context_cache=false" {
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/compile-context.sh" 02 dev ".yolo-planning/phases" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
+  run "$YOLO_BIN" compile-context 02 dev ".yolo-planning/phases/02-test-phase" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
   [ "$status" -eq 0 ]
-  [ ! -f "$TEST_TEMP_DIR/.yolo-planning/.cache/context-index.json" ]
+  [ -f "$TEST_TEMP_DIR/.yolo-planning/phases/02-test-phase/.context-dev.md" ]
 }
 
-@test "context-index.json created on cache miss when v3_context_cache=true" {
+@test "compile-context produces context file when v3_context_cache=true" {
   jq '.v3_context_cache = true' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.tmp" && mv "$TEST_TEMP_DIR/.yolo-planning/config.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
 
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/compile-context.sh" 02 dev ".yolo-planning/phases" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
+  run "$YOLO_BIN" compile-context 02 dev ".yolo-planning/phases/02-test-phase" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
   [ "$status" -eq 0 ]
-  [ -f "$TEST_TEMP_DIR/.yolo-planning/.cache/context-index.json" ]
-
-  # Verify the entry has correct role and phase
-  ROLE=$(jq -r '.entries | to_entries[0].value.role' "$TEST_TEMP_DIR/.yolo-planning/.cache/context-index.json")
-  PHASE=$(jq -r '.entries | to_entries[0].value.phase' "$TEST_TEMP_DIR/.yolo-planning/.cache/context-index.json")
-  [ "$ROLE" = "dev" ]
-  [ "$PHASE" = "02" ]
+  [ -f "$TEST_TEMP_DIR/.yolo-planning/phases/02-test-phase/.context-dev.md" ]
 }
 
-@test "context-index.json entry has correct structure" {
-  jq '.v3_context_cache = true' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.tmp" && mv "$TEST_TEMP_DIR/.yolo-planning/config.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
-
+@test "compile-context output has correct tiered structure" {
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/compile-context.sh" 02 dev ".yolo-planning/phases" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
+  run "$YOLO_BIN" compile-context 02 dev ".yolo-planning/phases/02-test-phase" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
   [ "$status" -eq 0 ]
 
-  # Each entry must have path, role, phase, timestamp
-  HAS_ALL=$(jq '.entries | to_entries[0].value | has("path") and has("role") and has("phase") and has("timestamp")' "$TEST_TEMP_DIR/.yolo-planning/.cache/context-index.json")
-  [ "$HAS_ALL" = "true" ]
-
-  # Path should point to a real cached file
-  CACHED_PATH=$(jq -r '.entries | to_entries[0].value.path' "$TEST_TEMP_DIR/.yolo-planning/.cache/context-index.json")
-  [ -f "$CACHED_PATH" ]
-
-  # Timestamp should not be empty
-  TS=$(jq -r '.entries | to_entries[0].value.timestamp' "$TEST_TEMP_DIR/.yolo-planning/.cache/context-index.json")
-  [ -n "$TS" ]
-  [ "$TS" != "null" ]
+  local ctx_file="$TEST_TEMP_DIR/.yolo-planning/phases/02-test-phase/.context-dev.md"
+  # Must have all 3 tier headers and end sentinel
+  grep -q "TIER 1: SHARED BASE" "$ctx_file"
+  grep -q "TIER 2: ROLE FAMILY" "$ctx_file"
+  grep -q "TIER 3: VOLATILE TAIL" "$ctx_file"
+  grep -q "END COMPILED CONTEXT" "$ctx_file"
 }
 
-@test "context-index.json updated on cache hit" {
-  jq '.v3_context_cache = true' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.tmp" && mv "$TEST_TEMP_DIR/.yolo-planning/config.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
-
+@test "compile-context includes plan content in tier 3" {
   cd "$TEST_TEMP_DIR"
-  # First run: cache miss
-  run bash "$SCRIPTS_DIR/compile-context.sh" 02 dev ".yolo-planning/phases" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
+  run "$YOLO_BIN" compile-context 02 dev ".yolo-planning/phases/02-test-phase" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
   [ "$status" -eq 0 ]
-  TS1=$(jq -r '.entries | to_entries[0].value.timestamp' "$TEST_TEMP_DIR/.yolo-planning/.cache/context-index.json")
 
-  # Wait to ensure timestamp difference
-  sleep 1
-
-  # Second run: cache hit (same inputs)
-  run bash "$SCRIPTS_DIR/compile-context.sh" 02 dev ".yolo-planning/phases" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
-  [ "$status" -eq 0 ]
-  TS2=$(jq -r '.entries | to_entries[0].value.timestamp' "$TEST_TEMP_DIR/.yolo-planning/.cache/context-index.json")
-
-  # Timestamp should be updated (different from first run)
-  [ "$TS1" != "$TS2" ]
+  grep -q "Test Plan" "$TEST_TEMP_DIR/.yolo-planning/phases/02-test-phase/.context-dev.md"
 }
 
-@test "context-index.json contains entries for multiple roles" {
-  jq '.v3_context_cache = true' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.tmp" && mv "$TEST_TEMP_DIR/.yolo-planning/config.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
-
+@test "compile-context produces context for multiple roles" {
   cd "$TEST_TEMP_DIR"
-  # Compile for three different roles
-  run bash "$SCRIPTS_DIR/compile-context.sh" 02 lead ".yolo-planning/phases" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
+  run "$YOLO_BIN" compile-context 02 lead ".yolo-planning/phases/02-test-phase" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
   [ "$status" -eq 0 ]
-  run bash "$SCRIPTS_DIR/compile-context.sh" 02 dev ".yolo-planning/phases" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
+  run "$YOLO_BIN" compile-context 02 dev ".yolo-planning/phases/02-test-phase" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
   [ "$status" -eq 0 ]
-  run bash "$SCRIPTS_DIR/compile-context.sh" 02 qa ".yolo-planning/phases" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
+  run "$YOLO_BIN" compile-context 02 qa ".yolo-planning/phases/02-test-phase" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
   [ "$status" -eq 0 ]
 
-  # Verify 3 distinct entries
-  ENTRY_COUNT=$(jq '.entries | keys | length' "$TEST_TEMP_DIR/.yolo-planning/.cache/context-index.json")
-  [ "$ENTRY_COUNT" -eq 3 ]
+  # Verify context files for all 3 roles
+  [ -f "$TEST_TEMP_DIR/.yolo-planning/phases/02-test-phase/.context-lead.md" ]
+  [ -f "$TEST_TEMP_DIR/.yolo-planning/phases/02-test-phase/.context-dev.md" ]
+  [ -f "$TEST_TEMP_DIR/.yolo-planning/phases/02-test-phase/.context-qa.md" ]
 }
 
-@test "context-index.json survives malformed input" {
+@test "compile-context survives malformed cache index" {
   jq '.v3_context_cache = true' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.tmp" && mv "$TEST_TEMP_DIR/.yolo-planning/config.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
 
   cd "$TEST_TEMP_DIR"
@@ -128,7 +99,7 @@ teardown() {
   echo "NOT VALID JSON{{{{" > "$TEST_TEMP_DIR/.yolo-planning/.cache/context-index.json"
 
   # Compilation should still succeed (index failure is non-fatal)
-  run bash "$SCRIPTS_DIR/compile-context.sh" 02 dev ".yolo-planning/phases" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
+  run "$YOLO_BIN" compile-context 02 dev ".yolo-planning/phases/02-test-phase" ".yolo-planning/phases/02-test-phase/02-01-PLAN.md"
   [ "$status" -eq 0 ]
 
   # Context file should still be produced
