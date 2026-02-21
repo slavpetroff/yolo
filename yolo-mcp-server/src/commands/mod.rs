@@ -54,4 +54,5 @@ pub mod pre_push_hook;
 pub mod verify_init_todo;
 pub mod verify_vibe;
 pub mod verify_claude_bootstrap;
+pub mod token_economics_report;
 pub mod verify;
