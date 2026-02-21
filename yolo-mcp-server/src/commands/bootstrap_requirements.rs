@@ -1,11 +1,19 @@
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 use chrono::Local;
 
 pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
+    let start = Instant::now();
     // args: ["requirements", OUTPUT_PATH, DISCOVERY_JSON_PATH, [RESEARCH_FILE]]
     if args.len() < 3 {
-        return Err("Usage: yolo bootstrap requirements <output_path> <discovery_json_path> [research_file]".to_string());
+        let response = serde_json::json!({
+            "ok": false,
+            "cmd": "bootstrap-requirements",
+            "error": "Usage: yolo bootstrap requirements <output_path> <discovery_json_path> [research_file]",
+            "elapsed_ms": start.elapsed().as_millis() as u64
+        });
+        return Ok((response.to_string(), 1));
     }
 
     let output_path = Path::new(&args[1]);
@@ -96,7 +104,18 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
     fs::write(discovery_path, updated_json)
         .map_err(|e| format!("Failed to update discovery: {}", e))?;
 
-    Ok((String::new(), 0))
+    let response = serde_json::json!({
+        "ok": true,
+        "cmd": "bootstrap-requirements",
+        "changed": [output_path.to_string_lossy(), discovery_path.to_string_lossy()],
+        "delta": {
+            "requirement_count": inferred_count,
+            "research_available": research_available,
+            "discovery_updated": true
+        },
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
+    Ok((response.to_string(), 0))
 }
 
 #[cfg(test)]
