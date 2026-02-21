@@ -332,4 +332,49 @@ mod tests {
         assert_eq!(code, 0);
         assert!(out.contains("released"));
     }
+
+    #[test]
+    fn test_cli_acquire_conflict_exit_code() {
+        let dir = setup_test_env(true);
+        // First acquire succeeds
+        let args1 = vec![
+            "yolo".into(), "lock".into(), "acquire".into(),
+            "res".into(), "--owner=dev-1".into(),
+        ];
+        let (_, code1) = execute(&args1, dir.path()).unwrap();
+        assert_eq!(code1, 0);
+        // Conflict returns exit code 2
+        let args2 = vec![
+            "yolo".into(), "lock".into(), "acquire".into(),
+            "res".into(), "--owner=dev-2".into(),
+        ];
+        let (out, code2) = execute(&args2, dir.path()).unwrap();
+        assert_eq!(code2, 2);
+        assert!(out.contains("conflict"));
+    }
+
+    #[test]
+    fn test_cli_check_conflict_exit_code() {
+        let dir = setup_test_env(true);
+        acquire("src/a.rs", "dev-1", dir.path()).unwrap();
+        let args = vec![
+            "yolo".into(), "lock".into(), "check".into(),
+            "src/a.rs".into(), "--owner=dev-2".into(),
+        ];
+        let (_, code) = execute(&args, dir.path()).unwrap();
+        assert_eq!(code, 2);
+    }
+
+    #[test]
+    fn test_cli_release_wrong_owner_exit_code() {
+        let dir = setup_test_env(true);
+        acquire("res".into(), "dev-1", dir.path()).unwrap();
+        let args = vec![
+            "yolo".into(), "lock".into(), "release".into(),
+            "res".into(), "--owner=dev-2".into(),
+        ];
+        let (_, code) = execute(&args, dir.path()).unwrap();
+        // Wrong-owner release stays at exit code 1 (different error class)
+        assert_eq!(code, 1);
+    }
 }
