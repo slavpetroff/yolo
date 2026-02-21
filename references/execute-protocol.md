@@ -153,6 +153,27 @@ This produces `{phase-dir}/.context-dev.md` with phase goal and conventions.
 The plan_path argument enables skill bundling: yolo compile-context reads skills_used from the plan's frontmatter and bundles referenced SKILL.md content into .context-dev.md. If the plan has no skills_used, this is a no-op.
 If compilation fails, proceed without it — Dev reads files directly.
 
+**Prefix-first injection (cache-optimal):** Read the compiled context file content into a variable BEFORE creating Dev tasks. All sibling Dev agents MUST receive byte-identical prefix content for cache hits. When multiple Dev agents receive the same content from position 0 in their Task description, the API caches the shared prefix and subsequent agents get cache reads instead of cold reads.
+
+```bash
+DEV_CONTEXT=""
+if [ -f "{phase-dir}/.context-dev.md" ]; then
+  DEV_CONTEXT=$(<"{phase-dir}/.context-dev.md")
+fi
+```
+
+**Compiled context format:** Phase number is excluded from the stable prefix to enable cross-phase cache reuse. It appears in the volatile tail instead. The compiled context uses this structure:
+
+```
+--- COMPILED CONTEXT (role={role}) ---
+{stable prefix: architecture, conventions, patterns}
+--- VOLATILE TAIL (phase={phase}) ---
+{phase-specific: goal, requirements, delta}
+--- END COMPILED CONTEXT ---
+```
+
+The stable prefix (`--- COMPILED CONTEXT (role={role}) ---`) contains role-gated content that is identical across phases. The volatile tail (`--- VOLATILE TAIL (phase={phase}) ---`) contains phase-specific content. This separation means the API can cache the stable prefix across phase transitions — only the tail changes.
+
 **V2 Token Budgets (REQ-12):** If yolo control-plane `compile` or `full` action was used and included token budget enforcement, skip this step. Otherwise, if `v2_token_budgets=true` in config:
 
 - After context compilation, enforce per-role token budgets. When `v3_contract_lite=true` or `v2_hard_contracts=true`, pass the contract path and task number for per-task budget computation:
@@ -185,10 +206,11 @@ For each uncompleted plan, TaskCreate:
 ```
 subject: "Execute {NN-MM}: {plan-title}"
 description: |
+  {DEV_CONTEXT}
+
   Execute all tasks in {PLAN_PATH}.
   Effort: {DEV_EFFORT}. Working directory: {pwd}.
   Model: ${DEV_MODEL}
-  Phase context: {phase-dir}/.context-dev.md (if compiled)
   If `.yolo-planning/codebase/META.md` exists, read CONVENTIONS.md, PATTERNS.md, STRUCTURE.md, and DEPENDENCIES.md (whichever exist) from `.yolo-planning/codebase/` to bootstrap codebase understanding before executing.
   {If resuming: "Resume from Task {N}. Tasks 1-{N-1} already committed."}
   {If autonomous: false: "This plan has checkpoints -- pause for user input."}

@@ -211,7 +211,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
    - **If exists:** Include it in Lead's context for incremental refresh. Lead may update RESEARCH.md if new information emerges.
    - **On failure:** Log warning, continue planning without research. Do not block.
    - If `v3_plan_research_persist=false` or effort=turbo: skip entirely.
-4. **Context compilation:** If `config_context_compiler=true`, run `yolo compile-context {phase} lead {phases_dir}`. Include `.context-lead.md` in Lead agent context if produced.
+4. **Context compilation:** If `config_context_compiler=true`, run `yolo compile-context {phase} lead {phases_dir}`. Read the output file `.context-lead.md` content into variable LEAD_CONTEXT for injection into the Lead agent's Task description. The compiled context format uses `--- COMPILED CONTEXT (role={role}) ---` as the stable prefix header (no phase number — enables cross-phase cache reuse) and `--- VOLATILE TAIL (phase={phase}) ---` for phase-specific content.
 5. **Turbo shortcut:** If effort=turbo, skip Lead. Read phase reqs from ROADMAP.md, create single lightweight PLAN.md inline.
 6. **Other efforts:**
    - Resolve Lead model:
@@ -245,7 +245,7 @@ If `planning_dir_exists=false`: display "Run /yolo:init first to set up your pro
 
      When team should NOT be created (Lead-only with when_parallel/auto):
      - Spawn yolo-lead as subagent via Task tool without team (single agent, no team overhead).
-   - Spawn yolo-lead as subagent via Task tool with compiled context (or full file list as fallback).
+   - Spawn yolo-lead as subagent via Task tool. The Task description MUST start with `{LEAD_CONTEXT}` content as the first block (prefix-first injection for cache-optimal context), followed by the planning instructions (phase goal, parallel dev guidance). If no compiled context, fall back to full file list.
    - **CRITICAL:** Add `model: "${LEAD_MODEL}"` and `maxTurns: ${LEAD_MAX_TURNS}` parameters to the Task tool invocation.
    - **CRITICAL:** Include in the Lead prompt: "Plans will be executed by a team of parallel Dev agents — one agent per plan. Maximize wave 1 plans (no deps) so agents start simultaneously. Ensure same-wave plans modify disjoint file sets to avoid merge conflicts."
    - Display `◆ Spawning Lead agent...` -> `✓ Lead agent complete`.
