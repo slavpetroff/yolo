@@ -1,11 +1,15 @@
 use std::path::{Path, PathBuf};
 use std::fs;
-use serde_json::Value;
+use serde_json::{json, Value};
+use super::structured_response::{StructuredResponse, Timer};
 
 pub fn update_state(file_path: &str) -> Result<String, String> {
+    let timer = Timer::start();
     let path = Path::new(file_path);
     if !path.exists() || !path.is_file() {
-        return Ok(format!("File does not exist or is not a file: {}", file_path));
+        return Ok(StructuredResponse::error("update-state", &format!("File does not exist or is not a file: {}", file_path))
+            .with_elapsed(timer.elapsed_ms())
+            .to_json_string());
     }
 
     let file_name = path.file_name().unwrap().to_string_lossy();
@@ -13,53 +17,126 @@ pub fn update_state(file_path: &str) -> Result<String, String> {
     let is_summary = file_name.ends_with("-SUMMARY.md");
 
     if !is_plan && !is_summary {
-        // Not a target file, fail-open (exit 0)
-        return Ok("Not a PLAN.md or SUMMARY.md file".to_string());
+        return Ok(StructuredResponse::error("update-state", "Not a PLAN.md or SUMMARY.md file")
+            .with_elapsed(timer.elapsed_ms())
+            .to_json_string());
     }
 
     let phase_dir = path.parent().unwrap_or(Path::new(""));
     let planning_root = planning_root_from_phase_dir(phase_dir);
+    let mut changed_files: Vec<String> = Vec::new();
+
+    let (plans_before, summaries_before) = count_plans_and_summaries(phase_dir);
 
     if is_plan {
+        if planning_root.join("STATE.md").exists() {
+            changed_files.push("STATE.md".to_string());
+        }
         update_state_md(phase_dir, &planning_root)?;
+
+        if planning_root.join("ROADMAP.md").exists() {
+            changed_files.push("ROADMAP.md".to_string());
+        }
         update_roadmap(phase_dir, &planning_root)?;
-        
+
         let state_md = planning_root.join("STATE.md");
+        let mut status_changed_to: Option<String> = None;
         if state_md.exists() {
             let content = fs::read_to_string(&state_md).unwrap_or_default();
             if content.contains("Status: ready") {
                 let updated = content.replace("Status: ready", "Status: active");
                 let _ = fs::write(&state_md, updated);
+                status_changed_to = Some("active".to_string());
             }
         }
-    } else if is_summary {
-        let (phase, plan, status) = parse_summary_frontmatter(path);
-        let summary_id = file_name.trim_end_matches("-SUMMARY.md").to_string();
-        
-        let mut final_phase = phase.clone();
-        if final_phase.is_empty() {
-            final_phase = phase_dir.file_name().unwrap_or_default().to_string_lossy().to_string();
-            final_phase = final_phase.split('-').next().unwrap_or("").trim_start_matches('0').to_string();
-            if final_phase.is_empty() { final_phase = "0".to_string(); }
+
+        let (plans_after, summaries_after) = count_plans_and_summaries(phase_dir);
+
+        let mut delta = json!({
+            "trigger": "plan",
+            "plans_before": plans_before,
+            "plans_after": plans_after,
+            "summaries_before": summaries_before,
+            "summaries_after": summaries_after,
+            "phase_advanced": false
+        });
+        if let Some(ref s) = status_changed_to {
+            delta["status_changed_to"] = json!(s);
         }
 
-        let mut final_plan = plan.clone();
-        if final_plan.is_empty() {
-            final_plan = summary_id.split('-').skip(1).collect::<Vec<_>>().join("-");
-            if final_plan.is_empty() { final_plan = summary_id.clone(); }
-        }
-
-        let final_status = if status.is_empty() { "completed".to_string() } else { status };
-
-        update_execution_state(&planning_root, &final_phase, &final_plan, &final_status, &summary_id);
-        
-        update_state_md(phase_dir, &planning_root)?;
-        update_roadmap(phase_dir, &planning_root)?;
-        update_model_profile(phase_dir, &planning_root)?;
-        advance_phase(phase_dir, &planning_root)?;
+        return Ok(StructuredResponse::success("update-state")
+            .with_changed(changed_files)
+            .with_delta(delta)
+            .with_elapsed(timer.elapsed_ms())
+            .to_json_string());
     }
 
-    Ok("State updated successfully".to_string())
+    // Summary path
+    let (phase, plan, status) = parse_summary_frontmatter(path);
+    let summary_id = file_name.trim_end_matches("-SUMMARY.md").to_string();
+
+    let mut final_phase = phase.clone();
+    if final_phase.is_empty() {
+        final_phase = phase_dir.file_name().unwrap_or_default().to_string_lossy().to_string();
+        final_phase = final_phase.split('-').next().unwrap_or("").trim_start_matches('0').to_string();
+        if final_phase.is_empty() { final_phase = "0".to_string(); }
+    }
+
+    let mut final_plan = plan.clone();
+    if final_plan.is_empty() {
+        final_plan = summary_id.split('-').skip(1).collect::<Vec<_>>().join("-");
+        if final_plan.is_empty() { final_plan = summary_id.clone(); }
+    }
+
+    let final_status = if status.is_empty() { "completed".to_string() } else { status };
+
+    let exec_state_path = planning_root.join(".execution-state.json");
+    if exec_state_path.exists() {
+        changed_files.push(".execution-state.json".to_string());
+    }
+    update_execution_state(&planning_root, &final_phase, &final_plan, &final_status, &summary_id);
+
+    if planning_root.join("STATE.md").exists() {
+        changed_files.push("STATE.md".to_string());
+    }
+    update_state_md(phase_dir, &planning_root)?;
+
+    if planning_root.join("ROADMAP.md").exists() {
+        changed_files.push("ROADMAP.md".to_string());
+    }
+    update_roadmap(phase_dir, &planning_root)?;
+    update_model_profile(phase_dir, &planning_root)?;
+
+    let advance_info = advance_phase(phase_dir, &planning_root)?;
+
+    let (plans_after, summaries_after) = count_plans_and_summaries(phase_dir);
+
+    let mut delta = json!({
+        "trigger": "summary",
+        "plans_before": plans_before,
+        "plans_after": plans_after,
+        "summaries_before": summaries_before,
+        "summaries_after": summaries_after,
+        "phase_advanced": advance_info.advanced
+    });
+    if let Some(ref p) = advance_info.new_phase {
+        delta["new_phase"] = json!(p);
+    }
+    if let Some(ref s) = advance_info.status_changed_to {
+        delta["status_changed_to"] = json!(s);
+    }
+
+    Ok(StructuredResponse::success("update-state")
+        .with_changed(changed_files)
+        .with_delta(delta)
+        .with_elapsed(timer.elapsed_ms())
+        .to_json_string())
+}
+
+struct AdvanceInfo {
+    advanced: bool,
+    new_phase: Option<String>,
+    status_changed_to: Option<String>,
 }
 
 fn planning_root_from_phase_dir(phase_dir: &Path) -> PathBuf {
@@ -234,21 +311,22 @@ fn update_model_profile(phase_dir: &Path, planning_root: &Path) -> Result<(), St
     Ok(())
 }
 
-fn advance_phase(phase_dir: &Path, planning_root: &Path) -> Result<(), String> {
+fn advance_phase(phase_dir: &Path, planning_root: &Path) -> Result<AdvanceInfo, String> {
+    let no_advance = AdvanceInfo { advanced: false, new_phase: None, status_changed_to: None };
     let state_md = planning_root.join("STATE.md");
     if !state_md.exists() {
-        return Ok(());
+        return Ok(no_advance);
     }
 
     let (plan_count, summary_count) = count_plans_and_summaries(phase_dir);
     if plan_count == 0 || summary_count < plan_count {
-        return Ok(());
+        return Ok(no_advance);
     }
 
     let phases_dir = phase_dir.parent().unwrap_or(Path::new(""));
     let mut entries = match fs::read_dir(phases_dir) {
         Ok(entries) => entries.filter_map(|e| e.ok()).collect::<Vec<_>>(),
-        Err(_) => return Ok(()),
+        Err(_) => return Ok(no_advance),
     };
     entries.sort_by_key(|e| e.path());
 
@@ -272,24 +350,29 @@ fn advance_phase(phase_dir: &Path, planning_root: &Path) -> Result<(), String> {
     }
 
     if total == 0 {
-        return Ok(());
+        return Ok(no_advance);
     }
 
     let content = fs::read_to_string(&state_md).unwrap_or_default();
     let mut new_lines = vec![];
 
+    let mut info = AdvanceInfo { advanced: true, new_phase: None, status_changed_to: None };
+
     for line in content.lines() {
         if all_done {
             if line.starts_with("Status: ") {
                 new_lines.push("Status: complete".to_string());
+                info.status_changed_to = Some("complete".to_string());
             } else {
                 new_lines.push(line.to_string());
             }
         } else if !next_num.is_empty() {
             if line.starts_with("Phase: ") {
                 new_lines.push(format!("Phase: {} of {} ({})", next_num, total, next_name));
+                info.new_phase = Some(next_num.clone());
             } else if line.starts_with("Status: ") {
                 new_lines.push("Status: ready".to_string());
+                info.status_changed_to = Some("ready".to_string());
             } else {
                 new_lines.push(line.to_string());
             }
@@ -302,7 +385,7 @@ fn advance_phase(phase_dir: &Path, planning_root: &Path) -> Result<(), String> {
     new_content.push('\n');
     let _ = fs::write(&state_md, new_content);
 
-    Ok(())
+    Ok(info)
 }
 
 fn parse_summary_frontmatter(path: &Path) -> (String, String, String) {
@@ -432,7 +515,7 @@ mod tests {
         let root = setup_test_dir("plan_trigger");
         let phase_dir = root.join(".yolo-planning/phases/01-test");
         fs::create_dir_all(&phase_dir).unwrap();
-        
+
         let plan_file = phase_dir.join("1-PLAN.md");
         fs::write(&plan_file, "plan content").unwrap();
 
@@ -444,6 +527,14 @@ mod tests {
 
         let result = update_state(plan_file.to_str().unwrap());
         assert!(result.is_ok());
+        let json_str = result.unwrap();
+        let resp: Value = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(resp["ok"], true);
+        assert_eq!(resp["cmd"], "update-state");
+        assert_eq!(resp["delta"]["trigger"], "plan");
+        assert_eq!(resp["delta"]["plans_after"], 1);
+        assert_eq!(resp["delta"]["status_changed_to"], "active");
+        assert!(resp["changed"].as_array().unwrap().len() > 0);
 
         let state_content = fs::read_to_string(&state_md).unwrap();
         assert!(state_content.contains("Status: active"));
@@ -460,10 +551,10 @@ mod tests {
         let root = setup_test_dir("summary_trigger");
         let phase_dir = root.join(".yolo-planning/phases/01-test");
         fs::create_dir_all(&phase_dir).unwrap();
-        
+
         fs::write(phase_dir.join("1-PLAN.md"), "plan 1").unwrap();
         fs::write(phase_dir.join("2-PLAN.md"), "plan 2").unwrap();
-        
+
         let summary_file = phase_dir.join("1-SUMMARY.md");
         fs::write(&summary_file, "---\nphase: \"1\"\nplan: \"1\"\nstatus: \"completed\"\n---\nsummary").unwrap();
 
@@ -481,6 +572,15 @@ mod tests {
 
         let result = update_state(summary_file.to_str().unwrap());
         assert!(result.is_ok());
+        let json_str = result.unwrap();
+        let resp: Value = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(resp["ok"], true);
+        assert_eq!(resp["cmd"], "update-state");
+        assert_eq!(resp["delta"]["trigger"], "summary");
+        assert_eq!(resp["delta"]["summaries_after"], 1);
+        assert_eq!(resp["delta"]["plans_after"], 2);
+        assert_eq!(resp["delta"]["phase_advanced"], false);
+        assert!(resp["changed"].as_array().unwrap().len() >= 2);
 
         let state_content = fs::read_to_string(&state_md).unwrap();
         assert!(state_content.contains("Plans: 1/2"));
@@ -496,7 +596,12 @@ mod tests {
         // Now add the second summary and trigger advance_phase
         let summary2 = phase_dir.join("2-SUMMARY.md");
         fs::write(&summary2, "---\nphase: \"1\"\nplan: \"2\"\nstatus: \"completed\"\n---\nsummary").unwrap();
-        update_state(summary2.to_str().unwrap()).unwrap();
+        let result2 = update_state(summary2.to_str().unwrap()).unwrap();
+        let resp2: Value = serde_json::from_str(&result2).unwrap();
+        assert_eq!(resp2["ok"], true);
+        assert_eq!(resp2["delta"]["trigger"], "summary");
+        assert_eq!(resp2["delta"]["phase_advanced"], true);
+        assert_eq!(resp2["delta"]["status_changed_to"], "complete");
 
         let state_content_2 = fs::read_to_string(&state_md).unwrap();
         assert!(state_content_2.contains("Plans: 2/2"));
@@ -506,7 +611,7 @@ mod tests {
         let roadmap_content_2 = fs::read_to_string(&roadmap).unwrap();
         assert!(roadmap_content_2.contains("| 1 - Test | 2/2 | complete |"));
         assert!(roadmap_content_2.contains("- [x] Phase 1:"));
-        
+
         let _ = fs::remove_dir_all(&root);
     }
 
@@ -517,17 +622,22 @@ mod tests {
         let p2 = root.join(".yolo-planning/phases/02-two");
         fs::create_dir_all(&p1).unwrap();
         fs::create_dir_all(&p2).unwrap();
-        
+
         fs::write(p1.join("1-PLAN.md"), "").unwrap();
         fs::write(p1.join("1-SUMMARY.md"), "").unwrap();
-        
+
         fs::write(p2.join("1-PLAN.md"), "").unwrap();
         // p2 is incomplete
 
         let state_md = root.join(".yolo-planning/STATE.md");
         fs::write(&state_md, "Phase: 1 of 2 (One)\nStatus: active\n").unwrap();
 
-        update_state(p1.join("1-SUMMARY.md").to_str().unwrap()).unwrap();
+        let result = update_state(p1.join("1-SUMMARY.md").to_str().unwrap()).unwrap();
+        let resp: Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(resp["ok"], true);
+        assert_eq!(resp["delta"]["phase_advanced"], true);
+        assert_eq!(resp["delta"]["new_phase"], "2");
+        assert_eq!(resp["delta"]["status_changed_to"], "ready");
 
         let content = fs::read_to_string(&state_md).unwrap();
         assert!(content.contains("Phase: 2 of 2 (Two)"));
@@ -553,22 +663,28 @@ mod tests {
     #[test]
     fn test_update_state_invalid_files() {
         let root = setup_test_dir("invalid_files");
-        
+
         // Non-existent file
-        let res1 = update_state("/does/not/exist.md");
-        assert!(res1.unwrap().contains("does not exist"));
+        let res1 = update_state("/does/not/exist.md").unwrap();
+        let j1: Value = serde_json::from_str(&res1).unwrap();
+        assert_eq!(j1["ok"], false);
+        assert!(j1["error"].as_str().unwrap().contains("does not exist"));
 
         // Not a plan or summary
         let random_file = root.join("random.txt");
         fs::write(&random_file, "data").unwrap();
-        let res2 = update_state(random_file.to_str().unwrap());
-        assert!(res2.unwrap().contains("Not a PLAN.md or SUMMARY.md file"));
-        
+        let res2 = update_state(random_file.to_str().unwrap()).unwrap();
+        let j2: Value = serde_json::from_str(&res2).unwrap();
+        assert_eq!(j2["ok"], false);
+        assert!(j2["error"].as_str().unwrap().contains("Not a PLAN.md or SUMMARY.md file"));
+
         // Directory instead of file
         let dir_path = root.join("some_dir");
         fs::create_dir_all(&dir_path).unwrap();
-        let res3 = update_state(dir_path.to_str().unwrap());
-        assert!(res3.unwrap().contains("does not exist or is not a file"));
+        let res3 = update_state(dir_path.to_str().unwrap()).unwrap();
+        let j3: Value = serde_json::from_str(&res3).unwrap();
+        assert_eq!(j3["ok"], false);
+        assert!(j3["error"].as_str().unwrap().contains("does not exist or is not a file"));
 
         let _ = fs::remove_dir_all(&root);
     }
