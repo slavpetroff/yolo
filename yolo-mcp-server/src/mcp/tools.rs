@@ -2,7 +2,7 @@ use serde_json::{json, Value};
 use tokio::fs;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::process::Command;
+use tokio::process::Command;
 
 pub struct ToolState {
     locks: Mutex<HashMap<String, String>>, // file_path -> task_id
@@ -40,7 +40,7 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
             prefix.push_str("\n--- END GLOBAL STATE ---\n\n--- VOLATILE TAIL ---\n");
             
             // Try to get git diff for volatile tail
-            if let Ok(diff) = Command::new("git").arg("diff").arg("HEAD").output() {
+            if let Ok(diff) = Command::new("git").arg("diff").arg("HEAD").output().await {
                 let diff_str = String::from_utf8_lossy(&diff.stdout);
                 if !diff_str.trim().is_empty() {
                     prefix.push_str("Recent Uncommitted Diffs:\n```diff\n");
@@ -102,11 +102,11 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
                 return json!({ "content": [{"type": "text", "text": "No test_path provided"}], "isError": true });
             }
             
-            // We use standard process::Command for MVP native testing
             let output = Command::new("npm")
                 .arg("test")
                 .arg(test_path)
-                .output();
+                .output()
+                .await;
                 
             match output {
                 Ok(out) => {
