@@ -8,12 +8,14 @@ use tokio::process::Command;
 
 pub struct ToolState {
     locks: Mutex<HashMap<String, String>>, // file_path -> task_id
+    last_prefix_hashes: Mutex<HashMap<String, String>>, // role -> last prefix_hash
 }
 
 impl ToolState {
     pub fn new() -> Self {
         Self {
             locks: Mutex::new(HashMap::new()),
+            last_prefix_hashes: Mutex::new(HashMap::new()),
         }
     }
 }
@@ -103,6 +105,27 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
 
             volatile_tail.push_str("\n--- END COMPILED CONTEXT ---\n");
 
+            let volatile_bytes = volatile_tail.len();
+
+            // Determine cache hit/miss by comparing prefix_hash to previous call for this role
+            let (cache_read_tokens_estimate, cache_write_tokens_estimate) = {
+                let mut hashes = state.last_prefix_hashes.lock().unwrap();
+                let prev = hashes.get(role).cloned();
+                hashes.insert(role.to_string(), prefix_hash.clone());
+                match prev {
+                    Some(ref old_hash) if old_hash == &prefix_hash => {
+                        // Cache hit: prefix was already sent, count as cache read
+                        (prefix_bytes, 0usize)
+                    }
+                    _ => {
+                        // Cache miss or first call: prefix is new, count as cache write
+                        (0usize, prefix_bytes)
+                    }
+                }
+            };
+
+            let input_tokens_estimate = prefix_bytes + volatile_bytes;
+
             // Combined text preserves backward compat
             let combined = format!("{}\n{}", stable_prefix, volatile_tail);
 
@@ -111,7 +134,11 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
                 "stable_prefix": stable_prefix,
                 "volatile_tail": volatile_tail,
                 "prefix_hash": prefix_hash,
-                "prefix_bytes": prefix_bytes
+                "prefix_bytes": prefix_bytes,
+                "volatile_bytes": volatile_bytes,
+                "input_tokens_estimate": input_tokens_estimate,
+                "cache_read_tokens_estimate": cache_read_tokens_estimate,
+                "cache_write_tokens_estimate": cache_write_tokens_estimate
             })
         }
         "acquire_lock" => {
@@ -290,6 +317,65 @@ mod tests {
         assert!(!stable.contains("phase="));
         assert!(volatile.contains("VOLATILE TAIL (phase=4)"));
         assert!(stable.contains("DUMMY ARCH CONTENT"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_compile_context_token_estimates() {
+        let tmp = std::env::temp_dir().join(format!("yolo-test-token-est-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".yolo-planning/codebase")).unwrap();
+        std::fs::write(tmp.join(".yolo-planning/codebase/CONVENTIONS.md"), "CONV").unwrap();
+
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
+        let params = Some(json!({"phase": 1, "role": "dev"}));
+
+        let result = handle_tool_call("compile_context", params, state).await;
+
+        // Verify new token estimate fields exist
+        assert!(result.get("input_tokens_estimate").is_some());
+        assert!(result.get("cache_read_tokens_estimate").is_some());
+        assert!(result.get("cache_write_tokens_estimate").is_some());
+        assert!(result.get("volatile_bytes").is_some());
+
+        let input_est = result["input_tokens_estimate"].as_u64().unwrap();
+        let prefix_bytes = result["prefix_bytes"].as_u64().unwrap();
+        let volatile_bytes = result["volatile_bytes"].as_u64().unwrap();
+        assert_eq!(input_est, prefix_bytes + volatile_bytes);
+
+        // First call should be cache write (no previous hash)
+        assert_eq!(result["cache_read_tokens_estimate"].as_u64().unwrap(), 0);
+        assert!(result["cache_write_tokens_estimate"].as_u64().unwrap() > 0);
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_compile_context_cache_hit_on_second_call() {
+        let tmp = std::env::temp_dir().join(format!("yolo-test-cache-hit-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".yolo-planning/codebase")).unwrap();
+        std::fs::write(tmp.join(".yolo-planning/codebase/CONVENTIONS.md"), "CONV").unwrap();
+
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
+        let params = Some(json!({"phase": 1, "role": "dev"}));
+
+        // First call
+        let r1 = handle_tool_call("compile_context", params.clone(), state.clone()).await;
+        let hash1 = r1["prefix_hash"].as_str().unwrap().to_string();
+
+        // Second call with same role — prefix_hash should match
+        let r2 = handle_tool_call("compile_context", params, state).await;
+        let hash2 = r2["prefix_hash"].as_str().unwrap().to_string();
+
+        assert_eq!(hash1, hash2);
+
+        // Second call should be cache read
+        assert!(r2["cache_read_tokens_estimate"].as_u64().unwrap() > 0);
+        assert_eq!(r2["cache_write_tokens_estimate"].as_u64().unwrap(), 0);
 
         let _ = std::fs::remove_dir_all(&tmp);
     }
