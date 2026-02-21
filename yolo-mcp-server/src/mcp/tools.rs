@@ -57,7 +57,26 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
             }
             
             prefix.push_str("\n--- END COMPILED CONTEXT ---\n\n--- VOLATILE TAIL ---\n");
-            
+
+            // Include phase-specific plan files when phase > 0
+            if phase > 0 {
+                let phase_dir = format!(".yolo-planning/phases/{:02}", phase);
+                if let Ok(mut entries) = tokio::fs::read_dir(&phase_dir).await {
+                    let mut plan_count = 0u32;
+                    while let Ok(Some(entry)) = entries.next_entry().await {
+                        if plan_count >= 2 { break; }
+                        let name = entry.file_name();
+                        let name_str = name.to_string_lossy();
+                        if name_str.ends_with("-PLAN.md") {
+                            if let Ok(content) = fs::read_to_string(entry.path()).await {
+                                prefix.push_str(&format!("\n# Phase {} Plan: {}\n{}\n", phase, name_str, content));
+                                plan_count += 1;
+                            }
+                        }
+                    }
+                }
+            }
+
             // Try to get git diff for volatile tail
             if let Ok(diff) = Command::new("git").arg("diff").arg("HEAD").output().await {
                 let diff_str = String::from_utf8_lossy(&diff.stdout);
