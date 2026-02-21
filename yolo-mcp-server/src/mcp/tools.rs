@@ -1,10 +1,10 @@
 use serde_json::{json, Value};
-use sha2::{Sha256, Digest};
-use tokio::fs;
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tokio::process::Command;
+
+use crate::commands::tier_context;
 
 pub struct ToolState {
     locks: Mutex<HashMap<String, String>>, // file_path -> task_id
@@ -29,83 +29,41 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
                 .and_then(|r| r.as_str())
                 .unwrap_or("default");
 
-            // Build stable prefix: role-gated reference files only (no phase number)
-            let mut stable_prefix = format!("--- COMPILED CONTEXT (role={}) ---\n", role);
+            // Build tiered context using the tier_context module
+            let planning_dir = Path::new(".yolo-planning");
+            let phases_dir = planning_dir.join("phases");
+            let mut ctx = tier_context::build_tiered_context(
+                planning_dir,
+                role,
+                phase,
+                Some(&phases_dir),
+                None,
+            );
 
-            let files_to_read: Vec<&str> = match role {
-                "architect" | "lead" => vec![
-                    ".yolo-planning/codebase/ARCHITECTURE.md",
-                    ".yolo-planning/codebase/STACK.md",
-                    ".yolo-planning/codebase/CONVENTIONS.md",
-                    ".yolo-planning/ROADMAP.md",
-                    ".yolo-planning/REQUIREMENTS.md",
-                ],
-                "senior" | "dev" => vec![
-                    ".yolo-planning/codebase/CONVENTIONS.md",
-                    ".yolo-planning/codebase/STACK.md",
-                    ".yolo-planning/ROADMAP.md",
-                ],
-                "qa" | "security" => vec![
-                    ".yolo-planning/codebase/CONVENTIONS.md",
-                    ".yolo-planning/REQUIREMENTS.md",
-                ],
-                _ => vec![
-                    ".yolo-planning/codebase/CONVENTIONS.md",
-                    ".yolo-planning/ROADMAP.md",
-                ],
-            };
-
-            for path in files_to_read {
-                if let Ok(content) = fs::read_to_string(path).await {
-                    stable_prefix.push_str(&format!("\n# {}\n{}\n", path, content));
-                }
-            }
-
-            // Compute prefix hash and size before appending sentinel
-            let prefix_hash = {
-                let mut hasher = Sha256::new();
-                hasher.update(stable_prefix.as_bytes());
-                format!("{:x}", hasher.finalize())
-            };
-            let prefix_bytes = stable_prefix.len();
-
-            // Build volatile tail: phase-specific plans and git diff
-            let mut volatile_tail = format!("--- VOLATILE TAIL (phase={}) ---\n", phase);
-
-            if phase > 0 {
-                let phase_dir = format!(".yolo-planning/phases/{:02}", phase);
-                if let Ok(mut entries) = tokio::fs::read_dir(&phase_dir).await {
-                    let mut plan_count = 0u32;
-                    while let Ok(Some(entry)) = entries.next_entry().await {
-                        if plan_count >= 2 { break; }
-                        let name = entry.file_name();
-                        let name_str = name.to_string_lossy();
-                        if name_str.ends_with("-PLAN.md") {
-                            if let Ok(content) = fs::read_to_string(entry.path()).await {
-                                volatile_tail.push_str(&format!("\n# Phase {} Plan: {}\n{}\n", phase, name_str, content));
-                                plan_count += 1;
-                            }
-                        }
-                    }
-                }
-            }
-
+            // Append async git diff to tier3 (async operation not available in sync tier builder)
             if let Ok(diff) = Command::new("git").arg("diff").arg("HEAD").output().await {
                 let diff_str = String::from_utf8_lossy(&diff.stdout);
                 if !diff_str.trim().is_empty() {
-                    volatile_tail.push_str("Recent Uncommitted Diffs:\n```diff\n");
-                    volatile_tail.push_str(&diff_str);
-                    volatile_tail.push_str("\n```\n");
+                    ctx.tier3.push_str("Recent Uncommitted Diffs:\n```diff\n");
+                    ctx.tier3.push_str(&diff_str);
+                    ctx.tier3.push_str("\n```\n");
                 } else {
-                    volatile_tail.push_str("No recent file diffs found.\n");
+                    ctx.tier3.push_str("No recent file diffs found.\n");
                 }
             } else {
-                volatile_tail.push_str("No recent file diffs found.\n");
+                ctx.tier3.push_str("No recent file diffs found.\n");
             }
 
-            volatile_tail.push_str("\n--- END COMPILED CONTEXT ---\n");
+            ctx.tier3.push_str("\n--- END COMPILED CONTEXT ---\n");
 
-            let volatile_bytes = volatile_tail.len();
+            // Recompute combined after appending git diff
+            ctx.combined = format!("{}\n{}\n{}", ctx.tier1, ctx.tier2, ctx.tier3);
+
+            // Backward-compatible stable_prefix = tier1 + "\n" + tier2
+            let stable_prefix = format!("{}\n{}", ctx.tier1, ctx.tier2);
+            let prefix_hash = tier_context::sha256_of(&stable_prefix);
+            let prefix_bytes = stable_prefix.len();
+            let volatile_bytes = ctx.tier3.len();
 
             // Determine cache hit/miss by comparing prefix_hash to previous call for this role
             let (cache_read_tokens_estimate, cache_write_tokens_estimate) = {
@@ -114,11 +72,9 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
                 hashes.insert(role.to_string(), prefix_hash.clone());
                 match prev {
                     Some(ref old_hash) if old_hash == &prefix_hash => {
-                        // Cache hit: prefix was already sent, count as cache read
                         (prefix_bytes, 0usize)
                     }
                     _ => {
-                        // Cache miss or first call: prefix is new, count as cache write
                         (0usize, prefix_bytes)
                     }
                 }
@@ -126,13 +82,14 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
 
             let input_tokens_estimate = prefix_bytes + volatile_bytes;
 
-            // Combined text preserves backward compat
-            let combined = format!("{}\n{}", stable_prefix, volatile_tail);
-
             json!({
-                "content": [{"type": "text", "text": combined}],
+                "content": [{"type": "text", "text": ctx.combined}],
+                "tier1_prefix": ctx.tier1,
+                "tier2_prefix": ctx.tier2,
+                "volatile_tail": ctx.tier3,
+                "tier1_hash": ctx.tier1_hash,
+                "tier2_hash": ctx.tier2_hash,
                 "stable_prefix": stable_prefix,
-                "volatile_tail": volatile_tail,
                 "prefix_hash": prefix_hash,
                 "prefix_bytes": prefix_bytes,
                 "volatile_bytes": volatile_bytes,
