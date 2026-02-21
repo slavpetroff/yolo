@@ -273,7 +273,7 @@ mod tests {
 ## Current Phase
 Phase 3
 ";
-        let output = generate_root_state(archived, "MyProject");
+        let (output, delta) = generate_root_state(archived, "MyProject");
         assert!(output.contains("**Project:** MyProject"));
         assert!(output.contains("## Key Decisions"));
         assert!(output.contains("Use Rust"));
@@ -285,12 +285,17 @@ Phase 3
         assert!(output.contains("## Codebase Profile"));
         // Should NOT include milestone-specific sections
         assert!(!output.contains("Current Phase"));
+        // Validate delta booleans
+        assert!(delta.has_decisions);
+        assert!(delta.has_todos);
+        assert!(delta.has_blockers);
+        assert!(delta.has_codebase_profile);
     }
 
     #[test]
     fn test_generate_root_state_empty_sections() {
         let archived = "# State\n\n## Current Phase\nPhase 1\n";
-        let output = generate_root_state(archived, "TestProj");
+        let (output, delta) = generate_root_state(archived, "TestProj");
         assert!(output.contains("**Project:** TestProj"));
         assert!(output.contains("## Decisions"));
         assert!(output.contains("_(No decisions yet)_"));
@@ -298,6 +303,11 @@ Phase 3
         assert!(output.contains("None."));
         assert!(output.contains("## Blockers"));
         assert!(output.contains("None"));
+        // All sections empty
+        assert!(!delta.has_decisions);
+        assert!(!delta.has_todos);
+        assert!(!delta.has_blockers);
+        assert!(!delta.has_codebase_profile);
     }
 
     #[test]
@@ -322,6 +332,16 @@ Phase 3
         assert_eq!(code, 0);
         assert!(!out.is_empty());
 
+        let envelope: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(envelope["ok"], true);
+        assert_eq!(envelope["cmd"], "persist-state");
+        assert_eq!(envelope["delta"]["has_decisions"], true);
+        assert_eq!(envelope["delta"]["has_todos"], true);
+        assert_eq!(envelope["delta"]["has_blockers"], false);
+        assert_eq!(envelope["delta"]["project_name"], "TestProject");
+        assert!(envelope["changed"].as_array().unwrap().len() > 0);
+        assert!(envelope["elapsed_ms"].is_u64());
+
         let content = fs::read_to_string(&output_path).unwrap();
         assert!(content.contains("**Project:** TestProject"));
         assert!(content.contains("Use Rust"));
@@ -330,11 +350,14 @@ Phase 3
 
     #[test]
     fn test_execute_missing_file() {
-        let result = execute(
+        let (out, code) = execute(
             &["nonexistent.md".into(), "out.md".into(), "Proj".into()],
             Path::new("/tmp"),
-        );
-        assert!(result.is_err());
+        ).unwrap();
+        assert_eq!(code, 1);
+        let envelope: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(envelope["ok"], false);
+        assert_eq!(envelope["cmd"], "persist-state");
     }
 
     #[test]

@@ -135,6 +135,9 @@ mod tests {
         let dir = setup_test_env();
         let result = collect("cache_hit", "1", None, &[], dir.path());
         assert!(result.is_ok());
+        let cr = result.unwrap();
+        assert!(cr.written);
+        assert!(cr.metrics_file.contains("run-metrics.jsonl"));
         let metrics_file = dir.path().join(".yolo-planning/.metrics/run-metrics.jsonl");
         assert!(metrics_file.exists());
         let content = fs::read_to_string(&metrics_file).unwrap();
@@ -211,7 +214,15 @@ mod tests {
         assert!(result.is_ok());
         let (output, code) = result.unwrap();
         assert_eq!(code, 0);
-        assert!(output.is_empty());
+
+        let envelope: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(envelope["ok"], true);
+        assert_eq!(envelope["cmd"], "collect-metrics");
+        assert_eq!(envelope["delta"]["event"], "cache_hit");
+        assert_eq!(envelope["delta"]["phase"], 1);
+        assert_eq!(envelope["delta"]["written"], true);
+        assert!(envelope["delta"]["metrics_file"].as_str().unwrap().contains("run-metrics.jsonl"));
+        assert!(envelope["elapsed_ms"].is_u64());
     }
 
     #[test]

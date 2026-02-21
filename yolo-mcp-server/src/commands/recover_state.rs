@@ -342,10 +342,15 @@ mod tests {
         assert_eq!(code, 0);
 
         let result: Value = serde_json::from_str(&out).unwrap();
-        assert_eq!(result["phase"], 1);
-        assert_eq!(result["phase_name"], "setup");
-        assert_eq!(result["status"], "pending");
-        assert_eq!(result["plans"].as_array().unwrap().len(), 3);
+        assert_eq!(result["ok"], true);
+        assert_eq!(result["cmd"], "recover-state");
+        assert!(result["elapsed_ms"].is_u64());
+        let delta = &result["delta"];
+        assert_eq!(delta["recovered"], true);
+        assert_eq!(delta["phase"], 1);
+        assert_eq!(delta["phase_name"], "setup");
+        assert_eq!(delta["status"], "pending");
+        assert_eq!(delta["plans"].as_array().unwrap().len(), 3);
     }
 
     #[test]
@@ -361,9 +366,10 @@ mod tests {
         assert_eq!(code, 0);
 
         let result: Value = serde_json::from_str(&out).unwrap();
-        assert_eq!(result["status"], "running");
+        let delta = &result["delta"];
+        assert_eq!(delta["status"], "running");
 
-        let plans = result["plans"].as_array().unwrap();
+        let plans = delta["plans"].as_array().unwrap();
         assert_eq!(plans[0]["status"], "complete");
         assert_eq!(plans[1]["status"], "pending");
     }
@@ -386,7 +392,7 @@ mod tests {
         assert_eq!(code, 0);
 
         let result: Value = serde_json::from_str(&out).unwrap();
-        assert_eq!(result["status"], "complete");
+        assert_eq!(result["delta"]["status"], "complete");
     }
 
     #[test]
@@ -408,9 +414,10 @@ mod tests {
         assert_eq!(code, 0);
 
         let result: Value = serde_json::from_str(&out).unwrap();
-        assert_eq!(result["status"], "failed");
+        let delta = &result["delta"];
+        assert_eq!(delta["status"], "failed");
 
-        let plans = result["plans"].as_array().unwrap();
+        let plans = delta["plans"].as_array().unwrap();
         let plan2 = plans.iter().find(|p| p["id"] == "01-02").unwrap();
         assert_eq!(plan2["status"], "failed");
     }
@@ -428,8 +435,11 @@ mod tests {
 
         let args = vec!["1".into()];
         let (out, code) = execute(&args, dir.path()).unwrap();
-        assert_eq!(code, 0);
-        assert_eq!(out, "{}");
+        assert_eq!(code, 3);
+        let result: Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(result["ok"], true);
+        assert_eq!(result["delta"]["recovered"], false);
+        assert_eq!(result["delta"]["reason"], "v3_event_recovery disabled");
     }
 
     #[test]
@@ -445,8 +455,11 @@ mod tests {
 
         let args = vec!["99".into()];
         let (out, code) = execute(&args, dir.path()).unwrap();
-        assert_eq!(code, 0);
-        assert_eq!(out, "{}");
+        assert_eq!(code, 3);
+        let result: Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(result["ok"], true);
+        assert_eq!(result["delta"]["recovered"], false);
+        assert_eq!(result["delta"]["reason"], "no phase directory found");
     }
 
     #[test]
@@ -461,10 +474,11 @@ mod tests {
         let args = vec!["1".into()];
         let (out, _) = execute(&args, dir.path()).unwrap();
         let result: Value = serde_json::from_str(&out).unwrap();
+        let delta = &result["delta"];
 
         // Wave 1 done, wave 2 pending — current_wave should be 2
-        assert_eq!(result["wave"], 2);
-        assert_eq!(result["total_waves"], 2);
+        assert_eq!(delta["wave"], 2);
+        assert_eq!(delta["total_waves"], 2);
     }
 
     #[test]

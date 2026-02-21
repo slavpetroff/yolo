@@ -228,6 +228,9 @@ mod tests {
         let dir = setup_test_env(false, false);
         let result = log("phase_start", "1", None, &[], dir.path());
         assert!(result.is_ok());
+        let lr = result.unwrap();
+        assert!(!lr.written);
+        assert_eq!(lr.reason.as_deref(), Some("v3_event_log disabled"));
         let events_file = dir.path().join(".yolo-planning/.events/event-log.jsonl");
         assert!(!events_file.exists());
     }
@@ -237,6 +240,10 @@ mod tests {
         let dir = setup_test_env(true, false);
         let result = log("phase_start", "1", None, &[], dir.path());
         assert!(result.is_ok());
+        let lr = result.unwrap();
+        assert!(lr.written);
+        assert!(lr.event_id.is_some());
+        assert!(lr.reason.is_none());
         let events_file = dir.path().join(".yolo-planning/.events/event-log.jsonl");
         assert!(events_file.exists());
         let content = fs::read_to_string(&events_file).unwrap();
@@ -268,6 +275,9 @@ mod tests {
         let dir = setup_test_env(true, true);
         let result = log("totally_unknown_event", "1", None, &[], dir.path());
         assert!(result.is_ok());
+        let lr = result.unwrap();
+        assert!(!lr.written);
+        assert_eq!(lr.reason.as_deref(), Some("unknown event type rejected"));
         let events_file = dir.path().join(".yolo-planning/.events/event-log.jsonl");
         assert!(!events_file.exists());
     }
@@ -344,7 +354,45 @@ mod tests {
         assert!(result.is_ok());
         let (output, code) = result.unwrap();
         assert_eq!(code, 0);
-        assert!(output.is_empty());
+
+        let envelope: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(envelope["ok"], true);
+        assert_eq!(envelope["cmd"], "log-event");
+        assert_eq!(envelope["delta"]["written"], true);
+        assert_eq!(envelope["delta"]["event_type"], "phase_start");
+        assert_eq!(envelope["delta"]["phase"], 1);
+        assert!(envelope["delta"]["event_id"].as_str().unwrap().len() > 0);
+        assert!(envelope["elapsed_ms"].is_u64());
+    }
+
+    #[test]
+    fn test_execute_cli_disabled_returns_skipped() {
+        let dir = setup_test_env(false, false);
+        let args: Vec<String> = vec![
+            "yolo".into(), "log-event".into(), "phase_start".into(), "1".into(),
+        ];
+        let (output, code) = execute(&args, dir.path()).unwrap();
+        assert_eq!(code, 3);
+
+        let envelope: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(envelope["ok"], true);
+        assert_eq!(envelope["delta"]["written"], false);
+        assert_eq!(envelope["delta"]["reason"], "v3_event_log disabled");
+    }
+
+    #[test]
+    fn test_execute_cli_typed_protocol_rejects_returns_skipped() {
+        let dir = setup_test_env(true, true);
+        let args: Vec<String> = vec![
+            "yolo".into(), "log-event".into(), "totally_unknown".into(), "1".into(),
+        ];
+        let (output, code) = execute(&args, dir.path()).unwrap();
+        assert_eq!(code, 3);
+
+        let envelope: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(envelope["ok"], true);
+        assert_eq!(envelope["delta"]["written"], false);
+        assert_eq!(envelope["delta"]["reason"], "unknown event type rejected");
     }
 
     #[test]
