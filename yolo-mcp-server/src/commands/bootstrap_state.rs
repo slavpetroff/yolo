@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 use chrono::Local;
 
 /// Extract a section's body from existing STATE.md content.
@@ -32,9 +33,16 @@ fn extract_section(content: &str, headings: &[&str]) -> String {
 }
 
 pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
+    let start = Instant::now();
     // args: ["state", OUTPUT_PATH, PROJECT_NAME, MILESTONE_NAME, PHASE_COUNT]
     if args.len() < 5 {
-        return Err("Usage: yolo bootstrap state <output_path> <project_name> <milestone_name> <phase_count>".to_string());
+        let response = serde_json::json!({
+            "ok": false,
+            "cmd": "bootstrap-state",
+            "error": "Usage: yolo bootstrap state <output_path> <project_name> <milestone_name> <phase_count>",
+            "elapsed_ms": start.elapsed().as_millis() as u64
+        });
+        return Ok((response.to_string(), 1));
     }
 
     let output_path = Path::new(&args[1]);
@@ -103,7 +111,20 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
     fs::write(output_path, &out)
         .map_err(|e| format!("Failed to write {}: {}", output_path.display(), e))?;
 
-    Ok((String::new(), 0))
+    let response = serde_json::json!({
+        "ok": true,
+        "cmd": "bootstrap-state",
+        "changed": [output_path.to_string_lossy()],
+        "delta": {
+            "project_name": project_name,
+            "milestone_name": milestone_name,
+            "phase_count": phase_count,
+            "preserved_todos": !existing_todos.is_empty(),
+            "preserved_decisions": !existing_decisions.is_empty()
+        },
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
+    Ok((response.to_string(), 0))
 }
 
 #[cfg(test)]

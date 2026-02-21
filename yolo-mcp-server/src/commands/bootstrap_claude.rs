@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 const YOLO_SECTIONS: &[&str] = &[
     "## Active Context",
@@ -227,8 +228,15 @@ fn trim_newlines(s: &str) -> String {
 }
 
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
+    let start = Instant::now();
     if args.len() < 4 {
-        return Err("Usage: yolo bootstrap OUTPUT_PATH PROJECT_NAME CORE_VALUE [EXISTING_PATH]".to_string());
+        let response = serde_json::json!({
+            "ok": false,
+            "cmd": "bootstrap-claude",
+            "error": "Usage: yolo bootstrap OUTPUT_PATH PROJECT_NAME CORE_VALUE [EXISTING_PATH]",
+            "elapsed_ms": start.elapsed().as_millis() as u64
+        });
+        return Ok((response.to_string(), 1));
     }
 
     let output_path = PathBuf::from(&args[1]);
@@ -237,7 +245,13 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let existing_path = if args.len() > 4 { Some(PathBuf::from(&args[4])) } else { None };
 
     if project_name.is_empty() || core_value.is_empty() {
-        return Err("Error: PROJECT_NAME and CORE_VALUE must not be empty".to_string());
+        let response = serde_json::json!({
+            "ok": false,
+            "cmd": "bootstrap-claude",
+            "error": "Error: PROJECT_NAME and CORE_VALUE must not be empty",
+            "elapsed_ms": start.elapsed().as_millis() as u64
+        });
+        return Ok((response.to_string(), 1));
     }
 
     if let Some(parent) = output_path.parent() {
@@ -262,6 +276,8 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
             let mut in_deprecated_section = false;
             let mut deprecated_section_buffer = String::new();
             let mut deprecated_has_user_content = false;
+            let mut sections_stripped: u64 = 0;
+            let mut deprecated_sections_count: u64 = 0;
 
             let state_path = if let Some(parent) = output_path.parent() {
                 match parent.to_str() {
@@ -281,9 +297,11 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                     in_deprecated_section = false;
                     deprecated_section_buffer.clear();
                     deprecated_has_user_content = false;
+                    sections_stripped += 1;
 
                     if is_deprecated {
                         in_deprecated_section = true;
+                        deprecated_sections_count += 1;
                         deprecated_section_buffer.push_str(line);
                         deprecated_section_buffer.push('\n');
                     }
@@ -336,7 +354,20 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
             }
             final_out.push_str(&generate_yolo_sections());
             let _ = fs::write(&output_path, final_out);
-            return Ok(("Created".to_string(), 0));
+            let non_yolo_preserved = if found_non_yolo { 1 } else { 0 };
+            let response = serde_json::json!({
+                "ok": true,
+                "cmd": "bootstrap-claude",
+                "changed": [output_path.to_string_lossy()],
+                "delta": {
+                    "mode": "brownfield",
+                    "sections_stripped": sections_stripped,
+                    "decisions_migrated": deprecated_sections_count,
+                    "non_yolo_sections_preserved": non_yolo_preserved
+                },
+                "elapsed_ms": start.elapsed().as_millis() as u64
+            });
+            return Ok((response.to_string(), 0));
         }
     }
 
@@ -345,7 +376,19 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     out.push_str(&generate_yolo_sections());
     let _ = fs::write(&output_path, out);
 
-    Ok(("Created".to_string(), 0))
+    let response = serde_json::json!({
+        "ok": true,
+        "cmd": "bootstrap-claude",
+        "changed": [output_path.to_string_lossy()],
+        "delta": {
+            "mode": "greenfield",
+            "sections_stripped": 0,
+            "decisions_migrated": 0,
+            "non_yolo_sections_preserved": 0
+        },
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
+    Ok((response.to_string(), 0))
 }
 
 #[cfg(test)]
