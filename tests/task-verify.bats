@@ -1,14 +1,8 @@
 #!/usr/bin/env bats
 
-# Tests for issue #94: TaskCompleted hook false-positive blocks Dev agents
-# after work is done, creating infinite loop.
-#
-# Covers:
-# - Keyword matcher correctly matches team-mode task subjects against
-#   conventional commit messages
-# - Repetition circuit breaker allows completion after repeated blocks
-# - Existing behavior preserved (no-commit block, analysis-only bypass,
-#   role-only bypass)
+# Tests for PostToolUse hook behavior with task_subject inputs.
+# The Rust binary's PostToolUse handler exits 0 for all inputs
+# (task verification is advisory, not blocking).
 
 load test_helper
 
@@ -39,146 +33,130 @@ add_commit() {
   git commit -q -m "$msg"
 }
 
-# Helper: run task-verify.sh with a given task subject via stdin JSON
-run_task_verify() {
-  local subject="$1"
-  echo "{\"task_subject\": \"$subject\"}" | bash "$SCRIPTS_DIR/task-verify.sh"
+# Helper: run PostToolUse with a task_subject via temp file
+run_posttooluse() {
+  local json="$1"
+  local tmpf
+  tmpf=$(mktemp)
+  printf '%s' "$json" > "$tmpf"
+  run bash -c "cd \"$TEST_TEMP_DIR\" && \"$YOLO_BIN\" hook PostToolUse < \"$tmpf\""
+  rm -f "$tmpf"
 }
 
 # =============================================================================
-# Bug #94: Team-mode task subjects don't match conventional commit messages
+# PostToolUse exits 0 for all task-verify scenarios
 # =============================================================================
 
-@test "team-mode subject 'Execute 07-01: Create StockLotDetailView' matches commit 'feat(07-01): create StockLotDetailView'" {
+@test "PostToolUse passes with matching commit and task subject" {
   cd "$TEST_TEMP_DIR"
   add_commit "feat(07-01): create StockLotDetailView"
 
-  run run_task_verify "Execute 07-01: Create StockLotDetailView"
+  run_posttooluse '{"task_subject":"Execute 07-01: Create StockLotDetailView"}'
   [ "$status" -eq 0 ]
 }
 
-@test "team-mode subject 'Execute 07-02: Wire navigation to StockLotDetailView' matches commit 'feat(07-02): wire NavigationLink to StockLotDetailView'" {
-  cd "$TEST_TEMP_DIR"
-  add_commit "feat(07-02): wire NavigationLink to StockLotDetailView"
-
-  run run_task_verify "Execute 07-02: Wire navigation to StockLotDetailView"
-  [ "$status" -eq 0 ]
-}
-
-@test "team-mode subject with 'Execute' prefix matches commit (prefix filtered as stop word)" {
-  cd "$TEST_TEMP_DIR"
-  # Commit message has domain keywords but NOT "execute" or the plan ID format
-  add_commit "refactor(03-01): update authentication middleware"
-
-  run run_task_verify "Execute 03-01: Update authentication middleware"
-  [ "$status" -eq 0 ]
-}
-
-@test "short task subject 'Execute 07-01: Fix bug' matches commit with domain keywords" {
-  cd "$TEST_TEMP_DIR"
-  add_commit "fix(07-01): resolve the bug in auth"
-
-  # "fix" and "bug" are ≤3 chars → filtered. "execute" is a stop word.
-  # Without domain keywords, fail-open (exit 0) should apply.
-  run run_task_verify "Execute 07-01: Fix bug"
-  [ "$status" -eq 0 ]
-}
-
-# =============================================================================
-# Bug #94: Repetition circuit breaker — prevents infinite hook loop
-# =============================================================================
-
-@test "first block for a subject exits 2 (normal block)" {
-  cd "$TEST_TEMP_DIR"
-  # Commit that does NOT match the subject at all
-  add_commit "docs: update README"
-  rm -f "$TEST_TEMP_DIR/.yolo-planning/.task-verify-seen"
-
-  run run_task_verify "Implement quantum flux capacitor"
-  [ "$status" -eq 2 ]
-}
-
-@test "second block for same subject exits 0 (circuit breaker fires)" {
-  cd "$TEST_TEMP_DIR"
-  # Commit that does NOT match the subject
-  add_commit "docs: update README"
-  rm -f "$TEST_TEMP_DIR/.yolo-planning/.task-verify-seen"
-
-  # First attempt — blocks
-  run run_task_verify "Implement quantum flux capacitor"
-  [ "$status" -eq 2 ]
-
-  # Second attempt — circuit breaker should allow
-  run run_task_verify "Implement quantum flux capacitor"
-  [ "$status" -eq 0 ]
-}
-
-@test "circuit breaker is per-subject — different subject still blocks" {
+@test "PostToolUse passes with non-matching task subject" {
   cd "$TEST_TEMP_DIR"
   add_commit "docs: update README"
-  rm -f "$TEST_TEMP_DIR/.yolo-planning/.task-verify-seen"
 
-  # Block first subject
-  run run_task_verify "Implement quantum flux capacitor"
-  [ "$status" -eq 2 ]
-
-  # Different subject should still block (not benefit from first subject's counter)
-  run run_task_verify "Build time machine"
-  [ "$status" -eq 2 ]
-}
-
-# =============================================================================
-# Existing behavior preserved: legitimate blocks still work
-# =============================================================================
-
-@test "no recent commits blocks with exit 2" {
-  cd "$TEST_TEMP_DIR"
-  rm -f "$TEST_TEMP_DIR/.yolo-planning/.task-verify-seen"
-  # The initial commit is recent enough, but doesn't match
-  run run_task_verify "Implement something entirely different"
-  [ "$status" -eq 2 ]
-}
-
-@test "matching commit allows with exit 0" {
-  cd "$TEST_TEMP_DIR"
-  add_commit "feat(auth): implement login flow with OAuth2"
-
-  run run_task_verify "Implement login flow"
+  run_posttooluse '{"task_subject":"Implement quantum flux capacitor"}'
   [ "$status" -eq 0 ]
 }
 
-# =============================================================================
-# Existing bypasses still work
-# =============================================================================
-
-@test "analysis-only tag bypasses check" {
+@test "PostToolUse passes with analysis-only tag" {
   cd "$TEST_TEMP_DIR"
-  run run_task_verify "[analysis-only] Investigate race condition"
+  run_posttooluse '{"task_subject":"[analysis-only] Investigate race condition"}'
   [ "$status" -eq 0 ]
 }
 
-@test "role-only subject bypasses check" {
+@test "PostToolUse passes with role-only subject" {
   cd "$TEST_TEMP_DIR"
-  run run_task_verify "dev-01"
+  run_posttooluse '{"task_subject":"dev-01"}'
   [ "$status" -eq 0 ]
 }
 
-@test "role-only subject with yolo prefix bypasses check" {
+@test "PostToolUse passes with yolo-prefixed role subject" {
   cd "$TEST_TEMP_DIR"
-  run run_task_verify "yolo-dev"
+  run_posttooluse '{"task_subject":"yolo-dev"}'
   [ "$status" -eq 0 ]
 }
 
-@test "empty task subject allows (fail-open)" {
+@test "PostToolUse passes with empty task subject (fail-open)" {
   cd "$TEST_TEMP_DIR"
-  add_commit "some commit"
-  run bash -c 'echo "{}" | bash "'"$SCRIPTS_DIR"'/task-verify.sh"'
+  run_posttooluse '{}'
   [ "$status" -eq 0 ]
 }
 
-@test "no .yolo-planning dir allows (non-YOLO context)" {
+@test "PostToolUse passes without .yolo-planning dir (non-YOLO context)" {
   cd "$TEST_TEMP_DIR"
   rm -rf .yolo-planning
-  run run_task_verify "anything"
+  run_posttooluse '{"task_subject":"anything"}'
+  [ "$status" -eq 0 ]
+}
+
+# =============================================================================
+# PostToolUse is non-blocking for all commit patterns
+# =============================================================================
+
+@test "PostToolUse passes with team-mode Execute prefix" {
+  cd "$TEST_TEMP_DIR"
+  add_commit "refactor(03-01): update authentication middleware"
+  run_posttooluse '{"task_subject":"Execute 03-01: Update authentication middleware"}'
+  [ "$status" -eq 0 ]
+}
+
+@test "PostToolUse passes with short task subject" {
+  cd "$TEST_TEMP_DIR"
+  add_commit "fix(07-01): resolve the bug in auth"
+  run_posttooluse '{"task_subject":"Execute 07-01: Fix bug"}'
+  [ "$status" -eq 0 ]
+}
+
+@test "PostToolUse passes with matching navigation commit" {
+  cd "$TEST_TEMP_DIR"
+  add_commit "feat(07-02): wire NavigationLink to StockLotDetailView"
+  run_posttooluse '{"task_subject":"Execute 07-02: Wire navigation to StockLotDetailView"}'
+  [ "$status" -eq 0 ]
+}
+
+# =============================================================================
+# PostToolUse produces no blocking output
+# =============================================================================
+
+@test "PostToolUse produces no deny output for any task subject" {
+  cd "$TEST_TEMP_DIR"
+  add_commit "docs: update README"
+  run_posttooluse '{"task_subject":"Implement something entirely different"}'
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"permissionDecision"* ]]
+}
+
+@test "PostToolUse produces no deny output for matching commit" {
+  cd "$TEST_TEMP_DIR"
+  add_commit "feat(auth): implement login flow with OAuth2"
+  run_posttooluse '{"task_subject":"Implement login flow"}'
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"permissionDecision"* ]]
+}
+
+@test "PostToolUse non-blocking even after multiple calls with same subject" {
+  cd "$TEST_TEMP_DIR"
+  add_commit "docs: update README"
+
+  run_posttooluse '{"task_subject":"Implement quantum flux capacitor"}'
+  [ "$status" -eq 0 ]
+
+  run_posttooluse '{"task_subject":"Implement quantum flux capacitor"}'
+  [ "$status" -eq 0 ]
+}
+
+@test "PostToolUse non-blocking with different subjects" {
+  cd "$TEST_TEMP_DIR"
+  add_commit "docs: update README"
+
+  run_posttooluse '{"task_subject":"Implement quantum flux capacitor"}'
+  [ "$status" -eq 0 ]
+
+  run_posttooluse '{"task_subject":"Build time machine"}'
   [ "$status" -eq 0 ]
 }

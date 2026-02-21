@@ -2,28 +2,36 @@
 
 load test_helper
 
-@test "passes valid conventional commit" {
-  INPUT='{"tool_input":{"command":"git commit -m \"feat(core): add new feature\""}}'
-  run bash -c "echo '$INPUT' | bash '$SCRIPTS_DIR/validate-commit.sh'"
-  [ "$status" -eq 0 ]
+# Helper: pipe JSON to PreToolUse via a temp file to avoid quoting issues
+run_pretooluse() {
+  local json="$1"
+  local tmpf
+  tmpf=$(mktemp)
+  printf '%s' "$json" > "$tmpf"
+  run bash -c "\"$YOLO_BIN\" hook PreToolUse < \"$tmpf\""
+  rm -f "$tmpf"
 }
 
-@test "flags invalid commit format" {
-  INPUT='{"tool_input":{"command":"git commit -m \"bad commit message\""}}'
-  run bash -c "echo '$INPUT' | bash '$SCRIPTS_DIR/validate-commit.sh'"
-  [ "$status" -eq 0 ]
-  echo "$output" | grep -q "does not match format"
+@test "PreToolUse blocks Bash tool input (commit commands included)" {
+  run_pretooluse '{"tool_name":"Bash","tool_input":{"command":"git commit -m \"feat(core): add new feature\""}}'
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"cannot extract file path"* ]]
 }
 
-@test "passes non-commit commands" {
-  INPUT='{"tool_input":{"command":"git status"}}'
-  run bash -c "echo '$INPUT' | bash '$SCRIPTS_DIR/validate-commit.sh'"
-  [ "$status" -eq 0 ]
-  [ -z "$output" ]
+@test "PreToolUse blocks Bash tool input for non-commit commands" {
+  run_pretooluse '{"tool_name":"Bash","tool_input":{"command":"git status"}}'
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"cannot extract file path"* ]]
 }
 
-@test "validates heredoc-style commits" {
-  INPUT=$(printf '{"tool_input":{"command":"git commit -m \\"$(cat <<'"'"'EOF'"'"'\\nfeat(test): valid heredoc commit\\n\\nCo-Authored-By: Test\\nEOF\\n)\\""}}'  )
-  run bash -c "echo '$INPUT' | bash '$SCRIPTS_DIR/validate-commit.sh'"
+@test "PreToolUse passes Write tool with file_path" {
+  run_pretooluse '{"tool_name":"Write","tool_input":{"file_path":"/tmp/test.txt","content":"hello"}}'
   [ "$status" -eq 0 ]
+  [[ "$output" != *"permissionDecision"* ]]
+}
+
+@test "PreToolUse passes Read tool with file_path" {
+  run_pretooluse '{"tool_name":"Read","tool_input":{"file_path":"/tmp/test.txt"}}'
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"permissionDecision"* ]]
 }

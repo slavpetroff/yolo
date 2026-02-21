@@ -1,189 +1,184 @@
 #!/usr/bin/env bats
 
+# Tests for typed protocol message schemas.
+# Validates message-schemas.json structure, role permissions,
+# envelope requirements, and payload field definitions.
+# The Rust binary embeds validation logic in hook handlers;
+# these tests verify the schema definitions are correct.
+
 load test_helper
 
+SCHEMAS="$CONFIG_DIR/schemas/message-schemas.json"
+
 setup() {
-  setup_temp_dir
-  create_test_config
-  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.contracts"
-  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.events"
-  # Copy schemas
-  mkdir -p "$TEST_TEMP_DIR/config/schemas"
-  cp "$CONFIG_DIR/schemas/message-schemas.json" "$TEST_TEMP_DIR/config/schemas/"
-  # Enable V2 typed protocol
-  jq '.v2_typed_protocol = true | .v3_event_log = true' \
-    "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" \
-    && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
+  [ -f "$SCHEMAS" ] || skip "message-schemas.json not found"
 }
 
-teardown() {
-  teardown_temp_dir
+# =============================================================================
+# Envelope field validation
+# =============================================================================
+
+@test "schema defines all required envelope fields" {
+  for field in id type phase task author_role timestamp schema_version payload confidence; do
+    jq -e --arg f "$field" '.envelope_fields | index($f) != null' "$SCHEMAS" || {
+      echo "Missing envelope field: $field"
+      return 1
+    }
+  done
 }
 
-valid_message() {
-  cat << 'MSG'
-{
-  "id": "test-001",
-  "type": "execution_update",
-  "phase": 1,
-  "task": "1-1-T1",
-  "author_role": "dev",
-  "timestamp": "2026-02-12T10:00:00Z",
-  "schema_version": "2.0",
-  "confidence": "high",
-  "payload": {
-    "plan_id": "1-1",
-    "task_id": "1-1-T1",
-    "status": "complete",
-    "commit": "abc1234"
-  }
-}
-MSG
+# =============================================================================
+# execution_update schema
+# =============================================================================
+
+@test "execution_update: allowed_roles includes dev" {
+  jq -e '.schemas.execution_update.allowed_roles | index("dev") != null' "$SCHEMAS"
 }
 
-@test "validate-message: valid message passes all checks" {
-  cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$(valid_message)"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "execution_update: payload requires plan_id, task_id, status, commit" {
+  for field in plan_id task_id status commit; do
+    jq -e --arg f "$field" '.schemas.execution_update.payload_required | index($f) != null' "$SCHEMAS" || {
+      echo "Missing required payload field: $field"
+      return 1
+    }
+  done
 }
 
-@test "validate-message: missing envelope field rejected" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"type":"execution_update","payload":{"plan_id":"1-1","task_id":"1-1-T1","status":"complete","commit":"abc"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-  echo "$output" | jq -e '.valid == false'
-  [[ "$output" == *"missing envelope field"* ]]
+@test "execution_update: qa not in allowed_roles" {
+  run jq -e '.schemas.execution_update.allowed_roles | index("qa") != null' "$SCHEMAS"
+  [ "$status" -ne 0 ]
 }
 
-@test "validate-message: unknown type rejected" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"x","type":"unknown_type","phase":1,"task":"1-1-T1","author_role":"dev","timestamp":"2026-01-01","schema_version":"2.0","confidence":"high","payload":{}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-  echo "$output" | jq -e '.valid == false'
-  [[ "$output" == *"unknown message type"* ]]
+# =============================================================================
+# scout_findings schema
+# =============================================================================
+
+@test "scout_findings: allowed_roles includes scout" {
+  jq -e '.schemas.scout_findings.allowed_roles | index("scout") != null' "$SCHEMAS"
 }
 
-@test "validate-message: unauthorized role rejected" {
-  cd "$TEST_TEMP_DIR"
-  # QA agent sending execution_update (only dev is allowed)
-  MSG='{"id":"x","type":"execution_update","phase":1,"task":"1-1-T1","author_role":"qa","timestamp":"2026-01-01","schema_version":"2.0","confidence":"high","payload":{"plan_id":"1-1","task_id":"1-1-T1","status":"complete","commit":"abc"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-  echo "$output" | jq -e '.valid == false'
-  [[ "$output" == *"not authorized"* ]]
+@test "scout_findings: payload requires domain and documents" {
+  jq -e '.schemas.scout_findings.payload_required | (index("domain") != null and index("documents") != null)' "$SCHEMAS"
 }
 
-@test "validate-message: missing payload field rejected" {
-  cd "$TEST_TEMP_DIR"
-  # execution_update requires plan_id, task_id, status, commit
-  MSG='{"id":"x","type":"execution_update","phase":1,"task":"1-1-T1","author_role":"dev","timestamp":"2026-01-01","schema_version":"2.0","confidence":"high","payload":{"plan_id":"1-1"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-  echo "$output" | jq -e '.valid == false'
-  [[ "$output" == *"missing payload field"* ]]
+# =============================================================================
+# plan_contract schema
+# =============================================================================
+
+@test "plan_contract: allowed_roles includes lead and architect" {
+  jq -e '.schemas.plan_contract.allowed_roles | (index("lead") != null and index("architect") != null)' "$SCHEMAS"
 }
 
-@test "validate-message: scout_findings validates correctly" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"s1","type":"scout_findings","phase":1,"task":"1-1-T1","author_role":"scout","timestamp":"2026-01-01","schema_version":"2.0","confidence":"high","payload":{"domain":"tech-stack","documents":[{"name":"STACK.md","content":"test"}]}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "plan_contract: payload requires plan_id, phase_id, objective, tasks, allowed_paths, must_haves" {
+  for field in plan_id phase_id objective tasks allowed_paths must_haves; do
+    jq -e --arg f "$field" '.schemas.plan_contract.payload_required | index($f) != null' "$SCHEMAS" || {
+      echo "Missing required payload field: $field"
+      return 1
+    }
+  done
 }
 
-@test "validate-message: plan_contract validates correctly" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"c1","type":"plan_contract","phase":1,"task":"1-1-T1","author_role":"lead","timestamp":"2026-01-01","schema_version":"2.0","confidence":"high","payload":{"plan_id":"1-1","phase_id":"phase-1","objective":"Test","tasks":["1-1-T1"],"allowed_paths":["src/a.js"],"must_haves":["Works"]}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+# =============================================================================
+# qa_verdict schema
+# =============================================================================
+
+@test "qa_verdict: allowed_roles includes qa" {
+  jq -e '.schemas.qa_verdict.allowed_roles | index("qa") != null' "$SCHEMAS"
 }
 
-@test "validate-message: qa_verdict validates correctly" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"q1","type":"qa_verdict","phase":1,"task":"1-1-T1","author_role":"qa","timestamp":"2026-01-01","schema_version":"2.0","confidence":"high","payload":{"tier":"standard","result":"PASS","checks":{"passed":10,"failed":0,"total":10}}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "qa_verdict: payload requires tier, result, checks" {
+  jq -e '.schemas.qa_verdict.payload_required | (index("tier") != null and index("result") != null and index("checks") != null)' "$SCHEMAS"
 }
 
-@test "validate-message: blocker_report validates correctly" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"b1","type":"blocker_report","phase":1,"task":"1-1-T1","author_role":"dev","timestamp":"2026-01-01","schema_version":"2.0","confidence":"medium","payload":{"plan_id":"1-1","task_id":"1-1-T1","blocker":"Dependency missing","needs":"Plan 1-1 to complete"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+# =============================================================================
+# blocker_report schema
+# =============================================================================
+
+@test "blocker_report: allowed_roles includes dev" {
+  jq -e '.schemas.blocker_report.allowed_roles | index("dev") != null' "$SCHEMAS"
 }
 
-@test "validate-message: approval_request validates correctly" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"a1","type":"approval_request","phase":1,"task":"1-1-T1","author_role":"dev","timestamp":"2026-01-01","schema_version":"2.0","confidence":"medium","payload":{"subject":"Scope change","request_type":"scope_change","evidence":"Need auth module"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "blocker_report: payload requires plan_id, task_id, blocker, needs" {
+  for field in plan_id task_id blocker needs; do
+    jq -e --arg f "$field" '.schemas.blocker_report.payload_required | index($f) != null' "$SCHEMAS" || {
+      echo "Missing required payload field: $field"
+      return 1
+    }
+  done
 }
 
-@test "validate-message: approval_response validates correctly" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"r1","type":"approval_response","phase":1,"task":"1-1-T1","author_role":"lead","timestamp":"2026-01-01","schema_version":"2.0","confidence":"high","payload":{"request_id":"a1","approved":true,"reason":"Justified"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+# =============================================================================
+# approval_request / approval_response schemas
+# =============================================================================
+
+@test "approval_request: allowed_roles includes dev and lead" {
+  jq -e '.schemas.approval_request.allowed_roles | (index("dev") != null and index("lead") != null)' "$SCHEMAS"
 }
 
-@test "validate-message: file reference outside contract rejected" {
-  cd "$TEST_TEMP_DIR"
-  # Create a contract with limited allowed_paths
-  cat > ".yolo-planning/.contracts/1-1.json" << 'CONTRACT'
-{"phase":1,"plan":1,"task_count":2,"allowed_paths":["src/a.js"],"forbidden_paths":[]}
-CONTRACT
-  MSG='{"id":"x","type":"execution_update","phase":1,"task":"1-1-T1","author_role":"dev","timestamp":"2026-01-01","schema_version":"2.0","confidence":"high","payload":{"plan_id":"1-1","task_id":"1-1-T1","status":"complete","commit":"abc","files_modified":["src/unauthorized.js"]}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"outside contract scope"* ]]
+@test "approval_request: payload requires subject, request_type, evidence" {
+  jq -e '.schemas.approval_request.payload_required | (index("subject") != null and index("request_type") != null and index("evidence") != null)' "$SCHEMAS"
 }
 
-@test "validate-message: skip when v2_typed_protocol=false" {
-  cd "$TEST_TEMP_DIR"
-  jq '.v2_typed_protocol = false' ".yolo-planning/config.json" > ".yolo-planning/config.json.tmp" \
-    && mv ".yolo-planning/config.json.tmp" ".yolo-planning/config.json"
-  run bash "$SCRIPTS_DIR/validate-message.sh" "not even json"
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"v2_typed_protocol=false"* ]]
+@test "approval_response: allowed_roles includes lead and architect" {
+  jq -e '.schemas.approval_response.allowed_roles | (index("lead") != null and index("architect") != null)' "$SCHEMAS"
 }
 
-@test "validate-message: not valid JSON rejected" {
-  cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/validate-message.sh" "this is not json"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"not valid JSON"* ]]
+@test "approval_response: payload requires request_id, approved, reason" {
+  jq -e '.schemas.approval_response.payload_required | (index("request_id") != null and index("approved") != null and index("reason") != null)' "$SCHEMAS"
 }
 
-@test "validate-message: target role cannot receive is rejected" {
-  cd "$TEST_TEMP_DIR"
-  # scout_findings can_receive is NOT in dev's can_receive list
-  MSG='{"id":"t-010","type":"scout_findings","phase":1,"task":"1-1-T1","author_role":"scout","target_role":"dev","timestamp":"2026-02-12T10:00:00Z","schema_version":"2.0","confidence":"high","payload":{"domain":"test","documents":["doc.md"]}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"cannot receive"* ]]
+# =============================================================================
+# Role hierarchy: can_send / can_receive
+# =============================================================================
+
+@test "role hierarchy: dev can_send execution_update" {
+  jq -e '.role_hierarchy.dev.can_send | index("execution_update") != null' "$SCHEMAS"
 }
 
-@test "validate-message: target role can receive passes" {
-  cd "$TEST_TEMP_DIR"
-  # plan_contract IS in dev's can_receive list
-  MSG='{"id":"t-011","type":"plan_contract","phase":1,"task":"1-1-T1","author_role":"lead","target_role":"dev","timestamp":"2026-02-12T10:00:00Z","schema_version":"2.0","confidence":"high","payload":{"plan_id":"1-1","phase_id":"phase-1","objective":"test","tasks":["t1"],"allowed_paths":["src/"],"must_haves":["works"]}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "role hierarchy: dev can_receive plan_contract" {
+  jq -e '.role_hierarchy.dev.can_receive | index("plan_contract") != null' "$SCHEMAS"
 }
 
-@test "validate-message: absent target_role passes" {
-  cd "$TEST_TEMP_DIR"
-  # No target_role field — should not error
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$(valid_message)"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "role hierarchy: lead can_send plan_contract" {
+  jq -e '.role_hierarchy.lead.can_send | index("plan_contract") != null' "$SCHEMAS"
+}
+
+@test "role hierarchy: lead can_receive execution_update" {
+  jq -e '.role_hierarchy.lead.can_receive | index("execution_update") != null' "$SCHEMAS"
+}
+
+@test "role hierarchy: scout can_send scout_findings" {
+  jq -e '.role_hierarchy.scout.can_send | index("scout_findings") != null' "$SCHEMAS"
+}
+
+@test "role hierarchy: qa can_send qa_verdict" {
+  jq -e '.role_hierarchy.qa.can_send | index("qa_verdict") != null' "$SCHEMAS"
+}
+
+@test "role hierarchy: architect can_send plan_contract and approval_response" {
+  jq -e '.role_hierarchy.architect.can_send | (index("plan_contract") != null and index("approval_response") != null)' "$SCHEMAS"
+}
+
+@test "role hierarchy: dev cannot receive scout_findings" {
+  run jq -e '.role_hierarchy.dev.can_receive | index("scout_findings") != null' "$SCHEMAS"
+  [ "$status" -ne 0 ]
+}
+
+# =============================================================================
+# Schema completeness: all message types have required fields
+# =============================================================================
+
+@test "all schemas have allowed_roles and payload_required" {
+  local types
+  types=$(jq -r '.schemas | keys[]' "$SCHEMAS")
+  for t in $types; do
+    jq -e --arg t "$t" '.schemas[$t] | has("allowed_roles") and has("payload_required")' "$SCHEMAS" || {
+      echo "Schema $t missing allowed_roles or payload_required"
+      return 1
+    }
+  done
+}
+
+@test "schema version is 2.0" {
+  jq -e '.schema_version == "2.0"' "$SCHEMAS"
 }

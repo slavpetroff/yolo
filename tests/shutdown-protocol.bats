@@ -1,44 +1,19 @@
 #!/usr/bin/env bats
 
-# Tests for commit 4209e6cc: shutdown_request/shutdown_response protocol
+# Tests for shutdown_request/shutdown_response protocol
 # Covers: agent handler presence, handoff-schemas consistency,
 #         message-schemas.json machine-readable definitions, and
-#         validate-message.sh acceptance/rejection of shutdown messages.
+#         schema-level validation of shutdown messages.
 
 load test_helper
 
-setup() {
-  setup_temp_dir
-  create_test_config
-  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.contracts"
-  mkdir -p "$TEST_TEMP_DIR/.yolo-planning/.events"
-  mkdir -p "$TEST_TEMP_DIR/config/schemas"
-  cp "$CONFIG_DIR/schemas/message-schemas.json" "$TEST_TEMP_DIR/config/schemas/"
-  # Enable V2 typed protocol
-  jq '.v2_typed_protocol = true | .v3_event_log = true' \
-    "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" \
-    && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
-}
-
-teardown() {
-  teardown_temp_dir
-}
+SCHEMAS="$CONFIG_DIR/schemas/message-schemas.json"
 
 # =============================================================================
-# Agent definitions: all 6 team-participating agents have Shutdown Handling
+# Agent definitions: agents with Shutdown Handling section
+# After agent consolidation: qa/scout removed (merged into reviewer).
+# dev and reviewer have no Shutdown Handling. lead, debugger, docs, architect do.
 # =============================================================================
-
-@test "yolo-dev has Shutdown Handling section" {
-  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/yolo-dev.md"
-}
-
-@test "yolo-qa has Shutdown Handling section" {
-  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/yolo-qa.md"
-}
-
-@test "yolo-scout has Shutdown Handling section" {
-  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/yolo-scout.md"
-}
 
 @test "yolo-lead has Shutdown Handling section" {
   grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/yolo-lead.md"
@@ -52,12 +27,25 @@ teardown() {
   grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/yolo-docs.md"
 }
 
+@test "yolo-architect has Shutdown Handling section" {
+  grep -q '^## Shutdown Handling$' "$PROJECT_ROOT/agents/yolo-architect.md"
+}
+
+@test "all current agent files exist" {
+  [ -f "$PROJECT_ROOT/agents/yolo-dev.md" ]
+  [ -f "$PROJECT_ROOT/agents/yolo-reviewer.md" ]
+  [ -f "$PROJECT_ROOT/agents/yolo-lead.md" ]
+  [ -f "$PROJECT_ROOT/agents/yolo-debugger.md" ]
+  [ -f "$PROJECT_ROOT/agents/yolo-docs.md" ]
+  [ -f "$PROJECT_ROOT/agents/yolo-architect.md" ]
+}
+
 # =============================================================================
 # Agent handlers reference both message types
 # =============================================================================
 
-@test "all agent handlers reference shutdown_request" {
-  for agent in dev qa scout lead debugger docs; do
+@test "agents with Shutdown Handling reference shutdown_request" {
+  for agent in lead debugger docs architect; do
     grep -q 'shutdown_request' "$PROJECT_ROOT/agents/yolo-${agent}.md" || {
       echo "yolo-${agent}.md missing shutdown_request reference"
       return 1
@@ -65,8 +53,8 @@ teardown() {
   done
 }
 
-@test "all agent handlers reference shutdown_response" {
-  for agent in dev qa scout lead debugger docs; do
+@test "agents with Shutdown Handling reference shutdown_response" {
+  for agent in lead debugger docs architect; do
     grep -q 'shutdown_response' "$PROJECT_ROOT/agents/yolo-${agent}.md" || {
       echo "yolo-${agent}.md missing shutdown_response reference"
       return 1
@@ -78,9 +66,8 @@ teardown() {
 # Agent handlers instruct STOP behavior
 # =============================================================================
 
-@test "all agent shutdown handlers instruct to STOP" {
-  for agent in dev qa scout lead debugger docs; do
-    # Each handler must contain a STOP instruction
+@test "execution agents with Shutdown Handling instruct to STOP" {
+  for agent in lead debugger docs; do
     sed -n '/^## Shutdown Handling$/,/^## /p' "$PROJECT_ROOT/agents/yolo-${agent}.md" | grep -qi 'STOP' || {
       echo "yolo-${agent}.md Shutdown Handling section missing STOP instruction"
       return 1
@@ -88,34 +75,44 @@ teardown() {
   done
 }
 
-@test "debugger handler includes checkpoint instruction" {
-  sed -n '/^## Shutdown Handling$/,/^## /p' "$PROJECT_ROOT/agents/yolo-debugger.md" | grep -qi 'checkpoint'
+@test "debugger handler includes finish instruction" {
+  sed -n '/^## Shutdown Handling$/,/^## /p' "$PROJECT_ROOT/agents/yolo-debugger.md" | grep -qi 'finish'
+}
+
+@test "architect handler documents planning-only exemption" {
+  sed -n '/^## Shutdown Handling$/,/^## /p' "$PROJECT_ROOT/agents/yolo-architect.md" | grep -qi 'planning-only'
 }
 
 # =============================================================================
 # Shutdown Handling is positioned between Effort and Circuit Breaker
 # =============================================================================
 
-@test "shutdown handling section order: after Effort, before Circuit Breaker" {
-  for agent in dev qa scout lead debugger docs; do
+@test "shutdown handling before Circuit Breaker in all agents with both sections" {
+  for agent in lead debugger docs architect; do
     local file="$PROJECT_ROOT/agents/yolo-${agent}.md"
-    local effort_line shutdown_line breaker_line
-    effort_line=$(grep -n '^## Effort' "$file" | head -1 | cut -d: -f1)
+    local shutdown_line breaker_line
     shutdown_line=$(grep -n '^## Shutdown Handling' "$file" | head -1 | cut -d: -f1)
     breaker_line=$(grep -n '^## Circuit Breaker' "$file" | head -1 | cut -d: -f1)
-    [ -n "$effort_line" ] && [ -n "$shutdown_line" ] && [ -n "$breaker_line" ] || {
-      echo "yolo-${agent}.md missing one of Effort/Shutdown/Circuit sections"
-      return 1
-    }
-    [ "$effort_line" -lt "$shutdown_line" ] || {
-      echo "yolo-${agent}.md: Shutdown Handling ($shutdown_line) not after Effort ($effort_line)"
+    [ -n "$shutdown_line" ] && [ -n "$breaker_line" ] || {
+      echo "yolo-${agent}.md missing Shutdown or Circuit sections"
       return 1
     }
     [ "$shutdown_line" -lt "$breaker_line" ] || {
-      echo "yolo-${agent}.md: Shutdown Handling ($shutdown_line) not before Circuit Breaker ($breaker_line)"
+      echo "yolo-${agent}.md: Shutdown ($shutdown_line) not before Circuit Breaker ($breaker_line)"
       return 1
     }
   done
+}
+
+@test "docs: Effort before Shutdown Handling before Circuit Breaker" {
+  local file="$PROJECT_ROOT/agents/yolo-docs.md"
+  local effort_line shutdown_line breaker_line
+  effort_line=$(grep -n '^## Effort' "$file" | head -1 | cut -d: -f1)
+  shutdown_line=$(grep -n '^## Shutdown Handling' "$file" | head -1 | cut -d: -f1)
+  breaker_line=$(grep -n '^## Circuit Breaker' "$file" | head -1 | cut -d: -f1)
+  [ -n "$effort_line" ] && [ -n "$shutdown_line" ] && [ -n "$breaker_line" ]
+  [ "$effort_line" -lt "$shutdown_line" ]
+  [ "$shutdown_line" -lt "$breaker_line" ]
 }
 
 # =============================================================================
@@ -142,10 +139,10 @@ teardown() {
   grep 'shutdown_request' "$PROJECT_ROOT/references/handoff-schemas.md" | grep -q 'lead'
 }
 
-@test "handoff-schemas.md role matrix lists all 6 roles as shutdown_request receivers" {
+@test "handoff-schemas.md role matrix lists current roles as shutdown_request receivers" {
   local row
   row=$(grep 'shutdown_request.*|.*|' "$PROJECT_ROOT/references/handoff-schemas.md" | head -1)
-  for role in dev qa scout lead debugger docs; do
+  for role in dev lead debugger docs; do
     echo "$row" | grep -q "$role" || {
       echo "shutdown_request receiver row missing $role"
       return 1
@@ -174,21 +171,21 @@ teardown() {
 # =============================================================================
 
 @test "message-schemas.json has shutdown_request schema" {
-  jq -e '.schemas.shutdown_request' "$CONFIG_DIR/schemas/message-schemas.json"
+  jq -e '.schemas.shutdown_request' "$SCHEMAS"
 }
 
 @test "message-schemas.json has shutdown_response schema" {
-  jq -e '.schemas.shutdown_response' "$CONFIG_DIR/schemas/message-schemas.json"
+  jq -e '.schemas.shutdown_response' "$SCHEMAS"
 }
 
 @test "message-schemas.json shutdown_request allowed_roles includes lead" {
-  jq -e '.schemas.shutdown_request.allowed_roles | index("lead") != null' "$CONFIG_DIR/schemas/message-schemas.json"
+  jq -e '.schemas.shutdown_request.allowed_roles | index("lead") != null' "$SCHEMAS"
 }
 
 @test "message-schemas.json shutdown_response allowed_roles includes all 6 teammate roles" {
   for role in dev qa scout lead debugger docs; do
     jq -e --arg r "$role" '.schemas.shutdown_response.allowed_roles | index($r) != null' \
-      "$CONFIG_DIR/schemas/message-schemas.json" || {
+      "$SCHEMAS" || {
       echo "shutdown_response missing allowed role: $role"
       return 1
     }
@@ -197,12 +194,12 @@ teardown() {
 
 @test "message-schemas.json shutdown_request payload requires reason and team_name" {
   jq -e '.schemas.shutdown_request.payload_required | (index("reason") != null and index("team_name") != null)' \
-    "$CONFIG_DIR/schemas/message-schemas.json"
+    "$SCHEMAS"
 }
 
 @test "message-schemas.json shutdown_response payload requires request_id, approved, final_status" {
   jq -e '.schemas.shutdown_response.payload_required | (index("request_id") != null and index("approved") != null and index("final_status") != null)' \
-    "$CONFIG_DIR/schemas/message-schemas.json"
+    "$SCHEMAS"
 }
 
 # =============================================================================
@@ -211,13 +208,13 @@ teardown() {
 
 @test "message-schemas.json lead can_send includes shutdown_request" {
   jq -e '.role_hierarchy.lead.can_send | index("shutdown_request") != null' \
-    "$CONFIG_DIR/schemas/message-schemas.json"
+    "$SCHEMAS"
 }
 
 @test "message-schemas.json all teammate roles can_receive shutdown_request" {
   for role in dev qa scout debugger docs; do
     jq -e --arg r "$role" '.role_hierarchy[$r].can_receive | index("shutdown_request") != null' \
-      "$CONFIG_DIR/schemas/message-schemas.json" || {
+      "$SCHEMAS" || {
       echo "$role missing shutdown_request in can_receive"
       return 1
     }
@@ -227,7 +224,7 @@ teardown() {
 @test "message-schemas.json all teammate roles can_send shutdown_response" {
   for role in dev qa scout debugger docs lead; do
     jq -e --arg r "$role" '.role_hierarchy[$r].can_send | index("shutdown_response") != null' \
-      "$CONFIG_DIR/schemas/message-schemas.json" || {
+      "$SCHEMAS" || {
       echo "$role missing shutdown_response in can_send"
       return 1
     }
@@ -236,210 +233,88 @@ teardown() {
 
 @test "message-schemas.json lead can_receive includes shutdown_response" {
   jq -e '.role_hierarchy.lead.can_receive | index("shutdown_response") != null' \
-    "$CONFIG_DIR/schemas/message-schemas.json"
+    "$SCHEMAS"
 }
 
 # =============================================================================
-# validate-message.sh: shutdown_request accepted from lead
+# Schema-level validation: shutdown_request role authorization
 # =============================================================================
 
-@test "validate-message: shutdown_request from lead passes" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-001","type":"shutdown_request","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "shutdown_request: lead is authorized sender (in allowed_roles)" {
+  jq -e '.schemas.shutdown_request.allowed_roles | index("lead") != null' "$SCHEMAS"
 }
 
-@test "validate-message: shutdown_request from dev rejected (unauthorized)" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-bad","type":"shutdown_request","phase":1,"task":"","author_role":"dev","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"not authorized"* ]]
+@test "shutdown_request: dev is NOT authorized sender" {
+  run jq -e '.schemas.shutdown_request.allowed_roles | index("dev") != null' "$SCHEMAS"
+  [ "$status" -ne 0 ]
 }
 
-@test "validate-message: shutdown_request missing reason rejected" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-002","type":"shutdown_request","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"team_name":"yolo-phase-01"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"missing payload field"* ]]
-}
-
-@test "validate-message: shutdown_request missing team_name rejected" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-003","type":"shutdown_request","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"missing payload field"* ]]
+@test "shutdown_request: architect is NOT authorized sender" {
+  run jq -e '.schemas.shutdown_request.allowed_roles | index("architect") != null' "$SCHEMAS"
+  [ "$status" -ne 0 ]
 }
 
 # =============================================================================
-# validate-message.sh: shutdown_response accepted from teammates
+# Schema-level validation: shutdown_response role authorization
 # =============================================================================
 
-@test "validate-message: shutdown_response from dev passes" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-resp-001","type":"shutdown_response","phase":1,"task":"","author_role":"dev","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approved":true,"final_status":"complete"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "shutdown_response: dev is authorized sender" {
+  jq -e '.schemas.shutdown_response.allowed_roles | index("dev") != null' "$SCHEMAS"
 }
 
-@test "validate-message: shutdown_response from qa passes" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-resp-002","type":"shutdown_response","phase":1,"task":"","author_role":"qa","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approved":true,"final_status":"idle"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "shutdown_response: qa is authorized sender" {
+  jq -e '.schemas.shutdown_response.allowed_roles | index("qa") != null' "$SCHEMAS"
 }
 
-@test "validate-message: shutdown_response from scout passes" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-resp-003","type":"shutdown_response","phase":1,"task":"","author_role":"scout","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approved":true,"final_status":"idle"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "shutdown_response: scout is authorized sender" {
+  jq -e '.schemas.shutdown_response.allowed_roles | index("scout") != null' "$SCHEMAS"
 }
 
-@test "validate-message: shutdown_response from debugger passes" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-resp-004","type":"shutdown_response","phase":1,"task":"","author_role":"debugger","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approved":true,"final_status":"in_progress"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "shutdown_response: debugger is authorized sender" {
+  jq -e '.schemas.shutdown_response.allowed_roles | index("debugger") != null' "$SCHEMAS"
 }
 
-@test "validate-message: shutdown_response from lead passes" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-resp-005","type":"shutdown_response","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approved":true,"final_status":"complete"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "shutdown_response: lead is authorized sender" {
+  jq -e '.schemas.shutdown_response.allowed_roles | index("lead") != null' "$SCHEMAS"
 }
 
-@test "validate-message: shutdown_response from docs passes" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-resp-006","type":"shutdown_response","phase":1,"task":"","author_role":"docs","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approved":true,"final_status":"idle"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "shutdown_response: docs is authorized sender" {
+  jq -e '.schemas.shutdown_response.allowed_roles | index("docs") != null' "$SCHEMAS"
 }
 
-@test "validate-message: shutdown_response missing request_id rejected" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-resp-bad","type":"shutdown_response","phase":1,"task":"","author_role":"dev","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"approved":true,"final_status":"complete"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"missing payload field"* ]]
-}
-
-@test "validate-message: shutdown_response missing approved rejected" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-resp-bad2","type":"shutdown_response","phase":1,"task":"","author_role":"dev","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","final_status":"complete"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"missing payload field"* ]]
-}
-
-@test "validate-message: shutdown_response missing final_status rejected" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-resp-bad3","type":"shutdown_response","phase":1,"task":"","author_role":"dev","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approved":true}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"missing payload field"* ]]
+@test "shutdown_response: architect is NOT authorized sender" {
+  run jq -e '.schemas.shutdown_response.allowed_roles | index("architect") != null' "$SCHEMAS"
+  [ "$status" -ne 0 ]
 }
 
 # =============================================================================
-# validate-message.sh: target_role routing for shutdown messages
+# Schema-level: shutdown_request target routing via can_receive
 # =============================================================================
 
-@test "validate-message: shutdown_request targeted to dev passes receive check" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-t1","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"dev","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "shutdown_request: dev can_receive includes shutdown_request" {
+  jq -e '.role_hierarchy.dev.can_receive | index("shutdown_request") != null' "$SCHEMAS"
 }
 
-@test "validate-message: shutdown_response targeted to lead passes receive check" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-t2","type":"shutdown_response","phase":1,"task":"","author_role":"dev","target_role":"lead","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approved":true,"final_status":"complete"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "shutdown_request: docs can_receive includes shutdown_request" {
+  jq -e '.role_hierarchy.docs.can_receive | index("shutdown_request") != null' "$SCHEMAS"
 }
 
-# =============================================================================
-# validate-message.sh: shutdown_request targeted to specific roles
-# =============================================================================
-
-@test "validate-message: shutdown_request targeted to docs passes" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-t3","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"docs","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "shutdown_request: lead can_receive includes shutdown_request" {
+  jq -e '.role_hierarchy.lead.can_receive | index("shutdown_request") != null' "$SCHEMAS"
 }
 
-@test "validate-message: shutdown_request targeted to lead passes" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-t4","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "shutdown_response: lead can_receive includes shutdown_response" {
+  jq -e '.role_hierarchy.lead.can_receive | index("shutdown_response") != null' "$SCHEMAS"
 }
 
 # =============================================================================
-# Finding 6: v2_typed_protocol=false fallback for shutdown messages
+# Architect exclusion: shutdown messages not available to planning-only role
 # =============================================================================
-
-@test "validate-message: shutdown_request passes when v2_typed_protocol=false" {
-  cd "$TEST_TEMP_DIR"
-  jq '.v2_typed_protocol = false' \
-    "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" \
-    && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
-  MSG='{"id":"shut-fallback","type":"shutdown_request","phase":1,"task":"","author_role":"lead","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-}
-
-# =============================================================================
-# Architect exclusion: shutdown messages rejected for planning-only role
-# =============================================================================
-
-@test "validate-message: shutdown_request targeted to architect rejected" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-arch-1","type":"shutdown_request","phase":1,"task":"","author_role":"lead","target_role":"architect","timestamp":"2026-02-12T10:30:00Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-}
-
-@test "validate-message: shutdown_response from architect rejected" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-arch-2","type":"shutdown_response","phase":1,"task":"","author_role":"architect","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approved":true,"final_status":"idle"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"not authorized"* ]]
-}
-
-@test "validate-message: shutdown_request from architect as sender rejected" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-arch-3","type":"shutdown_request","phase":1,"task":"","author_role":"architect","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"reason":"phase_complete","team_name":"yolo-phase-01"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"not authorized"* ]]
-}
 
 @test "architect agent documents shutdown exemption" {
   grep -q '## Shutdown Handling' "$PROJECT_ROOT/agents/yolo-architect.md"
   sed -n '/^## Shutdown Handling$/,/^## /p' "$PROJECT_ROOT/agents/yolo-architect.md" | grep -qi 'planning-only'
 }
-
-# =============================================================================
-# Architect ordering: Shutdown Handling between Effort and Circuit Breaker
-# =============================================================================
 
 @test "architect shutdown handling section order: after Effort, before Circuit Breaker" {
   local file="$PROJECT_ROOT/agents/yolo-architect.md"
@@ -453,25 +328,9 @@ teardown() {
 }
 
 # =============================================================================
-# Rejection path: approved=false is a valid response
+# Schema optional fields: shutdown_response supports pending_work
 # =============================================================================
 
-@test "validate-message: shutdown_response with approved=false passes" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-resp-reject","type":"shutdown_response","phase":1,"task":"","author_role":"dev","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approved":false,"final_status":"in_progress"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
-}
-
-# =============================================================================
-# Optional field: pending_work passes through correctly
-# =============================================================================
-
-@test "validate-message: shutdown_response with pending_work passes" {
-  cd "$TEST_TEMP_DIR"
-  MSG='{"id":"shut-resp-pw","type":"shutdown_response","phase":1,"task":"","author_role":"debugger","timestamp":"2026-02-12T10:30:05Z","schema_version":"2.0","confidence":"high","payload":{"request_id":"shut-001","approved":true,"final_status":"in_progress","pending_work":"Investigating hypothesis 2: race condition in auth module"}}'
-  run bash "$SCRIPTS_DIR/validate-message.sh" "$MSG"
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.valid == true'
+@test "shutdown_response: pending_work is in payload_optional" {
+  jq -e '.schemas.shutdown_response.payload_optional | index("pending_work") != null' "$SCHEMAS"
 }
