@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -81,18 +82,15 @@ fn migrate_key_decisions(buffer: &str, state_path: &Path) -> (bool, String) {
         return (false, "".to_string());
     }
 
+    let existing: HashSet<String> = state_content
+        .lines()
+        .map(|l| l.split_whitespace().collect::<Vec<_>>().join(" "))
+        .collect();
+
     let mut unique_rows = Vec::new();
     for drow in &data_rows {
         let normalized_drow: String = drow.split_whitespace().collect::<Vec<_>>().join(" ");
-        let mut found = false;
-        for line in state_content.lines() {
-            let normalized_line: String = line.split_whitespace().collect::<Vec<_>>().join(" ");
-            if normalized_line == normalized_drow {
-                found = true;
-                break;
-            }
-        }
-        if !found {
+        if !existing.contains(&normalized_drow) {
             unique_rows.push(drow.clone());
         }
     }
