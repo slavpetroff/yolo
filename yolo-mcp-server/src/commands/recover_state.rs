@@ -1,13 +1,22 @@
 use serde_json::{json, Value};
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 
 /// CLI entry: `yolo recover-state <phase> [phases-dir]`
 /// Rebuild .execution-state.json from event log + SUMMARY.md files.
-/// Fail-open: returns empty JSON object on errors.
+/// Fail-open: returns envelope with recovered:false on errors.
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
-    if args.len() < 1 {
-        return Ok(("{}".to_string(), 0));
+    let start = Instant::now();
+
+    if args.is_empty() {
+        let envelope = json!({
+            "ok": true,
+            "cmd": "recover-state",
+            "delta": { "recovered": false, "reason": "no args provided" },
+            "elapsed_ms": start.elapsed().as_millis() as u64
+        });
+        return Ok((serde_json::to_string(&envelope).unwrap_or_default(), 3));
     }
 
     let phase_str = &args[0];
@@ -25,7 +34,13 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false);
                 if !enabled {
-                    return Ok(("{}".to_string(), 0));
+                    let envelope = json!({
+                        "ok": true,
+                        "cmd": "recover-state",
+                        "delta": { "recovered": false, "reason": "v3_event_recovery disabled" },
+                        "elapsed_ms": start.elapsed().as_millis() as u64
+                    });
+                    return Ok((serde_json::to_string(&envelope).unwrap_or_default(), 3));
                 }
             }
         }
@@ -45,7 +60,15 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
     let phase_dir = match phase_dir {
         Some(d) => d,
-        None => return Ok(("{}".to_string(), 0)),
+        None => {
+            let envelope = json!({
+                "ok": true,
+                "cmd": "recover-state",
+                "delta": { "recovered": false, "reason": "no phase directory found" },
+                "elapsed_ms": start.elapsed().as_millis() as u64
+            });
+            return Ok((serde_json::to_string(&envelope).unwrap_or_default(), 3));
+        }
     };
 
     let phase_slug = phase_dir
@@ -96,6 +119,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         .collect();
 
     let result = json!({
+        "recovered": true,
         "phase": phase,
         "phase_name": phase_slug,
         "status": status,
@@ -104,7 +128,14 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         "plans": plans_json
     });
 
-    let output = serde_json::to_string_pretty(&result).unwrap_or_else(|_| "{}".to_string());
+    let envelope = json!({
+        "ok": true,
+        "cmd": "recover-state",
+        "delta": result,
+        "elapsed_ms": start.elapsed().as_millis() as u64
+    });
+
+    let output = serde_json::to_string_pretty(&envelope).unwrap_or_else(|_| "{}".to_string());
     Ok((output, 0))
 }
 
