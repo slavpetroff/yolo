@@ -623,4 +623,45 @@ mod tests {
         assert!(names.contains(&"serde"), "expected serde in {:?}", names);
         assert_eq!(parsed["tech_stack"]["source"].as_str().unwrap(), "STACK.md");
     }
+
+    #[test]
+    fn test_infer_alpine_notetaker_e2e() {
+        let dir = tempdir().unwrap();
+        let codebase_dir = dir.path().join("codebase");
+        fs::create_dir_all(&codebase_dir).unwrap();
+
+        // Simulate a project with pyproject.toml (at repo_root, not codebase_dir)
+        fs::write(dir.path().join("pyproject.toml"), r#"
+[project]
+name = "alpine-notetaker"
+dependencies = ["fastapi", "redis", "uvicorn"]
+"#).unwrap();
+
+        fs::write(dir.path().join("README.md"), r#"
+# Alpine Notetaker
+
+A lightweight note-taking API built with FastAPI and Redis for fast, ephemeral storage.
+"#).unwrap();
+
+        // No STACK.md, no CONCERNS.md -- force fallbacks
+        let (out, code) = execute(
+            &["yolo".to_string(), "infer".to_string(),
+              codebase_dir.to_string_lossy().to_string(),
+              dir.path().to_string_lossy().to_string()],
+            dir.path()
+        ).unwrap();
+
+        assert_eq!(code, 0);
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+
+        // Tech stack should detect Python and fastapi
+        let stack = parsed["tech_stack"]["value"].as_array().unwrap();
+        assert!(stack.iter().any(|v| v.as_str().unwrap().to_lowercase().contains("python")));
+        assert!(stack.iter().any(|v| v.as_str().unwrap().to_lowercase().contains("fastapi")));
+
+        // Purpose should be extracted from README
+        let purpose = parsed["purpose"]["value"].as_str().unwrap();
+        assert!(!purpose.is_empty());
+        assert!(purpose.to_lowercase().contains("note") || purpose.to_lowercase().contains("api"));
+    }
 }
