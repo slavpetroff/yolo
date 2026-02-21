@@ -1,6 +1,6 @@
 {
   "name": "yolo",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "YOLO — development lifecycle plugin for Claude Code. 24 commands, 7 agents, continuous verification.",
   "author": {
     "name": "Stanislav Petrov",
