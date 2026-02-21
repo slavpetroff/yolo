@@ -1,4 +1,7 @@
 #!/usr/bin/env bats
+# Migrated: assess-plan-risk.sh -> yolo assess-risk
+#           resolve-gate-policy.sh -> yolo gate-policy
+# CWD-sensitive: yes
 
 load test_helper
 
@@ -11,9 +14,9 @@ teardown() {
   teardown_temp_dir
 }
 
-# --- assess-plan-risk.sh tests ---
+# --- yolo assess-risk tests ---
 
-@test "assess-plan-risk.sh returns low for small plan" {
+@test "assess-plan-risk returns low for small plan" {
   cat > "$TEST_TEMP_DIR/small-plan.md" <<'EOF'
 ---
 phase: 1
@@ -38,12 +41,12 @@ must_haves:
 - **Action:** Add tests.
 EOF
 
-  run bash "$SCRIPTS_DIR/assess-plan-risk.sh" "$TEST_TEMP_DIR/small-plan.md"
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' assess-risk '$TEST_TEMP_DIR/small-plan.md'"
   [ "$status" -eq 0 ]
   [ "$output" = "low" ]
 }
 
-@test "assess-plan-risk.sh returns high for complex plan" {
+@test "assess-plan-risk returns high for complex plan" {
   # 7 tasks, 10+ files, 5 must_haves, cross_phase_deps
   cat > "$TEST_TEMP_DIR/complex-plan.md" <<'EOF'
 ---
@@ -88,65 +91,65 @@ must_haves:
 - **Files:** No files.
 EOF
 
-  run bash "$SCRIPTS_DIR/assess-plan-risk.sh" "$TEST_TEMP_DIR/complex-plan.md"
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' assess-risk '$TEST_TEMP_DIR/complex-plan.md'"
   [ "$status" -eq 0 ]
   [ "$output" = "high" ]
 }
 
-@test "assess-plan-risk.sh defaults to medium on missing file" {
-  run bash "$SCRIPTS_DIR/assess-plan-risk.sh" "$TEST_TEMP_DIR/nonexistent.md"
+@test "assess-plan-risk defaults to medium on missing file" {
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' assess-risk '$TEST_TEMP_DIR/nonexistent.md'"
   [ "$status" -eq 0 ]
   [ "$output" = "medium" ]
 }
 
-@test "assess-plan-risk.sh defaults to medium with no arguments" {
-  run bash "$SCRIPTS_DIR/assess-plan-risk.sh"
+@test "assess-plan-risk defaults to medium with no arguments" {
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' assess-risk"
   [ "$status" -eq 0 ]
   [ "$output" = "medium" ]
 }
 
-# --- resolve-gate-policy.sh tests ---
+# --- yolo gate-policy tests ---
 
-@test "resolve-gate-policy.sh returns skip QA for turbo" {
-  run bash "$SCRIPTS_DIR/resolve-gate-policy.sh" turbo low standard
+@test "resolve-gate-policy returns skip QA for turbo" {
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' gate-policy turbo low standard"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.qa_tier == "skip"'
   echo "$output" | jq -e '.approval_required == false'
   echo "$output" | jq -e '.communication_level == "none"'
 }
 
-@test "resolve-gate-policy.sh returns approval for high-risk balanced" {
-  run bash "$SCRIPTS_DIR/resolve-gate-policy.sh" balanced high standard
+@test "resolve-gate-policy returns approval for high-risk balanced" {
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' gate-policy balanced high standard"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.approval_required == true'
   echo "$output" | jq -e '.two_phase == true'
   echo "$output" | jq -e '.qa_tier == "standard"'
 }
 
-@test "resolve-gate-policy.sh no approval for confident at balanced" {
-  run bash "$SCRIPTS_DIR/resolve-gate-policy.sh" balanced high confident
+@test "resolve-gate-policy no approval for confident at balanced" {
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' gate-policy balanced high confident"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.approval_required == false'
 }
 
-@test "resolve-gate-policy.sh returns deep QA for thorough" {
-  run bash "$SCRIPTS_DIR/resolve-gate-policy.sh" thorough medium cautious
+@test "resolve-gate-policy returns deep QA for thorough" {
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' gate-policy thorough medium cautious"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.qa_tier == "deep"'
   echo "$output" | jq -e '.approval_required == true'
   echo "$output" | jq -e '.communication_level == "full"'
 }
 
-@test "resolve-gate-policy.sh returns quick QA for fast" {
-  run bash "$SCRIPTS_DIR/resolve-gate-policy.sh" fast low standard
+@test "resolve-gate-policy returns quick QA for fast" {
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' gate-policy fast low standard"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.qa_tier == "quick"'
   echo "$output" | jq -e '.approval_required == false'
   echo "$output" | jq -e '.communication_level == "blockers"'
 }
 
-@test "resolve-gate-policy.sh defaults gracefully with no args" {
-  run bash "$SCRIPTS_DIR/resolve-gate-policy.sh"
+@test "resolve-gate-policy defaults gracefully with no args" {
+  run bash -c "cd '$TEST_TEMP_DIR' && '$YOLO_BIN' gate-policy"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.qa_tier == "standard"'
 }

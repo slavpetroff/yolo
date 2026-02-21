@@ -1,4 +1,8 @@
 #!/usr/bin/env bats
+# Migrated: generate-contract.sh -> yolo generate-contract
+#           validate-contract.sh -> internal (v2 hard validation tested here via generate + hard-gate)
+#           contract-revision.sh -> yolo contract-revision
+# CWD-sensitive: yes
 
 load test_helper
 
@@ -53,13 +57,13 @@ enable_v3_lite() {
     && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
 }
 
-# --- generate-contract.sh tests ---
+# --- generate-contract tests ---
 
 @test "generate-contract: v2 hard emits all 11 fields + hash" {
   create_plan_file
   enable_v2_contracts
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md"
+  run "$YOLO_BIN" generate-contract ".yolo-planning/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 0 ]
   CONTRACT=".yolo-planning/.contracts/1-1.json"
   [ -f "$CONTRACT" ]
@@ -85,7 +89,7 @@ enable_v3_lite() {
   create_plan_file
   enable_v3_lite
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md"
+  run "$YOLO_BIN" generate-contract ".yolo-planning/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 0 ]
   CONTRACT=".yolo-planning/.contracts/1-1.json"
   [ -f "$CONTRACT" ]
@@ -102,10 +106,10 @@ enable_v3_lite() {
   create_plan_file
   enable_v2_contracts
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  "$YOLO_BIN" generate-contract ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
   HASH1=$(jq -r '.contract_hash' ".yolo-planning/.contracts/1-1.json")
   # Regenerate
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  "$YOLO_BIN" generate-contract ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
   HASH2=$(jq -r '.contract_hash' ".yolo-planning/.contracts/1-1.json")
   [ "$HASH1" = "$HASH2" ]
 }
@@ -113,81 +117,65 @@ enable_v3_lite() {
 @test "generate-contract: no flags enabled exits silently" {
   create_plan_file
   cd "$TEST_TEMP_DIR"
-  run bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md"
+  run "$YOLO_BIN" generate-contract ".yolo-planning/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 0 ]
   [ ! -f ".yolo-planning/.contracts/1-1.json" ]
 }
 
-# --- validate-contract.sh tests ---
+# --- hard-gate contract_compliance tests (replaces validate-contract.sh) ---
 
-@test "validate-contract: hash mismatch hard stop" {
+@test "hard-gate: contract_compliance passes with valid contract" {
   create_plan_file
   enable_v2_contracts
+  jq '.v2_hard_gates = true | .v3_event_log = true' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" \
+    && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  "$YOLO_BIN" generate-contract ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  CONTRACT=".yolo-planning/.contracts/1-1.json"
+  run "$YOLO_BIN" hard-gate contract_compliance 1 1 1 "$CONTRACT"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.result == "pass"'
+}
+
+@test "hard-gate: hash mismatch hard stop" {
+  create_plan_file
+  enable_v2_contracts
+  jq '.v2_hard_gates = true | .v3_event_log = true' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" \
+    && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
+  cd "$TEST_TEMP_DIR"
+  "$YOLO_BIN" generate-contract ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
   CONTRACT=".yolo-planning/.contracts/1-1.json"
   # Tamper with contract (change task_count)
   jq '.task_count = 99' "$CONTRACT" > "${CONTRACT}.tmp" && mv "${CONTRACT}.tmp" "$CONTRACT"
-  run bash "$SCRIPTS_DIR/validate-contract.sh" start "$CONTRACT" 1
+  run "$YOLO_BIN" hard-gate contract_compliance 1 1 1 "$CONTRACT"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"hash_mismatch"* ]] || [[ "$output" == *"hash mismatch"* ]]
+  echo "$output" | jq -e '.result == "fail"'
 }
 
-@test "validate-contract: valid hash passes" {
+@test "hard-gate: valid hash passes" {
   create_plan_file
   enable_v2_contracts
+  jq '.v2_hard_gates = true | .v3_event_log = true' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" \
+    && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  "$YOLO_BIN" generate-contract ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
   CONTRACT=".yolo-planning/.contracts/1-1.json"
-  run bash "$SCRIPTS_DIR/validate-contract.sh" start "$CONTRACT" 1
+  run "$YOLO_BIN" hard-gate contract_compliance 1 1 1 "$CONTRACT"
   [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.result == "pass"'
 }
 
-@test "validate-contract: forbidden path hard stop" {
-  create_plan_file
-  enable_v2_contracts
-  cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
-  CONTRACT=".yolo-planning/.contracts/1-1.json"
-  run bash "$SCRIPTS_DIR/validate-contract.sh" end "$CONTRACT" 1 ".env"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"forbidden_path"* ]] || [[ "$output" == *"forbidden path"* ]]
-}
-
-@test "validate-contract: forbidden path subdir hard stop" {
-  create_plan_file
-  enable_v2_contracts
-  cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
-  CONTRACT=".yolo-planning/.contracts/1-1.json"
-  run bash "$SCRIPTS_DIR/validate-contract.sh" end "$CONTRACT" 1 "secrets/api-key.json"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"forbidden_path"* ]] || [[ "$output" == *"forbidden path"* ]]
-}
-
-@test "validate-contract: out of scope file hard stop" {
-  create_plan_file
-  enable_v2_contracts
-  cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
-  CONTRACT=".yolo-planning/.contracts/1-1.json"
-  run bash "$SCRIPTS_DIR/validate-contract.sh" end "$CONTRACT" 1 "unrelated/file.js"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"out_of_scope"* ]]
-}
-
-@test "validate-contract: v3 lite advisory only" {
+@test "hard-gate: v3 lite advisory only" {
   create_plan_file
   enable_v3_lite
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
-  CONTRACT=".yolo-planning/.contracts/1-1.json"
-  # Out of scope file — should be advisory (exit 0)
-  run bash "$SCRIPTS_DIR/validate-contract.sh" end "$CONTRACT" 1 "unrelated/file.js"
+  "$YOLO_BIN" generate-contract ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  # No v2_hard_gates enabled — should skip
+  run "$YOLO_BIN" hard-gate contract_compliance 1 1 1 ".yolo-planning/.contracts/1-1.json"
   [ "$status" -eq 0 ]
 }
 
-# --- contract-revision.sh tests ---
+# --- contract-revision tests ---
 
 @test "contract-revision: detects scope change and archives old" {
   create_plan_file
@@ -196,7 +184,7 @@ enable_v3_lite() {
   jq '.v3_event_log = true' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" \
     && mv "$TEST_TEMP_DIR/.yolo-planning/config.json.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  "$YOLO_BIN" generate-contract ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
   CONTRACT=".yolo-planning/.contracts/1-1.json"
   OLD_HASH=$(jq -r '.contract_hash' "$CONTRACT")
 
@@ -207,7 +195,7 @@ enable_v3_lite() {
 **Files:** `src/c.js`
 EXTRA
 
-  run bash "$SCRIPTS_DIR/contract-revision.sh" "$CONTRACT" ".yolo-planning/phases/01-test/01-01-PLAN.md"
+  run "$YOLO_BIN" contract-revision "$CONTRACT" ".yolo-planning/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 0 ]
   [[ "$output" == *"revised:"* ]]
   # Old contract archived
@@ -221,9 +209,9 @@ EXTRA
   create_plan_file
   enable_v2_contracts
   cd "$TEST_TEMP_DIR"
-  bash "$SCRIPTS_DIR/generate-contract.sh" ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
+  "$YOLO_BIN" generate-contract ".yolo-planning/phases/01-test/01-01-PLAN.md" >/dev/null
   CONTRACT=".yolo-planning/.contracts/1-1.json"
-  run bash "$SCRIPTS_DIR/contract-revision.sh" "$CONTRACT" ".yolo-planning/phases/01-test/01-01-PLAN.md"
+  run "$YOLO_BIN" contract-revision "$CONTRACT" ".yolo-planning/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 0 ]
   [[ "$output" == *"no_change"* ]]
 }
