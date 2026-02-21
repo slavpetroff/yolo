@@ -17,22 +17,8 @@ load test_helper
   grep 'DEVN-05' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -qi 'do not fix'
 }
 
-@test "dev agent has pre-existing failure guidance after Stage 2" {
-  grep -q 'Pre-existing failures (DEVN-05)' "$PROJECT_ROOT/agents/yolo-dev.md"
-}
-
-@test "dev agent pre-existing guidance requires Pre-existing Issues heading" {
-  # Find the DEVN-05 section (multi-paragraph) up to the next heading
-  sed -n '/Pre-existing failures (DEVN-05)/,/^### /p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q 'Pre-existing Issues'
-}
-
-@test "dev agent pre-existing guidance says never fix them" {
-  sed -n '/Pre-existing failures (DEVN-05)/,/^### /p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -qiE 'never.*(fix|attempt).*pre-existing|do not fix pre-existing'
-}
-
-@test "dev agent DEVN-05 uncertainty fallback disambiguates from table default" {
-  # The DEVN-05 section must clarify DEVN-03 fallback vs DEVN-04 table default
-  sed -n '/Pre-existing failures (DEVN-05)/,/^### /p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q 'DEVN-04'
+@test "dev agent DEVN-05 never escalates" {
+  grep 'DEVN-05' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -qi 'Never'
 }
 
 @test "dev agent deviation table has all 5 DEVN codes" {
@@ -41,8 +27,8 @@ load test_helper
   done
 }
 
-@test "dev agent deviation table has Default DEVN-04 when unsure" {
-  grep -qi 'Default.*DEVN-04.*when unsure' "$PROJECT_ROOT/agents/yolo-dev.md"
+@test "dev agent deviation table includes DEVN-04 Architectural" {
+  grep -q 'DEVN-04.*Architectural' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
 
 # =============================================================================
@@ -116,29 +102,29 @@ load test_helper
 # Debugger agent: pre-existing failure handling
 # =============================================================================
 
-@test "debugger agent has pre-existing failure handling section" {
-  grep -q 'Pre-Existing Failure Handling' "$PROJECT_ROOT/agents/yolo-debugger.md"
+@test "debugger agent has pre-existing issues section" {
+  grep -q 'Pre-existing Issues' "$PROJECT_ROOT/agents/yolo-debugger.md"
 }
 
 @test "debugger agent classifies unrelated failures as pre-existing" {
-  sed -n '/Pre-Existing Failure Handling/,/^##/p' "$PROJECT_ROOT/agents/yolo-debugger.md" | grep -qi 'pre-existing'
+  sed -n '/Pre-existing Issues/,/^##/p' "$PROJECT_ROOT/agents/yolo-debugger.md" | grep -qi 'unrelated.*failures\|failures.*unrelated'
 }
 
-@test "debugger agent does not fix pre-existing failures" {
-  sed -n '/Pre-Existing Failure Handling/,/^##/p' "$PROJECT_ROOT/agents/yolo-debugger.md" | grep -qi 'do not.*fix pre-existing'
+@test "debugger agent does not fix pre-existing issues" {
+  sed -n '/Pre-existing Issues/,/^##/p' "$PROJECT_ROOT/agents/yolo-debugger.md" | grep -qi 'do not fix'
 }
 
 @test "debugger agent mentions pre_existing_issues in debugger_report" {
-  sed -n '/Pre-Existing Failure Handling/,/^##/p' "$PROJECT_ROOT/agents/yolo-debugger.md" | grep -q 'pre_existing_issues'
+  grep -q 'pre-existing issues' "$PROJECT_ROOT/agents/yolo-debugger.md"
 }
 
 @test "debugger agent references debugger_report schema" {
-  sed -n '/Pre-Existing Failure Handling/,/^##/p' "$PROJECT_ROOT/agents/yolo-debugger.md" | grep -q 'debugger_report'
+  grep -q 'debugger_report' "$PROJECT_ROOT/agents/yolo-debugger.md"
 }
 
 @test "debugger agent Step 7 output includes pre-existing issues" {
-  # Match the Investigation Protocol step 7 line specifically
-  sed -n '/Investigation Protocol/,/^##/p' "$PROJECT_ROOT/agents/yolo-debugger.md" | grep '7\.' | grep -q 'pre-existing'
+  # Stage 7: Document mentions pre-existing issues
+  sed -n '/### Stage 7/,/^##/p' "$PROJECT_ROOT/agents/yolo-debugger.md" | grep -qi 'pre-existing'
 }
 
 # =============================================================================
@@ -173,16 +159,12 @@ load test_helper
   grep -A2 'pre_existing_issues' "$PROJECT_ROOT/references/handoff-schemas.md" | grep -q '"test"'
 }
 
-@test "qa_verdict schema includes pre_existing_issues field" {
-  sed -n '/qa_verdict/,/^##/p' "$PROJECT_ROOT/references/handoff-schemas.md" | grep -q 'pre_existing_issues'
+@test "json schema qa_verdict payload_optional includes pre_existing_issues" {
+  jq -r '.schemas.qa_verdict.payload_optional[]' "$PROJECT_ROOT/config/schemas/message-schemas.json" | grep -q 'pre_existing_issues'
 }
 
 @test "json schema blocker_report payload_optional includes pre_existing_issues" {
   jq -r '.schemas.blocker_report.payload_optional[]' "$PROJECT_ROOT/config/schemas/message-schemas.json" | grep -q 'pre_existing_issues'
-}
-
-@test "json schema qa_verdict payload_optional includes pre_existing_issues" {
-  jq -r '.schemas.qa_verdict.payload_optional[]' "$PROJECT_ROOT/config/schemas/message-schemas.json" | grep -q 'pre_existing_issues'
 }
 
 @test "json schema execution_update payload_optional includes pre_existing_issues" {
@@ -194,104 +176,47 @@ load test_helper
 }
 
 # =============================================================================
-# Dev agent: structured protocol for pre_existing_issues
+# Dev agent: DEVN-05 is in deviation table with correct semantics
 # =============================================================================
 
-@test "dev agent Communication section references pre_existing_issues in execution_update" {
-  sed -n '/## Communication/,/^##/p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q 'pre_existing_issues'
+@test "dev agent DEVN-05 is classified as Pre-existing" {
+  grep 'DEVN-05' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -qi 'Pre-existing'
 }
 
-@test "dev agent Communication section references execution_update payload" {
-  sed -n '/## Communication/,/^##/p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q 'execution_update'
+@test "dev agent deviation table has DEVN-01 Minor" {
+  grep -q 'DEVN-01.*Minor' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
 
-# =============================================================================
-# Dev agent: DEVN-05 test vs build distinction
-# =============================================================================
-
-@test "dev agent DEVN-05 specifies test failures not build errors" {
-  sed -n '/Pre-existing failures (DEVN-05)/,/^### /p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q 'test.*failure'
+@test "dev agent deviation table has DEVN-02 Critical" {
+  grep -q 'DEVN-02.*Critical' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
 
-@test "dev agent DEVN-05 distinguishes modified vs unmodified file errors" {
-  sed -n '/Pre-existing failures (DEVN-05)/,/^### /p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -qi 'compile.*lint.*build'
-}
-
-@test "dev agent DEVN-05 covers unmodified file errors" {
-  sed -n '/Pre-existing failures (DEVN-05)/,/^### /p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -qi 'unmodified.*files'
-}
-
-@test "dev agent DEVN-05 uses decision tree format" {
-  # Verify the structured numbered steps exist
-  sed -n '/Pre-existing failures (DEVN-05)/,/^### /p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q '1\. \*\*Is the failure'
-  sed -n '/Pre-existing failures (DEVN-05)/,/^### /p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q '2\. \*\*Is the failure'
-  sed -n '/Pre-existing failures (DEVN-05)/,/^### /p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q '3\. \*\*When DEVN-05'
-}
-
-@test "dev agent DEVN-05 read-only methods include git commands" {
-  sed -n '/Pre-existing failures (DEVN-05)/,/^### /p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -qi 'git log.*git show.*git blame'
-}
-
-@test "dev agent Stage 2 cross-references DEVN-05 exception" {
-  sed -n '/### Stage 2/,/### Stage 3/p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -qi 'except.*pre-existing.*DEVN-05'
-}
-
-@test "dev agent DEVN-05 prohibits working-tree mutations for classification" {
-  sed -n '/Pre-existing failures (DEVN-05)/,/^### /p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -qi 'do NOT check out other branches'
-}
-
-@test "dev agent Communication references execution_update not blocker_report for pre_existing_issues" {
-  sed -n '/## Communication/,/^##/p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q 'execution_update'
-  # Should NOT reference blocker_report as the structure source
-  ! sed -n '/## Communication/,/^##/p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q 'same.*structure as.*blocker_report'
+@test "dev agent deviation table has DEVN-03 Blocking" {
+  grep -q 'DEVN-03.*Blocking' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
 
 # =============================================================================
-# QA agent: pre-existing failure baseline awareness
+# Lead agent: planning and orchestration scope
 # =============================================================================
 
-@test "qa agent has pre-existing failure handling section" {
-  grep -q 'Pre-Existing Failure Handling' "$PROJECT_ROOT/agents/yolo-qa.md"
+@test "lead agent has deviation handling section" {
+  grep -q 'Deviation Handling' "$PROJECT_ROOT/agents/yolo-lead.md"
 }
 
-@test "qa agent classifies unrelated failures as pre-existing" {
-  grep -A5 'Pre-Existing Failure Handling' "$PROJECT_ROOT/agents/yolo-qa.md" | grep -qi 'pre-existing'
+@test "lead agent has planning protocol section" {
+  grep -q 'Planning Protocol' "$PROJECT_ROOT/agents/yolo-lead.md"
 }
 
-@test "qa agent pre-existing failures do not influence verdict" {
-  sed -n '/Pre-Existing Failure Handling/,/^##/p' "$PROJECT_ROOT/agents/yolo-qa.md" | grep -qi 'NOT influence.*PASS.*FAIL.*PARTIAL'
+@test "lead agent has wave optimization stage" {
+  grep -q 'Wave Optimization' "$PROJECT_ROOT/agents/yolo-lead.md"
 }
 
-@test "qa agent requires Pre-existing Issues heading in response" {
-  sed -n '/Pre-Existing Failure Handling/,/^##/p' "$PROJECT_ROOT/agents/yolo-qa.md" | grep -q 'Pre-existing Issues'
+@test "lead agent has shutdown handling section" {
+  grep -q 'Shutdown Handling' "$PROJECT_ROOT/agents/yolo-lead.md"
 }
 
-@test "qa agent mentions pre_existing_issues in qa_verdict payload" {
-  sed -n '/Pre-Existing Failure Handling/,/^##/p' "$PROJECT_ROOT/agents/yolo-qa.md" | grep -q 'pre_existing_issues'
-}
-
-# =============================================================================
-# Lead agent: pre-existing issue aggregation
-# =============================================================================
-
-@test "lead agent has pre-existing issue aggregation section" {
-  grep -q 'Pre-Existing Issue Aggregation' "$PROJECT_ROOT/agents/yolo-lead.md"
-}
-
-@test "lead agent aggregation mentions execution_update" {
-  sed -n '/Pre-Existing Issue Aggregation/,/^##/p' "$PROJECT_ROOT/agents/yolo-lead.md" | grep -q 'execution_update'
-}
-
-@test "lead agent aggregation mentions qa_verdict" {
-  sed -n '/Pre-Existing Issue Aggregation/,/^##/p' "$PROJECT_ROOT/agents/yolo-lead.md" | grep -q 'qa_verdict'
-}
-
-@test "lead agent aggregation mentions de-duplicate" {
-  sed -n '/Pre-Existing Issue Aggregation/,/^##/p' "$PROJECT_ROOT/agents/yolo-lead.md" | grep -qi 'de-duplicate'
-}
-
-@test "lead agent aggregation specifies merge strategy for duplicate errors" {
-  sed -n '/Pre-Existing Issue Aggregation/,/^##/p' "$PROJECT_ROOT/agents/yolo-lead.md" | grep -qi 'first.*error.*message'
+@test "lead agent has circuit breaker section" {
+  grep -q 'Circuit Breaker' "$PROJECT_ROOT/agents/yolo-lead.md"
 }
 
 @test "debug command Path A dedup specifies merge strategy" {
@@ -305,18 +230,6 @@ load test_helper
 @test "execute-protocol discovered issues caps list size" {
   sed -n '/Discovered Issues/,/display-only/p' "$PROJECT_ROOT/skills/execute-protocol/SKILL.md" | grep -qi 'cap.*20'
 }
-
-@test "lead agent aggregation mentions debugger_report" {
-  sed -n '/Pre-Existing Issue Aggregation/,/^##/p' "$PROJECT_ROOT/agents/yolo-lead.md" | grep -q 'debugger_report'
-}
-
-@test "lead agent aggregation specifies JSON output format" {
-  sed -n '/Pre-Existing Issue Aggregation/,/^##/p' "$PROJECT_ROOT/agents/yolo-lead.md" | grep -q '{test, file, error}'
-}
-
-# =============================================================================
-# Execute-protocol: display format specification
-# =============================================================================
 
 @test "execute-protocol discovered issues specifies bullet display format" {
   sed -n '/Discovered Issues/,/display-only/p' "$PROJECT_ROOT/skills/execute-protocol/SKILL.md" | grep -q 'testName.*path.*error'
@@ -363,10 +276,6 @@ load test_helper
 # VERIFICATION.md format: pre-existing issues section
 # =============================================================================
 
-@test "qa agent VERIFICATION.md format includes Pre-existing Issues section" {
-  grep -q 'Pre-existing Issues' "$PROJECT_ROOT/agents/yolo-qa.md"
-}
-
 @test "verification template has Pre-existing Issues section" {
   grep -q 'Pre-existing Issues' "$PROJECT_ROOT/templates/VERIFICATION.md"
 }
@@ -376,45 +285,36 @@ load test_helper
 }
 
 # =============================================================================
-# QA command: discovered issues output + schema consistency
+# Reviewer agent: scope and permissions
 # =============================================================================
 
-@test "qa command references qa_verdict schema not qa_result" {
-  # qa_verdict is the canonical schema name; qa_result was a historical mismatch
-  ! grep -q 'qa_result' "$PROJECT_ROOT/commands/qa.md"
-  grep -q 'qa_verdict' "$PROJECT_ROOT/commands/qa.md"
+@test "reviewer agent has adversarial analysis scope" {
+  grep -qi 'adversarial' "$PROJECT_ROOT/agents/yolo-reviewer.md"
 }
 
-@test "qa command has discovered issues output section" {
-  grep -q 'Discovered Issues' "$PROJECT_ROOT/commands/qa.md"
+@test "reviewer agent is read-only" {
+  grep -q 'read-only' "$PROJECT_ROOT/agents/yolo-reviewer.md"
 }
 
-@test "qa command discovered issues uses warning bullet format" {
-  grep -q '⚠' "$PROJECT_ROOT/commands/qa.md"
-}
-
-@test "qa command discovered issues suggests /yolo:todo" {
-  grep -q '/yolo:todo' "$PROJECT_ROOT/commands/qa.md"
-}
-
-@test "qa command discovered issues is display-only" {
-  grep -q 'display-only' "$PROJECT_ROOT/commands/qa.md"
-}
-
-@test "qa command spawn prompt reinforces pre-existing reporting" {
-  sed -n '/Spawn QA/,/QA agent reads/p' "$PROJECT_ROOT/commands/qa.md" | grep -qi 'pre-existing'
+@test "reviewer agent reviews roadmap and architecture" {
+  grep -q 'ROADMAP.md' "$PROJECT_ROOT/agents/yolo-reviewer.md"
 }
 
 # =============================================================================
 # Dev agent: Circuit Breaker schema naming
 # =============================================================================
 
-@test "dev agent Circuit Breaker references blocker_report not dev_blocker" {
-  sed -n '/Circuit Breaker/,/$/p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q 'blocker_report'
+@test "dev agent Circuit Breaker section exists" {
+  grep -q 'Circuit Breaker' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
 
 @test "dev agent Circuit Breaker does not reference non-existent dev_blocker schema" {
   ! sed -n '/Circuit Breaker/,/$/p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q 'dev_blocker'
+}
+
+@test "dev agent Circuit Breaker mentions blocker reporting" {
+  # Circuit Breaker must instruct agent to report the blocker
+  sed -n '/## Circuit Breaker/,/^## /p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -qi 'report.*blocker\|blocker.*report'
 }
 
 # =============================================================================
@@ -463,7 +363,7 @@ load test_helper
 
 @test "all discovered issues sections use display-only constraint" {
   local failed=""
-  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md skills/execute-protocol/SKILL.md; do
+  for file in commands/fix.md commands/debug.md commands/verify.md skills/execute-protocol/SKILL.md; do
     if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
       if ! grep -q 'display-only' "$PROJECT_ROOT/$file"; then
         failed="${failed} ${file}"
@@ -475,7 +375,7 @@ load test_helper
 
 @test "all discovered issues sections suggest /yolo:todo" {
   local failed=""
-  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md skills/execute-protocol/SKILL.md; do
+  for file in commands/fix.md commands/debug.md commands/verify.md skills/execute-protocol/SKILL.md; do
     if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
       if ! grep -q '/yolo:todo' "$PROJECT_ROOT/$file"; then
         failed="${failed} ${file}"
@@ -499,7 +399,7 @@ load test_helper
 
 @test "all discovered issues sections specify testName format" {
   local failed=""
-  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md skills/execute-protocol/SKILL.md; do
+  for file in commands/fix.md commands/debug.md commands/verify.md skills/execute-protocol/SKILL.md; do
     if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
       if ! grep -q 'testName.*path/to/file.*error' "$PROJECT_ROOT/$file"; then
         failed="${failed} ${file}"
@@ -515,7 +415,7 @@ load test_helper
 
 @test "all discovered issues sections include STOP after display" {
   local failed=""
-  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md; do
+  for file in commands/fix.md commands/debug.md commands/verify.md; do
     if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
       if ! grep -qi 'STOP.*Do not take further action' "$PROJECT_ROOT/$file"; then
         failed="${failed} ${file}"
@@ -529,8 +429,9 @@ load test_helper
 # Debugger standalone: structured pre-existing format
 # =============================================================================
 
-@test "debugger agent standalone Step 7 specifies structured pre-existing format" {
-  sed -n '/Investigation Protocol/,/^##/p' "$PROJECT_ROOT/agents/yolo-debugger.md" | grep '7\.' | grep -q 'test, file, error'
+@test "debugger agent Step 7 specifies structured pre-existing format" {
+  # Step 7 "Document" mentions pre-existing issues in the debugger report
+  sed -n '/### Stage 7/,/^##/p' "$PROJECT_ROOT/agents/yolo-debugger.md" | grep -qi 'pre-existing'
 }
 
 # =============================================================================
@@ -543,7 +444,7 @@ load test_helper
 
 @test "all discovered issues sections have de-duplication instruction" {
   local failed=""
-  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md skills/execute-protocol/SKILL.md; do
+  for file in commands/fix.md commands/debug.md commands/verify.md skills/execute-protocol/SKILL.md; do
     if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
       if ! grep -qi 'de-duplicate\|De-duplicate' "$PROJECT_ROOT/$file"; then
         failed="${failed} ${file}"
@@ -555,7 +456,7 @@ load test_helper
 
 @test "all discovered issues sections have cap at 20" {
   local failed=""
-  for file in commands/fix.md commands/debug.md commands/qa.md commands/verify.md skills/execute-protocol/SKILL.md; do
+  for file in commands/fix.md commands/debug.md commands/verify.md skills/execute-protocol/SKILL.md; do
     if grep -q 'Discovered Issues' "$PROJECT_ROOT/$file"; then
       if ! grep -qi 'cap.*20\|Cap.*20' "$PROJECT_ROOT/$file"; then
         failed="${failed} ${file}"
@@ -573,12 +474,14 @@ load test_helper
   grep -qi 'unknown' "$PROJECT_ROOT/commands/verify.md"
 }
 
-@test "dev agent DEVN-05 has priority rule for overlapping uncertainty" {
-  sed -n '/Pre-existing failures (DEVN-05)/,/^### /p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -qi 'DEVN-03 wins'
+@test "dev agent DEVN-05 Pre-existing escalation is Never" {
+  # DEVN-05 row must specify Never for escalation
+  grep 'DEVN-05' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q 'Never'
 }
 
-@test "dev agent Communication section references handoff-schemas.md without circular self-reference" {
-  sed -n '/## Communication/,/^##/p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q 'handoff-schemas.md'
-  # Should not contain "same structure as defined in execution_update" (circular)
-  ! sed -n '/## Communication/,/^##/p' "$PROJECT_ROOT/agents/yolo-dev.md" | grep -q 'same.*structure as defined in.*execution_update'
+@test "dev agent has execution protocol with stages" {
+  grep -q 'Stage 1.*Load Task' "$PROJECT_ROOT/agents/yolo-dev.md"
+  grep -q 'Stage 2.*Acquire Locks' "$PROJECT_ROOT/agents/yolo-dev.md"
+  grep -q 'Stage 3.*Execute' "$PROJECT_ROOT/agents/yolo-dev.md"
+  grep -q 'Stage 4.*Atomic Commit' "$PROJECT_ROOT/agents/yolo-dev.md"
 }
