@@ -68,11 +68,12 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
             state_updater::update_state(&args[2]).map(|s| (s, 0))
         }
         "statusline" => {
-            statusline::render_statusline(&db_path).map(|s| (s, 0))
-        }
-        "fetch-limits" => {
-            let _ = statusline::execute_fetch_limits();
-            Ok("".to_string()).map(|s| (s, 0))
+            let mut stdin_json = String::new();
+            let _ = std::io::stdin().read_to_string(&mut stdin_json);
+            if stdin_json.is_empty() {
+                stdin_json = "{}".to_string();
+            }
+            statusline::render_statusline(&stdin_json).map(|s| (s, 0))
         }
         "hard-gate" => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
