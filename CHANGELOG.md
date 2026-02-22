@@ -2,6 +2,22 @@
 
 All notable changes to YOLO will be documented in this file.
 
+## [2.5.0] - 2026-02-22
+
+### Changed
+
+- **`readme`** -- Rewritten for conciseness: restructured quick-start-first layout, verbose sections trimmed, stale metrics updated (852 → 1,610 tests, 24 → 23 commands). 996 → 496 lines (50% reduction).
+- **`plugin-isolation`** -- Rewritten for YOLO-only context, removed retired VBW/GSD dual-plugin references.
+- **`claude-md`** -- Removed VBW-specific rule, updated Active Context to reflect current state.
+
+### Fixed
+
+- **`version-tracking`** -- Unified version tracking across statusline, session-start, and bump-version. Statusline now reads from plugin cache (was returning "?" when installed via cargo). Session-start reads installed version from cache instead of cwd. Fixed stale remote URL in bump-version.
+
+### Removed
+
+- **`vbw-remnants`** -- All VBW plugin references removed from active code (CLAUDE.md, plugin-isolation.md).
+
 ## [2.4.0] - 2026-02-22
 
 ### Added
