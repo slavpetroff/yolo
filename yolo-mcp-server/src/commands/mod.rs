@@ -5,6 +5,7 @@ pub mod bootstrap_roadmap;
 pub mod bootstrap_state;
 pub mod clean_stale_teams;
 pub mod collect_metrics;
+pub mod compress_context;
 pub mod detect_stack;
 pub mod hard_gate;
 pub mod log_event;
