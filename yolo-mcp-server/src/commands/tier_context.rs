@@ -66,7 +66,7 @@ fn write_cache(cache_path: &Path, content: &str, source_mtime: u64) {
 /// Maps a role name to its role family for tier 2 content selection.
 pub fn role_family(role: &str) -> &'static str {
     match role {
-        "architect" | "lead" => "planning",
+        "architect" | "lead" | "researcher" => "planning",
         "dev" | "senior" | "qa" | "security" | "debugger" => "execution",
         _ => "default",
     }
@@ -262,9 +262,26 @@ pub fn build_tier3_volatile(
     // Otherwise enumerate plan files from the phases directory
     if phase > 0 {
         if let Some(pd) = phases_dir {
-            let phase_dir = pd.join(format!("{:02}", phase));
+            // Resolve phase directory by prefix match (e.g., "02-researcher-agent")
+            let prefix = format!("{:02}", phase);
+            let phase_dir = std::fs::read_dir(pd)
+                .into_iter()
+                .flatten()
+                .filter_map(|e| e.ok())
+                .filter(|e| {
+                    let name = e.file_name();
+                    let name_str = name.to_string_lossy();
+                    (name_str == prefix
+                        || name_str.starts_with(&format!("{}-", prefix)))
+                        && e.path().is_dir()
+                })
+                .map(|e| e.path())
+                .next()
+                .unwrap_or_else(|| pd.join(&prefix));
+
             if phase_dir.is_dir() {
-                let mut entries: Vec<_> = std::fs::read_dir(&phase_dir)
+                // Inject plan files
+                let mut plan_entries: Vec<_> = std::fs::read_dir(&phase_dir)
                     .into_iter()
                     .flatten()
                     .flatten()
@@ -274,12 +291,30 @@ pub fn build_tier3_volatile(
                         name_str.ends_with("-PLAN.md") || name_str.ends_with(".plan.jsonl")
                     })
                     .collect();
-                // Sort by filename for deterministic ordering
-                entries.sort_by_key(|e| e.file_name());
-                for entry in entries {
+                plan_entries.sort_by_key(|e| e.file_name());
+                for entry in plan_entries {
                     if let Ok(text) = std::fs::read_to_string(entry.path()) {
                         let name = entry.file_name().to_string_lossy().to_string();
                         content.push_str(&format!("\n# Phase {} Plan: {}\n{}\n", phase, name, text));
+                    }
+                }
+
+                // Inject research findings if present
+                let mut research_entries: Vec<_> = std::fs::read_dir(&phase_dir)
+                    .into_iter()
+                    .flatten()
+                    .flatten()
+                    .filter(|e| {
+                        let name = e.file_name();
+                        let name_str = name.to_string_lossy();
+                        name_str == "RESEARCH.md" || name_str.ends_with("-RESEARCH.md")
+                    })
+                    .collect();
+                research_entries.sort_by_key(|e| e.file_name());
+                for entry in research_entries {
+                    if let Ok(text) = std::fs::read_to_string(entry.path()) {
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        content.push_str(&format!("\n# Research: {}\n{}\n", name, text));
                     }
                 }
             }
@@ -935,5 +970,77 @@ mod tests {
         assert!(ctx.combined.contains("Stack: Rust + TypeScript"));
         assert!(ctx.combined.contains("Roadmap content"));
         assert!(ctx.combined.contains("Plan A content"));
+    }
+
+    // --- researcher and research injection tests ---
+
+    #[test]
+    fn test_researcher_is_planning_family() {
+        assert_eq!(role_family("researcher"), "planning");
+    }
+
+    #[test]
+    fn test_tier3_includes_research_md() {
+        let tmp = tempfile::tempdir().expect("failed to create temp dir");
+        let planning = tmp.path().join(".yolo-planning");
+        let phase_dir = planning.join("phases/03");
+        fs::create_dir_all(&phase_dir).unwrap();
+        fs::write(phase_dir.join("01-PLAN.md"), "Plan content here").unwrap();
+        fs::write(phase_dir.join("RESEARCH.md"), "Research findings here").unwrap();
+
+        let phases = planning.join("phases");
+        let t3 = build_tier3_volatile(3, Some(&phases), None);
+
+        assert!(t3.contains("Plan content here"));
+        assert!(t3.contains("# Research: RESEARCH.md"));
+        assert!(t3.contains("Research findings here"));
+    }
+
+    #[test]
+    fn test_tier3_without_research() {
+        let tmp = setup_planning_dir();
+        let planning = tmp.path().join(".yolo-planning");
+        let phases = planning.join("phases");
+
+        let t3 = build_tier3_volatile(3, Some(&phases), None);
+
+        // Plans should be present but no research
+        assert!(t3.contains("Plan A content"));
+        assert!(!t3.contains("# Research:"));
+    }
+
+    #[test]
+    fn test_tier3_research_sorted() {
+        let tmp = tempfile::tempdir().expect("failed to create temp dir");
+        let planning = tmp.path().join(".yolo-planning");
+        let phase_dir = planning.join("phases/04");
+        fs::create_dir_all(&phase_dir).unwrap();
+        fs::write(phase_dir.join("01-RESEARCH.md"), "First research").unwrap();
+        fs::write(phase_dir.join("02-RESEARCH.md"), "Second research").unwrap();
+
+        let phases = planning.join("phases");
+        let t3 = build_tier3_volatile(4, Some(&phases), None);
+
+        assert!(t3.contains("First research"));
+        assert!(t3.contains("Second research"));
+        let pos_first = t3.find("First research").unwrap();
+        let pos_second = t3.find("Second research").unwrap();
+        assert!(pos_first < pos_second, "01-RESEARCH.md should appear before 02-RESEARCH.md");
+    }
+
+    #[test]
+    fn test_tier3_prefix_match_phase_dir() {
+        let tmp = tempfile::tempdir().expect("failed to create temp dir");
+        let planning = tmp.path().join(".yolo-planning");
+        let phase_dir = planning.join("phases/02-researcher-agent");
+        fs::create_dir_all(&phase_dir).unwrap();
+        fs::write(phase_dir.join("01-PLAN.md"), "Named phase plan").unwrap();
+        fs::write(phase_dir.join("RESEARCH.md"), "Named phase research").unwrap();
+
+        let phases = planning.join("phases");
+        let t3 = build_tier3_volatile(2, Some(&phases), None);
+
+        assert!(t3.contains("Named phase plan"));
+        assert!(t3.contains("Named phase research"));
     }
 }
