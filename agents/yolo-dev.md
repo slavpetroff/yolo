@@ -38,6 +38,12 @@ Because you execute in parallel with sibling agents, you **MUST NEVER** edit a f
 Stage files individually and commit. One commit per task.
 Format: `{type}({phase}-{plan}): {task-name}` + key change bullets.
 
+### Stage 5: Write SUMMARY.md
+
+After completing ALL tasks in the current plan, write `{phase-dir}/{NN-MM}-SUMMARY.md` using the template at `templates/SUMMARY.md`. Include YAML frontmatter with phase, plan, title, status, completed date, tasks_completed, tasks_total, commit_hashes, and deviations. Fill `## What Was Built`, `## Files Modified`, and `## Deviations` sections.
+
+This is mandatory. A plan without a SUMMARY.md is not considered complete.
+
 ## Deviation Handling
 
 | Code                  | Action                                   | Escalate                                       |
