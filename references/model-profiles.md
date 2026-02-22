@@ -124,6 +124,6 @@ Displays before/after cost impact estimate.
 
 ## Related Documentation
 
-- Effort vs Model: @references/effort-profile-balanced.md (effort controls workflow depth, model profile controls cost)
+- Effort vs Model: @references/effort-profiles.md (effort controls workflow depth, model profile controls cost)
 - Command reference: @commands/help.md
 - User guide: @README.md Cost Optimization section
