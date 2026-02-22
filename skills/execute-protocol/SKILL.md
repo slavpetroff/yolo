@@ -6,6 +6,8 @@ category: lifecycle
 
 # YOLO Execution Protocol
 
+**V3 Extensions:** If ANY `v3_*` flag is `true` in `.yolo-planning/config.json`, also read `skills/execute-protocol/V3-EXTENSIONS.md` before executing. Otherwise skip it entirely.
+
 Loaded on demand by /yolo:vibe Execute mode. Not a user-facing command.
 
 ### Step 2: Load plans and detect resume state
