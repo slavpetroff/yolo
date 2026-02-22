@@ -871,4 +871,69 @@ mod tests {
         assert!(t2.contains("## Phase 2: Active Phase"));
         assert!(t2.contains("Currently active"));
     }
+
+    // --- minify_markdown tests ---
+
+    #[test]
+    fn test_minify_collapses_empty_lines() {
+        let input = "Header\n\n\n\n\nBody\n\n\n\nFooter\n";
+        let result = minify_markdown(input);
+        // 3+ consecutive empties collapsed to exactly 1 empty line
+        assert!(!result.contains("\n\n\n"), "Should not have 3+ consecutive newlines");
+        assert!(result.contains("Header\n\nBody"));
+        assert!(result.contains("Body\n\nFooter"));
+    }
+
+    #[test]
+    fn test_minify_removes_bare_separators() {
+        let input = "Before\n---\nAfter\n--- TIER 1: SHARED BASE ---\nContent\n";
+        let result = minify_markdown(input);
+        // Bare --- removed
+        assert!(!result.contains("\n---\n"), "Bare --- should be removed");
+        // Tier headers preserved
+        assert!(result.contains("--- TIER 1: SHARED BASE ---"));
+        assert!(result.contains("Before"));
+        assert!(result.contains("After"));
+        assert!(result.contains("Content"));
+    }
+
+    #[test]
+    fn test_minify_trims_trailing_whitespace() {
+        let input = "Line with trailing spaces   \nAnother line\t\t\nClean line\n";
+        let result = minify_markdown(input);
+        for line in result.lines() {
+            assert_eq!(line, line.trim_end(), "Line should have no trailing whitespace: {:?}", line);
+        }
+        assert!(result.contains("Line with trailing spaces\n"));
+        assert!(result.contains("Another line\n"));
+    }
+
+    #[test]
+    fn test_minify_preserves_code_blocks() {
+        let input = "# Header\n\n```rust\nfn main() {\n    println!(\"hello\");\n}\n```\n\nAfter code\n";
+        let result = minify_markdown(input);
+        assert!(result.contains("```rust"));
+        assert!(result.contains("fn main()"));
+        assert!(result.contains("println!(\"hello\")"));
+        assert!(result.contains("```"));
+        assert!(result.contains("After code"));
+    }
+
+    #[test]
+    fn test_minified_context_smaller() {
+        let tmp = setup_planning_dir();
+        let planning = tmp.path().join(".yolo-planning");
+        let phases = planning.join("phases");
+
+        let ctx = build_tiered_context(&planning, "dev", 3, Some(&phases), None);
+        let raw = format!("{}\n{}\n{}", ctx.tier1, ctx.tier2, ctx.tier3);
+        // Minified combined should be no larger than raw concatenation
+        assert!(ctx.combined.len() <= raw.len(),
+            "Minified ({}) should be <= raw ({})", ctx.combined.len(), raw.len());
+        // All meaningful content preserved
+        assert!(ctx.combined.contains("Convention rules here"));
+        assert!(ctx.combined.contains("Stack: Rust + TypeScript"));
+        assert!(ctx.combined.contains("Roadmap content"));
+        assert!(ctx.combined.contains("Plan A content"));
+    }
 }
