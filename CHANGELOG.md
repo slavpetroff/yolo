@@ -2,6 +2,40 @@
 
 All notable changes to YOLO will be documented in this file.
 
+## [2.4.0] - 2026-02-22
+
+### Added
+
+- **`structured-response`** -- StructuredResponse builder module for all state-changing CLI commands. Standard JSON envelope: `{"ok", "cmd", "changed", "delta", "elapsed_ms"}`.
+- **`structured-returns`** -- 12 CLI commands now return structured JSON: bootstrap-*, update-state, compile-context, suggest-next, bump-version, planning-git, log-event, collect-metrics, persist-state, recover-state, session-start.
+- **`vibe-modes`** -- Split vibe.md monolith (427 lines, ~7,220 tokens) into router (110 lines) + 6 mode-specific skill files in `skills/vibe-modes/`. 71% token reduction per invocation.
+- **`tier-caching`** -- Mtime-based caching for Tier 1/2 content in compile-context. Cache at `/tmp/yolo-tier-cache-{uid}/` with SHA256 integrity validation. Fail-open design.
+- **`agent-base-protocols`** -- Shared `references/agent-base-protocols.md` with canonical Circuit Breaker, Context Injection, and Shutdown Handling protocols.
+- **`v3-extensions`** -- V3 conditional blocks extracted from execute-protocol SKILL.md to separate V3-EXTENSIONS.md for on-demand loading (~4,000 tokens saved per Dev spawn).
+- **`session-start`** -- Per-step status reporting with timing (`{step, status, ms}` objects) for all 15 init steps.
+- **`invalidate-tier-cache`** -- New CLI command to clear compile-context tier cache.
+
+### Changed
+
+- **`config`** -- `v2_token_budgets` now defaults to `true` for new projects. Config migration preserves existing `false` values.
+- **`effort-profiles`** -- 4 separate effort profile files consolidated into single `references/effort-profiles.md`. Shared preamble appears once.
+- **`handoff-schemas`** -- Compressed from 262 to 141 lines. Payload-only examples, removed repeated envelope.
+- **`agent-boilerplate`** -- Circuit Breaker, Context Injection, and Shutdown sections compressed in 5 agents with shared base reference.
+
+### Fixed
+
+- **`infer`** -- Broadened STACK.md heading recognition, added manifest-based fallback, README.md/PROJECT.md purpose extraction.
+- **`detect-stack`** -- Handle glob wildcard patterns in stack detection.
+- **`hard-gate`** -- Fixed broken git commands, exit code changed to 2 on conflict.
+- **`lock`** -- Acquire/check conflict exit code changed from 1 to 2.
+- **`delta-files`** -- Structured JSON for empty responses (distinguishable empty vs no-strategy).
+- **`hooks`** -- Security filter file-path check skipped for Bash tool.
+
+### Removed
+
+- **`dead-redirects`** -- Deleted 3 redirect stubs in references/ (execute-protocol.md, discussion-engine.md, verification-protocol.md).
+- **`effort-profile-files`** -- Deleted 4 individual effort profile files (consolidated into one).
+
 ## [1.21.31] - 2026-02-19
 
 ### Added
