@@ -1,0 +1,41 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "574596cf-dac0-4fc5-b241-f8674c44b2ae",
+    "phase": 4,
+    "phase_name": "04-hot-path-vibemd-splitting",
+    "plans": [
+      {
+        "id": "04-01",
+        "status": "complete",
+        "title": "Split vibe.md into router + mode-specific skill files",
+        "wave": 1
+      },
+      {
+        "id": "04-02",
+        "status": "complete",
+        "title": "Tier 1 mtime caching in compile-context",
+        "wave": 1
+      },
+      {
+        "id": "04-03",
+        "status": "complete",
+        "title": "Enable v2_token_budgets by default + session-start step-level reporting",
+        "wave": 1
+      },
+      {
+        "id": "04-04",
+        "status": "complete",
+        "title": "Integration tests + token measurement",
+        "wave": 2
+      }
+    ],
+    "started_at": "2026-02-22T06:15:00Z",
+    "status": "complete",
+    "total_waves": 2,
+    "wave": 2
+  },
+  "matcher": "auto",
+  "phase": "4",
+  "timestamp": "2026-02-22T07:00:35Z"
+}

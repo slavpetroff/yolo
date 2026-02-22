@@ -2,7 +2,7 @@
 
 **Goal:** Fix incomplete CLI commands, add structured JSON returns to all state-changing operations, reduce token overhead by 10-15%, and split vibe.md for on-demand mode loading
 
-**Scope:** 4 phases
+**Scope:** 5 phases
 
 ## Progress
 | Phase | Status | Plans | Tasks | Commits |
@@ -11,6 +11,7 @@
 | 2 | Complete | 4 | 20 | 17 |
 | 3 | Complete | 4 | 14 | 9 |
 | 4 | Complete | 4 | 15 | 9 |
+| 5 | In Progress | 5 | 15 | 3 |
 
 ---
 
@@ -19,6 +20,7 @@
 - [x] [Phase 2: Rust CLI Structured Returns](#phase-2-rust-cli-structured-returns)
 - [x] [Phase 3: Token Reduction Sweep](#phase-3-token-reduction-sweep)
 - [x] [Phase 4: Hot Path & vibe.md Mode Splitting](#phase-4-hot-path--vibemd-mode-splitting)
+- [x] [Phase 5: Release Prep & README Rewrite](#phase-5-release-prep--readme-rewrite)
 
 ---
 
@@ -98,4 +100,22 @@
 - No behavioral regression across all workflow paths (plan, execute, verify, discuss, archive)
 
 **Dependencies:** Phase 3
+
+---
+
+## Phase 5: Release Prep & README Rewrite
+
+**Goal:** Clean VBW remnants, rewrite README to be concise and performance-focused with actual before/after comparisons vs plain agent usage, bump version, and release.
+
+**Requirements:** REQ-05 (release readiness)
+
+**Success Criteria:**
+- All VBW references removed from active code (CLAUDE.md, plugin-isolation.md)
+- README rewritten: concise guide with architecture, lifecycle flows, and design idioms explaining how the plugin works
+- Stale metrics updated (test count, version references, analysis report links)
+- Version bumped (patch) across all 4 version files
+- CHANGELOG updated with [Unreleased] → versioned
+- Git tag created, pushed, GitHub release created
+
+**Dependencies:** Phase 4
 
