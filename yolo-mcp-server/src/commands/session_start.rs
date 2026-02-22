@@ -294,7 +294,7 @@ fn write_config_cache_and_validate(planning_dir: &Path) -> (bool, String) {
         "YOLO_EFFORT={}\nYOLO_AUTONOMY={}\nYOLO_PLANNING_TRACKING={}\nYOLO_AUTO_PUSH={}\nYOLO_CONTEXT_COMPILER={}\n\
          YOLO_V3_DELTA_CONTEXT={}\nYOLO_V3_CONTEXT_CACHE={}\nYOLO_V3_PLAN_RESEARCH_PERSIST={}\nYOLO_V3_METRICS={}\n\
          YOLO_V3_CONTRACT_LITE={}\nYOLO_V3_LOCK_LITE={}\nYOLO_V3_VALIDATION_GATES={}\nYOLO_V3_SMART_ROUTING={}\n\
-         YOLO_V3_EVENT_LOG={}\nYOLO_V3_SCHEMA_VALIDATION={}\nYOLO_V3_SNAPSHOT_RESUME={}\nYOLO_V3_LEASE_LOCKS={}\n\
+         YOLO_V3_EVENT_LOG={}\nYOLO_V3_SCHEMA_VALIDATION={}\nYOLO_V3_SNAPSHOT_RESUME={}\n\
          YOLO_V3_EVENT_RECOVERY={}\nYOLO_V3_MONOREPO_ROUTING={}\nYOLO_V2_HARD_CONTRACTS={}\nYOLO_V2_HARD_GATES={}\n\
          YOLO_V2_TYPED_PROTOCOL={}\nYOLO_V2_ROLE_ISOLATION={}\nYOLO_V2_TWO_PHASE_COMPLETION={}\nYOLO_V2_TOKEN_BUDGETS={}\n",
          get_str("effort", "balanced"), get_str("autonomy", "standard"), get_str("planning_tracking", "manual"),
@@ -302,7 +302,7 @@ fn write_config_cache_and_validate(planning_dir: &Path) -> (bool, String) {
          get_bool("v3_plan_research_persist", false), get_bool("v3_metrics", false), get_bool("v3_contract_lite", false),
          get_bool("v3_lock_lite", false), get_bool("v3_validation_gates", false), get_bool("v3_smart_routing", false),
          get_bool("v3_event_log", false), get_bool("v3_schema_validation", false), get_bool("v3_snapshot_resume", false),
-         get_bool("v3_lease_locks", false), get_bool("v3_event_recovery", false), get_bool("v3_monorepo_routing", false),
+         get_bool("v3_event_recovery", false), get_bool("v3_monorepo_routing", false),
          get_bool("v2_hard_contracts", false), get_bool("v2_hard_gates", false), get_bool("v2_typed_protocol", false),
          get_bool("v2_role_isolation", false), get_bool("v2_two_phase_completion", false), get_bool("v2_token_budgets", false)
     );
