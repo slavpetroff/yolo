@@ -1,3 +1,4 @@
+use regex::Regex;
 use sha2::{Sha256, Digest};
 use std::path::{Path, PathBuf};
 
@@ -119,6 +120,78 @@ pub fn build_tier1(planning_dir: &Path) -> String {
     content
 }
 
+/// Filters completed phase detail sections from ROADMAP.md content.
+///
+/// Parses the progress table to identify phases with status "Complete",
+/// then removes their `## Phase N: ...` detail sections (from the header
+/// to the next `---` separator or `## Phase` header). Preserves the file
+/// header, goal, scope, progress table, phase list checkboxes, and
+/// non-complete phase sections.
+///
+/// Cache invalidation happens naturally: when this function produces
+/// different output (due to newly completed phases), the content hash
+/// in the tier cache will mismatch, triggering a cache rebuild.
+fn filter_completed_phases(text: &str) -> String {
+    // Pass 1: collect completed phase numbers from progress table rows
+    let table_re = Regex::new(r"^\|\s*(\d+)\s*\|\s*Complete\s*\|").unwrap();
+    let mut completed: Vec<u32> = Vec::new();
+    for line in text.lines() {
+        if let Some(caps) = table_re.captures(line) {
+            if let Ok(n) = caps[1].parse::<u32>() {
+                completed.push(n);
+            }
+        }
+    }
+
+    if completed.is_empty() {
+        return text.to_string();
+    }
+
+    // Pass 2: filter out ## Phase N sections for completed phases
+    let phase_header_re = Regex::new(r"^## Phase (\d+):").unwrap();
+    let mut result = String::with_capacity(text.len());
+    let mut skipping = false;
+
+    for line in text.lines() {
+        // Check if this line starts a phase detail section
+        if let Some(caps) = phase_header_re.captures(line) {
+            if let Ok(n) = caps[1].parse::<u32>() {
+                if completed.contains(&n) {
+                    skipping = true;
+                    continue;
+                } else {
+                    skipping = false;
+                }
+            }
+        }
+
+        // A `---` separator or a new `## Phase` header ends a skipped section
+        if skipping {
+            if line.trim() == "---" {
+                // The separator belongs to the completed section; skip it too
+                continue;
+            }
+            if phase_header_re.is_match(line) {
+                // New phase section starts — stop skipping (handled above on next iteration)
+                // but this line is a non-completed phase header, so keep it
+                skipping = false;
+            } else {
+                continue;
+            }
+        }
+
+        result.push_str(line);
+        result.push('\n');
+    }
+
+    // Remove trailing extra newline if original didn't end with one
+    if !text.ends_with('\n') && result.ends_with('\n') {
+        result.pop();
+    }
+
+    result
+}
+
 /// Builds tier 2 content without caching (the raw computation).
 fn build_tier2_uncached(planning_dir: &Path, family: &str) -> String {
     let codebase_dir = planning_dir.join("codebase");
@@ -130,7 +203,12 @@ fn build_tier2_uncached(planning_dir: &Path, family: &str) -> String {
         let text = std::fs::read_to_string(&file_path)
             .or_else(|_| std::fs::read_to_string(&fallback_path));
         if let Ok(text) = text {
-            content.push_str(&format!("\n# {}\n{}\n", basename, text));
+            let filtered = if basename == "ROADMAP.md" {
+                filter_completed_phases(&text)
+            } else {
+                text
+            };
+            content.push_str(&format!("\n# {}\n{}\n", basename, filtered));
         }
     }
     content
@@ -538,5 +616,211 @@ mod tests {
         // Cache files should be gone
         assert!(!cdir.join(format!("tier1-{}.cache", dh)).exists());
         assert!(!cdir.join(format!("tier2-execution-{}.cache", dh)).exists());
+    }
+
+    // --- filter_completed_phases tests ---
+
+    fn sample_roadmap() -> String {
+        r#"# Roadmap Title
+
+**Goal:** Build things
+
+**Scope:** 3 phases
+
+## Progress
+| Phase | Status | Plans | Tasks | Commits |
+|-------|--------|-------|-------|----------|
+| 1 | Complete | 3 | 10 | 8 |
+| 2 | Pending | 0 | 0 | 0 |
+| 3 | Pending | 0 | 0 | 0 |
+
+---
+
+## Phase List
+- [x] Phase 1
+- [ ] Phase 2
+- [ ] Phase 3
+
+---
+
+## Phase 1: Foundation
+
+**Goal:** Build foundation
+
+**Success Criteria:**
+- Everything works
+
+**Dependencies:** None
+
+---
+
+## Phase 2: Features
+
+**Goal:** Add features
+
+**Success Criteria:**
+- Features work
+
+**Dependencies:** Phase 1
+
+---
+
+## Phase 3: Polish
+
+**Goal:** Polish everything
+
+**Success Criteria:**
+- Polished
+
+**Dependencies:** Phase 2"#
+            .to_string()
+    }
+
+    #[test]
+    fn test_filter_completed_phases_basic() {
+        let input = sample_roadmap();
+        let result = filter_completed_phases(&input);
+
+        // Header, goal, scope preserved
+        assert!(result.contains("# Roadmap Title"));
+        assert!(result.contains("**Goal:** Build things"));
+        assert!(result.contains("**Scope:** 3 phases"));
+
+        // Progress table preserved (including the Complete row)
+        assert!(result.contains("| 1 | Complete | 3 | 10 | 8 |"));
+        assert!(result.contains("| 2 | Pending | 0 | 0 | 0 |"));
+
+        // Phase list preserved
+        assert!(result.contains("- [x] Phase 1"));
+        assert!(result.contains("- [ ] Phase 2"));
+
+        // Phase 1 detail section removed
+        assert!(!result.contains("## Phase 1: Foundation"));
+        assert!(!result.contains("Build foundation"));
+
+        // Phases 2 and 3 detail sections preserved
+        assert!(result.contains("## Phase 2: Features"));
+        assert!(result.contains("Add features"));
+        assert!(result.contains("## Phase 3: Polish"));
+        assert!(result.contains("Polish everything"));
+    }
+
+    #[test]
+    fn test_filter_completed_phases_all_complete() {
+        let input = r#"# Roadmap
+
+## Progress
+| Phase | Status | Plans | Tasks | Commits |
+|-------|--------|-------|-------|----------|
+| 1 | Complete | 3 | 10 | 8 |
+| 2 | Complete | 2 | 5 | 4 |
+
+---
+
+## Phase List
+- [x] Phase 1
+- [x] Phase 2
+
+---
+
+## Phase 1: First
+
+**Goal:** First phase
+
+---
+
+## Phase 2: Second
+
+**Goal:** Second phase"#;
+
+        let result = filter_completed_phases(input);
+
+        // Header and progress table preserved
+        assert!(result.contains("# Roadmap"));
+        assert!(result.contains("| 1 | Complete |"));
+        assert!(result.contains("| 2 | Complete |"));
+        assert!(result.contains("## Phase List"));
+
+        // All phase detail sections removed
+        assert!(!result.contains("## Phase 1: First"));
+        assert!(!result.contains("## Phase 2: Second"));
+        assert!(!result.contains("First phase"));
+        assert!(!result.contains("Second phase"));
+    }
+
+    #[test]
+    fn test_filter_completed_phases_none_complete() {
+        let input = r#"# Roadmap
+
+## Progress
+| Phase | Status | Plans | Tasks | Commits |
+|-------|--------|-------|-------|----------|
+| 1 | Pending | 0 | 0 | 0 |
+| 2 | Pending | 0 | 0 | 0 |
+
+---
+
+## Phase 1: First
+
+**Goal:** First phase
+
+---
+
+## Phase 2: Second
+
+**Goal:** Second phase"#;
+
+        let result = filter_completed_phases(input);
+
+        // No filtering — output equals input
+        // (Normalize trailing newline for comparison)
+        assert_eq!(result.trim(), input.trim());
+    }
+
+    #[test]
+    fn test_tier2_roadmap_filtered() {
+        let tmp = setup_planning_dir();
+        let planning = tmp.path().join(".yolo-planning");
+        let codebase = planning.join("codebase");
+
+        // Write a ROADMAP with Phase 1 Complete, Phase 2 Pending
+        let roadmap = r#"# Test Roadmap
+
+## Progress
+| Phase | Status | Plans | Tasks | Commits |
+|-------|--------|-------|-------|----------|
+| 1 | Complete | 2 | 5 | 4 |
+| 2 | Pending | 0 | 0 | 0 |
+
+---
+
+## Phase 1: Done Phase
+
+**Goal:** Already done
+
+---
+
+## Phase 2: Active Phase
+
+**Goal:** Currently active"#;
+
+        fs::write(codebase.join("ROADMAP.md"), roadmap).unwrap();
+
+        // Invalidate cache to force rebuild
+        invalidate_tier_cache().unwrap();
+
+        let t2 = build_tier2(&planning, "execution");
+
+        // Progress table preserved
+        assert!(t2.contains("| 1 | Complete |"));
+        assert!(t2.contains("| 2 | Pending |"));
+
+        // Completed phase section filtered out
+        assert!(!t2.contains("## Phase 1: Done Phase"));
+        assert!(!t2.contains("Already done"));
+
+        // Active phase section preserved
+        assert!(t2.contains("## Phase 2: Active Phase"));
+        assert!(t2.contains("Currently active"));
     }
 }
