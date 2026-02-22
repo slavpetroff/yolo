@@ -26,401 +26,84 @@ Config:
 
 ## Input Parsing
 
-Three input paths, evaluated in order:
+Three paths, evaluated in order. **Flags skip confirmation gate** (explicit intent).
 
-### Path 1: Flag detection
+### Path 1: Flags
 
-Check $ARGUMENTS for flags. If any mode flag is present, go directly to that mode:
-- `--plan [N]` -> Plan mode
-- `--execute [N]` -> Execute mode
-- `--discuss [N]` -> Discuss mode
-- `--assumptions [N]` -> Assumptions mode
-- `--scope` -> Scope mode
-- `--add "desc"` -> Add Phase mode
-- `--insert N "desc"` -> Insert Phase mode
-- `--remove N` -> Remove Phase mode
-- `--verify [N]` -> Verify mode
-- `--archive` -> Archive mode
+| Flag | Mode | Flag | Mode |
+|------|------|------|------|
+| `--plan [N]` | Plan | `--scope` | Scope |
+| `--execute [N]` | Execute | `--add "desc"` | Add Phase |
+| `--discuss [N]` | Discuss | `--insert N "desc"` | Insert Phase |
+| `--assumptions [N]` | Assumptions | `--remove N` | Remove Phase |
+| `--verify [N]` | Verify | `--archive` | Archive |
 
-Behavior modifiers (combinable with mode flags):
-- `--effort <level>`: thorough|balanced|fast|turbo (overrides config)
-- `--skip-audit`: skip pre-archive audit
-- `--yolo`: skip all confirmation gates, auto-loop remaining phases
-- `--plan=NN`: execute single plan (bypasses wave grouping)
-- Bare integer `N`: targets phase N (works with any mode flag)
+Modifiers: `--effort <level>`, `--skip-audit`, `--yolo` (skip gates + auto-loop), `--plan=NN` (single plan), bare `N` (target phase).
 
-If flags present: skip confirmation gate (flags express explicit intent).
+### Path 2: Natural language
 
-### Path 2: Natural language intent
-
-If $ARGUMENTS present but no flags detected, interpret user intent:
-- Discussion keywords (talk, discuss, explore, think about, what about) -> Discuss mode
-- Assumption keywords (assume, assuming, what if, what are you assuming) -> Assumptions mode
-- Planning keywords (plan, scope, break down, decompose, structure) -> Plan mode
-- Execution keywords (build, execute, run, do it, go, make it, ship it) -> Execute mode
-- Verification keywords (verify, test, uat, check my work, acceptance test, walk through) -> Verify mode
-- Phase mutation keywords (add, insert, remove, skip, drop, new phase) -> relevant Phase Mutation mode
-- Completion keywords (done, ship, archive, wrap up, finish, complete) -> Archive mode
-- Ambiguous -> AskUserQuestion with 2-3 contextual options
-
-ALWAYS confirm interpreted intent via AskUserQuestion before executing.
+No flags? Interpret intent from keywords: discuss/talk -> Discuss, assume/what-if -> Assumptions, plan/scope -> Plan, build/execute/ship -> Execute, verify/test/uat -> Verify, add/insert/remove -> Phase Mutation, done/archive -> Archive. Ambiguous -> AskUserQuestion. ALWAYS confirm via AskUserQuestion.
 
 ### Path 3: State detection (no args)
 
-If no $ARGUMENTS, evaluate phase-detect output. First match determines mode:
+| Condition | Mode |
+|---|---|
+| `planning_dir_exists=false` | Init redirect (no confirm) |
+| `project_exists=false` | Bootstrap |
+| `phase_count=0` | Scope |
+| `next_phase_state=needs_plan_and_execute` | Plan + Execute |
+| `next_phase_state=needs_execute` | Execute |
+| `next_phase_state=all_done` | Archive |
 
-| Priority | Condition | Mode | Confirmation |
-|---|---|---|---|
-| 1 | `planning_dir_exists=false` | Init redirect | (redirect, no confirmation) |
-| 2 | `project_exists=false` | Bootstrap | "No project defined. Set one up?" |
-| 3 | `phase_count=0` | Scope | "Project defined but no phases. Scope the work?" |
-| 4 | `next_phase_state=needs_plan_and_execute` | Plan + Execute | "Phase {N} needs planning and execution. Start?" |
-| 5 | `next_phase_state=needs_execute` | Execute | "Phase {N} is planned. Execute it?" |
-| 6 | `next_phase_state=all_done` | Archive | "All phases complete. Run audit and archive?" |
-
-**all_done + natural language:** If $ARGUMENTS describe new work (bug, feature, task) and state is `all_done`, route to Add Phase mode instead of Archive. Add Phase handles codebase context loading and research internally — do NOT spawn an Explore agent or do ad-hoc research before entering the mode.
+**all_done + NL describing new work:** route to Add Phase (not Archive).
 
 ### Confirmation Gate
 
-Every mode triggers confirmation via AskUserQuestion before executing, with contextual options (recommended action + alternatives).
-- **Exception:** `--yolo` skips all confirmation gates. Error guards (missing roadmap, uninitialized project) still halt.
-- **Exception:** Flags skip confirmation (explicit intent).
+AskUserQuestion before executing (recommended action + alternatives). Exceptions: `--yolo` skips gates, flags skip confirmation.
 
-## Modes
+## Mode Dispatch
 
-### Mode: Init Redirect
-
+### Init Redirect
 If `planning_dir_exists=false`: display "Run /yolo:init first to set up your project." STOP.
 
-### Mode: Bootstrap
+### Bootstrap
+Read `${CLAUDE_PLUGIN_ROOT}/skills/vibe-modes/bootstrap.md` and follow its instructions.
 
-**Guard:** `.yolo-planning/` exists but no PROJECT.md.
+### Scope
+Read `${CLAUDE_PLUGIN_ROOT}/skills/vibe-modes/scope.md` and follow its instructions.
 
-**Critical Rules (non-negotiable):**
-- NEVER fabricate content. Only use what the user explicitly states.
-- If answer doesn't match question: STOP, handle their request, let them re-run.
-- No silent assumptions -- ask follow-ups for gaps.
-- Phases come from the user, not you.
-
-**Constraints:** Do NOT explore/scan codebase (that's /yolo:map). Use existing `.yolo-planning/codebase/` if `.yolo-planning/codebase/META.md` exists.
-
-**Brownfield detection:** `git ls-files` or Glob check for existing code.
-
-**Steps:**
-- **B1: PROJECT.md** -- If $ARGUMENTS provided (excluding flags), use as description. Otherwise ask name + core purpose. Then call:
-  ```
-  "$HOME/.cargo/bin/yolo" bootstrap project .yolo-planning/PROJECT.md "$NAME" "$DESCRIPTION"
-  ```
-- **B1.5: Discovery Depth** -- Read `discovery_questions` and `active_profile` from config. Map profile to depth:
-
-  | Profile | Depth | Questions |
-  |---------|-------|-----------|
-  | yolo | skip | 0 |
-  | prototype | quick | 1-2 |
-  | default | standard | 3-5 |
-  | production | thorough | 5-8 |
-
-  If `discovery_questions=false`: force depth=skip. Store DISCOVERY_DEPTH for B2.
-
-- **B2: REQUIREMENTS.md (Discovery)** -- Behavior depends on DISCOVERY_DEPTH:
-  - **B2.1: Domain Research (if not skip):** If DISCOVERY_DEPTH != skip:
-    1. Extract domain from user's project description (the $NAME or $DESCRIPTION from B1)
-    2. Research the {domain} domain using `WebFetch` or your internal knowledge. Focus on: Table Stakes, Common Pitfalls, Architecture Patterns, Competitor Landscape. Be concise (2-3 bullets per section).
-    3. On success: Write your findings to `.yolo-planning/domain-research.md`. Extract brief summary (3-5 lines max). Display to user: "◆ Domain Research: {brief summary}\n\n✓ Research complete. Now let's explore your specific needs..."
-    4. On failure: Log warning "⚠ Domain research failed, proceeding with general questions". Set RESEARCH_AVAILABLE=false, continue.
-  - **B2.2: Discussion Engine** -- Read `${CLAUDE_PLUGIN_ROOT}/skills/discussion-engine/SKILL.md` and follow its protocol.
-    - Context for the engine: "This is a new project. No phases yet." Use project description + domain research (if available) as input.
-    - The engine handles calibration, gray area generation, exploration, and capture.
-    - Output: `discovery.json` with answered/inferred/deferred arrays.
-  - **If skip (yolo profile or discovery_questions=false):** Ask 2 minimal static questions via AskUserQuestion:
-    1. "What are the must-have features for this project?" Options: ["Core functionality only", "A few essential features", "Comprehensive feature set", "Let me explain..."]
-    2. "Who will use this?" Options: ["Just me", "Small team (2-10 people)", "Many users (100+)", "Let me explain..."]
-    Record answers to `.yolo-planning/discovery.json` with `{"answered":[],"inferred":[],"deferred":[]}`.
-  - **After discovery (all depths):** Call:
-    ```
-    "$HOME/.cargo/bin/yolo" bootstrap requirements .yolo-planning/REQUIREMENTS.md .yolo-planning/discovery.json .yolo-planning/domain-research.md
-    ```
-
-- **B3: ROADMAP.md** -- Suggest 3-5 phases from requirements. If `.yolo-planning/codebase/META.md` exists, read PATTERNS.md, ARCHITECTURE.md, and CONCERNS.md (whichever exist) from `.yolo-planning/codebase/`. Each phase: name, goal, mapped reqs, success criteria. Write phases JSON to temp file, then call:
-  ```
-  "$HOME/.cargo/bin/yolo" bootstrap roadmap .yolo-planning/ROADMAP.md "$PROJECT_NAME" /tmp/yolo-phases.json
-  ```
-  Script handles ROADMAP.md generation and phase directory creation.
-- **B4: STATE.md** -- Extract project name, milestone name, and phase count from earlier steps. Call:
-  ```
-  "$HOME/.cargo/bin/yolo" bootstrap state .yolo-planning/STATE.md "$PROJECT_NAME" "$MILESTONE_NAME" "$PHASE_COUNT"
-  ```
-  Script handles today's date, Phase 1 status, empty decisions, and 0% progress.
-- **B5: Brownfield summary** -- If BROWNFIELD=true AND no codebase/: count files by ext, check tests/CI/Docker/monorepo, add Codebase Profile to STATE.md.
-- **B6: CLAUDE.md** -- Extract project name and core value from PROJECT.md. If root CLAUDE.md exists, pass it as EXISTING_PATH for section preservation. Call:
-  ```
-  "$HOME/.cargo/bin/yolo" bootstrap CLAUDE.md "$PROJECT_NAME" "$CORE_VALUE" [CLAUDE.md]
-  ```
-  Script handles: new file generation (heading + core value + YOLO sections), existing file preservation (replaces only YOLO-managed sections: Active Context, YOLO Rules, Installed Skills, Project Conventions, Commands, Plugin Isolation; preserves all other content). Omit the fourth argument if no existing CLAUDE.md. Max 200 lines.
-- **B7: Planning commit boundary (conditional)** -- Run:
-   ```bash
-   "$HOME/.cargo/bin/yolo" planning-git commit-boundary "bootstrap project files" .yolo-planning/config.json
-   ```
-   Behavior: `planning_tracking=commit` commits `.yolo-planning/` + `CLAUDE.md` if changed. Other modes no-op.
-- **B8: Transition** -- Display "Bootstrap complete. Transitioning to scoping..." Re-evaluate state, route to next match.
-
-### Mode: Scope
-
-**Guard:** PROJECT.md exists but `phase_count=0`.
-
-**Steps:**
-1. Load context: PROJECT.md, REQUIREMENTS.md. If `.yolo-planning/codebase/META.md` exists, read ARCHITECTURE.md and CONCERNS.md (whichever exist) from `.yolo-planning/codebase/`.
-2. If $ARGUMENTS (excl. flags) provided, use as scope. Else ask: "What do you want to build?" Show uncovered requirements as suggestions.
-3. Decompose into 3-5 phases (name, goal, success criteria). Each independently plannable. Map REQ-IDs.
-4. Write ROADMAP.md. Create `.yolo-planning/phases/{NN}-{slug}/` dirs.
-5. Update STATE.md: Phase 1, status "Pending planning". Do NOT write next-action suggestions (e.g. "Run /yolo:vibe --plan 1") into the Todos section — those are ephemeral display output from suggest-next, not persistent state.
-6. Display "Scoping complete. {N} phases created." STOP -- do not auto-continue to planning.
-
-### Mode: Discuss
-
-**Guard:** Initialized, phase exists in roadmap.
-**Phase auto-detection:** First phase without `*-CONTEXT.md`. All discussed: STOP "All phases discussed. Specify: `/yolo:vibe --discuss N`"
-
-**Subagent isolation:** When discussion requires codebase exploration (understanding existing patterns, verifying assumptions against code), use the Task tool with an Explore subagent. Keep the discussion context focused on the user's intent — delegate deep code dives to subagents and use only their summaries.
-
-**Steps:**
+### Discuss
+Guard: Initialized, phase exists. Auto-detect: first phase without `*-CONTEXT.md`.
 1. Determine target phase from $ARGUMENTS or auto-detection.
-2. Read `${CLAUDE_PLUGIN_ROOT}/skills/discussion-engine/SKILL.md` and follow its protocol for the target phase.
+2. Read `${CLAUDE_PLUGIN_ROOT}/skills/discussion-engine/SKILL.md` and follow its protocol.
 3. Run `"$HOME/.cargo/bin/yolo" suggest-next vibe`.
 
-### Mode: Assumptions
+### Assumptions
+Read `${CLAUDE_PLUGIN_ROOT}/skills/vibe-modes/assumptions.md` and follow its instructions.
 
-**Guard:** Initialized, phase exists in roadmap.
-**Phase auto-detection:** Same as Discuss mode.
+### Plan
+Read `${CLAUDE_PLUGIN_ROOT}/skills/vibe-modes/plan.md` and follow its instructions.
 
-**Steps:**
-1. Load context: ROADMAP.md, REQUIREMENTS.md, PROJECT.md, STATE.md, CONTEXT.md (if exists), codebase signals.
-2. Generate 5-10 assumptions by impact: scope (included/excluded), technical (implied approaches), ordering (sequencing), dependency (prior phases), user preference (defaults without stated preference).
-3. Gather feedback per assumption: "Confirm, correct, or expand?" Confirm=proceed, Correct=user provides answer, Expand=user adds nuance.
-4. Present grouped by status (confirmed/corrected/expanded). This mode does NOT write files. For persistence: "Run `/yolo:vibe --discuss {N}` to capture as CONTEXT.md." Run `"$HOME/.cargo/bin/yolo" suggest-next vibe`.
+### Execute
+Before delegating: parse phase number, --effort, --plan=NN. Run guards (not initialized -> STOP, no PLAN.md -> STOP, all done -> WARN). If `config_context_compiler=true`, compile dev/qa context.
+Then Read `${CLAUDE_PLUGIN_ROOT}/skills/execute-protocol/SKILL.md` and follow its instructions.
 
-### Mode: Plan
+### Verify
+Guard: Initialized, phase has `*-SUMMARY.md`. Auto-detect: first phase with SUMMARY but no UAT.
+Read `${CLAUDE_PLUGIN_ROOT}/commands/verify.md` and follow its instructions.
 
-**Guard:** Initialized, roadmap exists, phase exists.
-**Phase auto-detection:** First phase without PLAN.md. All planned: STOP "All phases planned. Specify phase: `/yolo:vibe --plan N`"
+### Add/Insert/Remove Phase
+Read `${CLAUDE_PLUGIN_ROOT}/skills/vibe-modes/phase-mutation.md` and follow its instructions for the specific mutation type.
 
-**Steps:**
-1. **Parse args:** Phase number (optional, auto-detected), --effort (optional, falls back to config).
-2. **Phase context:** If `{phase-dir}/{phase}-CONTEXT.md` exists, include it in Lead agent context. If not, proceed without — users who want context run `/yolo:discuss N` first.
-3. **Research persistence (REQ-08):** If `v3_plan_research_persist=true` in config AND effort != turbo:
-   - Check for `{phase-dir}/{phase}-RESEARCH.md`.
-   - **If missing:** Research the phase goal, requirements, and relevant codebase patterns directly using your codebase search tools. Write your structured findings to `{phase-dir}/{phase}-RESEARCH.md`. Your findings should include sections: `## Findings`, `## Relevant Patterns`, `## Risks`, `## Recommendations`.
-   - **If exists:** Include it in Lead's context for incremental refresh. Lead may update RESEARCH.md if new information emerges.
-   - **On failure:** Log warning, continue planning without research. Do not block.
-   - If `v3_plan_research_persist=false` or effort=turbo: skip entirely.
-   - **Subagent isolation:** When research exceeds 3 queries or explores unfamiliar code areas, use the Task tool with an Explore subagent to protect the planning context window. Consume only the subagent's structured findings — do not load full file contents into the orchestrator's context.
-4. **Context compilation:** If `config_context_compiler=true`, run `yolo compile-context {phase} lead {phases_dir}`. Read the output file `.context-lead.md` content into variable LEAD_CONTEXT for injection into the Lead agent's Task description. The compiled context format uses 3 tiers: `--- TIER 1: SHARED BASE ---` (project-wide, byte-identical across all roles), `--- TIER 2: ROLE FAMILY ({family}) ---` (byte-identical within planning or execution families), and `--- TIER 3: VOLATILE TAIL (phase={N}) ---` for phase-specific content. The compile-context CLI produces a single `.context-{role}.md` file with all 3 tiers concatenated in order.
-5. **Turbo shortcut:** If effort=turbo, skip Lead. Read phase reqs from ROADMAP.md, create single lightweight PLAN.md inline.
-6. **Other efforts:**
-   - Resolve Lead model:
-     ```bash
-     LEAD_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model lead .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-       LEAD_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns lead .yolo-planning/config.json "{effort}")
-     if [ $? -ne 0 ]; then
-       echo "$LEAD_MODEL" >&2
-       exit 1
-     fi
-     ```
-   - **Team creation:** Read prefer_teams config:
-     ```bash
-     PREFER_TEAMS=$(jq -r '.prefer_teams // "always"' .yolo-planning/config.json 2>/dev/null)
-     ```
-     Decision tree:
-     - `prefer_teams='always'`: Create team even for Lead-only
-     - `prefer_teams='when_parallel'`: No team created for Planning alone
-     - `prefer_teams='auto'`: Same as when_parallel (Lead-only is low-risk)
-
-     When team should be created (based on prefer_teams):
-     - Create team via TeamCreate: `team_name="yolo-plan-{NN}"`, `description="Planning Phase {N}: {phase-name}"`
-     - Spawn Lead with `team_name: "yolo-plan-{NN}"`, `name: "lead"` parameters on the Task tool invocation.
-     - **HARD GATE — Shutdown before proceeding (NON-NEGOTIABLE):** After all team agents complete their work, you MUST shut down the team BEFORE validating output, presenting results, auto-chaining to Execute, or asking the user anything. This gate CANNOT be skipped, deferred, or optimized away — even after compaction. Lingering agents burn API credits silently.
-       1. Send `shutdown_request` to EVERY active teammate via SendMessage (Lead — excluding yourself, the orchestrator)
-       2. Wait for each `shutdown_response` (approved=true). If rejected, re-request (max 3 attempts per teammate — then proceed).
-       3. Call TeamDelete for team "yolo-plan-{NN}"
-       4. Verify: after TeamDelete, there must be ZERO active teammates. If tmux panes still show agent labels, something went wrong — do NOT proceed.
-       5. Only THEN proceed to step 7
-       **WHY THIS EXISTS:** Without this gate, each Plan invocation spawns a new Lead that lingers in tmux. After 2-3 phases, multiple @lea panes accumulate, each burning API credits doing nothing. This is the #1 user-reported cost issue.
-
-     When team should NOT be created (Lead-only with when_parallel/auto):
-     - Spawn yolo-lead as subagent via Task tool without team (single agent, no team overhead).
-   - Spawn yolo-lead as subagent via Task tool. The Task description MUST start with `{LEAD_CONTEXT}` content as the first block (prefix-first injection for cache-optimal context), followed by the planning instructions (phase goal, parallel dev guidance). If no compiled context, fall back to full file list.
-   - **CRITICAL:** Add `model: "${LEAD_MODEL}"` and `maxTurns: ${LEAD_MAX_TURNS}` parameters to the Task tool invocation.
-   - **CRITICAL:** Include in the Lead prompt: "Plans will be executed by a team of parallel Dev agents — one agent per plan. Maximize wave 1 plans (no deps) so agents start simultaneously. Ensure same-wave plans modify disjoint file sets to avoid merge conflicts."
-   - Display `◆ Spawning Lead agent...` -> `✓ Lead agent complete`.
-7. **Validate output:** Verify PLAN.md has valid frontmatter (phase, plan, title, wave, depends_on, must_haves) and tasks. Check wave deps acyclic.
-8. **Present:** Update STATE.md (phase position, plan count, status=Planned). Resolve model profile:
-   ```bash
-   MODEL_PROFILE=$(jq -r '.model_profile // "quality"' .yolo-planning/config.json)
-   ```
-   Display Phase Banner with plan list, effort level, and model profile:
-   ```
-   Phase {N}: {name}
-   Plans: {N}
-     {plan}: {title} (wave {W}, {N} tasks)
-   Effort: {effort}
-   Model Profile: {profile}
-   ```
-9. **Planning commit boundary (conditional):**
-   ```bash
-   "$HOME/.cargo/bin/yolo" planning-git commit-boundary "plan phase {N}" .yolo-planning/config.json
-   ```
-   Behavior: `planning_tracking=commit` commits planning artifacts if changed. `auto_push=always` pushes when upstream exists.
-10. **Pre-chain verification:** Before auto-chaining or presenting results, confirm the planning team was fully shut down (step 6 HARD GATE completed). If you skipped the gate or are unsure after compaction, send `shutdown_request` to any teammates that may still be active and call TeamDelete before continuing. NEVER enter Execute mode with a prior planning team still alive.
-11. **Cautious gate (autonomy=cautious only):** STOP after planning. Ask "Plans ready. Execute Phase {N}?" Other levels: auto-chain.
-
-### Mode: Execute
-
-Read `${CLAUDE_PLUGIN_ROOT}/skills/execute-protocol/SKILL.md` and follow its instructions.
-
-This mode delegates entirely to the protocol file. Before reading:
-1. **Parse arguments:** Phase number (auto-detect if omitted), --effort, --plan=NN.
-2. **Run execute guards:**
-   - Not initialized: STOP "Run /yolo:init first."
-   - No PLAN.md in phase dir: STOP "Phase {N} has no plans. Run `/yolo:vibe --plan {N}` first."
-   - All plans have SUMMARY.md: cautious/standard -> WARN + confirm; confident/pure-vibe -> warn + auto-continue.
-3. **Compile context:** If `config_context_compiler=true`, run:
-   - `yolo compile-context {phase} dev {phases_dir} {plan_path}`
-   - `yolo compile-context {phase} qa {phases_dir}`
-   Include compiled context paths in Dev and QA task descriptions.
-
-Then Read the protocol file and execute Steps 2-5 as written.
-
-### Mode: Verify
-
-**Guard:** Initialized, phase has `*-SUMMARY.md` files.
-No SUMMARY.md: STOP "Phase {N} has no completed plans. Run /yolo:vibe first."
-**Phase auto-detection:** First phase with `*-SUMMARY.md` but no `*-UAT.md`. All verified: STOP "All phases have UAT results. Specify: `/yolo:verify N`"
-
-**Steps:**
-1. Read `${CLAUDE_PLUGIN_ROOT}/commands/verify.md` protocol.
-2. Execute the verify protocol for the target phase.
-3. Display results per verify.md output format.
-
-### Mode: Add Phase
-
-**Guard:** Initialized. Requires phase name in $ARGUMENTS.
-Missing name: STOP "Usage: `/yolo:vibe --add <phase-name>`"
-
-**Steps:**
-1. Resolve context: ACTIVE -> milestone-scoped paths, otherwise defaults.
-2. **Codebase context:** If `.yolo-planning/codebase/META.md` exists, read ARCHITECTURE.md and CONCERNS.md (whichever exist) from `.yolo-planning/codebase/`. Use this to inform phase goal scoping and identify relevant modules/services.
-3. Parse args: phase name (first non-flag arg), --goal (optional), slug (lowercase hyphenated).
-4. Next number: highest in ROADMAP.md + 1, zero-padded.
-5. Create dir: `mkdir -p {PHASES_DIR}/{NN}-{slug}/`
-6. **Problem research (conditional):** If $ARGUMENTS contain a problem description (bug report, feature request, multi-sentence intent) rather than just a bare phase name:
-   - Research the problem directly in the codebase using your tools.
-   - Use your findings to write an informed phase goal and success criteria in ROADMAP.md. Write these structured findings to `{phase-dir}/{NN}-RESEARCH.md`.
-   - On failure: log warning, write phase goal from $ARGUMENTS alone. Do not block.
-   - **This eliminates duplicate research** — Plan mode step 3 checks for existing RESEARCH.md and skips research if found.
-   - **Subagent isolation:** For broad codebase exploration (3+ queries), use the Task tool with an Explore subagent to keep the orchestrator's context focused on phase scoping.
-7. Update ROADMAP.md: append phase list entry, append Phase Details section (using research findings if available), add progress row.
-8. Present: Phase Banner with milestone, position, goal. Checklist for roadmap update + dir creation. Next Up: `/yolo:vibe --discuss` or `/yolo:vibe --plan`.
-
-### Mode: Insert Phase
-
-**Guard:** Initialized. Requires position + name.
-Missing args: STOP "Usage: `/yolo:vibe --insert <position> <phase-name>`"
-Invalid position (out of range 1 to max+1): STOP with valid range.
-Inserting before completed phase: WARN + confirm.
-
-**Steps:**
-1. Resolve context: ACTIVE -> milestone-scoped paths, otherwise defaults.
-2. **Codebase context:** If `.yolo-planning/codebase/META.md` exists, read ARCHITECTURE.md and CONCERNS.md (whichever exist) from `.yolo-planning/codebase/`. Use this to inform phase goal scoping and identify relevant modules/services.
-3. Parse args: position (int), phase name, --goal (optional), slug (lowercase hyphenated).
-4. Identify renumbering: all phases >= position shift up by 1.
-5. Renumber dirs in REVERSE order: rename dir {NN}-{slug} -> {NN+1}-{slug}, rename internal PLAN/SUMMARY files, update `phase:` frontmatter, update `depends_on` references.
-6. Create dir: `mkdir -p {PHASES_DIR}/{NN}-{slug}/`
-7. **Problem research (conditional):** Same as Add Phase step 6 — if $ARGUMENTS contain a problem description, research the codebase directly. The **orchestrator** writes `{phase-dir}/{NN}-RESEARCH.md`. This prevents Plan mode from duplicating the research.
-8. Update ROADMAP.md: insert new phase entry + details at position (using research findings if available), renumber subsequent entries/headers/cross-refs, update progress table.
-9. Present: Phase Banner with renumber count, phase changes, file checklist, Next Up.
-
-### Mode: Remove Phase
-
-**Guard:** Initialized. Requires phase number.
-Missing number: STOP "Usage: `/yolo:vibe --remove <phase-number>`"
-Not found: STOP "Phase {N} not found."
-Has work (PLAN.md or SUMMARY.md): STOP "Phase {N} has artifacts. Remove plans first."
-Completed ([x] in roadmap): STOP "Cannot remove completed Phase {N}."
-
-**Steps:**
-1. Resolve context: ACTIVE -> milestone-scoped paths, otherwise defaults.
-2. Parse args: extract phase number, validate, look up name/slug.
-3. Confirm: display phase details, ask confirmation. Not confirmed -> STOP.
-4. Remove dir: `rm -rf {PHASES_DIR}/{NN}-{slug}/`
-5. Renumber FORWARD: for each phase > removed: rename dir {NN} -> {NN-1}, rename internal files, update frontmatter, update depends_on.
-6. Update ROADMAP.md: remove phase entry + details, renumber subsequent, update deps, update progress table.
-7. Present: Phase Banner with renumber count, phase changes, file checklist, Next Up.
-
-### Mode: Archive
-
-**Guard:** Initialized, roadmap exists.
-No roadmap: STOP "No milestones configured. Run `/yolo:vibe` to bootstrap."
-No work (no SUMMARY.md files): STOP "Nothing to ship."
-
-**Pre-gate audit (unless --skip-audit or --force):**
-Run 6-point audit matrix:
-1. Roadmap completeness: every phase has real goal (not TBD/empty)
-2. Phase planning: every phase has >= 1 PLAN.md
-3. Plan execution: every PLAN.md has SUMMARY.md
-4. Execution status: every SUMMARY.md has `status: complete`
-5. Verification: VERIFICATION.md files exist + PASS. Missing=WARN, failed=FAIL
-6. Requirements coverage: req IDs in roadmap exist in REQUIREMENTS.md
-FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
-
-**Steps:**
-1. Resolve context: ACTIVE -> milestone-scoped paths. No ACTIVE -> SLUG="default", root paths.
-2. Parse args: --tag=vN.N.N (custom tag), --no-tag (skip), --force (skip audit).
-3. Compute summary: from ROADMAP (phases), SUMMARY.md files (tasks/commits/deviations), REQUIREMENTS.md (satisfied count).
-4. **Rolling summary (conditional):** If `v3_rolling_summary=true` in config:
-   ```bash
-   yolo rolling-summary \
-     .yolo-planning/phases .yolo-planning/ROLLING-CONTEXT.md 2>/dev/null || true
-   ```
-   Compiles final rolling context before artifacts move to milestones/. Fail-open.
-   When `v3_rolling_summary=false`: skip.
-5. Archive: `mkdir -p .yolo-planning/milestones/`. Move roadmap, state, phases to milestones/{SLUG}/. Write SHIPPED.md. Delete stale RESUME.md.
-5b. **Persist project-level state:** After archiving, run:
-   ```bash
-   yolo persist-state \
-     .yolo-planning/milestones/{SLUG}/STATE.md .yolo-planning/STATE.md "{PROJECT_NAME}"
-   ```
-   This extracts project-level sections (Todos, Decisions, Skills, Blockers, Codebase Profile) from the archived STATE.md and writes a fresh root STATE.md. Milestone-specific sections (Current Phase, Activity Log, Phase Status) stay in the archive only. Fail-open: if the script fails, warn but continue.
-6. Planning commit boundary (conditional):
-   ```bash
-   "$HOME/.cargo/bin/yolo" planning-git commit-boundary "archive milestone {SLUG}" .yolo-planning/config.json
-   ```
-   Run this BEFORE branch merge/tag so shipped planning state is committed.
-7. Git branch merge: if `milestone/{SLUG}` branch exists, merge --no-ff. Conflict -> abort, warn. No branch -> skip.
-8. Git tag: unless --no-tag, `git tag -a {tag} -m "Shipped milestone: {name}"`. Default: `milestone/{SLUG}`.
-9. Update ACTIVE: remaining milestones -> set ACTIVE to first. None -> remove ACTIVE.
-10. Regenerate CLAUDE.md: update Active Context, remove shipped refs. Preserve non-YOLO content — only replace YOLO-managed sections, keep user's own sections intact.
-11. Present: Phase Banner with metrics (phases, tasks, commits, requirements, deviations), archive path, tag, branch status, memory status. Run `"$HOME/.cargo/bin/yolo" suggest-next vibe`.
+### Archive
+Read `${CLAUDE_PLUGIN_ROOT}/skills/vibe-modes/archive.md` and follow its instructions.
 
 ### Pure-Vibe Phase Loop
-
-After Execute mode completes (autonomy=pure-vibe only): if more unbuilt phases exist, auto-continue to next phase (Plan + Execute). Loop until `next_phase_state=all_done` or error. Other autonomy levels: STOP after phase.
-
-**CRITICAL — Between iterations:** Before starting the next phase's Plan mode, verify ALL agents from the previous phase (Dev, Lead) have been shut down via the Execute mode Step 5 HARD GATE and the Plan mode HARD GATE. Do NOT spawn a new Lead while a prior Lead is still active. If unsure (e.g., after compaction), send `shutdown_request` to any teammates that may still exist from prior teams and call TeamDelete before creating a new team.
+After Execute (autonomy=pure-vibe only): auto-continue to next phase (Plan + Execute) until `all_done` or error. Other levels: STOP.
+**CRITICAL:** Between iterations, shut down ALL agents from previous phase before spawning new ones.
 
 ## Output Format
 
 Follow @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md for all output.
-
-Per-mode output:
-- **Bootstrap:** project-defined banner + transition to scoping
-- **Scope:** phases-created summary + STOP
-- **Discuss:** ✓ for captured answers, Next Up Block
-- **Assumptions:** numbered list, ✓ confirmed, ✗ corrected, ○ expanded, Next Up
-- **Plan:** Phase Banner (double-line box), plan list with waves/tasks, Effort, Next Up
-- **Execute:** Phase Banner, plan results (✓/✗), Metrics (plans, effort, deviations), QA result, "What happened" (NRW-02), Next Up
-- **Add/Insert/Remove Phase:** Phase Banner, ✓ checklist, Next Up
-- **Archive:** Phase Banner, Metrics (phases, tasks, commits, reqs, deviations), archive path, tag, branch, memory status, Next Up
-
-Rules: Phase Banner (double-line box), ◆ running, ✓ complete, ✗ failed, ○ skipped, Metrics Block, Next Up Block, no ANSI color codes.
-
+Symbols: ◆ running, ✓ complete, ✗ failed, ○ skipped. Phase Banner (double-line box), Metrics Block, Next Up Block, no ANSI codes.
 Run `"$HOME/.cargo/bin/yolo" suggest-next vibe {result}` for Next Up suggestions.
