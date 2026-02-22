@@ -3,7 +3,7 @@ name: yolo:research
 category: advanced
 description: Run standalone research by spawning Scout agent(s) for web searches and documentation lookups.
 argument-hint: <research-topic> [--parallel]
-allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch
+allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, Task
 ---
 
 # YOLO Research: $ARGUMENTS
@@ -27,11 +27,14 @@ Current project:
 1. **Parse:** Topic (required). --parallel: spawn multiple Scouts on sub-topics.
 2. **Scope:** Determine the key facets of the question.
 3. **Research:**
-   - Investigate the topic using your `WebFetch` tool for external knowledge, or codebase search tools for internal knowledge.
-   - Do NOT spawn any subagents. Conduct the research directly in this context.
-   - Focus on structured findings with clear headings.
+   - Resolve researcher model: `"$HOME/.cargo/bin/yolo" resolve-model researcher .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json`
+   - Spawn yolo-researcher as subagent via Task tool with `subagent_type: "general-purpose"`, `name: "researcher"`:
+     - Task prompt: "Research topic: {topic}\n\nScope: {facets}\n\nWrite findings to {phase-dir}/RESEARCH.md"
+     - Pass `model: "{resolved_model}"` parameter
+   - If --parallel flag: split topic into sub-topics, spawn one researcher per sub-topic
+   - Collect findings from researcher agent(s)
 4. **Synthesize:** Present your findings directly.
-5. **Persist:** Ask "Save findings? (y/n)". If yes: write to .yolo-planning/phases/{phase-dir}/RESEARCH.md or .yolo-planning/RESEARCH.md.
+5. **Persist:** Researcher agent writes directly to RESEARCH.md. Confirm the file exists at .yolo-planning/phases/{phase-dir}/RESEARCH.md.
 ```
 ➜ Next Up
   /yolo:vibe --plan {N} -- Plan using research findings
