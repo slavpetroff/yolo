@@ -47,13 +47,16 @@ Log a confirmation: `◆ Correlation ID: {CORRELATION_ID}`
 <!-- v3: snapshot-resume — see V3-EXTENSIONS.md when v3_* flags enabled -->
 <!-- v3: schema-validation — see V3-EXTENSIONS.md when v3_* flags enabled -->
 
-1. **Cross-phase deps (PWR-04):** For each plan with `cross_phase_deps`:
+1. **Cross-phase deps (PWR-04):** Run plan validation for each plan:
 
-- Verify referenced plan's SUMMARY.md exists with `status: complete`
-- If artifact path specified, verify file exists
-- Unsatisfied → STOP: "Cross-phase dependency not met. Plan {id} depends on Phase {P}, Plan {plan} ({reason}). Status: {failed|missing|not built}. Fix: Run /yolo:vibe {P}"
-- All satisfied: `✓ Cross-phase dependencies verified`
-- No cross_phase_deps: skip silently
+```bash
+"$HOME/.cargo/bin/yolo" validate-plan {plan_path} {phase_dir}
+```
+
+- Exit 0: all deps satisfied -- proceed. Display: `✓ Cross-phase dependencies verified`
+- Exit 1: deps unsatisfied -- STOP with error from JSON output. Display errors from the `errors` array: "Cross-phase dependency not met. {error}. Fix: Run /yolo:vibe {P}"
+- Exit 2: partial -- STOP with details from JSON output
+- No cross_phase_deps in plan: command returns exit 0 with `checked: 0` -- skip silently
 
 ### Step 3: Create Agent Team and execute
 
