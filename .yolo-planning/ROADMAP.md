@@ -10,7 +10,7 @@
 | 1 | Complete | 5 | 18 | 14 |
 | 2 | Complete | 4 | 20 | 17 |
 | 3 | Complete | 4 | 14 | 9 |
-| 4 | Planned | 4 | 15 | 0 |
+| 4 | Complete | 4 | 15 | 9 |
 
 ---
 
@@ -18,7 +18,7 @@
 - [x] [Phase 1: Incomplete CLI & MCP Command Fixes](#phase-1-incomplete-cli--mcp-command-fixes)
 - [x] [Phase 2: Rust CLI Structured Returns](#phase-2-rust-cli-structured-returns)
 - [x] [Phase 3: Token Reduction Sweep](#phase-3-token-reduction-sweep)
-- [ ] [Phase 4: Hot Path & vibe.md Mode Splitting](#phase-4-hot-path--vibemd-mode-splitting)
+- [x] [Phase 4: Hot Path & vibe.md Mode Splitting](#phase-4-hot-path--vibemd-mode-splitting)
 
 ---
 
