@@ -1,0 +1,41 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "574596cf-dac0-4fc5-b241-f8674c44b2ae",
+    "phase": 2,
+    "phase_name": "02-rust-cli-structured-returns",
+    "plans": [
+      {
+        "id": "02-01",
+        "status": "complete",
+        "title": "StructuredResponse helper + update-state + compile-context",
+        "wave": 1
+      },
+      {
+        "id": "02-02",
+        "status": "complete",
+        "title": "Bootstrap commands structured returns",
+        "wave": 1
+      },
+      {
+        "id": "02-03",
+        "status": "complete",
+        "title": "Telemetry and state persistence structured returns",
+        "wave": 1
+      },
+      {
+        "id": "02-04",
+        "status": "complete",
+        "title": "Suggest-next, bump-version, session-start, planning-git structured returns",
+        "wave": 1
+      }
+    ],
+    "started_at": "2026-02-22T23:30:00Z",
+    "status": "complete",
+    "total_waves": 1,
+    "wave": 1
+  },
+  "matcher": "auto",
+  "phase": "2",
+  "timestamp": "2026-02-22T00:09:19Z"
+}
