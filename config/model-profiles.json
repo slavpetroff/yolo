@@ -2,8 +2,6 @@
   "quality": {
     "lead": "opus",
     "dev": "opus",
-    "qa": "sonnet",
-    "scout": "haiku",
     "debugger": "opus",
     "architect": "opus",
     "docs": "sonnet"
@@ -11,8 +9,6 @@
   "balanced": {
     "lead": "sonnet",
     "dev": "sonnet",
-    "qa": "sonnet",
-    "scout": "haiku",
     "debugger": "sonnet",
     "architect": "sonnet",
     "docs": "sonnet"
@@ -20,8 +16,6 @@
   "budget": {
     "lead": "sonnet",
     "dev": "sonnet",
-    "qa": "haiku",
-    "scout": "haiku",
     "debugger": "sonnet",
     "architect": "sonnet",
     "docs": "sonnet"
