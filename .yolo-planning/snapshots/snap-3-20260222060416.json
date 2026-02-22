@@ -1,0 +1,41 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "574596cf-dac0-4fc5-b241-f8674c44b2ae",
+    "phase": 3,
+    "phase_name": "03-token-reduction-sweep",
+    "plans": [
+      {
+        "id": "03-01",
+        "status": "complete",
+        "title": "Extract V3 experimental blocks from execute-protocol",
+        "wave": 1
+      },
+      {
+        "id": "03-02",
+        "status": "complete",
+        "title": "Consolidate effort profiles into single structured reference",
+        "wave": 1
+      },
+      {
+        "id": "03-03",
+        "status": "complete",
+        "title": "Deduplicate agent boilerplate into shared base reference",
+        "wave": 1
+      },
+      {
+        "id": "03-04",
+        "status": "complete",
+        "title": "Remove dead redirects and compress handoff schemas",
+        "wave": 1
+      }
+    ],
+    "started_at": "2026-02-22T23:55:00Z",
+    "status": "complete",
+    "total_waves": 1,
+    "wave": 1
+  },
+  "matcher": "auto",
+  "phase": "3",
+  "timestamp": "2026-02-22T06:04:16Z"
+}
