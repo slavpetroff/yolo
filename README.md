@@ -56,8 +56,8 @@ YOLO is a Claude Code plugin that bolts an actual development lifecycle onto you
 ### What You Get
 
 - **One command lifecycle** -- `/yolo:vibe` auto-detects state and runs the right workflow (scope, plan, execute, archive)
-- **7 specialized agents** with platform-enforced tool permissions -- Scout and QA literally cannot write files
-- **21 hooks across 11 event types** -- continuous verification, security filtering, session lifecycle
+- **6 specialized agents** with platform-enforced tool permissions -- Reviewer and Debugger are read-only (`plan` mode)
+- **19 hook handlers across 11 event types** -- continuous verification, security filtering, session lifecycle
 - **Atomic commits** per task with conventional format, auto-push optional
 - **Session persistence** -- close your terminal, come back tomorrow, `/yolo:resume` picks up where you left off
 - **4 effort profiles** (Thorough/Balanced/Fast/Turbo) and **4 autonomy levels** (Cautious to Pure Vibe)
@@ -194,17 +194,16 @@ No prompts. YOLO's security controls still apply (read-only agents, security-fil
 
 ## The Agents
 
-7 agents with native tool permissions enforced via YAML frontmatter. `disallowedTools` is enforced by Claude Code itself, not by instructions an agent might ignore during compaction.
+6 agents with native tool permissions enforced via YAML frontmatter. `disallowedTools` is enforced by Claude Code itself, not by instructions an agent might ignore during compaction.
 
-| Agent         | Role                           | Tools                                   | Denied                          | Mode          |
-| :------------ | :----------------------------- | :-------------------------------------- | :------------------------------ | :------------ |
-| **Scout**     | Research and information       | Read, Grep, Glob, WebSearch, WebFetch   | Write, Edit, NotebookEdit, Bash | `plan`        |
-| **Architect** | Roadmaps and phase structure   | Read, Glob, Grep, Write                 | Edit, WebFetch, Bash            | `acceptEdits` |
-| **Lead**      | Research + planning + review   | Read, Glob, Grep, Write, Bash, WebFetch | Edit                            | `acceptEdits` |
-| **Dev**       | Writes code, makes commits     | Full access                             | --                              | `acceptEdits` |
-| **QA**        | Goal-backward verification     | Read, Grep, Glob, Bash                  | Write, Edit, NotebookEdit       | `plan`        |
-| **Debugger**  | Scientific method bug hunting  | Full access                             | --                              | `acceptEdits` |
-| **Docs**      | Documentation specialist       | Read, Grep, Glob, Bash, Write, Edit     | --                              | `acceptEdits` |
+| Agent         | Role                           | Tools                                | Denied                 | Mode          |
+| :------------ | :----------------------------- | :----------------------------------- | :--------------------- | :------------ |
+| **Architect** | Roadmaps and phase structure   | Read, Glob, Grep, Write             | Edit, WebFetch, Bash   | `acceptEdits` |
+| **Lead**      | Research + planning + review   | Read, Glob, Grep, Write, Bash       | --                     | `acceptEdits` |
+| **Dev**       | Writes code, makes commits     | Full access                          | --                     | `acceptEdits` |
+| **Debugger**  | Scientific method bug hunting  | Read, Grep, Glob, Bash              | --                     | `plan`        |
+| **Reviewer**  | Adversarial plan review        | Read, Glob, Grep                    | --                     | `plan`        |
+| **Docs**      | Documentation specialist       | Read, Grep, Glob, Bash, Write, Edit | --                     | `acceptEdits` |
 
 **Denied** = `disallowedTools` (platform-enforced, cannot be overridden). **Mode** = `permissionMode` (`plan` = read-only, `acceptEdits` = can apply changes).
 
@@ -226,7 +225,7 @@ No prompts. YOLO's security controls still apply (read-only agents, security-fil
 │  Agent Teams                                    │
 │  Lead (plans) → Dev×N (parallel execute)        │
 │  Architect (roadmaps) · Debugger (bugs)         │
-│  Docs (documentation) · QA (verification)       │
+│  Docs (docs) · Reviewer (red team)               │
 ├──────────────────────────┬──────────────────────┤
 │  Rust Binary (yolo)      │  MCP Server          │
 │  61 CLI commands         │  5 tools             │
@@ -264,7 +263,7 @@ Tier 1+2 is identical across all same-family agents, so the API caches it as one
 
 ### Hook System
 
-21 hooks across 11 event types, all routed through `yolo hook <EventName>`:
+19 hook handlers across 11 event types, all routed through `yolo hook <EventName>`:
 
 - **PreToolUse** — the only blocking hook. The security filter can DENY tool calls (exit code 2). Blocks destructive Bash commands, enforces file ownership, gates sensitive file access.
 - **PostToolUse** — advisory. Validates summaries, checks commit format, verifies task artifacts. Cannot block (the tool already ran).
@@ -344,8 +343,8 @@ Goal-backward methodology: starts from success criteria, traces backward to veri
 ### Built for Opus 4.6+
 
 - **Agent Teams for real parallelism.** `/yolo:vibe` creates Dev teammates that execute concurrently. `/yolo:map` runs 4 Scout teammates in parallel. Coordinated teamwork with shared task lists and health monitoring.
-- **Native hooks for continuous verification.** 21 hooks across 11 event types validate summaries, check commit format, gate task completion, block sensitive files, and verify post-compaction context. No QA agent needed -- the platform enforces it.
-- **Platform-enforced tool permissions.** 4 of 7 agents have platform-level deny lists. Scout and QA cannot write files. Sensitive file access is intercepted by `security-filter`.
+- **Native hooks for continuous verification.** 19 hook handlers across 11 event types validate summaries, check commit format, gate task completion, block sensitive files, and verify post-compaction context. No QA agent needed -- the platform enforces it.
+- **Platform-enforced tool permissions.** 3 of 6 agents have platform-level restrictions (deny lists or read-only `plan` mode). Sensitive file access is intercepted by `security-filter`.
 - **Database safety guard.** Blocks 40+ destructive patterns (migrate:fresh, db:drop, TRUNCATE, FLUSHALL) across all major frameworks before they hit the shell. See [Database Safety Guard](docs/database-safety-guard.md).
 - **Structured handoff schemas.** Agents communicate via typed JSON schemas (`scout_findings`, `dev_progress`, `qa_result`, etc.).
 
@@ -384,7 +383,7 @@ YOLO uses two layers of permission enforcement because compaction can erase inst
 
 - **Platform-enforced** (survives compaction):
   - `security_filter` hook blocks .env/.pem/credentials before the tool runs (Rust, exit code 2)
-  - `permissionMode: plan` on Scout and QA -- Claude Code prevents writes at the platform level
+  - `permissionMode: plan` on Reviewer and Debugger -- Claude Code prevents writes at the platform level
   - MCP `acquire_lock` conflict returns `isError: true` -- tool-level rejection
 - **Instruction-based** (protocol compliance):
   - Lead never implements, only delegates. Dev acquires lock before editing. Docs stays within doc scope.
@@ -592,7 +591,7 @@ See [Model Profiles Reference](references/model-profiles.md) for full details.
 
 ```
 .claude-plugin/    Plugin manifest (plugin.json)
-agents/            7 agent definitions with native tool permissions
+agents/            6 agent definitions with native tool permissions
 commands/          23 slash commands (commands/*.md)
 config/            Default settings and stack-to-skill mappings
 hooks/             Plugin hooks for continuous verification
