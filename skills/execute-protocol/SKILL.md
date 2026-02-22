@@ -125,7 +125,7 @@ You are the team LEAD. NEVER implement tasks yourself.
 The existing individual script call sections (V3 Contract-Lite, V2 Hard Gates, Context compilation, Token Budgets) remain unchanged below as the fallback path.
 
 **Context compilation (REQ-11):** If yolo control-plane `full` action was used above and returned a `context_path`, use that path directly. Otherwise, if `config_context_compiler=true` from Context block above, before creating Dev tasks run:
-`"$HOME/.cargo/bin/yolo" compile-context {phase} dev {phases_dir} {plan_path}`
+`"$HOME/.cargo/bin/yolo" compile-context {phase} dev {phase-dir} {plan_path}`
 This produces `{phase-dir}/.context-dev.md` with phase goal and conventions. The output file contains three clearly marked sections:
 - `--- TIER 1: SHARED BASE ---` (byte-identical for all roles in the same project)
 - `--- TIER 2: ROLE FAMILY (execution) ---` (byte-identical for dev/qa/senior/debugger/security)
