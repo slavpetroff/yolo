@@ -255,4 +255,32 @@ mod tests {
         let ctx = output["hookSpecificOutput"]["additionalContext"].as_str().unwrap();
         assert!(ctx.contains("SUMMARY validation:"));
     }
+
+    #[test]
+    fn test_check_summary_frontmatter_all_fields() {
+        let content = "---\nphase: \"03\"\nplan: \"02\"\nstatus: complete\ntasks_completed: 5\ntasks_total: 5\ncommit_hashes:\n  - abc123\n  - def456\n---\n## What Was Built\nFeatures\n## Files Modified\nfiles\n## Deviations\nNone";
+        let missing = check_summary_structure(content);
+        let frontmatter_missing: Vec<&String> = missing.iter().filter(|m| m.contains("frontmatter field")).collect();
+        assert!(frontmatter_missing.is_empty(), "Expected no missing frontmatter fields but got: {:?}", frontmatter_missing);
+    }
+
+    #[test]
+    fn test_check_summary_frontmatter_missing_fields() {
+        // Missing status and commit_hashes
+        let content = "---\nphase: \"03\"\nplan: \"02\"\ntasks_completed: 5\ntasks_total: 5\n---\n## What Was Built\nFeatures\n## Files Modified\nfiles\n## Deviations\nNone";
+        let missing = check_summary_structure(content);
+        let missing_fields: Vec<&String> = missing.iter().filter(|m| m.contains("frontmatter field")).collect();
+        assert_eq!(missing_fields.len(), 2, "Expected 2 missing fields but got: {:?}", missing_fields);
+        assert!(missing_fields.iter().any(|m| m.contains("'status'")), "Should report missing status");
+        assert!(missing_fields.iter().any(|m| m.contains("'commit_hashes'")), "Should report missing commit_hashes");
+    }
+
+    #[test]
+    fn test_check_summary_deviations_section() {
+        // Has all frontmatter fields and other sections, but missing ## Deviations
+        let content = "---\nphase: \"01\"\nplan: \"01\"\nstatus: complete\ntasks_completed: 3\ntasks_total: 3\ncommit_hashes:\n  - abc123\n---\n## What Was Built\nStuff\n## Files Modified\nfiles";
+        let missing = check_summary_structure(content);
+        assert_eq!(missing.len(), 1, "Expected exactly 1 missing item but got: {:?}", missing);
+        assert!(missing[0].contains("Deviations"), "Should report missing Deviations section");
+    }
 }
