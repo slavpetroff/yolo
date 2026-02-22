@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-const VALID_AGENTS: &[&str] = &["lead", "dev", "qa", "scout", "debugger", "architect", "docs"];
+const VALID_AGENTS: &[&str] = &["lead", "dev", "qa", "scout", "debugger", "architect", "docs", "researcher"];
 const VALID_MODELS: &[&str] = &["opus", "sonnet", "haiku"];
 
 pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
@@ -17,7 +17,7 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
     // Validate agent name
     if !VALID_AGENTS.contains(&agent.as_str()) {
         return Err(format!(
-            "Invalid agent name '{}'. Valid: lead, dev, qa, scout, debugger, architect, docs",
+            "Invalid agent name '{}'. Valid: lead, dev, qa, scout, debugger, architect, docs, researcher",
             agent
         ));
     }
@@ -138,15 +138,15 @@ mod tests {
         let profiles = r#"{
   "quality": {
     "lead": "opus", "dev": "opus", "qa": "sonnet",
-    "scout": "haiku", "debugger": "opus", "architect": "opus", "docs": "sonnet"
+    "scout": "haiku", "debugger": "opus", "architect": "opus", "docs": "sonnet", "researcher": "sonnet"
   },
   "balanced": {
     "lead": "sonnet", "dev": "sonnet", "qa": "sonnet",
-    "scout": "haiku", "debugger": "sonnet", "architect": "sonnet", "docs": "sonnet"
+    "scout": "haiku", "debugger": "sonnet", "architect": "sonnet", "docs": "sonnet", "researcher": "haiku"
   },
   "budget": {
     "lead": "sonnet", "dev": "sonnet", "qa": "haiku",
-    "scout": "haiku", "debugger": "sonnet", "architect": "sonnet", "docs": "sonnet"
+    "scout": "haiku", "debugger": "sonnet", "architect": "sonnet", "docs": "sonnet", "researcher": "haiku"
   }
 }"#;
         let path = dir.join("profiles.json");
@@ -282,7 +282,7 @@ mod tests {
     }
 
     #[test]
-    fn test_all_7_agents_quality() {
+    fn test_all_8_agents_quality() {
         let dir = tempdir().unwrap();
         let profiles = write_profiles(dir.path());
         let config = write_config(dir.path(), r#"{"model_profile": "quality"}"#);
@@ -290,6 +290,7 @@ mod tests {
         let expected = [
             ("lead", "opus"), ("dev", "opus"), ("qa", "sonnet"),
             ("scout", "haiku"), ("debugger", "opus"), ("architect", "opus"), ("docs", "sonnet"),
+            ("researcher", "sonnet"),
         ];
         for (agent, model) in &expected {
             let (out, code) = execute(

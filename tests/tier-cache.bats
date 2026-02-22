@@ -124,3 +124,47 @@ extract_tier() {
   grep -q "TIER 3: VOLATILE TAIL" "$ctx_file"
   grep -q "END COMPILED CONTEXT" "$ctx_file"
 }
+
+# --- Researcher context injection tests ---
+
+@test "researcher role gets planning family tier 2" {
+  cd "$TEST_TEMP_DIR"
+  run "$YOLO_BIN" compile-context 1 researcher "$TEST_TEMP_DIR/phases"
+  [ "$status" -eq 0 ]
+
+  local ctx_file="$TEST_TEMP_DIR/phases/.context-researcher.md"
+  [ -f "$ctx_file" ]
+  grep -q "TIER 2: ROLE FAMILY (planning)" "$ctx_file"
+  grep -q "Architecture overview" "$ctx_file"
+}
+
+@test "tier 3 includes RESEARCH.md when present" {
+  cd "$TEST_TEMP_DIR"
+  mkdir -p "$TEST_TEMP_DIR/phases/03"
+  echo "Research findings here" > "$TEST_TEMP_DIR/phases/03/RESEARCH.md"
+
+  run "$YOLO_BIN" compile-context 3 dev "$TEST_TEMP_DIR/phases"
+  [ "$status" -eq 0 ]
+
+  local ctx_file="$TEST_TEMP_DIR/phases/.context-dev.md"
+  grep -q "# Research: RESEARCH.md" "$ctx_file"
+  grep -q "Research findings here" "$ctx_file"
+}
+
+@test "tier 3 excludes research when no RESEARCH.md" {
+  cd "$TEST_TEMP_DIR"
+  mkdir -p "$TEST_TEMP_DIR/phases/04"
+  echo "Plan only" > "$TEST_TEMP_DIR/phases/04/01-PLAN.md"
+
+  run "$YOLO_BIN" compile-context 4 dev "$TEST_TEMP_DIR/phases"
+  [ "$status" -eq 0 ]
+
+  local ctx_file="$TEST_TEMP_DIR/phases/.context-dev.md"
+  ! grep -q "# Research:" "$ctx_file"
+}
+
+@test "researcher model resolves from profiles" {
+  run "$YOLO_BIN" resolve-model researcher "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
+  [ "$status" -eq 0 ]
+  [ "$output" = "sonnet" ]
+}
