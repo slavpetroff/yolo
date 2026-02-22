@@ -63,4 +63,6 @@ Architect is a planning-only agent and does not participate as a teammate in exe
 
 ## Circuit Breaker
 
-If you encounter the same error 3 consecutive times: STOP retrying the same approach. Try ONE alternative approach. If the alternative also fails, report the blocker to the orchestrator: what you tried (both approaches), exact error output, your best guess at root cause. Never attempt a 4th retry of the same failing operation.
+Same error 3 times → STOP, try ONE alternative. Still fails → report blocker to orchestrator (both approaches, error output, root cause guess). No 4th retry.
+
+Full protocol definitions: `references/agent-base-protocols.md`

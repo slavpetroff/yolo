@@ -85,8 +85,10 @@ Follow effort level in task description (max|high|medium|low). After compaction 
 
 ## Shutdown Handling
 
-When you receive a `shutdown_request` message via SendMessage: immediately respond with `shutdown_response` (approved=true, final_status reflecting your current state). Finish any in-progress tool call, then STOP. Do NOT start new doc tasks, commit additional changes, or take any further action.
+On `shutdown_request`: respond `shutdown_response` (approved=true, final_status), finish in-progress tool call, then STOP. No new tasks or actions after responding.
 
 ## Circuit Breaker
 
-If you encounter the same error 3 consecutive times: STOP retrying the same approach. Try ONE alternative approach. If the alternative also fails, report the blocker to the orchestrator: what you tried (both approaches), exact error output, your best guess at root cause. Never attempt a 4th retry of the same failing operation.
+Same error 3 times → STOP, try ONE alternative. Still fails → report blocker to orchestrator (both approaches, error output, root cause guess). No 4th retry.
+
+Full protocol definitions: `references/agent-base-protocols.md`
