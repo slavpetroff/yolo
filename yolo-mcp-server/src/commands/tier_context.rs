@@ -308,6 +308,50 @@ pub fn sha256_of(s: &str) -> String {
     format!("{:x}", hasher.finalize())
 }
 
+/// Minifies markdown text by collapsing excessive whitespace and removing decorative separators.
+///
+/// Specifically:
+/// 1. Collapses 2+ consecutive empty lines into exactly 1 empty line
+/// 2. Removes lines that are only `---` (bare horizontal separators), but preserves
+///    tier headers like `--- TIER 1: SHARED BASE ---`
+/// 3. Trims trailing whitespace from every line
+/// 4. Preserves all meaningful content (headers, code blocks, tables, lists)
+pub fn minify_markdown(text: &str) -> String {
+    let mut result = String::with_capacity(text.len());
+    let mut consecutive_empty = 0u32;
+
+    for line in text.lines() {
+        let trimmed_right = line.trim_end();
+
+        // Remove bare `---` separators (but keep tier headers like `--- TIER 1: ... ---`)
+        if trimmed_right.trim() == "---" {
+            // Skip bare separators entirely
+            continue;
+        }
+
+        if trimmed_right.is_empty() {
+            consecutive_empty += 1;
+            if consecutive_empty <= 1 {
+                result.push('\n');
+            }
+            // Skip additional consecutive empty lines
+            continue;
+        }
+
+        // Non-empty line: reset empty counter
+        consecutive_empty = 0;
+        result.push_str(trimmed_right);
+        result.push('\n');
+    }
+
+    // Trim trailing newlines to at most one
+    while result.ends_with("\n\n") {
+        result.pop();
+    }
+
+    result
+}
+
 /// The 3-tier context structure with content, hashes, and backward-compatible combined field.
 pub struct TieredContext {
     pub tier1: String,
@@ -334,6 +378,7 @@ pub fn build_tiered_context(
     let tier1_hash = sha256_of(&tier1);
     let tier2_hash = sha256_of(&tier2);
     let combined = format!("{}\n{}\n{}", tier1, tier2, tier3);
+    let combined = minify_markdown(&combined);
 
     TieredContext {
         tier1,
@@ -473,14 +518,17 @@ mod tests {
     }
 
     #[test]
-    fn test_combined_equals_tiers_joined() {
+    fn test_combined_is_minified_tiers_joined() {
         let tmp = setup_planning_dir();
         let planning = tmp.path().join(".yolo-planning");
         let phases = planning.join("phases");
 
         let ctx = build_tiered_context(&planning, "architect", 3, Some(&phases), None);
-        let expected = format!("{}\n{}\n{}", ctx.tier1, ctx.tier2, ctx.tier3);
+        let raw = format!("{}\n{}\n{}", ctx.tier1, ctx.tier2, ctx.tier3);
+        let expected = minify_markdown(&raw);
         assert_eq!(ctx.combined, expected);
+        // Minified should be no larger than raw
+        assert!(ctx.combined.len() <= raw.len());
     }
 
     #[test]
