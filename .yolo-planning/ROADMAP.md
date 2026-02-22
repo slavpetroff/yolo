@@ -12,7 +12,7 @@
 | 3 | Complete | 4 | 14 | 9 |
 | 4 | Complete | 4 | 15 | 9 |
 | 5 | Complete | 5 | 15 | 5 |
-| 6 | Pending | 0 | 0 | 0 |
+| 6 | Complete | 2 | 7 | 2 |
 | 7 | Pending | 0 | 0 | 0 |
 | 8 | Pending | 0 | 0 | 0 |
 | 9 | Pending | 0 | 0 | 0 |
@@ -25,7 +25,7 @@
 - [x] [Phase 3: Token Reduction Sweep](#phase-3-token-reduction-sweep)
 - [x] [Phase 4: Hot Path & vibe.md Mode Splitting](#phase-4-hot-path--vibemd-mode-splitting)
 - [x] [Phase 5: Release Prep & README Rewrite](#phase-5-release-prep--readme-rewrite)
-- [ ] [Phase 6: Critical Protocol & Documentation Fixes](#phase-6-critical-protocol--documentation-fixes)
+- [x] [Phase 6: Critical Protocol & Documentation Fixes](#phase-6-critical-protocol--documentation-fixes)
 - [ ] [Phase 7: Dead Code & Agent Cleanup](#phase-7-dead-code--agent-cleanup)
 - [ ] [Phase 8: Token & Context Optimization](#phase-8-token--context-optimization)
 - [ ] [Phase 9: Validation & Robustness](#phase-9-validation--robustness)
