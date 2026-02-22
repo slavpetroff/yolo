@@ -4,20 +4,23 @@
     "dev": "opus",
     "debugger": "opus",
     "architect": "opus",
-    "docs": "sonnet"
+    "docs": "sonnet",
+    "researcher": "sonnet"
   },
   "balanced": {
     "lead": "sonnet",
     "dev": "sonnet",
     "debugger": "sonnet",
     "architect": "sonnet",
-    "docs": "sonnet"
+    "docs": "sonnet",
+    "researcher": "haiku"
   },
   "budget": {
     "lead": "sonnet",
     "dev": "sonnet",
     "debugger": "sonnet",
     "architect": "sonnet",
-    "docs": "sonnet"
+    "docs": "sonnet",
+    "researcher": "haiku"
   }
 }
