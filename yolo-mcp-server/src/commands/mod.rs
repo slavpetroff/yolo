@@ -60,4 +60,5 @@ pub mod token_economics_report;
 pub mod verify;
 pub mod structured_response;
 pub mod tier_context;
+pub mod review_plan;
 pub mod validate_plan;

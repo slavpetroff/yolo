@@ -66,7 +66,7 @@ fn write_cache(cache_path: &Path, content: &str, source_mtime: u64) {
 /// Maps a role name to its role family for tier 2 content selection.
 pub fn role_family(role: &str) -> &'static str {
     match role {
-        "architect" | "lead" | "researcher" => "planning",
+        "architect" | "lead" | "researcher" | "reviewer" => "planning",
         "dev" | "senior" | "qa" | "security" | "debugger" => "execution",
         _ => "default",
     }
@@ -977,6 +977,11 @@ mod tests {
     #[test]
     fn test_researcher_is_planning_family() {
         assert_eq!(role_family("researcher"), "planning");
+    }
+
+    #[test]
+    fn test_reviewer_is_planning_family() {
+        assert_eq!(role_family("reviewer"), "planning");
     }
 
     #[test]

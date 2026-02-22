@@ -60,7 +60,8 @@ create_test_config() {
     "architect": 30,
     "debugger": 80,
     "lead": 50,
-    "dev": 75
+    "dev": 75,
+    "reviewer": 15
   },
   "context_compiler": true,
   "v3_delta_context": false,
@@ -85,7 +86,8 @@ create_test_config() {
   "v2_two_phase_completion": false,
   "v2_token_budgets": false,
   "v4_post_edit_test_check": false,
-  "v4_session_cache_warm": false
+  "v4_session_cache_warm": false,
+  "review_gate": "on_request"
 }
 CONF
 }
