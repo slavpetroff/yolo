@@ -214,6 +214,79 @@ No prompts. YOLO's security controls still apply (read-only agents, security-fil
 
 <br>
 
+## Architecture
+
+### Overview
+
+```
+┌─────────────────────────────────────────────────┐
+│  /yolo:vibe  —  Claude Code orchestrator        │
+│  Routes: scope → plan → execute → archive       │
+├─────────────────────────────────────────────────┤
+│  Agent Teams                                    │
+│  Lead (plans) → Dev×N (parallel execute)        │
+│  Architect (roadmaps) · Debugger (bugs)         │
+│  Docs (documentation) · QA (verification)       │
+├──────────────────────────┬──────────────────────┤
+│  Rust Binary (yolo)      │  MCP Server          │
+│  61 CLI commands         │  5 tools             │
+│  11 hook handlers        │  File locks          │
+│  Context compiler        │  Test runner         │
+│  State machine           │  HITL gates          │
+│  Zero LLM tokens         │  In-process          │
+└──────────────────────────┴──────────────────────┘
+```
+
+Top layer: Claude Code routes the lifecycle state machine. Middle layer: specialized agents with platform-enforced permissions. Bottom layer: a native Rust binary and MCP server that handle all infrastructure without consuming model tokens.
+
+### Rust Binary as Platform Layer
+
+The `yolo` binary handles hooks, context compilation, state detection, model resolution, and telemetry — all without consuming LLM tokens. When Claude Code starts, lifecycle hooks route through `yolo hook <EventName>` (native Rust, <5ms per call). When `/yolo:vibe` runs, the binary pre-computes state via `yolo phase-detect` and injects it before any Claude reasoning begins.
+
+The binary operates in two modes: CLI mode for slash commands (61 commands) and MCP server mode for agent-accessible tools (5 tools). Infrastructure that other approaches handle with LLM prompts, YOLO handles with compiled code. This is why base context overhead drops from 10,800 to 1,500 tokens (86% reduction).
+
+### 3-Tier Compiled Context
+
+Agents receive compiled context injected at position 0 in their Task description (prefix-first injection). The context is split into three tiers optimized for the Anthropic API prompt cache:
+
+```
+Tier 1 — Shared Base (CONVENTIONS.md + STACK.md)
+  Byte-identical for ALL agents → single API cache write
+
+Tier 2 — Role Family (planning: ARCHITECTURE.md | execution: ROADMAP.md)
+  Byte-identical within family → all Dev agents share one cache entry
+
+Tier 3 — Volatile Tail (phase-specific goal + current delta)
+  Changes per plan → always a cache miss, but small
+```
+
+Tier 1+2 is identical across all same-family agents, so the API caches it as one shared prefix. An mtime-based filesystem cache avoids re-reading source files when unchanged. Four Dev agents share one cached prefix instead of each loading the full codebase independently — this is why context duplication drops from 16,500 to 900 tokens (95% reduction).
+
+### Hook System
+
+21 hooks across 11 event types, all routed through `yolo hook <EventName>`:
+
+- **PreToolUse** — the only blocking hook. The security filter can DENY tool calls (exit code 2). Blocks destructive Bash commands, enforces file ownership, gates sensitive file access.
+- **PostToolUse** — advisory. Validates summaries, checks commit format, verifies task artifacts. Cannot block (the tool already ran).
+- **Agent lifecycle** (`SubagentStart`, `SubagentStop`, `TeammateIdle`, `TaskCompleted`) — tracks agent health, coordinates shutdown, verifies commits exist before marking tasks complete.
+- **SessionStart** — detects compaction, runs config migration, checks codebase map staleness.
+
+The Rust binary validates, not an LLM — this is why continuous verification works at zero token cost.
+
+### MCP File Locking
+
+Parallel Dev agents need coordination to avoid writing the same file simultaneously. The MCP server provides in-memory mutex operations:
+
+- `acquire_lock(file_path, task_id)` / `release_lock(file_path, task_id)` — no shell flock, no git stash, no separate coordination agent
+- The Lead assigns disjoint file sets to same-wave plans at planning time; locks are the runtime safety net
+- `run_test_suite(test_path)` lets Dev agents verify their own work natively without spawning a QA agent
+
+<br>
+
+---
+
+<br>
+
 ## Features
 
 ### Built for Opus 4.6+
