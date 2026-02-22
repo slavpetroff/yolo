@@ -62,3 +62,8 @@ pub mod structured_response;
 pub mod tier_context;
 pub mod review_plan;
 pub mod validate_plan;
+pub mod check_regression;
+pub mod commit_lint;
+pub mod diff_against_plan;
+pub mod validate_requirements;
+pub mod verify_plan_completion;
