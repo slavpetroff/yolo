@@ -58,6 +58,36 @@ Log a confirmation: `◆ Correlation ID: {CORRELATION_ID}`
 - Exit 2: partial -- STOP with details from JSON output
 - No cross_phase_deps in plan: command returns exit 0 with `checked: 0` -- skip silently
 
+### Step 2b: Review gate (optional)
+
+**Activation:** Read `review_gate` from config:
+```bash
+REVIEW_GATE=$(jq -r '.review_gate // "on_request"' .yolo-planning/config.json 2>/dev/null)
+```
+
+| review_gate | Behavior |
+|-------------|----------|
+| always | Run automated review on every plan before execution |
+| on_request | Skip unless user passes `--review` flag |
+| never | Skip entirely |
+
+**When active:**
+
+1. For each plan in the phase, run automated checks:
+```bash
+REVIEW_RESULT=$("$HOME/.cargo/bin/yolo" review-plan {plan_path} {phase_dir})
+```
+
+2. Parse verdict from JSON output:
+   - `verdict: "approve"` -- Display `✓ Plan {NN-MM} review: approved` and proceed
+   - `verdict: "conditional"` -- Display `⚠ Plan {NN-MM} review: conditional` with findings. Attach findings to Dev context as warnings. Proceed.
+   - `verdict: "reject"` -- Display `✗ Plan {NN-MM} review: rejected` with findings. STOP execution. Return findings to user with suggestion: "Fix issues and re-run `/yolo:vibe --execute {N}`"
+
+3. If ALL plans approve or conditional: proceed to Step 3
+4. If ANY plan rejected: STOP. Do not create Dev team.
+
+**When inactive:** Display `○ Review gate skipped (review_gate: {value})` and proceed to Step 3.
+
 ### Step 3: Create Agent Team and execute
 
 **Team creation (multi-agent only):**
