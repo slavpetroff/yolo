@@ -37,6 +37,11 @@ FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
    "$HOME/.cargo/bin/yolo" planning-git commit-boundary "archive milestone {SLUG}" .yolo-planning/config.json
    ```
    Run this BEFORE branch merge/tag so shipped planning state is committed.
+6b. **Prune completed artifacts:**
+   ```bash
+   "$HOME/.cargo/bin/yolo" prune-completed .yolo-planning/milestones/{SLUG} 2>/dev/null || true
+   ```
+   Strips PLAN.md files from completed phases (SUMMARYs are preserved as the authoritative record). Reduces archived milestone size and keeps only outcome artifacts. If prune fails, log warning and continue (fail-open).
 7. Git branch merge: if `milestone/{SLUG}` branch exists, merge --no-ff. Conflict -> abort, warn. No branch -> skip.
 8. Git tag: unless --no-tag, `git tag -a {tag} -m "Shipped milestone: {name}"`. Default: `milestone/{SLUG}`.
 9. Update ACTIVE: remaining milestones -> set ACTIVE to first. None -> remove ACTIVE.
