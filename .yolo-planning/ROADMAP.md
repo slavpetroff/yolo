@@ -1,8 +1,8 @@
 # CLI Intelligence & Token Optimization Roadmap
 
-**Goal:** Fix incomplete CLI commands, add structured JSON returns to all state-changing operations, reduce token overhead by 10-15%, and split vibe.md for on-demand mode loading
+**Goal:** Fix incomplete CLI commands, add structured JSON returns to all state-changing operations, reduce token overhead by 10-15%, split vibe.md for on-demand mode loading, and audit/fix codebase quality issues
 
-**Scope:** 5 phases
+**Scope:** 9 phases
 
 ## Progress
 | Phase | Status | Plans | Tasks | Commits |
@@ -11,7 +11,11 @@
 | 2 | Complete | 4 | 20 | 17 |
 | 3 | Complete | 4 | 14 | 9 |
 | 4 | Complete | 4 | 15 | 9 |
-| 5 | In Progress | 5 | 15 | 3 |
+| 5 | Complete | 5 | 15 | 5 |
+| 6 | Pending | 0 | 0 | 0 |
+| 7 | Pending | 0 | 0 | 0 |
+| 8 | Pending | 0 | 0 | 0 |
+| 9 | Pending | 0 | 0 | 0 |
 
 ---
 
@@ -21,6 +25,10 @@
 - [x] [Phase 3: Token Reduction Sweep](#phase-3-token-reduction-sweep)
 - [x] [Phase 4: Hot Path & vibe.md Mode Splitting](#phase-4-hot-path--vibemd-mode-splitting)
 - [x] [Phase 5: Release Prep & README Rewrite](#phase-5-release-prep--readme-rewrite)
+- [ ] [Phase 6: Critical Protocol & Documentation Fixes](#phase-6-critical-protocol--documentation-fixes)
+- [ ] [Phase 7: Dead Code & Agent Cleanup](#phase-7-dead-code--agent-cleanup)
+- [ ] [Phase 8: Token & Context Optimization](#phase-8-token--context-optimization)
+- [ ] [Phase 9: Validation & Robustness](#phase-9-validation--robustness)
 
 ---
 
@@ -119,3 +127,76 @@
 
 **Dependencies:** Phase 4
 
+---
+
+## Phase 6: Critical Protocol & Documentation Fixes
+
+**Goal:** Fix bugs that silently break the execution pipeline: token-budget stdout corruption, missing SUMMARY.md ownership spec, and stale README claims that mislead users.
+
+**Requirements:** REQ-06 (protocol correctness)
+
+**Success Criteria:**
+- Token-budget pipeline in execute-protocol SKILL.md fixed: context file never overwritten with JSON metadata (C1)
+- Step 3c in execute-protocol SKILL.md filled with explicit SUMMARY.md writing spec for Dev agent (C2)
+- yolo-dev.md updated with explicit "write SUMMARY.md after plan completion" instruction (C2)
+- README agent table updated: 6 agents, Scout and QA rows removed (C3)
+- README hook count corrected: "11 hook entries routing to ~19 internal handlers" (C4)
+- README test count updated to actual (1,594) (V2)
+- STACK.md version updated to 2.5.0 (T2)
+- All existing tests pass
+
+**Dependencies:** Phase 5
+
+---
+
+## Phase 7: Dead Code & Agent Cleanup
+
+**Goal:** Remove dead code paths, unwired agents, and disconnected feature flags. Every file in the repo should be reachable from a live code path.
+
+**Requirements:** REQ-07 (code hygiene)
+
+**Success Criteria:**
+- yolo-reviewer: either wired into architect/roadmap workflow OR removed from agents/ (decision during planning) (D1)
+- yolo-docs: either wired into /yolo:release or /yolo:vibe --archive workflow OR documented as manual-only in README (D2)
+- handle_stub removed from dispatcher.rs (D3)
+- v3_lease_locks: either wired into Rust lease-lock command OR removed from session-start export (D4)
+- Codebase map refreshed: ARCHITECTURE.md, CONCERNS.md updated with accurate counts and no stale claims (CONCERNS says "No Rust unit tests" — 923 exist)
+- hooks.json SubagentStart matcher updated to match actual agent roster
+- All existing tests pass
+
+**Dependencies:** Phase 6
+
+---
+
+## Phase 8: Token & Context Optimization
+
+**Goal:** Reduce per-agent token waste by filtering stale context, fixing output paths for concurrency safety, and eliminating unnecessary team overhead.
+
+**Requirements:** REQ-08 (token efficiency)
+
+**Success Criteria:**
+- tier_context.rs filters completed phases from ROADMAP.md before including in Tier 2 — only current + future phases included (T1)
+- compile-context output written to phase subdirectory (`phases/05-slug/.context-dev.md`) not phases root — safe for concurrent phase execution (T3)
+- execute-protocol SKILL.md updated to reference new output path
+- prefer_teams optimization: skip TeamCreate/TeamDelete when exactly 1 uncompleted plan in phase (T4)
+- Measured token reduction on Tier 2 context via `yolo report-tokens` shows improvement
+- All existing tests pass, compile-context bats tests updated for new output path
+
+**Dependencies:** Phase 7
+
+---
+
+## Phase 9: Validation & Robustness
+
+**Goal:** Add missing validation gates and integration tests for feature-flag-gated code paths. Close the gap between declared protocol and enforced protocol.
+
+**Requirements:** REQ-09 (validation completeness)
+
+**Success Criteria:**
+- depends_on validation added to Rust: `yolo validate-plan` cross-references plan IDs against existing plan files in phase directory (V1)
+- validate_summary.rs upgraded: checks YAML frontmatter fields (phase, plan, status, tasks_completed) not just section headers
+- v2/v3 feature flag integration tests added to bats: at least 1 test per flag exercising the actual gated code path (v2_hard_gates, v3_lease_locks, v3_schema_validation, v3_lock_lite)
+- execute-protocol cross-phase deps check moved from LLM instruction to Rust validation command
+- All existing tests pass + new validation tests pass
+
+**Dependencies:** Phase 8
