@@ -85,10 +85,11 @@ SUMMARY
 @test "commit-lint passes for valid commits" {
   # Create temp git repo with valid commits
   LINT_DIR=$(mktemp -d)
+  git init "$LINT_DIR"
+  git -C "$LINT_DIR" commit --allow-empty -m "feat(init): initial commit"
+  git -C "$LINT_DIR" commit --allow-empty -m "fix(core): fix a bug"
+  git -C "$LINT_DIR" commit --allow-empty -m "test(qa): add tests"
   cd "$LINT_DIR"
-  git init
-  git commit --allow-empty -m "feat(init): initial commit"
-  git commit --allow-empty -m "fix(core): fix a bug"
   run "$YOLO_BIN" commit-lint "HEAD~2..HEAD"
   cd /Users/slavpetroff/Projects/vibe-better-with-claude-code-vbw
   rm -rf "$LINT_DIR"
