@@ -74,6 +74,7 @@ Read `${CLAUDE_PLUGIN_ROOT}/skills/vibe-modes/scope.md` and follow its instructi
 
 ### Discuss
 Guard: Initialized, phase exists. Auto-detect: first phase without `*-CONTEXT.md`.
+For codebase exploration during discussion, use Task tool with Explore subagent.
 1. Determine target phase from $ARGUMENTS or auto-detection.
 2. Read `${CLAUDE_PLUGIN_ROOT}/skills/discussion-engine/SKILL.md` and follow its protocol.
 3. Run `"$HOME/.cargo/bin/yolo" suggest-next vibe`.
