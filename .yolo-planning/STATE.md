@@ -1,47 +1,25 @@
 # YOLO State
 
-**Project:** CLI Intelligence & Token Optimization
-**Milestone:** CLI Intelligence & Token Optimization
-**Current Phase:** Complete
-**Status:** All 9 phases complete
+**Project:** Agent Quality & Intelligent Compression
+**Milestone:** Agent Quality & Intelligent Compression
+**Current Phase:** Phase 1
+**Status:** Pending planning
 **Started:** 2026-02-22
-**Progress:** 100%
+**Progress:** 0%
 
 ## Phase Status
-- **Phase 1:** Complete (5 plans, 18 tasks, 14 commits, effort: balanced)
-- **Phase 2:** Complete (4 plans, 20 tasks, 17 commits, effort: balanced)
-- **Phase 3:** Complete (4 plans, 14 tasks, 9 commits, effort: balanced)
-- **Phase 4:** Complete (4 plans, 15 tasks, 9 commits, effort: balanced)
-- **Phase 5:** Complete (5 plans, 15 tasks, 5 commits, effort: balanced)
-- **Phase 6:** Complete (2 plans, 7 tasks, 2 commits, effort: balanced)
-- **Phase 7:** Complete (2 plans, 8 tasks, 5 commits, effort: balanced)
-- **Phase 8:** Complete (2 plans, 5 tasks, 3 commits, effort: balanced)
-- **Phase 9:** Complete (2 plans, 6 tasks, 5 commits, effort: balanced)
+(no phases started)
 
 ## Key Decisions
 | Decision | Date | Rationale |
 |----------|------|-----------|
-| Always JSON output | 2026-02-22 | All state-changing commands return JSON. Simpler, consistent, LLMs parse natively |
-| Split vibe.md modes | 2026-02-22 | 7,220 tokens loaded per invocation but only 1 mode used. On-demand loading saves ~80% |
-| Fix before optimize | 2026-02-22 | Incomplete commands (infer, detect-stack) must work before adding structured returns |
+| MCP hybrid (keep server) | 2026-02-22 | Locking + test suite used via MCP (44+ calls). CLI for orchestration. Document pattern, remove compile_context overlap |
+| 3 new agents in existing families | 2026-02-22 | Researcher + Reviewer → "planning" family (Tier 2 cache with Architect/Lead). QA → "execution" family (Tier 2 cache with Dev) |
+| Rust-backed quality gates | 2026-02-22 | Reviewer and QA powered by Rust CLI commands, not just LLM instructions. Enforceable, measurable, fast |
 
 ## Todos
 None
 
 ## Recent Activity
-- 2026-02-22: Phase 9 complete (2 plans, 6 tasks, 5 commits, 0 deviations) — MILESTONE COMPLETE
-- 2026-02-22: Phase 8 complete (2 plans, 5 tasks, 3 commits, 0 deviations)
-- 2026-02-22: Phase 7 complete (2 plans, 8 tasks, 5 commits, 0 deviations)
-- 2026-02-22: Phase 6 complete (2 plans, 7 tasks, 2 commits, 0 deviations)
-- 2026-02-22: Scoped audit phases 6-9 (14 issues across 4 categories: critical/dead-code/token-waste/validation)
-- 2026-02-22: Phase 5 complete (5 plans, 15 tasks, 5 commits, 0 deviations)
-- 2026-02-22: Phase 4 complete (4 plans, 15 tasks, 9 commits, 0 deviations)
-- 2026-02-22: Phase 4 planned (4 plans, 15 tasks, wave 1: 3 plans, wave 2: 1 plan)
-- 2026-02-22: Phase 3 complete (4 plans, 14 tasks, 9 commits, 0 deviations)
-- 2026-02-22: Phase 3 planned (4 plans, 14 tasks, wave 1: 4 plans)
-- 2026-02-22: Phase 2 complete (4 plans, 20 tasks, 17 commits, 0 deviations)
-- 2026-02-22: Phase 2 planned (4 plans, 20 tasks, wave 1: 4 plans)
-- 2026-02-22: Phase 1 complete (5 plans, 18 tasks, 14 commits, 1 deviation)
-- 2026-02-22: Phase 1 planned (5 plans, 18 tasks, wave 1: 4 plans, wave 2: 1 plan)
-- 2026-02-22: Archived "Token & Cache Architecture Optimization" milestone (4 phases, 61 tasks, 55 commits)
-- 2026-02-22: Created "CLI Intelligence & Token Optimization" milestone (4 phases)
+- 2026-02-22: Created "Agent Quality & Intelligent Compression" milestone (5 phases)
+- 2026-02-22: Archived "CLI Intelligence & Token Optimization" milestone (9 phases, 122 tasks, 67 commits)
