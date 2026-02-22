@@ -14,13 +14,12 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 - **Do not bump version or push until asked.** Never run `git push` unless the user explicitly requests it, except when config.json sets `auto_push` to `always` or `after_phase`.
 - **PR review rules:** See `references/pr-review-protocol.md`.
 - **YOLO-specific:** Use YOLO commands for project work. Do not manually edit `.yolo-planning/`. No QA or Scout agents.
-- **VBW-specific:** Use VBW commands for project work. Do not manually edit `.vbw-planning/`.
 
 ## Active Context
 
-**Work:** CLI Intelligence & Token Optimization (4 phases)
-**Last shipped:** token-cache-optimization (2026-02-22) — 4 phases, 61 tasks, 55 commits
-**Next action:** Run /yolo:vibe --plan 1 to plan Phase 1: Incomplete CLI & MCP Command Fixes
+**Work:** Phase 5 release prep in progress
+**Last shipped:** CLI Intelligence & Token Optimization (2026-02-22) — 4 phases, 61 tasks, 55 commits
+**Next action:** Complete Phase 5 release prep
 
 ## Installed Skills
 
