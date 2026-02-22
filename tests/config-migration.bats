@@ -299,6 +299,35 @@ EOF
   [ "$output" = "0" ]
 }
 
+@test "new config gets v2_token_budgets=true from defaults" {
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
+{
+  "effort": "balanced"
+}
+EOF
+
+  run_migration
+
+  run jq -r '.v2_token_budgets' "$TEST_TEMP_DIR/.yolo-planning/config.json"
+  [ "$status" -eq 0 ]
+  [ "$output" = "true" ]
+}
+
+@test "existing config with v2_token_budgets=false keeps false after migration" {
+  cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
+{
+  "effort": "balanced",
+  "v2_token_budgets": false
+}
+EOF
+
+  run_migration
+
+  run jq -r '.v2_token_budgets' "$TEST_TEMP_DIR/.yolo-planning/config.json"
+  [ "$status" -eq 0 ]
+  [ "$output" = "false" ]
+}
+
 @test "migration --print-added returns number of inserted defaults" {
   cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
