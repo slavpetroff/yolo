@@ -24,7 +24,8 @@
     "architect": 30,
     "debugger": 80,
     "lead": 50,
-    "dev": 75
+    "dev": 75,
+    "reviewer": 15
   },
   "qa_skip_agents": [
     "docs"
@@ -48,5 +49,6 @@
   "v2_typed_protocol": false,
   "v2_role_isolation": false,
   "v2_two_phase_completion": false,
-  "v2_token_budgets": true
+  "v2_token_budgets": true,
+  "review_gate": "on_request"
 }
