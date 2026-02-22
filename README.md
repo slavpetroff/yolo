@@ -56,7 +56,7 @@ YOLO is a Claude Code plugin that bolts an actual development lifecycle onto you
 ### What You Get
 
 - **One command lifecycle** -- `/yolo:vibe` auto-detects state and runs the right workflow (scope, plan, execute, archive)
-- **5 specialized agents** with platform-enforced tool permissions -- Debugger is read-only (`plan` mode)
+- **8 specialized agents** with platform-enforced tool permissions -- Debugger is read-only (`plan` mode), Reviewer and QA are write-restricted
 - **19 hook handlers across 11 event types** -- continuous verification, security filtering, session lifecycle
 - **Atomic commits** per task with conventional format, auto-push optional
 - **Session persistence** -- close your terminal, come back tomorrow, `/yolo:resume` picks up where you left off
@@ -194,17 +194,20 @@ No prompts. YOLO's security controls still apply (read-only agents, security-fil
 
 ## The Agents
 
-5 agents with native tool permissions enforced via YAML frontmatter. `disallowedTools` is enforced by Claude Code itself, not by instructions an agent might ignore during compaction.
+8 agents with native tool permissions enforced via YAML frontmatter. `disallowedTools` is enforced by Claude Code itself, not by instructions an agent might ignore during compaction.
 
-| Agent         | Role                           | Tools                                | Denied                 | Mode          |
-| :------------ | :----------------------------- | :----------------------------------- | :--------------------- | :------------ |
-| **Architect** | Roadmaps and phase structure   | Read, Glob, Grep, Write             | Edit, WebFetch, Bash   | `acceptEdits` |
-| **Lead**      | Research + planning + review   | Read, Glob, Grep, Write, Bash       | --                     | `acceptEdits` |
-| **Dev**       | Writes code, makes commits     | Full access                          | --                     | `acceptEdits` |
-| **Debugger**  | Scientific method bug hunting  | Read, Grep, Glob, Bash              | --                     | `plan`        |
-| **Docs**      | Documentation specialist (manual-only -- no command auto-spawns this agent) | Read, Grep, Glob, Bash, Write, Edit | --                     | `acceptEdits` |
+| Agent          | Role                           | Tools                                     | Denied                         | Mode          |
+| :------------- | :----------------------------- | :---------------------------------------- | :----------------------------- | :------------ |
+| **Architect**  | Roadmaps and phase structure   | Read, Glob, Grep, Write                   | Edit, WebFetch, Bash           | `acceptEdits` |
+| **Lead**       | Research + planning + review   | Read, Glob, Grep, Write, Bash             | --                             | `acceptEdits` |
+| **Dev**        | Writes code, makes commits     | Full access                               | --                             | `acceptEdits` |
+| **Debugger**   | Scientific method bug hunting  | Read, Grep, Glob, Bash                    | --                             | `plan`        |
+| **Docs**       | Documentation specialist (manual-only -- no command auto-spawns this agent) | Read, Grep, Glob, Bash, Write, Edit | -- | `acceptEdits` |
+| **Researcher** | Internet + codebase research for best practices and documentation | Read, Glob, Grep, Bash, Write, WebFetch, WebSearch | Edit | `acceptEdits` |
+| **Reviewer**   | Adversarial plan critique and quality gate before execution | Read, Glob, Grep, Bash | Edit, Write, WebFetch, WebSearch | `default` |
+| **QA**         | Automated verification of code delivery against plans | Read, Glob, Grep, Bash | Edit, Write, WebFetch, WebSearch | `default` |
 
-**Denied** = `disallowedTools` (platform-enforced, cannot be overridden). **Mode** = `permissionMode` (`plan` = read-only, `acceptEdits` = can apply changes).
+**Denied** = `disallowedTools` (platform-enforced, cannot be overridden). **Mode** = `permissionMode` (`plan` = read-only, `acceptEdits` = can apply changes, `default` = Claude Code default).
 
 <br>
 
@@ -224,7 +227,8 @@ No prompts. YOLO's security controls still apply (read-only agents, security-fil
 │  Agent Teams                                    │
 │  Lead (plans) → Dev×N (parallel execute)        │
 │  Architect (roadmaps) · Debugger (bugs)         │
-│  Docs (docs, manual-only)                         │
+│  Researcher (research) · Reviewer (plan gate)   │
+│  QA (verification) · Docs (docs, manual-only)   │
 ├──────────────────────────┬──────────────────────┤
 │  Rust Binary (yolo)      │  MCP Server          │
 │  61 CLI commands         │  5 tools             │
@@ -343,7 +347,7 @@ Goal-backward methodology: starts from success criteria, traces backward to veri
 
 - **Agent Teams for real parallelism.** `/yolo:vibe` creates Dev teammates that execute concurrently. `/yolo:map` runs 4 Scout teammates in parallel. Coordinated teamwork with shared task lists and health monitoring.
 - **Native hooks for continuous verification.** 19 hook handlers across 11 event types validate summaries, check commit format, gate task completion, block sensitive files, and verify post-compaction context. No QA agent needed -- the platform enforces it.
-- **Platform-enforced tool permissions.** 2 of 5 agents have platform-level restrictions (deny lists or read-only `plan` mode). Sensitive file access is intercepted by `security-filter`.
+- **Platform-enforced tool permissions.** 5 of 8 agents have platform-level restrictions (deny lists, read-only `plan` mode, or write-restricted `default` mode). Sensitive file access is intercepted by `security-filter`.
 - **Database safety guard.** Blocks 40+ destructive patterns (migrate:fresh, db:drop, TRUNCATE, FLUSHALL) across all major frameworks before they hit the shell. See [Database Safety Guard](docs/database-safety-guard.md).
 - **Structured handoff schemas.** Agents communicate via typed JSON schemas (`scout_findings`, `dev_progress`, `qa_result`, etc.).
 
@@ -590,7 +594,7 @@ See [Model Profiles Reference](references/model-profiles.md) for full details.
 
 ```
 .claude-plugin/    Plugin manifest (plugin.json)
-agents/            5 agent definitions with native tool permissions
+agents/            8 agent definitions with native tool permissions
 commands/          23 slash commands (commands/*.md)
 config/            Default settings and stack-to-skill mappings
 hooks/             Plugin hooks for continuous verification
