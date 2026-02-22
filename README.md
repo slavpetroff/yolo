@@ -287,6 +287,58 @@ Parallel Dev agents need coordination to avoid writing the same file simultaneou
 
 <br>
 
+## Lifecycle
+
+### The `/yolo:vibe` State Machine
+
+```
+/yolo:vibe
+    ├─ No project?      → Bootstrap (create PROJECT.md, REQUIREMENTS.md, ROADMAP.md)
+    ├─ No phases?        → Scope (decompose into 3-5 phases)
+    ├─ Unplanned phase?  → Plan (spawn Lead to write PLAN.md files)
+    ├─ Unexecuted plan?  → Execute (spawn Dev team in parallel waves)
+    ├─ All done?         → Archive (audit, milestone, tag)
+    └─ Natural language  → Route by intent (discuss/plan/build/verify)
+```
+
+One command, run repeatedly. State persists in `.yolo-planning/` — close your terminal, come back tomorrow, it picks up where you left off.
+
+### Bootstrap
+
+Creates PROJECT.md (identity), REQUIREMENTS.md (what to build), ROADMAP.md (phases). Auto-detects project profile to control discovery question count (0 for yolo profile, 5-8 for production). For existing codebases: chains `/yolo:map`, which runs 4 Scout agents in parallel to analyze your code into 7 structured documents (STACK.md, ARCHITECTURE.md, CONVENTIONS.md, etc.).
+
+### Plan
+
+Spawns a Lead agent with compiled context (Tier 1+2+3) prefix-injected. Lead writes `{NN-MM}-PLAN.md` files with YAML frontmatter: `wave` (parallel group), `depends_on` (ordering), `must_haves` (verification targets). Same-wave plans get disjoint file assignments so Dev agents can work in parallel without conflicts.
+
+**Hard gate:** Lead team is shut down completely before execution begins — prevents lingering agents burning credits. At Turbo effort: skips Lead entirely, orchestrator writes a single lightweight plan inline.
+
+### Execute
+
+Creates a team, compiles Dev context (prefix-first for cache hits), spawns one `yolo-dev` per uncompleted plan. Same-wave plans run in parallel. Each Dev follows: `acquire_lock` → implement → `run_test_suite` → `release_lock` → atomic commit. Wave 2 plans auto-unblock when wave 1 completes.
+
+Crash recovery: `.execution-state.json` tracks wave state. On resume, reconciles against existing SUMMARY.md files and git log to determine what still needs work. **Hard gate:** ALL Dev agents must shut down before verification begins.
+
+### Verify
+
+3-tier verification runs automatically after execution based on effort:
+
+- **Quick** (fast effort): artifact existence, frontmatter valid, no placeholders
+- **Standard** (balanced): + convention compliance, anti-pattern scan
+- **Deep** (thorough): + requirement-to-artifact tracing, cross-file consistency
+
+Goal-backward methodology: starts from success criteria, traces backward to verify each claim. `/yolo:verify` adds human acceptance testing with per-test CHECKPOINT prompts.
+
+### Archive
+
+6-point audit: phases complete, plans have summaries, verification passed, requirements mapped. Moves artifacts to `.yolo-planning/milestones/{slug}/`, extracts persistent state (todos, decisions, skills) into fresh STATE.md. Git tag + optional GitHub release via `/yolo:release`.
+
+<br>
+
+---
+
+<br>
+
 ## Features
 
 ### Built for Opus 4.6+
@@ -313,6 +365,41 @@ Parallel Dev agents need coordination to avoid writing the same file simultaneou
 <img src="assets/statusline.png" width="100%" />
 
 Phase progress, plan completion, effort profile, QA status -- everything rendered after every response.
+
+<br>
+
+---
+
+<br>
+
+## Design Decisions
+
+### File System as State Machine
+
+Phase detection scans for PLAN.md / SUMMARY.md file pairs -- not STATE.md. A PLAN.md without a matching SUMMARY.md means the phase needs execution. Both exist means it is complete. This makes the system crash-safe: even if STATE.md is corrupted or context is compacted, scanning file existence reconstructs the full state. `/yolo:resume` works without a prior `/yolo:pause` because the files ARE the state.
+
+### Platform-Enforced vs Instruction-Based Permissions
+
+YOLO uses two layers of permission enforcement because compaction can erase instructions, but platform enforcement survives it:
+
+- **Platform-enforced** (survives compaction):
+  - `security_filter` hook blocks .env/.pem/credentials before the tool runs (Rust, exit code 2)
+  - `permissionMode: plan` on Scout and QA -- Claude Code prevents writes at the platform level
+  - MCP `acquire_lock` conflict returns `isError: true` -- tool-level rejection
+- **Instruction-based** (protocol compliance):
+  - Lead never implements, only delegates. Dev acquires lock before editing. Docs stays within doc scope.
+
+### Hard Shutdown Gate
+
+Before any phase transition, every active teammate receives `shutdown_request` and must respond `approved`. Without this, each `/yolo:vibe` invocation spawns new agents while old ones linger in tmux burning API credits -- this was the #1 user-reported cost issue. 3 retries per agent before force-proceeding with a warning.
+
+### Effort x Model Profile Orthogonality
+
+Effort controls workflow depth (planning, verification, communication). Model profile controls which Claude model each agent uses (Opus/Sonnet/Haiku). They compose independently: Thorough + Budget = deep workflow, cheap execution. Fast + Quality = quick workflow, best output. "Cheap" does not mean "sloppy" -- you can have full verification with budget models.
+
+### Ground Truth Persistence
+
+State is triply-redundant: file system (PLAN/SUMMARY pairs), STATE.md (human-readable), `.execution-state.json` (machine-readable). The Rust binary reads file system directly for phase detection -- STATE.md is for humans. `.compaction-marker` written by PreCompact hook tells SessionStart whether to skip re-initialization. Agents re-read PLAN.md from disk after compaction because working memory was wiped, but files persist.
 
 <br>
 
