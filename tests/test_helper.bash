@@ -87,7 +87,8 @@ create_test_config() {
   "v2_token_budgets": false,
   "v4_post_edit_test_check": false,
   "v4_session_cache_warm": false,
-  "review_gate": "on_request"
+  "review_gate": "on_request",
+  "qa_gate": "on_request"
 }
 CONF
 }

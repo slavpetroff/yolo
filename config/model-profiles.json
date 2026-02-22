@@ -6,7 +6,8 @@
     "architect": "opus",
     "docs": "sonnet",
     "researcher": "sonnet",
-    "reviewer": "opus"
+    "reviewer": "opus",
+    "qa": "opus"
   },
   "balanced": {
     "lead": "sonnet",
@@ -15,7 +16,8 @@
     "architect": "sonnet",
     "docs": "sonnet",
     "researcher": "haiku",
-    "reviewer": "sonnet"
+    "reviewer": "sonnet",
+    "qa": "sonnet"
   },
   "budget": {
     "lead": "sonnet",
@@ -24,6 +26,7 @@
     "architect": "sonnet",
     "docs": "sonnet",
     "researcher": "haiku",
-    "reviewer": "sonnet"
+    "reviewer": "sonnet",
+    "qa": "sonnet"
   }
 }
