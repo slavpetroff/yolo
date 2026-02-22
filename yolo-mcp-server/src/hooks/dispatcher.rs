@@ -246,13 +246,6 @@ fn handle_stop(input: &HookInput) -> Result<HookOutput, String> {
     Ok(value_to_hook_output(&output, code))
 }
 
-/// Stub handler for events not yet migrated.
-/// Returns empty output with exit 0 — no-op passthrough.
-#[allow(dead_code)]
-fn handle_stub(_event_name: &str, _input: &HookInput) -> Result<HookOutput, String> {
-    Ok(HookOutput::empty())
-}
-
 /// Find the `.yolo-planning` directory from cwd.
 fn find_planning_dir() -> Option<std::path::PathBuf> {
     let cwd = std::env::current_dir().ok()?;
