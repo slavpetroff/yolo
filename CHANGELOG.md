@@ -2,6 +2,32 @@
 
 All notable changes to YOLO will be documented in this file.
 
+## v2.6.0 (2026-02-23)
+
+### New Agents
+- **Researcher** — Internet research agent with WebSearch/WebFetch, writes structured RESEARCH.md findings
+- **Reviewer** — Adversarial design critic, serves as quality gate between planning and execution
+- **QA** — Delivery verification agent, validates code delivery against plans using 5 Rust commands
+
+### New Rust Commands
+- `review-plan` — Automated plan quality checks (frontmatter, task count, must_haves, wave validity, file paths)
+- `verify-plan-completion` — Cross-references SUMMARY tasks vs PLAN tasks
+- `commit-lint` — Validates commit message format against conventional commits
+- `check-regression` — Counts Rust/bats tests, flags regressions
+- `diff-against-plan` — Compares declared files vs actual git changes
+- `validate-requirements` — Checks must_haves against evidence in code/SUMMARYs
+
+### New Gates
+- **Review gate** (Step 2b in execute-protocol) — Reviewer critiques plans before Dev team creation
+- **QA gate** (Step 3d in execute-protocol) — QA verifies delivery after all Dev tasks complete
+- Both gates configurable: `always`, `on_request`, `never`
+
+### Infrastructure
+- 3-tier compiled context: researcher/reviewer in "planning" family, QA in "execution" family
+- Tier 3 volatile context now includes RESEARCH.md injection
+- Markdown minification in tier_context.rs
+- Updated model-profiles.json and hooks.json for all 8 agents
+
 ## [2.5.0] - 2026-02-22
 
 ### Changed
