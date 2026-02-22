@@ -278,6 +278,8 @@ mod tests {
         std::fs::write(tmp.join(".yolo-planning/codebase/ARCHITECTURE.md"), "DUMMY ARCH CONTENT").unwrap();
 
         let (_lock, _cwd) = lock_and_chdir(&tmp);
+        // Clear global tier cache after acquiring lock to avoid races
+        let _ = tier_context::invalidate_tier_cache();
         let state = Arc::new(ToolState::new());
         let params = Some(json!({"phase": 4, "role": "architect"}));
 
@@ -340,6 +342,7 @@ mod tests {
         std::fs::write(tmp.join(".yolo-planning/codebase/CONVENTIONS.md"), "CONV").unwrap();
 
         let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let _ = tier_context::invalidate_tier_cache();
         let state = Arc::new(ToolState::new());
         let params = Some(json!({"phase": 1, "role": "dev"}));
 
@@ -377,6 +380,7 @@ mod tests {
         std::fs::write(tmp.join(".yolo-planning/codebase/CONVENTIONS.md"), "CONV").unwrap();
 
         let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let _ = tier_context::invalidate_tier_cache();
         let state = Arc::new(ToolState::new());
         let params = Some(json!({"phase": 1, "role": "dev"}));
 
@@ -510,9 +514,12 @@ mod tests {
         std::fs::write(tmp.join(".yolo-planning/codebase/STACK.md"), "STACK_CONTENT_MARKER").unwrap();
         std::fs::write(tmp.join(".yolo-planning/codebase/CONVENTIONS.md"), "CONV_CONTENT_MARKER").unwrap();
         std::fs::write(tmp.join(".yolo-planning/codebase/ROADMAP.md"), "ROADMAP_CONTENT_MARKER").unwrap();
+
         std::fs::write(tmp.join(".yolo-planning/codebase/REQUIREMENTS.md"), "REQ_CONTENT_MARKER").unwrap();
 
         let (_lock, _cwd) = lock_and_chdir(&tmp);
+        // Clear global tier cache after acquiring lock to avoid races
+        let _ = tier_context::invalidate_tier_cache();
         let state = Arc::new(ToolState::new());
 
         // Dev (execution family): tier1=CONVENTIONS+STACK, tier2=ROADMAP only
@@ -559,6 +566,7 @@ mod tests {
         std::fs::write(tmp.join(".yolo-planning/phases/03/03-01-PLAN.md"), "PHASE3_PLAN_CONTENT").unwrap();
 
         let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let _ = tier_context::invalidate_tier_cache();
         let state = Arc::new(ToolState::new());
 
         // Phase 3 should include the plan file
@@ -646,6 +654,7 @@ mod tests {
     async fn test_tier1_identical_across_all_roles() {
         let tmp = setup_full_planning("tier1-ident");
         let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let _ = tier_context::invalidate_tier_cache();
         let state = Arc::new(ToolState::new());
 
         let roles = ["dev", "architect", "lead", "qa"];
@@ -675,6 +684,7 @@ mod tests {
     async fn test_tier2_identical_within_planning_family() {
         let tmp = setup_full_planning("tier2-planning");
         let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let _ = tier_context::invalidate_tier_cache();
         let state = Arc::new(ToolState::new());
 
         let lead = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "lead"})), state.clone()).await;
@@ -696,6 +706,7 @@ mod tests {
     async fn test_tier2_identical_within_execution_family() {
         let tmp = setup_full_planning("tier2-exec");
         let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let _ = tier_context::invalidate_tier_cache();
         let state = Arc::new(ToolState::new());
 
         let dev = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "dev"})), state.clone()).await;
@@ -717,6 +728,7 @@ mod tests {
     async fn test_tier2_different_across_families() {
         let tmp = setup_full_planning("tier2-diff");
         let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let _ = tier_context::invalidate_tier_cache();
         let state = Arc::new(ToolState::new());
 
         let dev = handle_tool_call("compile_context", Some(json!({"phase": 0, "role": "dev"})), state.clone()).await;
@@ -734,6 +746,7 @@ mod tests {
     async fn test_tier_separation_content_correctness() {
         let tmp = setup_full_planning("tier-content");
         let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let _ = tier_context::invalidate_tier_cache();
         let state = Arc::new(ToolState::new());
 
         // Check planning family tier content

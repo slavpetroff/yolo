@@ -182,7 +182,7 @@ generate_chars() {
 
 @test "defaults.json includes v2_token_budgets flag" {
   run jq '.v2_token_budgets' "$CONFIG_DIR/defaults.json"
-  [ "$output" = "false" ]
+  [ "$output" = "true" ]
 }
 
 # --- Token budgets config ---

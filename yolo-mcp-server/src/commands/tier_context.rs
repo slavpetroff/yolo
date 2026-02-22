@@ -7,6 +7,15 @@ fn cache_dir() -> PathBuf {
     PathBuf::from(format!("/tmp/yolo-tier-cache-{}", uid))
 }
 
+/// Returns a short hash of the planning directory path for cache key scoping.
+/// This ensures different projects (different planning dirs) get separate cache entries.
+fn dir_hash(planning_dir: &Path) -> String {
+    let canonical = planning_dir.canonicalize()
+        .unwrap_or_else(|_| planning_dir.to_path_buf());
+    let full = sha256_of(&canonical.to_string_lossy());
+    full[..8].to_string()
+}
+
 /// Gets the max mtime (as seconds since epoch) across a list of file paths.
 /// Returns 0 if no files exist.
 fn max_mtime(paths: &[PathBuf]) -> u64 {
@@ -99,7 +108,8 @@ pub fn build_tier1(planning_dir: &Path) -> String {
         .collect();
     let mtime = max_mtime(&source_paths);
 
-    let cache_path = cache_dir().join("tier1.cache");
+    let dh = dir_hash(planning_dir);
+    let cache_path = cache_dir().join(format!("tier1-{}.cache", dh));
     if let Some(cached) = read_cache(&cache_path, mtime) {
         return cached;
     }
@@ -139,7 +149,8 @@ pub fn build_tier2(planning_dir: &Path, family: &str) -> String {
         .collect();
     let mtime = max_mtime(&source_paths);
 
-    let cache_path = cache_dir().join(format!("tier2-{}.cache", family));
+    let dh = dir_hash(planning_dir);
+    let cache_path = cache_dir().join(format!("tier2-{}-{}.cache", family, dh));
     if let Some(cached) = read_cache(&cache_path, mtime) {
         return cached;
     }
@@ -495,10 +506,11 @@ mod tests {
         // Build once to establish expected content
         let expected = build_tier1_uncached(&planning);
 
-        // Write corrupt cache file
+        // Write corrupt cache file at the dir-scoped path
         let cdir = cache_dir();
+        let dh = dir_hash(&planning);
         fs::create_dir_all(&cdir).unwrap();
-        fs::write(cdir.join("tier1.cache"), "not valid json\ngarbage content").unwrap();
+        fs::write(cdir.join(format!("tier1-{}.cache", dh)), "not valid json\ngarbage content").unwrap();
 
         // build_tier1 should fall through to normal build (fail-open)
         let result = build_tier1(&planning);
@@ -515,15 +527,16 @@ mod tests {
         let _ = build_tier2(&planning, "execution");
 
         let cdir = cache_dir();
-        // Cache files should exist
-        assert!(cdir.join("tier1.cache").exists());
-        assert!(cdir.join("tier2-execution.cache").exists());
+        let dh = dir_hash(&planning);
+        // Cache files should exist (scoped by dir hash)
+        assert!(cdir.join(format!("tier1-{}.cache", dh)).exists());
+        assert!(cdir.join(format!("tier2-execution-{}.cache", dh)).exists());
 
         // Invalidate
         invalidate_tier_cache().expect("invalidation should succeed");
 
         // Cache files should be gone
-        assert!(!cdir.join("tier1.cache").exists());
-        assert!(!cdir.join("tier2-execution.cache").exists());
+        assert!(!cdir.join(format!("tier1-{}.cache", dh)).exists());
+        assert!(!cdir.join(format!("tier2-execution-{}.cache", dh)).exists());
     }
 }
