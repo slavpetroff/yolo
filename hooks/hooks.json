@@ -28,7 +28,7 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "yolo-lead|yolo-dev|yolo-debugger|yolo-architect|yolo-docs|yolo-researcher|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|yolo:yolo-researcher|lead|dev|debugger|architect|docs|researcher|team-lead|team-dev|team-debugger|team-architect|team-docs|team-researcher",
+        "matcher": "yolo-lead|yolo-dev|yolo-debugger|yolo-architect|yolo-docs|yolo-researcher|yolo-reviewer|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|yolo:yolo-researcher|yolo:yolo-reviewer|lead|dev|debugger|architect|docs|researcher|reviewer|team-lead|team-dev|team-debugger|team-architect|team-docs|team-researcher|team-reviewer",
         "hooks": [
           {
             "type": "command",
@@ -40,7 +40,7 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "yolo-lead|yolo-dev|yolo-debugger|yolo-architect|yolo-docs|yolo-researcher|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|yolo:yolo-researcher|lead|dev|debugger|architect|docs|researcher|team-lead|team-dev|team-debugger|team-architect|team-docs|team-researcher",
+        "matcher": "yolo-lead|yolo-dev|yolo-debugger|yolo-architect|yolo-docs|yolo-researcher|yolo-reviewer|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|yolo:yolo-researcher|yolo:yolo-reviewer|lead|dev|debugger|architect|docs|researcher|reviewer|team-lead|team-dev|team-debugger|team-architect|team-docs|team-researcher|team-reviewer",
         "hooks": [
           {
             "type": "command",
@@ -52,7 +52,7 @@
     ],
     "TeammateIdle": [
       {
-        "matcher": "yolo-lead|yolo-dev|yolo-debugger|yolo-architect|yolo-docs|yolo-researcher|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|yolo:yolo-researcher|lead|dev|debugger|architect|docs|researcher|team-lead|team-dev|team-debugger|team-architect|team-docs|team-researcher",
+        "matcher": "yolo-lead|yolo-dev|yolo-debugger|yolo-architect|yolo-docs|yolo-researcher|yolo-reviewer|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|yolo:yolo-researcher|yolo:yolo-reviewer|lead|dev|debugger|architect|docs|researcher|reviewer|team-lead|team-dev|team-debugger|team-architect|team-docs|team-researcher|team-reviewer",
         "hooks": [
           {
             "type": "command",
@@ -64,7 +64,7 @@
     ],
     "TaskCompleted": [
       {
-        "matcher": "yolo-lead|yolo-dev|yolo-debugger|yolo-architect|yolo-docs|yolo-researcher|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|yolo:yolo-researcher|lead|dev|debugger|architect|docs|researcher|team-lead|team-dev|team-debugger|team-architect|team-docs|team-researcher",
+        "matcher": "yolo-lead|yolo-dev|yolo-debugger|yolo-architect|yolo-docs|yolo-researcher|yolo-reviewer|yolo:yolo-lead|yolo:yolo-dev|yolo:yolo-debugger|yolo:yolo-architect|yolo:yolo-docs|yolo:yolo-researcher|yolo:yolo-reviewer|lead|dev|debugger|architect|docs|researcher|reviewer|team-lead|team-dev|team-debugger|team-architect|team-docs|team-researcher|team-reviewer",
         "hooks": [
           {
             "type": "command",
