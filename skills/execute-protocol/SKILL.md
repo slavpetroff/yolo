@@ -64,9 +64,16 @@ Read prefer_teams config to determine team creation:
 PREFER_TEAMS=$(jq -r '.prefer_teams // "always"' .yolo-planning/config.json 2>/dev/null)
 ```
 
-Decision tree:
+**Single-plan optimization:** Before evaluating prefer_teams, count uncompleted plans for this phase. If exactly 1 uncompleted plan exists:
+- Skip TeamCreate entirely -- single agent mode, no team overhead
+- Spawn Dev agent directly via Task tool (no `team_name` parameter)
+- Skip TeamDelete in Step 5
 
-- `prefer_teams='always'`: Create team for ALL plan counts (even 1 plan), unless turbo or smart-routed to turbo
+This optimization applies regardless of the prefer_teams config value. Teams only provide value when 2+ agents can work in parallel. A team of 1 agent adds overhead (TeamCreate, TaskCreate, TaskUpdate, SendMessage, TeamDelete) with zero parallelism benefit.
+
+Decision tree (when 2+ uncompleted plans):
+
+- `prefer_teams='always'`: Create team for ALL plan counts, unless turbo or smart-routed to turbo
 - `prefer_teams='when_parallel'`: Create team only when 2+ uncompleted plans, unless turbo or smart-routed to turbo
 - `prefer_teams='auto'`: Same as when_parallel (use current behavior, smart routing can downgrade)
 
@@ -75,9 +82,9 @@ When team should be created based on prefer_teams:
 - Create team via TeamCreate: `team_name="yolo-phase-{NN}"`, `description="Phase {N}: {phase-name}"`
 - All Dev agents below MUST be spawned with `team_name: "yolo-phase-{NN}"` and `name: "dev-{MM}"` (from plan number) parameters on the Task tool invocation.
 
-When team should NOT be created (1 plan with when_parallel/auto, or turbo, or smart-routed turbo):
+When team should NOT be created (single plan via optimization above, turbo, or smart-routed turbo):
 
-- Skip TeamCreate — single agent, no team overhead.
+- Skip TeamCreate -- single agent, no team overhead.
 
 <!-- v3: smart-routing — see V3-EXTENSIONS.md when v3_* flags enabled -->
 
@@ -384,15 +391,17 @@ Note: "Run inline" means the execute-protocol agent runs the verify protocol dir
 
 ### Step 5: Update state and present summary
 
-**HARD GATE — Shutdown before ANY output or state updates:** If team was created (based on prefer_teams decision), you MUST shut down the team BEFORE updating state, presenting results, or asking the user anything. This is blocking and non-negotiable:
+**HARD GATE — Shutdown before ANY output or state updates:** If a team was created (2+ uncompleted plans AND prefer_teams permitted it -- see single-plan optimization in Step 3), you MUST shut down the team BEFORE updating state, presenting results, or asking the user anything. This is blocking and non-negotiable:
 
-1. Send `shutdown_request` via SendMessage to EVERY active teammate (excluding yourself — the orchestrator controls the sequence, not the lead agent) — do not skip any
+1. Send `shutdown_request` via SendMessage to EVERY active teammate (excluding yourself -- the orchestrator controls the sequence, not the lead agent) -- do not skip any
 2. Log event: `"$HOME/.cargo/bin/yolo" log-event shutdown_sent {phase} team={team_name} targets={count} 2>/dev/null || true`
-3. Wait for each `shutdown_response` with `approved: true`. If a teammate rejects, re-request immediately (max 3 attempts per teammate — if still rejected after 3 attempts, log a warning and proceed with TeamDelete).
+3. Wait for each `shutdown_response` with `approved: true`. If a teammate rejects, re-request immediately (max 3 attempts per teammate -- if still rejected after 3 attempts, log a warning and proceed with TeamDelete).
 4. Log event: `"$HOME/.cargo/bin/yolo" log-event shutdown_received {phase} team={team_name} approved={count} rejected={count} 2>/dev/null || true`
 5. Call TeamDelete for team "yolo-phase-{NN}"
 6. Only THEN proceed to state updates and user-facing output below
-   Failure to shut down leaves agents running in the background, consuming API credits (visible as hanging panes in tmux, invisible but still costly without tmux). If no team was created: skip shutdown sequence.
+   Failure to shut down leaves agents running in the background, consuming API credits (visible as hanging panes in tmux, invisible but still costly without tmux).
+
+If no team was created (single-plan optimization applied, turbo mode, or smart-routed turbo): skip the entire shutdown sequence above and proceed directly to state updates.
 
 **Post-shutdown verification:** After TeamDelete, there must be ZERO active teammates. If the Pure-Vibe loop or auto-chain will re-enter Plan mode next, confirm no prior agents linger before spawning new ones. This gate survives compaction — if you lost context about whether shutdown happened, assume it did NOT and send `shutdown_request` to any teammates that may still exist before proceeding.
 
