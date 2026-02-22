@@ -390,6 +390,60 @@ After all tasks in a plan complete, the Dev agent MUST write `{phase-dir}/{NN-MM
 
 If SUMMARY.md is missing or invalid, the plan is NOT considered complete. The Lead must not update execution-state.json to `"complete"` until this gate passes.
 
+### Step 3d: QA gate verification (optional)
+
+**Activation:** Read `qa_gate` from config:
+```bash
+QA_GATE=$(jq -r '.qa_gate // "on_request"' .yolo-planning/config.json 2>/dev/null)
+```
+
+| qa_gate | Behavior |
+|---------|----------|
+| always | Run QA verification on every phase after all Dev tasks complete |
+| on_request | Skip unless user passes `--qa` flag |
+| never | Skip entirely |
+
+**When active:**
+
+For each completed plan in the phase, run the following verification commands:
+
+1. **Verify plan completion:**
+```bash
+"$HOME/.cargo/bin/yolo" verify-plan-completion {summary_path} {plan_path}
+```
+Check: SUMMARY.md has all required fields, task counts match plan, commit hashes present.
+
+2. **Commit lint:**
+```bash
+"$HOME/.cargo/bin/yolo" commit-lint {commit_range}
+```
+Where `{commit_range}` is derived from the first commit before the phase to HEAD. Check: all commits follow `{type}({scope}): {description}` format.
+
+3. **Diff against plan:**
+```bash
+"$HOME/.cargo/bin/yolo" diff-against-plan {summary_path}
+```
+Check: files modified in git match files declared in SUMMARY.md.
+
+4. **Validate requirements:**
+```bash
+"$HOME/.cargo/bin/yolo" validate-requirements {plan_path} {phase_dir}
+```
+Check: must_haves from plan have evidence in SUMMARY/code.
+
+5. **Check regression:**
+```bash
+"$HOME/.cargo/bin/yolo" check-regression {phase_dir}
+```
+Check: test count hasn't decreased.
+
+**Aggregate results:**
+- If ALL checks pass (exit 0): Display `✓ QA verification passed` and proceed to Step 4
+- If ANY check fails (exit 1): Display `✗ QA verification failed` with findings. STOP execution.
+- Produce structured report: `{passed: bool, checks: [{name, status, evidence}], regressions: N}`
+
+**When inactive:** Display `○ QA gate skipped (qa_gate: {value})` and proceed to Step 4.
+
 ### Step 4: Verification (Native Testing)
 
 **Deprecated `yolo-qa` Agent:** The conceptual QA agent has been natively integrated into the Dev execution tools via MCP. The Dev agent is responsible for executing expected tests from the PLAN.md directly using the native run_test_suite MCP command and fixing their own stack traces within the exact same context loop.
