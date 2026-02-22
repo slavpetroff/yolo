@@ -244,10 +244,9 @@ fn simple_hash(s: &str) -> String {
 }
 
 fn read_yolo_version() -> String {
-    // Try VERSION file relative to binary location first
+    // Try VERSION file relative to binary location first (works in dev/target builds)
     if let Ok(exe) = std::env::current_exe() {
         if let Some(parent) = exe.parent() {
-            // Binary is typically in target/release or target/debug — go up to repo root
             for ancestor in [parent, parent.parent().unwrap_or(parent)] {
                 let vp = ancestor.join("VERSION");
                 if let Ok(v) = fs::read_to_string(&vp) {
@@ -259,7 +258,11 @@ fn read_yolo_version() -> String {
             }
         }
     }
-    // Try cwd-based VERSION
+    // Try plugin cache directory (works when installed via marketplace)
+    if let Some(v) = read_version_from_plugin_cache() {
+        return v;
+    }
+    // Try cwd-based VERSION (works when cwd is the yolo repo)
     if let Ok(v) = fs::read_to_string("VERSION") {
         let trimmed = v.trim().to_string();
         if !trimmed.is_empty() {
@@ -267,6 +270,26 @@ fn read_yolo_version() -> String {
         }
     }
     "?".to_string()
+}
+
+fn read_version_from_plugin_cache() -> Option<String> {
+    let home = std::env::var("HOME").ok()?;
+    let claude_dir = std::env::var("CLAUDE_CONFIG_DIR")
+        .unwrap_or_else(|_| format!("{}/.claude", home));
+    let cache_base = Path::new(&claude_dir)
+        .join("plugins/cache/yolo-marketplace/yolo");
+    let entries = fs::read_dir(&cache_base).ok()?;
+    let mut dirs: Vec<String> = entries
+        .flatten()
+        .filter(|e| e.path().is_dir())
+        .map(|e| e.file_name().to_string_lossy().to_string())
+        .collect();
+    dirs.sort();
+    let latest = dirs.last()?;
+    let vp = cache_base.join(latest).join("VERSION");
+    let v = fs::read_to_string(&vp).ok()?;
+    let trimmed = v.trim().to_string();
+    if trimmed.is_empty() { None } else { Some(trimmed) }
 }
 
 // === Cache freshness check ===

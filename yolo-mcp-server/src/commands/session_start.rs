@@ -339,34 +339,34 @@ fn check_first_run(claude_dir: &Path) -> String {
     String::new()
 }
 
-fn check_for_updates(script_dir: &Path) -> String {
+fn check_for_updates(_script_dir: &Path) -> String {
     let uid = unsafe { libc::getuid() };
     let cache_path = format!("/tmp/yolo-update-check-{}", uid);
     let mut local_ver = "0.0.0".to_string();
     let mut remote_ver = "0.0.0".to_string();
 
-    let plugin_json = script_dir.join("..").join(".claude-plugin").join("plugin.json");
-    if let Ok(content) = fs::read_to_string(&plugin_json) {
-        if let Ok(val) = serde_json::from_str::<Value>(&content) {
-            if let Some(v) = val.get("version").and_then(|v| v.as_str()) {
-                local_ver = v.to_string();
-            }
-        }
+    // Read installed version from plugin cache (authoritative for installed version)
+    if let Some(v) = read_installed_version() {
+        local_ver = v;
     }
 
     let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
     let mut fetch = true;
-    
+
     if let Ok(meta) = fs::metadata(&cache_path) {
         if let Ok(mtime) = meta.modified() {
             let mt = mtime.duration_since(UNIX_EPOCH).unwrap().as_secs();
             if now.saturating_sub(mt) <= 86400 {
-                fetch = false;
                 if let Ok(content) = fs::read_to_string(&cache_path) {
                     let parts: Vec<&str> = content.split('|').collect();
                     if parts.len() == 2 {
-                        local_ver = parts[0].to_string();
-                        remote_ver = parts[1].trim().to_string();
+                        let cached_local = parts[0].trim().to_string();
+                        let cached_remote = parts[1].trim().to_string();
+                        // Invalidate cache if installed version changed (user updated)
+                        if cached_local == local_ver {
+                            fetch = false;
+                            remote_ver = cached_remote;
+                        }
                     }
                 }
             }
@@ -375,22 +375,56 @@ fn check_for_updates(script_dir: &Path) -> String {
 
     if fetch {
         let client = Client::builder().timeout(Duration::from_secs(3)).build().unwrap();
-        if let Ok(res) = client.get("https://raw.githubusercontent.com/slavpetroff/yolo/main/.claude-plugin/plugin.json").send() {
+        if let Ok(res) = client.get("https://raw.githubusercontent.com/slavpetroff/yolo/main/VERSION").send() {
             if let Ok(content) = res.text() {
-                if let Ok(val) = serde_json::from_str::<Value>(&content) {
-                    if let Some(v) = val.get("version").and_then(|v| v.as_str()) {
-                        remote_ver = v.to_string();
-                    }
+                let trimmed = content.trim().to_string();
+                if !trimmed.is_empty() {
+                    remote_ver = trimmed;
                 }
             }
         }
         let _ = fs::write(&cache_path, format!("{}|{}", local_ver, remote_ver));
     }
 
-    if remote_ver != "0.0.0" && remote_ver != local_ver {
+    if remote_ver != "0.0.0" && remote_ver != local_ver && version_gt(&remote_ver, &local_ver) {
         return format!(" UPDATE AVAILABLE: v{} -> v{}. Run /yolo:update to upgrade.", local_ver, remote_ver);
     }
     String::new()
+}
+
+fn read_installed_version() -> Option<String> {
+    let home = env::var("HOME").ok()?;
+    let claude_dir = env::var("CLAUDE_CONFIG_DIR")
+        .unwrap_or_else(|_| format!("{}/.claude", home));
+    let cache_base = PathBuf::from(&claude_dir)
+        .join("plugins/cache/yolo-marketplace/yolo");
+    let entries = fs::read_dir(&cache_base).ok()?;
+    let mut dirs: Vec<String> = entries
+        .flatten()
+        .filter(|e| e.path().is_dir())
+        .map(|e| e.file_name().to_string_lossy().to_string())
+        .collect();
+    dirs.sort();
+    let latest = dirs.last()?;
+    let vp = cache_base.join(latest).join("VERSION");
+    let v = fs::read_to_string(&vp).ok()?;
+    let trimmed = v.trim().to_string();
+    if trimmed.is_empty() { None } else { Some(trimmed) }
+}
+
+fn version_gt(a: &str, b: &str) -> bool {
+    let parse = |v: &str| -> Vec<u64> {
+        v.split('.').filter_map(|p| p.parse().ok()).collect()
+    };
+    let ra = parse(a);
+    let rb = parse(b);
+    for i in 0..ra.len().max(rb.len()) {
+        let va = ra.get(i).copied().unwrap_or(0);
+        let vb = rb.get(i).copied().unwrap_or(0);
+        if va > vb { return true; }
+        if va < vb { return false; }
+    }
+    false
 }
 
 fn migrate_statusline_and_tmux(claude_dir: &Path, planning_dir: &Path) {

@@ -171,7 +171,7 @@ fn fetch_remote_version(offline: bool) -> Option<String> {
     if offline {
         return None;
     }
-    let url = "https://raw.githubusercontent.com/slavpetroff/vibe-better-with-claude-code/main/VERSION";
+    let url = "https://raw.githubusercontent.com/slavpetroff/yolo/main/VERSION";
     let client = reqwest::blocking::Client::builder()
         .timeout(std::time::Duration::from_secs(5))
         .build()
