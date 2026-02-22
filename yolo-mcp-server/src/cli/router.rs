@@ -356,6 +356,12 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
                 Err(e) => Err(e),
             }
         }
+        "invalidate-tier-cache" => {
+            match tier_context::invalidate_tier_cache() {
+                Ok(()) => Ok(("Tier cache invalidated".to_string(), 0)),
+                Err(e) => Ok((format!("Cache invalidation failed (non-fatal): {}", e), 0)),
+            }
+        }
         "compile-context" => {
             if args.len() < 4 {
                 return Err("Usage: yolo compile-context <phase> <role> <phases_dir> [plan_path]".to_string());

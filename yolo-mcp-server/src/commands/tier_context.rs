@@ -1,5 +1,57 @@
 use sha2::{Sha256, Digest};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+/// Returns the cache directory path: /tmp/yolo-tier-cache-{uid}/
+fn cache_dir() -> PathBuf {
+    let uid = unsafe { libc::getuid() };
+    PathBuf::from(format!("/tmp/yolo-tier-cache-{}", uid))
+}
+
+/// Gets the max mtime (as seconds since epoch) across a list of file paths.
+/// Returns 0 if no files exist.
+fn max_mtime(paths: &[PathBuf]) -> u64 {
+    paths.iter().filter_map(|p| {
+        std::fs::metadata(p).ok().and_then(|m| {
+            m.modified().ok().and_then(|t| {
+                t.duration_since(std::time::UNIX_EPOCH).ok().map(|d| d.as_secs())
+            })
+        })
+    }).max().unwrap_or(0)
+}
+
+/// Tries to read a cached tier file. Returns Some(content) on cache hit.
+/// Cache file format: first line is JSON {"mtime_secs":N,"hash":"sha256hex"},
+/// rest is cached content.
+fn read_cache(cache_path: &Path, source_mtime: u64) -> Option<String> {
+    let raw = std::fs::read_to_string(cache_path).ok()?;
+    let newline_pos = raw.find('\n')?;
+    let header_line = &raw[..newline_pos];
+    let content = &raw[newline_pos + 1..];
+
+    let header: serde_json::Value = serde_json::from_str(header_line).ok()?;
+    let stored_mtime = header.get("mtime_secs")?.as_u64()?;
+    let stored_hash = header.get("hash")?.as_str()?;
+
+    if stored_mtime < source_mtime {
+        return None;
+    }
+
+    // Verify content integrity
+    if sha256_of(content) != stored_hash {
+        return None;
+    }
+
+    Some(content.to_string())
+}
+
+/// Writes content to a cache file with mtime header. Fail-open: errors are ignored.
+fn write_cache(cache_path: &Path, content: &str, source_mtime: u64) {
+    let hash = sha256_of(content);
+    let header = format!("{{\"mtime_secs\":{},\"hash\":\"{}\"}}", source_mtime, hash);
+    let full = format!("{}\n{}", header, content);
+    let _ = std::fs::create_dir_all(cache_path.parent().unwrap_or(Path::new("/tmp")));
+    let _ = std::fs::write(cache_path, full);
+}
 
 /// Maps a role name to its role family for tier 2 content selection.
 pub fn role_family(role: &str) -> &'static str {
@@ -24,9 +76,8 @@ pub fn tier2_files(family: &str) -> Vec<&'static str> {
     }
 }
 
-/// Reads tier 1 files from the planning codebase directory and produces
-/// deterministic content with the `--- TIER 1: SHARED BASE ---` header.
-pub fn build_tier1(planning_dir: &Path) -> String {
+/// Builds tier 1 content without caching (the raw computation).
+fn build_tier1_uncached(planning_dir: &Path) -> String {
     let codebase_dir = planning_dir.join("codebase");
     let mut content = String::from("--- TIER 1: SHARED BASE ---\n");
     for basename in tier1_files() {
@@ -38,9 +89,28 @@ pub fn build_tier1(planning_dir: &Path) -> String {
     content
 }
 
-/// Reads tier 2 files for the given role family and produces deterministic
-/// content with the `--- TIER 2: ROLE FAMILY ({family}) ---` header.
-pub fn build_tier2(planning_dir: &Path, family: &str) -> String {
+/// Reads tier 1 files from the planning codebase directory and produces
+/// deterministic content with the `--- TIER 1: SHARED BASE ---` header.
+/// Uses mtime-based caching to skip recomputation when source files are unchanged.
+pub fn build_tier1(planning_dir: &Path) -> String {
+    let codebase_dir = planning_dir.join("codebase");
+    let source_paths: Vec<PathBuf> = tier1_files().iter()
+        .map(|b| codebase_dir.join(b))
+        .collect();
+    let mtime = max_mtime(&source_paths);
+
+    let cache_path = cache_dir().join("tier1.cache");
+    if let Some(cached) = read_cache(&cache_path, mtime) {
+        return cached;
+    }
+
+    let content = build_tier1_uncached(planning_dir);
+    write_cache(&cache_path, &content, mtime);
+    content
+}
+
+/// Builds tier 2 content without caching (the raw computation).
+fn build_tier2_uncached(planning_dir: &Path, family: &str) -> String {
     let codebase_dir = planning_dir.join("codebase");
     let mut content = format!("--- TIER 2: ROLE FAMILY ({}) ---\n", family);
     for basename in tier2_files(family) {
@@ -53,6 +123,29 @@ pub fn build_tier2(planning_dir: &Path, family: &str) -> String {
             content.push_str(&format!("\n# {}\n{}\n", basename, text));
         }
     }
+    content
+}
+
+/// Reads tier 2 files for the given role family and produces deterministic
+/// content with the `--- TIER 2: ROLE FAMILY ({family}) ---` header.
+/// Uses mtime-based caching to skip recomputation when source files are unchanged.
+pub fn build_tier2(planning_dir: &Path, family: &str) -> String {
+    let codebase_dir = planning_dir.join("codebase");
+    let source_paths: Vec<PathBuf> = tier2_files(family).iter()
+        .map(|b| {
+            let primary = codebase_dir.join(b);
+            if primary.exists() { primary } else { planning_dir.join(b) }
+        })
+        .collect();
+    let mtime = max_mtime(&source_paths);
+
+    let cache_path = cache_dir().join(format!("tier2-{}.cache", family));
+    if let Some(cached) = read_cache(&cache_path, mtime) {
+        return cached;
+    }
+
+    let content = build_tier2_uncached(planning_dir, family);
+    write_cache(&cache_path, &content, mtime);
     content
 }
 
@@ -104,6 +197,19 @@ pub fn build_tier3_volatile(
         }
     }
     content
+}
+
+/// Removes all files in the tier cache directory. Fail-open: errors are ignored.
+pub fn invalidate_tier_cache() -> Result<(), String> {
+    let dir = cache_dir();
+    if !dir.exists() {
+        return Ok(());
+    }
+    let entries = std::fs::read_dir(&dir).map_err(|e| e.to_string())?;
+    for entry in entries.flatten() {
+        let _ = std::fs::remove_file(entry.path());
+    }
+    Ok(())
 }
 
 /// Computes the SHA-256 hex digest of a string.
@@ -324,5 +430,100 @@ mod tests {
         let pos_a = t3.find("Plan A content").unwrap();
         let pos_b = t3.find("Plan B content").unwrap();
         assert!(pos_a < pos_b);
+    }
+
+    #[test]
+    fn test_tier1_cache_hit() {
+        let tmp = setup_planning_dir();
+        let planning = tmp.path().join(".yolo-planning");
+
+        // First call populates cache
+        let t1_first = build_tier1(&planning);
+        // Second call should return identical content (from cache)
+        let t1_second = build_tier1(&planning);
+        assert_eq!(t1_first, t1_second);
+        assert!(t1_first.contains("--- TIER 1: SHARED BASE ---"));
+        assert!(t1_first.contains("Convention rules here"));
+    }
+
+    #[test]
+    fn test_tier1_cache_invalidation() {
+        let tmp = setup_planning_dir();
+        let planning = tmp.path().join(".yolo-planning");
+        let codebase = planning.join("codebase");
+
+        let t1_before = build_tier1(&planning);
+        assert!(t1_before.contains("Convention rules here"));
+
+        // Sleep briefly so mtime definitely changes
+        std::thread::sleep(std::time::Duration::from_millis(1100));
+
+        // Modify source file to change mtime and content
+        fs::write(codebase.join("CONVENTIONS.md"), "Updated conventions").unwrap();
+
+        let t1_after = build_tier1(&planning);
+        // Cache should be invalidated, new content returned
+        assert!(t1_after.contains("Updated conventions"));
+        assert!(!t1_after.contains("Convention rules here"));
+    }
+
+    #[test]
+    fn test_tier2_cache_per_family() {
+        let tmp = setup_planning_dir();
+        let planning = tmp.path().join(".yolo-planning");
+
+        let t2_planning = build_tier2(&planning, "planning");
+        let t2_execution = build_tier2(&planning, "execution");
+
+        // Different families must have different content
+        assert_ne!(t2_planning, t2_execution);
+        assert!(t2_planning.contains("Architecture overview"));
+        assert!(!t2_execution.contains("Architecture overview"));
+
+        // Subsequent calls return same content
+        let t2_planning2 = build_tier2(&planning, "planning");
+        let t2_execution2 = build_tier2(&planning, "execution");
+        assert_eq!(t2_planning, t2_planning2);
+        assert_eq!(t2_execution, t2_execution2);
+    }
+
+    #[test]
+    fn test_cache_corruption_fallback() {
+        let tmp = setup_planning_dir();
+        let planning = tmp.path().join(".yolo-planning");
+
+        // Build once to establish expected content
+        let expected = build_tier1_uncached(&planning);
+
+        // Write corrupt cache file
+        let cdir = cache_dir();
+        fs::create_dir_all(&cdir).unwrap();
+        fs::write(cdir.join("tier1.cache"), "not valid json\ngarbage content").unwrap();
+
+        // build_tier1 should fall through to normal build (fail-open)
+        let result = build_tier1(&planning);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_invalidate_tier_cache() {
+        let tmp = setup_planning_dir();
+        let planning = tmp.path().join(".yolo-planning");
+
+        // Build to populate cache
+        let _ = build_tier1(&planning);
+        let _ = build_tier2(&planning, "execution");
+
+        let cdir = cache_dir();
+        // Cache files should exist
+        assert!(cdir.join("tier1.cache").exists());
+        assert!(cdir.join("tier2-execution.cache").exists());
+
+        // Invalidate
+        invalidate_tier_cache().expect("invalidation should succeed");
+
+        // Cache files should be gone
+        assert!(!cdir.join("tier1.cache").exists());
+        assert!(!cdir.join("tier2-execution.cache").exists());
     }
 }
