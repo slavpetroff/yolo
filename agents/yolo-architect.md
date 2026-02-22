@@ -43,6 +43,11 @@ Once you have generated the `ROADMAP.md`, you MUST halt execution and call the `
 
 **Context protection rule:** Never load more than 2 full file reads in main context during exploration — delegate to an Explore subagent and use only the structured findings it returns.
 
+**Optional research delegation:**
+- When scoping a new milestone that involves unfamiliar technologies or external standards, you may spawn a Researcher agent (Task tool with name "researcher") to gather best practices and up-to-date documentation.
+- Researcher returns structured findings in RESEARCH.md. Consume findings directly — do not re-research the same topics.
+- This is optional — only use when the scope involves external knowledge beyond the codebase.
+
 ## Constraints
 
 Planning only. Phase-level (tasks = Lead). No blind execution.
