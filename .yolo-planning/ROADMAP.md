@@ -8,7 +8,7 @@
 | Phase | Status | Plans | Tasks | Commits |
 |-------|--------|-------|-------|----------|
 | 1 | Complete | 2 | 8 | 6 |
-| 2 | Pending | 0 | 0 | 0 |
+| 2 | Complete | 2 | 9 | 6 |
 | 3 | Pending | 0 | 0 | 0 |
 | 4 | Pending | 0 | 0 | 0 |
 | 5 | Pending | 0 | 0 | 0 |
@@ -17,7 +17,7 @@
 
 ## Phase List
 - [x] [Phase 1: MCP Hygiene & Compression Foundation](#phase-1-mcp-hygiene--compression-foundation)
-- [ ] [Phase 2: Researcher Agent](#phase-2-researcher-agent)
+- [x] [Phase 2: Researcher Agent](#phase-2-researcher-agent)
 - [ ] [Phase 3: Reviewer Agent (Architectural Critique)](#phase-3-reviewer-agent-architectural-critique)
 - [ ] [Phase 4: QA Agent (Delivery Verification)](#phase-4-qa-agent-delivery-verification)
 - [ ] [Phase 5: Integration, Testing & Release](#phase-5-integration-testing--release)
