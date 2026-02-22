@@ -59,6 +59,36 @@ fn check_summary_structure(content: &str) -> Vec<String> {
 
     if !content.starts_with("---") {
         missing.push("Missing YAML frontmatter.".to_string());
+    } else {
+        // Extract and validate frontmatter fields
+        let frontmatter = extract_frontmatter(content);
+        if let Some(fm) = frontmatter {
+            let required_fields = [
+                "phase",
+                "plan",
+                "status",
+                "tasks_completed",
+                "tasks_total",
+                "commit_hashes",
+            ];
+            for field in &required_fields {
+                if !frontmatter_has_field(&fm, field) {
+                    missing.push(format!("Missing frontmatter field '{}'.", field));
+                }
+            }
+            // Validate status value if present
+            if let Some(status_val) = frontmatter_field_value(&fm, "status") {
+                let valid_statuses = ["complete", "partial", "failed"];
+                if !valid_statuses.contains(&status_val.as_str()) {
+                    missing.push(format!(
+                        "Invalid status '{}'. Must be one of: complete, partial, failed.",
+                        status_val
+                    ));
+                }
+            }
+        } else {
+            missing.push("YAML frontmatter not properly closed (missing second '---').".to_string());
+        }
     }
 
     if !content.contains("## What Was Built") {
@@ -69,7 +99,55 @@ fn check_summary_structure(content: &str) -> Vec<String> {
         missing.push("Missing '## Files Modified'.".to_string());
     }
 
+    if !content.contains("## Deviations") {
+        missing.push("Missing '## Deviations'.".to_string());
+    }
+
     missing
+}
+
+/// Extract the frontmatter content between the first `---` and second `---`.
+/// Returns None if frontmatter is not properly delimited.
+fn extract_frontmatter(content: &str) -> Option<String> {
+    if !content.starts_with("---") {
+        return None;
+    }
+    // Find the second `---` after the first line
+    let after_first = &content[3..];
+    // Skip any characters on the first --- line (e.g., newline)
+    let rest = after_first.trim_start_matches(|c: char| c != '\n');
+    let rest = rest.strip_prefix('\n').unwrap_or(rest);
+    if let Some(end_idx) = rest.find("\n---") {
+        Some(rest[..end_idx].to_string())
+    } else if rest.ends_with("---") {
+        // Handle case where --- is at the very end without trailing newline
+        let trimmed = rest.trim_end_matches("---");
+        Some(trimmed.to_string())
+    } else {
+        None
+    }
+}
+
+/// Check if a frontmatter string contains a given field (line starting with `field_name:`).
+fn frontmatter_has_field(frontmatter: &str, field_name: &str) -> bool {
+    let prefix = format!("{}:", field_name);
+    frontmatter.lines().any(|line| {
+        let trimmed = line.trim();
+        trimmed.starts_with(&prefix)
+    })
+}
+
+/// Extract the value of a frontmatter field. Returns None if field not found.
+fn frontmatter_field_value(frontmatter: &str, field_name: &str) -> Option<String> {
+    let prefix = format!("{}:", field_name);
+    for line in frontmatter.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with(&prefix) {
+            let value = trimmed[prefix.len()..].trim().trim_matches('"').trim();
+            return Some(value.to_string());
+        }
+    }
+    None
 }
 
 #[cfg(test)]
@@ -79,14 +157,14 @@ mod tests {
 
     #[test]
     fn test_valid_summary() {
-        let content = "---\ntitle: Test\n---\n## What Was Built\nStuff\n## Files Modified\nfiles";
+        let content = "---\nphase: \"01\"\nplan: \"01\"\nstatus: complete\ntasks_completed: 3\ntasks_total: 3\ncommit_hashes:\n  - abc123\n---\n## What Was Built\nStuff\n## Files Modified\nfiles\n## Deviations\nNone";
         let missing = check_summary_structure(content);
-        assert!(missing.is_empty());
+        assert!(missing.is_empty(), "Expected no missing items but got: {:?}", missing);
     }
 
     #[test]
     fn test_missing_frontmatter() {
-        let content = "# Summary\n## What Was Built\nStuff\n## Files Modified\nfiles";
+        let content = "# Summary\n## What Was Built\nStuff\n## Files Modified\nfiles\n## Deviations\nNone";
         let missing = check_summary_structure(content);
         assert_eq!(missing.len(), 1);
         assert!(missing[0].contains("YAML frontmatter"));
@@ -94,7 +172,7 @@ mod tests {
 
     #[test]
     fn test_missing_what_was_built() {
-        let content = "---\ntitle: Test\n---\n## Files Modified\nfiles";
+        let content = "---\nphase: \"01\"\nplan: \"01\"\nstatus: complete\ntasks_completed: 3\ntasks_total: 3\ncommit_hashes:\n  - abc123\n---\n## Files Modified\nfiles\n## Deviations\nNone";
         let missing = check_summary_structure(content);
         assert_eq!(missing.len(), 1);
         assert!(missing[0].contains("What Was Built"));
@@ -102,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_missing_files_modified() {
-        let content = "---\ntitle: Test\n---\n## What Was Built\nStuff";
+        let content = "---\nphase: \"01\"\nplan: \"01\"\nstatus: complete\ntasks_completed: 3\ntasks_total: 3\ncommit_hashes:\n  - abc123\n---\n## What Was Built\nStuff\n## Deviations\nNone";
         let missing = check_summary_structure(content);
         assert_eq!(missing.len(), 1);
         assert!(missing[0].contains("Files Modified"));
@@ -112,7 +190,7 @@ mod tests {
     fn test_missing_all_sections() {
         let content = "Just some text";
         let missing = check_summary_structure(content);
-        assert_eq!(missing.len(), 3);
+        assert_eq!(missing.len(), 4); // frontmatter + What Was Built + Files Modified + Deviations
     }
 
     #[test]
@@ -154,7 +232,7 @@ mod tests {
         let planning_dir = dir.path().join(".yolo-planning").join("phases").join("01");
         std::fs::create_dir_all(&planning_dir).unwrap();
         let summary_path = planning_dir.join("01-SUMMARY.md");
-        std::fs::write(&summary_path, "---\ntitle: Test\n---\n## What Was Built\nDone\n## Files Modified\nf.rs").unwrap();
+        std::fs::write(&summary_path, "---\nphase: \"01\"\nplan: \"01\"\nstatus: complete\ntasks_completed: 3\ntasks_total: 3\ncommit_hashes:\n  - abc123\n---\n## What Was Built\nDone\n## Files Modified\nf.rs\n## Deviations\nNone").unwrap();
 
         let input = json!({"tool_input": {"file_path": summary_path.to_str().unwrap()}});
         let (output, code) = validate_summary(&input);
