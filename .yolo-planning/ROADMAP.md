@@ -9,7 +9,7 @@
 |-------|--------|-------|-------|----------|
 | 1 | Complete | 5 | 18 | 14 |
 | 2 | Complete | 4 | 20 | 17 |
-| 3 | Planned | 4 | 14 | 0 |
+| 3 | Complete | 4 | 14 | 9 |
 | 4 | Pending | 0 | 0 | 0 |
 
 ---
@@ -17,7 +17,7 @@
 ## Phase List
 - [x] [Phase 1: Incomplete CLI & MCP Command Fixes](#phase-1-incomplete-cli--mcp-command-fixes)
 - [x] [Phase 2: Rust CLI Structured Returns](#phase-2-rust-cli-structured-returns)
-- [ ] [Phase 3: Token Reduction Sweep](#phase-3-token-reduction-sweep)
+- [x] [Phase 3: Token Reduction Sweep](#phase-3-token-reduction-sweep)
 - [ ] [Phase 4: Hot Path & vibe.md Mode Splitting](#phase-4-hot-path--vibemd-mode-splitting)
 
 ---
