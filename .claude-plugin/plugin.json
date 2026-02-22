@@ -1,10 +1,14 @@
 {
   "name": "yolo",
   "version": "2.5.0",
-  "description": "YOLO — development lifecycle plugin for Claude Code. 24 commands, 7 agents, continuous verification.",
+  "description": "YOLO — development lifecycle plugin for Claude Code. 23 commands, 5 agents, continuous verification.",
   "author": {
     "name": "Stanislav Petrov",
     "url": "https://github.com/slavpetroff"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "mcp_server": {
+    "command": "yolo-mcp-server",
+    "args": []
+  }
 }
