@@ -1,23 +1,10 @@
+use super::feature_flags::{self, FeatureFlag};
+use super::log_event;
 use chrono::Utc;
 use serde_json::{json, Value};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
-
-use super::log_event;
-
-/// Check if v2_two_phase_completion is enabled in config.json.
-fn is_enabled(cwd: &Path) -> bool {
-    let config_path = cwd.join(".yolo-planning").join("config.json");
-    if config_path.exists() {
-        if let Ok(content) = fs::read_to_string(&config_path) {
-            if let Ok(config) = serde_json::from_str::<Value>(&content) {
-                return config.get("v2_two_phase_completion").and_then(|v| v.as_bool()).unwrap_or(false);
-            }
-        }
-    }
-    false
-}
 
 /// Parse key=value pairs from evidence args.
 fn parse_evidence_args(args: &[String]) -> (Vec<String>, Vec<(String, String)>) {
@@ -202,7 +189,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         return Err("Usage: yolo two-phase-complete <task_id> <phase> <plan> <contract_path> [evidence...]".to_string());
     }
 
-    if !is_enabled(cwd) {
+    if !feature_flags::is_enabled(FeatureFlag::V2TwoPhaseCompletion, cwd) {
         return Ok((json!({"result": "skip", "reason": "v2_two_phase_completion=false"}).to_string(), 0));
     }
 

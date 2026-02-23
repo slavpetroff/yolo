@@ -1,20 +1,8 @@
+use super::feature_flags::{self, FeatureFlag};
 use chrono::Utc;
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
-
-/// Check if v3_lock_lite is enabled in config.json.
-fn is_enabled(cwd: &Path) -> bool {
-    let config_path = cwd.join(".yolo-planning").join("config.json");
-    if config_path.exists() {
-        if let Ok(content) = fs::read_to_string(&config_path) {
-            if let Ok(config) = serde_json::from_str::<Value>(&content) {
-                return config.get("v3_lock_lite").and_then(|v| v.as_bool()).unwrap_or(false);
-            }
-        }
-    }
-    false
-}
 
 /// Get the locks directory path.
 fn locks_dir(cwd: &Path) -> PathBuf {
@@ -162,7 +150,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         return Err("Usage: yolo lock <acquire|release|check> <resource> [--owner=<owner>]".to_string());
     }
 
-    if !is_enabled(cwd) {
+    if !feature_flags::is_enabled(FeatureFlag::V3LockLite, cwd) {
         return Ok((json!({"result": "skip", "reason": "v3_lock_lite=false"}).to_string(), 0));
     }
 

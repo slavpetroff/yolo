@@ -1,3 +1,4 @@
+use super::feature_flags::{self, FeatureFlag};
 use chrono::Utc;
 use serde_json::{json, Value};
 use std::env;
@@ -62,42 +63,29 @@ pub fn log(
     cwd: &Path,
 ) -> Result<LogResult, String> {
     let planning_dir = cwd.join(".yolo-planning");
-    let config_path = planning_dir.join("config.json");
 
     // Check v3_event_log flag
-    if config_path.exists() {
-        if let Ok(config_str) = fs::read_to_string(&config_path) {
-            if let Ok(config) = serde_json::from_str::<Value>(&config_str) {
-                let enabled = config.get("v3_event_log").and_then(|v| v.as_bool()).unwrap_or(false);
-                if !enabled {
-                    return Ok(LogResult {
-                        written: false,
-                        event_id: None,
-                        reason: Some("v3_event_log disabled".to_string()),
-                    });
-                }
-            }
-        }
+    if !feature_flags::is_enabled(FeatureFlag::V3EventLog, cwd) {
+        return Ok(LogResult {
+            written: false,
+            event_id: None,
+            reason: Some("v3_event_log disabled".to_string()),
+        });
     }
 
     // Validate event type when v2_typed_protocol=true
-    if config_path.exists() {
-        if let Ok(config_str) = fs::read_to_string(&config_path) {
-            if let Ok(config) = serde_json::from_str::<Value>(&config_str) {
-                let typed = config.get("v2_typed_protocol").and_then(|v| v.as_bool()).unwrap_or(false);
-                if typed && !ALLOWED_EVENT_TYPES.contains(&event_type) {
-                    eprintln!(
-                        "[log-event] WARNING: unknown event type '{}' rejected by v2_typed_protocol",
-                        event_type
-                    );
-                    return Ok(LogResult {
-                        written: false,
-                        event_id: None,
-                        reason: Some("unknown event type rejected".to_string()),
-                    });
-                }
-            }
-        }
+    if feature_flags::is_enabled(FeatureFlag::V2TypedProtocol, cwd)
+        && !ALLOWED_EVENT_TYPES.contains(&event_type)
+    {
+        eprintln!(
+            "[log-event] WARNING: unknown event type '{}' rejected by v2_typed_protocol",
+            event_type
+        );
+        return Ok(LogResult {
+            written: false,
+            event_id: None,
+            reason: Some("unknown event type rejected".to_string()),
+        });
     }
 
     // Resolve correlation_id: env var → execution-state.json → ""
