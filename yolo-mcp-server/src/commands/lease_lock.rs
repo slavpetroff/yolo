@@ -11,13 +11,11 @@ const DEFAULT_TTL_SECS: u64 = 300;
 /// Read task_lease_ttl_secs from `.yolo-planning/config.json`, defaulting to 300.
 fn read_task_lease_ttl(cwd: &Path) -> u64 {
     let config_path = cwd.join(".yolo-planning").join("config.json");
-    if let Ok(content) = fs::read_to_string(&config_path) {
-        if let Ok(config) = serde_json::from_str::<Value>(&content) {
-            if let Some(ttl) = config.get("task_lease_ttl_secs").and_then(|v| v.as_u64()) {
-                return ttl;
-            }
+    if let Ok(content) = fs::read_to_string(&config_path)
+        && let Ok(config) = serde_json::from_str::<Value>(&content)
+        && let Some(ttl) = config.get("task_lease_ttl_secs").and_then(|v| v.as_u64()) {
+            return ttl;
         }
-    }
     DEFAULT_TTL_SECS
 }
 
@@ -28,7 +26,7 @@ fn locks_dir(cwd: &Path) -> PathBuf {
 
 /// Sanitize a resource name into a safe filename.
 fn lock_filename(resource: &str) -> String {
-    resource.replace('/', "__").replace('\\', "__").replace(' ', "_")
+    resource.replace(['/', '\\'], "__").replace(' ', "_")
 }
 
 /// Read a lease lock file and parse its JSON content.
@@ -94,8 +92,8 @@ pub fn acquire(resource: &ResourceId, owner: &str, ttl_secs: u64, cwd: &Path) ->
     let lock_path = dir.join(format!("{}.lease", filename));
 
     // Check existing lease
-    if lock_path.exists() {
-        if let Some(existing) = read_lease(&lock_path) {
+    if lock_path.exists()
+        && let Some(existing) = read_lease(&lock_path) {
             let existing_owner = existing.get("owner").and_then(|v| v.as_str()).unwrap_or("");
 
             if is_expired(&existing) {
@@ -116,7 +114,6 @@ pub fn acquire(resource: &ResourceId, owner: &str, ttl_secs: u64, cwd: &Path) ->
                 }));
             }
         }
-    }
 
     let ts = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
     let lock_data = json!({
@@ -240,17 +237,14 @@ pub fn cleanup_expired(cwd: &Path) -> Value {
 
     if let Ok(entries) = fs::read_dir(&dir) {
         for entry in entries.flatten() {
-            if let Some(name) = entry.file_name().to_str() {
-                if name.ends_with(".lease") {
-                    if let Some(data) = read_lease(&entry.path()) {
-                        if is_expired(&data) {
-                            let resource = data.get("resource").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
-                            let _ = fs::remove_file(entry.path());
-                            cleaned.push(resource);
-                        }
-                    }
+            if let Some(name) = entry.file_name().to_str()
+                && name.ends_with(".lease")
+                && let Some(data) = read_lease(&entry.path())
+                && is_expired(&data) {
+                    let resource = data.get("resource").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+                    let _ = fs::remove_file(entry.path());
+                    cleaned.push(resource);
                 }
-            }
         }
     }
 
@@ -274,38 +268,35 @@ pub fn reassign_expired_tasks(cwd: &Path) -> Value {
 
     if let Ok(entries) = fs::read_dir(&dir) {
         for entry in entries.flatten() {
-            if let Some(name) = entry.file_name().to_str() {
-                if name.ends_with(".lease") {
-                    if let Some(data) = read_lease(&entry.path()) {
-                        if is_expired(&data) {
-                            let resource = data.get("resource").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
-                            let prev_owner = data.get("owner").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
-                            let acquired_at = data.get("owner").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            if let Some(name) = entry.file_name().to_str()
+                && name.ends_with(".lease")
+                && let Some(data) = read_lease(&entry.path())
+                && is_expired(&data) {
+                    let resource = data.get("resource").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+                    let prev_owner = data.get("owner").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+                    let acquired_at = data.get("owner").and_then(|v| v.as_str()).unwrap_or("").to_string();
 
-                            let _ = fs::remove_file(entry.path());
+                    let _ = fs::remove_file(entry.path());
 
-                            // Log task_reassigned event if v3_event_log is enabled
-                            let _ = log_event::log(
-                                "task_reassigned",
-                                "0",
-                                None,
-                                &[
-                                    ("resource".to_string(), resource.clone()),
-                                    ("previous_owner".to_string(), prev_owner.clone()),
-                                    ("reason".to_string(), "lease_expired".to_string()),
-                                ],
-                                cwd,
-                            );
+                    // Log task_reassigned event if v3_event_log is enabled
+                    let _ = log_event::log(
+                        "task_reassigned",
+                        "0",
+                        None,
+                        &[
+                            ("resource".to_string(), resource.clone()),
+                            ("previous_owner".to_string(), prev_owner.clone()),
+                            ("reason".to_string(), "lease_expired".to_string()),
+                        ],
+                        cwd,
+                    );
 
-                            reassigned.push(json!({
-                                "resource": resource,
-                                "previous_owner": prev_owner,
-                                "acquired_at": acquired_at,
-                            }));
-                        }
-                    }
+                    reassigned.push(json!({
+                        "resource": resource,
+                        "previous_owner": prev_owner,
+                        "acquired_at": acquired_at,
+                    }));
                 }
-            }
         }
     }
 

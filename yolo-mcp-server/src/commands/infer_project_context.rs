@@ -41,8 +41,8 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     if let Ok(output) = git_output {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let url = stdout.trim();
-        if !url.is_empty() {
-            if let Some(pos) = url.rfind('/') {
+        if !url.is_empty()
+            && let Some(pos) = url.rfind('/') {
                 let mut repo_name = &url[pos + 1..];
                 if repo_name.ends_with(".git") {
                     repo_name = &repo_name[..repo_name.len() - 4];
@@ -52,24 +52,19 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                     name_source = "repo".to_string();
                 }
             }
-        }
     }
 
     // Try plugin.json name
     if name_value.is_empty() {
         let plugin_json = repo_root.join(".claude-plugin").join("plugin.json");
-        if plugin_json.exists() {
-            if let Ok(content) = fs::read_to_string(&plugin_json) {
-                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content) {
-                    if let Some(n) = parsed.get("name").and_then(|v| v.as_str()) {
-                        if !n.is_empty() {
-                            name_value = n.to_string();
-                            name_source = "plugin.json".to_string();
-                        }
-                    }
-                }
+        if plugin_json.exists()
+            && let Ok(content) = fs::read_to_string(&plugin_json)
+            && let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content)
+            && let Some(n) = parsed.get("name").and_then(|v| v.as_str())
+            && !n.is_empty() {
+                name_value = n.to_string();
+                name_source = "plugin.json".to_string();
             }
-        }
     }
 
     // Fallback to directory name
@@ -145,8 +140,8 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                     }
                 }
 
-                if in_key_tech {
-                    if line.starts_with("- ") {
+                if in_key_tech
+                    && line.starts_with("- ") {
                         let mut tech = line.trim_start_matches("- ").to_string();
                         tech = tech.trim_start_matches("**").to_string();
                         if let Some(pos) = tech.find("**") {
@@ -156,7 +151,6 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                             stack_items.push(tech);
                         }
                     }
-                }
             }
         }
         if !stack_items.is_empty() {
@@ -271,8 +265,8 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     // --- Architecture extraction from ARCHITECTURE.md ---
     let mut arch_text = String::new();
     let arch_file = codebase_dir.join("ARCHITECTURE.md");
-    if arch_file.exists() {
-        if let Ok(content) = fs::read_to_string(&arch_file) {
+    if arch_file.exists()
+        && let Ok(content) = fs::read_to_string(&arch_file) {
             let mut in_overview = false;
             for line in content.lines() {
                 if line == "## Overview" {
@@ -292,7 +286,6 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                 }
             }
         }
-    }
 
     let arch_json = if !arch_text.is_empty() {
         json!({
@@ -327,8 +320,8 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     // Fallback: README.md at repo_root
     if purpose_text.is_empty() {
         let readme_file = repo_root.join("README.md");
-        if readme_file.exists() {
-            if let Ok(content) = fs::read_to_string(&readme_file) {
+        if readme_file.exists()
+            && let Ok(content) = fs::read_to_string(&readme_file) {
                 let mut past_title = false;
                 for line in content.lines() {
                     if line.starts_with("# ") && !past_title {
@@ -346,14 +339,13 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                     }
                 }
             }
-        }
     }
 
     // Fallback: PROJECT.md at repo_root
     if purpose_text.is_empty() {
         let project_file = repo_root.join("PROJECT.md");
-        if project_file.exists() {
-            if let Ok(content) = fs::read_to_string(&project_file) {
+        if project_file.exists()
+            && let Ok(content) = fs::read_to_string(&project_file) {
                 let mut in_description = false;
                 for line in content.lines() {
                     if line.starts_with("## Description") {
@@ -390,7 +382,6 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                     }
                 }
             }
-        }
     }
 
     let purpose_json = if !purpose_text.is_empty() && !concerns.is_empty() {
@@ -412,8 +403,8 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let mut features = Vec::new();
     let index_file = codebase_dir.join("INDEX.md");
     
-    if index_file.exists() {
-        if let Ok(content) = fs::read_to_string(&index_file) {
+    if index_file.exists()
+        && let Ok(content) = fs::read_to_string(&index_file) {
             let mut in_themes = false;
             for line in content.lines() {
                 if line == "## Cross-Cutting Themes" {
@@ -441,7 +432,6 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                 }
             }
         }
-    }
 
     let features_json = if !features.is_empty() {
         json!({

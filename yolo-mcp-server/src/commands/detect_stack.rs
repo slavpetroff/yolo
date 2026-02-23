@@ -42,33 +42,30 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         let mut content = String::new();
         
         let root_file = project_dir.join(filename);
-        if root_file.exists() {
-            if let Ok(c) = fs::read_to_string(&root_file) {
+        if root_file.exists()
+            && let Ok(c) = fs::read_to_string(&root_file) {
                 content.push_str(&c);
                 content.push('\n');
             }
-        }
 
         // Basic directory traversal up to depth 3
         let dirs_to_search = ["packages", "apps", "src"];
         for dir_name in dirs_to_search {
             let search_dir = project_dir.join(dir_name);
-            if search_dir.exists() && search_dir.is_dir() {
-                if let Ok(entries) = fs::read_dir(&search_dir) {
+            if search_dir.exists() && search_dir.is_dir()
+                && let Ok(entries) = fs::read_dir(&search_dir) {
                     for e in entries.filter_map(|x| x.ok()) {
                         let path = e.path();
                         if path.is_dir() {
                             let manifest = path.join(filename);
-                            if manifest.exists() {
-                                if let Ok(c) = fs::read_to_string(&manifest) {
+                            if manifest.exists()
+                                && let Ok(c) = fs::read_to_string(&manifest) {
                                     content.push_str(&c);
                                     content.push('\n');
                                 }
-                            }
                         }
                     }
                 }
-            }
         }
         content
     }
@@ -128,11 +125,10 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
             fn scan_dir_glob(dir: &Path, pattern: &str, glob_fn: &dyn Fn(&str, &str) -> bool) -> bool {
                 if let Ok(entries) = fs::read_dir(dir) {
                     for e in entries.filter_map(|x| x.ok()) {
-                        if let Some(name) = e.file_name().to_str() {
-                            if glob_fn(pattern, name) {
+                        if let Some(name) = e.file_name().to_str()
+                            && glob_fn(pattern, name) {
                                 return true;
                             }
-                        }
                     }
                 }
                 false
@@ -171,8 +167,8 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
             let dirs_to_search = ["packages", "apps", "src", "tests"];
             for dir_name in dirs_to_search {
                 let search_dir = project_dir.join(dir_name);
-                if search_dir.exists() && search_dir.is_dir() {
-                    if let Ok(entries) = fs::read_dir(&search_dir) {
+                if search_dir.exists() && search_dir.is_dir()
+                    && let Ok(entries) = fs::read_dir(&search_dir) {
                         for e in entries.filter_map(|x| x.ok()) {
                             if e.file_name().to_string_lossy() == basename {
                                 return true;
@@ -185,7 +181,6 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                             }
                         }
                     }
-                }
             }
             false
         }
@@ -207,38 +202,35 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let mut detected = Vec::new();
     let mut recommended_skills = Vec::new();
 
-    if let Ok(mappings_content) = fs::read_to_string(&mappings_path) {
-        if let Ok(mappings) = serde_json::from_str::<serde_json::Value>(&mappings_content) {
-            if let Some(obj) = mappings.as_object() {
-                for (cat_key, cat_val) in obj {
-                    if cat_key.starts_with('_') { continue; }
-                    
-                    if let Some(items) = cat_val.as_object() {
-                        for (item_key, item_val) in items {
-                            let mut matched = false;
-                            
-                            if let Some(detect_arr) = item_val.get("detect").and_then(|v| v.as_array()) {
-                                for pat in detect_arr {
-                                    if let Some(pattern_str) = pat.as_str() {
-                                        if check_pattern(pattern_str, project_dir, &manifests) {
-                                            matched = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
+    if let Ok(mappings_content) = fs::read_to_string(&mappings_path)
+        && let Ok(mappings) = serde_json::from_str::<serde_json::Value>(&mappings_content)
+        && let Some(obj) = mappings.as_object() {
+            for (cat_key, cat_val) in obj {
+                if cat_key.starts_with('_') { continue; }
 
-                            if matched {
-                                detected.push(item_key.to_string());
-                                
-                                if let Some(skills_arr) = item_val.get("skills").and_then(|v| v.as_array()) {
-                                    for skill in skills_arr {
-                                        if let Some(skill_str) = skill.as_str() {
-                                            if !recommended_skills.contains(&skill_str.to_string()) {
-                                                recommended_skills.push(skill_str.to_string());
-                                            }
-                                        }
+                if let Some(items) = cat_val.as_object() {
+                    for (item_key, item_val) in items {
+                        let mut matched = false;
+
+                        if let Some(detect_arr) = item_val.get("detect").and_then(|v| v.as_array()) {
+                            for pat in detect_arr {
+                                if let Some(pattern_str) = pat.as_str()
+                                    && check_pattern(pattern_str, project_dir, &manifests) {
+                                        matched = true;
+                                        break;
                                     }
+                            }
+                        }
+
+                        if matched {
+                            detected.push(item_key.to_string());
+
+                            if let Some(skills_arr) = item_val.get("skills").and_then(|v| v.as_array()) {
+                                for skill in skills_arr {
+                                    if let Some(skill_str) = skill.as_str()
+                                        && !recommended_skills.contains(&skill_str.to_string()) {
+                                            recommended_skills.push(skill_str.to_string());
+                                        }
                                 }
                             }
                         }
@@ -246,7 +238,6 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                 }
             }
         }
-    }
 
     // --- Compute suggestions ---
     let mut suggestions = Vec::new();
