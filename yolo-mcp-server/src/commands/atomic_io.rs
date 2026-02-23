@@ -256,4 +256,89 @@ mod tests {
         let hex = sha256_hex(b"");
         assert_eq!(hex, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
     }
+
+    #[test]
+    fn test_read_verified_returns_content_on_valid_checksum() {
+        let dir = test_dir("read_verified_ok");
+        let file = dir.join("state.json");
+
+        atomic_write_with_checksum(&file, b"good data").unwrap();
+        let result = read_verified(&file).unwrap();
+        assert_eq!(result, b"good data");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_read_verified_restores_from_backup_on_corruption() {
+        let dir = test_dir("read_verified_corrupt");
+        let file = dir.join("state.json");
+
+        // Write first version (becomes backup on second write)
+        atomic_write_with_checksum(&file, b"original content").unwrap();
+        // Write second version (first becomes .backup)
+        atomic_write_with_checksum(&file, b"updated content").unwrap();
+
+        // Corrupt the main file (but leave sidecar pointing to "updated content")
+        fs::write(&file, b"CORRUPTED DATA").unwrap();
+
+        // read_verified should detect mismatch and try backup.
+        // Backup has "original content" but sidecar has hash of "updated content",
+        // so backup won't match sidecar either. Falls through to original content.
+        let result = read_verified(&file).unwrap();
+        assert_eq!(result, b"CORRUPTED DATA");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_read_verified_backup_matches_previous_sidecar() {
+        let dir = test_dir("read_verified_backup_match");
+        let file = dir.join("state.json");
+
+        // Write first version
+        atomic_write_with_checksum(&file, b"v1").unwrap();
+        // Write second version
+        atomic_write_with_checksum(&file, b"v2").unwrap();
+
+        // Now corrupt main file AND update sidecar to match v1 (the backup)
+        fs::write(&file, b"BROKEN").unwrap();
+        let v1_hash = sha256_hex(b"v1");
+        fs::write(file.with_extension("json.sha256"), v1_hash.as_bytes()).unwrap();
+
+        // read_verified: main file hash != sidecar (v1 hash), tries backup which IS v1
+        let result = read_verified(&file).unwrap();
+        assert_eq!(result, b"v1");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_read_verified_no_backup_returns_content() {
+        let dir = test_dir("read_verified_no_backup");
+        let file = dir.join("data.json");
+
+        // Write with checksum (first write, no backup)
+        atomic_write_with_checksum(&file, b"only version").unwrap();
+        // Corrupt the file
+        fs::write(&file, b"corrupted").unwrap();
+
+        // No backup exists, should return corrupted content with warning
+        let result = read_verified(&file).unwrap();
+        assert_eq!(result, b"corrupted");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_read_verified_string_convenience() {
+        let dir = test_dir("read_verified_string");
+        let file = dir.join("test.json");
+
+        atomic_write_with_checksum(&file, b"hello string").unwrap();
+        let result = read_verified_string(&file).unwrap();
+        assert_eq!(result, "hello string");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
 }
