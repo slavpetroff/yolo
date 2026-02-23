@@ -18,7 +18,6 @@ Loaded on demand by /yolo:vibe Execute mode. Not a user-facing command.
 4. Build remaining plans list. If `--plan=NN`, filter to that plan.
 5. Partially-complete plans: note resume-from task number.
 6. **Crash recovery:** If `.yolo-planning/.execution-state.json` exists with `"status": "running"`, update plan statuses to match current SUMMARY.md state.
-   <!-- v3: event-recovery — see V3-EXTENSIONS.md when v3_* flags enabled -->
      6b. **Generate correlation_id:** Generate a UUID for this phase execution:
    - If `.yolo-planning/.execution-state.json` already exists and has `correlation_id` (crash-resume):
      preserve it: `CORRELATION_ID=$(jq -r '.correlation_id // ""' .yolo-planning/.execution-state.json 2>/dev/null || echo "")`
@@ -41,11 +40,6 @@ Set completed plans (with SUMMARY.md) to `"complete"`, others to `"pending"`.
 7b. **Export correlation_id:** Set `YOLO_CORRELATION_ID={CORRELATION_ID}` in the execution environment
 so yolo log-event can fall back to it if .execution-state.json is temporarily unavailable.
 Log a confirmation: `◆ Correlation ID: {CORRELATION_ID}`
-
-<!-- v3: event-log-phase-start — see V3-EXTENSIONS.md when v3_* flags enabled -->
-
-<!-- v3: snapshot-resume — see V3-EXTENSIONS.md when v3_* flags enabled -->
-<!-- v3: schema-validation — see V3-EXTENSIONS.md when v3_* flags enabled -->
 
 1. **Cross-phase deps (PWR-04):** Run plan validation for each plan:
 
@@ -300,8 +294,6 @@ When team should NOT be created (single plan via optimization above, turbo, or s
 
 - Skip TeamCreate -- single agent, no team overhead.
 
-<!-- v3: smart-routing — see V3-EXTENSIONS.md when v3_* flags enabled -->
-
 **Delegation directive (all except Turbo):**
 You are the team LEAD. NEVER implement tasks yourself.
 
@@ -309,8 +301,6 @@ You are the team LEAD. NEVER implement tasks yourself.
 - NEVER Write/Edit files in a plan's `files_modified` — only state files: STATE.md, ROADMAP.md, .execution-state.json, SUMMARY.md
 - If Dev fails: guidance via SendMessage, not takeover. If all Devs unavailable: create new Dev.
 - At Turbo (or smart-routed to turbo): no team — Dev executes directly.
-
-<!-- v3: monorepo-routing — see V3-EXTENSIONS.md when v3_* flags enabled -->
 
 **Control Plane Coordination (REQ-05):** If `"$HOME/.cargo/bin/yolo" control-plane` exists:
 
@@ -448,8 +438,6 @@ Spawn Dev teammates and assign tasks. Platform enforces execution ordering via t
 
 **Blocked agent notification (mandatory):** When a Dev teammate completes a plan (task marked completed + SUMMARY.md verified), check if any other tasks have `blockedBy` containing that completed task's ID. For each newly-unblocked task, send its assigned Dev a message: "Blocking task {id} complete. Your task is now unblocked — proceed with execution." This ensures blocked agents resume without manual intervention.
 
-<!-- v3: validation-gates — see V3-EXTENSIONS.md when v3_* flags enabled -->
-
 **Plan approval gate (effort-gated, autonomy-gated):**
 When `v3_validation_gates=true`: use `approval_required` from gate policy above.
 When `v3_validation_gates=false` (default): use static table:
@@ -494,15 +482,6 @@ Use targeted `message` not `broadcast`. Reserve broadcast for critical blocking 
 
 Hooks handle continuous verification: PostToolUse validates SUMMARY.md, TaskCompleted verifies commits, TeammateIdle runs quality gate.
 
-<!-- v3: event-log-plan-lifecycle — see V3-EXTENSIONS.md when v3_* flags enabled -->
-<!-- v3: v2-full-event-types — see V3-EXTENSIONS.md when v3_* flags enabled -->
-
-<!-- v3: snapshot-checkpoint — see V3-EXTENSIONS.md when v3_* flags enabled -->
-
-<!-- v3: metrics — see V3-EXTENSIONS.md when v3_* flags enabled -->
-
-<!-- v3: contract-lite — see V3-EXTENSIONS.md when v3_* flags enabled -->
-
 **V2 Hard Gates (REQ-02, REQ-03):** If `v2_hard_gates=true` in config:
 
 - **Pre-task gate sequence (before each task starts):**
@@ -529,10 +508,6 @@ Hooks handle continuous verification: PostToolUse validates SUMMARY.md, TaskComp
   - These gates fire AFTER SUMMARY.md verification but BEFORE updating execution-state.json to "complete".
 - **YOLO mode:** Hard gates ALWAYS fire regardless of autonomy level. YOLO only skips confirmation prompts.
 - **Fallback:** If yolo hard-gate or yolo auto-repair errors (not a gate fail, but a script error), log to metrics and continue (fail-open on script errors, hard-stop only on gate verdicts).
-
-<!-- v3: lock-lite — see V3-EXTENSIONS.md when v3_* flags enabled -->
-
-<!-- v3: lease-locks — see V3-EXTENSIONS.md when v3_* flags enabled -->
 
 ### Step 3b: V2 Two-Phase Completion (REQ-09)
 
@@ -869,10 +844,6 @@ If no team was created (single-plan optimization applied, turbo mode, or smart-r
 **Post-shutdown verification:** After TeamDelete, there must be ZERO active teammates. If the Pure-Vibe loop or auto-chain will re-enter Plan mode next, confirm no prior agents linger before spawning new ones. This gate survives compaction — if you lost context about whether shutdown happened, assume it did NOT and send `shutdown_request` to any teammates that may still exist before proceeding.
 
 **Control Plane cleanup:** Lock and token state cleanup already handled by existing V3 Lock-Lite and Token Budget cleanup blocks.
-
-<!-- v3: rolling-summary — see V3-EXTENSIONS.md when v3_* flags enabled -->
-
-<!-- v3: event-log-phase-end — see V3-EXTENSIONS.md when v3_* flags enabled -->
 
 **V2 Observability Report (REQ-14):** After phase completion, if `v3_metrics=true` or `v3_event_log=true`:
 
