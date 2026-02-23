@@ -2,6 +2,47 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
+#[derive(Clone, Copy)]
+enum PhaseState {
+    NoPhases,
+    NeedsPlanAndExecute,
+    NeedsExecute,
+    AllDone,
+}
+
+impl PhaseState {
+    fn as_str(&self) -> &'static str {
+        match self {
+            PhaseState::NoPhases => "no_phases",
+            PhaseState::NeedsPlanAndExecute => "needs_plan_and_execute",
+            PhaseState::NeedsExecute => "needs_execute",
+            PhaseState::AllDone => "all_done",
+        }
+    }
+}
+
+enum Route {
+    Init,
+    Bootstrap,
+    Resume,
+    Plan,
+    Execute,
+    Archive,
+}
+
+impl Route {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Route::Init => "init",
+            Route::Bootstrap => "bootstrap",
+            Route::Resume => "resume",
+            Route::Plan => "plan",
+            Route::Execute => "execute",
+            Route::Archive => "archive",
+        }
+    }
+}
+
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let suggest_route = args.iter().any(|a| a == "--suggest-route");
     let planning_dir = cwd.join(".yolo-planning");
@@ -20,7 +61,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         out.push_str("phase_count=0\n");
         out.push_str("next_phase=none\n");
         out.push_str("next_phase_slug=none\n");
-        out.push_str("next_phase_state=no_phases\n");
+        out.push_str(&format!("next_phase_state={}\n", PhaseState::NoPhases.as_str()));
         out.push_str("next_phase_plans=0\n");
         out.push_str("next_phase_summaries=0\n");
         out.push_str("config_effort=balanced\n");
@@ -36,7 +77,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         out.push_str("brownfield=false\n");
         out.push_str("execution_state=none\n");
         if suggest_route {
-            out.push_str("suggested_route=init\n");
+            out.push_str(&format!("suggested_route={}\n", Route::Init.as_str()));
         }
         return Ok((out, 0));
     }
@@ -82,7 +123,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let mut phase_count = 0;
     let mut next_phase = "none".to_string();
     let mut next_phase_slug = "none".to_string();
-    let mut next_phase_state = "no_phases".to_string();
+    let mut next_phase_state = PhaseState::NoPhases;
     let mut next_phase_plans = 0;
     let mut next_phase_summaries = 0;
 
@@ -130,7 +171,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                         if next_phase == "none" {
                             next_phase = num.to_string();
                             next_phase_slug = dirname.clone();
-                            next_phase_state = "needs_plan_and_execute".to_string();
+                            next_phase_state = PhaseState::NeedsPlanAndExecute;
                             next_phase_plans = p_count;
                             next_phase_summaries = s_count;
                         }
@@ -140,7 +181,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                         if next_phase == "none" {
                             next_phase = num.to_string();
                             next_phase_slug = dirname.clone();
-                            next_phase_state = "needs_execute".to_string();
+                            next_phase_state = PhaseState::NeedsExecute;
                             next_phase_plans = p_count;
                             next_phase_summaries = s_count;
                         }
@@ -150,7 +191,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                 }
                 
                 if all_done && next_phase == "none" {
-                    next_phase_state = "all_done".to_string();
+                    next_phase_state = PhaseState::AllDone;
                 }
             }
         }
@@ -159,7 +200,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     out.push_str(&format!("phase_count={}\n", phase_count));
     out.push_str(&format!("next_phase={}\n", next_phase));
     out.push_str(&format!("next_phase_slug={}\n", next_phase_slug));
-    out.push_str(&format!("next_phase_state={}\n", next_phase_state));
+    out.push_str(&format!("next_phase_state={}\n", next_phase_state.as_str()));
     out.push_str(&format!("next_phase_plans={}\n", next_phase_plans));
     out.push_str(&format!("next_phase_summaries={}\n", next_phase_summaries));
 
@@ -239,45 +280,38 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
     if suggest_route {
         let route = suggest_route_mode(
-            &next_phase_state, project_exists, &exec_state, brownfield, phase_count,
+            next_phase_state, project_exists, &exec_state, brownfield, phase_count,
         );
-        out.push_str(&format!("suggested_route={}\n", route));
+        out.push_str(&format!("suggested_route={}\n", route.as_str()));
     }
 
     Ok((out.trim_end().to_string() + "\n", 0))
 }
 
 fn suggest_route_mode(
-    next_phase_state: &str,
+    next_phase_state: PhaseState,
     project_exists: bool,
     execution_state: &str,
     brownfield: bool,
     _phase_count: usize,
-) -> &'static str {
+) -> Route {
     // Resume interrupted execution
     if execution_state == "running" {
-        return "resume";
+        return Route::Resume;
     }
     // No project yet
     if !project_exists {
         if brownfield {
-            return "bootstrap";
+            return Route::Bootstrap;
         }
-        return "init";
+        return Route::Init;
     }
-    // All phases done
-    if next_phase_state == "all_done" {
-        return "archive";
+    // Match on PhaseState enum
+    match next_phase_state {
+        PhaseState::AllDone => Route::Archive,
+        PhaseState::NeedsExecute => Route::Execute,
+        PhaseState::NeedsPlanAndExecute | PhaseState::NoPhases => Route::Plan,
     }
-    // Needs planning
-    if next_phase_state == "needs_plan_and_execute" || next_phase_state == "no_phases" {
-        return "plan";
-    }
-    // Has plans, needs execution
-    if next_phase_state == "needs_execute" {
-        return "execute";
-    }
-    "plan"
 }
 
 #[cfg(test)]
