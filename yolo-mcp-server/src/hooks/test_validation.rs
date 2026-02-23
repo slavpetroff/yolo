@@ -140,13 +140,13 @@ fn find_test_file(source_path: &str) -> Option<String> {
     }
 
     // Strategy 2: Rust convention — src/foo.rs -> same dir foo_test or tests/foo.rs
-    if ext == "rs" {
-        if let Some(parent) = p.parent() {
-            // Check for sibling _test file
-            let test_mod = parent.join(format!("{}_test.rs", stem));
-            if test_mod.is_file() {
-                return Some(test_mod.to_string_lossy().to_string());
-            }
+    if ext == "rs"
+        && let Some(parent) = p.parent()
+    {
+        // Check for sibling _test file
+        let test_mod = parent.join(format!("{}_test.rs", stem));
+        if test_mod.is_file() {
+            return Some(test_mod.to_string_lossy().to_string());
         }
     }
 

@@ -78,7 +78,7 @@ pub fn unregister(pid: u32, planning_dir: &Path) -> Result<String, String> {
 fn do_unregister(pid: u32, planning_dir: &Path) -> Result<String, String> {
     let pid_file = planning_dir.join(PID_FILENAME);
     if !pid_file.exists() {
-        return Ok(format!("PID file not found, nothing to unregister"));
+        return Ok("PID file not found, nothing to unregister".to_string());
     }
 
     let content = fs::read_to_string(&pid_file).unwrap_or_default();

@@ -151,17 +151,15 @@ fn orphan_recovery(role: &str, pid: u32, _planning_dir: &Path) -> String {
     let tasks_dir = resolve_tasks_dir();
     let mut advisory = String::new();
 
-    if let Some(tasks_dir) = tasks_dir {
-        if tasks_dir.is_dir() {
-            // Scan all team directories
-            if let Ok(entries) = fs::read_dir(&tasks_dir) {
-                for entry in entries.flatten() {
-                    if !entry.path().is_dir() {
-                        continue;
-                    }
-                    recover_tasks_in_dir(&entry.path(), role, pid, &mut advisory);
-                }
+    if let Some(tasks_dir) = tasks_dir
+        && tasks_dir.is_dir()
+        && let Ok(entries) = fs::read_dir(&tasks_dir)
+    {
+        for entry in entries.flatten() {
+            if !entry.path().is_dir() {
+                continue;
             }
+            recover_tasks_in_dir(&entry.path(), role, pid, &mut advisory);
         }
     }
 

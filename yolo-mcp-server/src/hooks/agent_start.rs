@@ -94,16 +94,13 @@ fn acquire_stale_lock(lock_dir: &Path) -> bool {
         }
 
         // Stale lock guard at attempt 50
-        if attempt == 50 && lock_dir.exists() {
-            if let Ok(metadata) = fs::metadata(lock_dir) {
-                if let Ok(modified) = metadata.modified() {
-                    if let Ok(age) = SystemTime::now().duration_since(modified) {
-                        if age.as_secs() > 5 {
-                            let _ = fs::remove_dir(lock_dir);
-                        }
-                    }
-                }
-            }
+        if attempt == 50 && lock_dir.exists()
+            && let Ok(metadata) = fs::metadata(lock_dir)
+            && let Ok(modified) = metadata.modified()
+            && let Ok(age) = SystemTime::now().duration_since(modified)
+            && age.as_secs() > 5
+        {
+            let _ = fs::remove_dir(lock_dir);
         }
 
         thread::sleep(Duration::from_millis(10));
@@ -163,13 +160,12 @@ fn map_tmux_pane(planning_dir: &Path, agent_pid: u32) {
     while pid > 1 {
         for line in pane_list.lines() {
             let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() >= 2 {
-                if let Ok(pane_pid) = parts[0].parse::<u32>() {
-                    if pane_pid == pid {
-                        found_pane = Some(parts[1].to_string());
-                        break;
-                    }
-                }
+            if parts.len() >= 2
+                && let Ok(pane_pid) = parts[0].parse::<u32>()
+                && pane_pid == pid
+            {
+                found_pane = Some(parts[1].to_string());
+                break;
             }
         }
         if found_pane.is_some() {

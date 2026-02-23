@@ -131,16 +131,13 @@ fn acquire_stale_lock(lock_dir: &Path) -> bool {
             return true;
         }
 
-        if attempt == 50 && lock_dir.exists() {
-            if let Ok(metadata) = fs::metadata(lock_dir) {
-                if let Ok(modified) = metadata.modified() {
-                    if let Ok(age) = SystemTime::now().duration_since(modified) {
-                        if age.as_secs() > 5 {
-                            let _ = fs::remove_dir(lock_dir);
-                        }
-                    }
-                }
-            }
+        if attempt == 50 && lock_dir.exists()
+            && let Ok(metadata) = fs::metadata(lock_dir)
+            && let Ok(modified) = metadata.modified()
+            && let Ok(age) = SystemTime::now().duration_since(modified)
+            && age.as_secs() > 5
+        {
+            let _ = fs::remove_dir(lock_dir);
         }
 
         thread::sleep(Duration::from_millis(10));

@@ -76,10 +76,10 @@ fn extract_file_path(data: &serde_json::Value) -> Option<String> {
     let tool_input = data.get("tool_input")?;
 
     for key in &["file_path", "path", "pattern"] {
-        if let Some(val) = tool_input.get(key).and_then(|v| v.as_str()) {
-            if !val.is_empty() {
-                return Some(val.to_string());
-            }
+        if let Some(val) = tool_input.get(key).and_then(|v| v.as_str())
+            && !val.is_empty()
+        {
+            return Some(val.to_string());
         }
     }
 

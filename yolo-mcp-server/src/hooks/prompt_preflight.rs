@@ -27,16 +27,16 @@ pub fn handle(input: &HookInput) -> Result<HookOutput, String> {
     // Check warnings
     let mut warnings = Vec::new();
 
-    if prompt.contains("/yolo:vibe") && prompt.contains("--execute") {
-        if let Some(warning) = check_execute_without_plans(planning) {
-            warnings.push(warning);
-        }
+    if prompt.contains("/yolo:vibe") && prompt.contains("--execute")
+        && let Some(warning) = check_execute_without_plans(planning)
+    {
+        warnings.push(warning);
     }
 
-    if prompt.contains("/yolo:vibe") && prompt.contains("--archive") {
-        if let Some(warning) = check_archive_incomplete(planning) {
-            warnings.push(warning);
-        }
+    if prompt.contains("/yolo:vibe") && prompt.contains("--archive")
+        && let Some(warning) = check_archive_incomplete(planning)
+    {
+        warnings.push(warning);
     }
 
     if warnings.is_empty() {
@@ -115,8 +115,8 @@ fn is_expanded_yolo_prompt(prompt: &str) -> bool {
 
             // Check for name: yolo: (case-insensitive)
             let lower = trimmed.to_lowercase();
-            if lower.starts_with("name:") {
-                let value = lower["name:".len()..].trim();
+            if let Some(rest) = lower.strip_prefix("name:") {
+                let value = rest.trim();
                 if value.starts_with("yolo:") {
                     return true;
                 }

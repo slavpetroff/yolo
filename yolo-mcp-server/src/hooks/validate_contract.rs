@@ -76,30 +76,29 @@ fn validate_start(contract: &Value, task_num: u32, v2_hard: bool) -> (String, i3
     }
 
     // V2: verify contract hash integrity
-    if v2_hard {
-        if let Some(stored_hash) = contract.get("contract_hash").and_then(|v| v.as_str()) {
-            if !stored_hash.is_empty() {
-                // Recompute hash from contract body excluding contract_hash field
-                let mut contract_clone = contract.clone();
-                if let Some(obj) = contract_clone.as_object_mut() {
-                    obj.remove("contract_hash");
-                }
-                let contract_bytes = serde_json::to_string(&contract_clone).unwrap_or_default();
-                let computed_hash = sha256_hex(&contract_bytes);
+    if v2_hard
+        && let Some(stored_hash) = contract.get("contract_hash").and_then(|v| v.as_str())
+        && !stored_hash.is_empty()
+    {
+        // Recompute hash from contract body excluding contract_hash field
+        let mut contract_clone = contract.clone();
+        if let Some(obj) = contract_clone.as_object_mut() {
+            obj.remove("contract_hash");
+        }
+        let contract_bytes = serde_json::to_string(&contract_clone).unwrap_or_default();
+        let computed_hash = sha256_hex(&contract_bytes);
 
-                if stored_hash != computed_hash {
-                    let detail = format!(
-                        "Contract hash mismatch: stored={}... computed={}...",
-                        &stored_hash[..stored_hash.len().min(16)],
-                        &computed_hash[..computed_hash.len().min(16)]
-                    );
-                    emit_violation("hash_mismatch", &detail, phase);
-                    return (
-                        format!("V2 contract violation (hash_mismatch): {}", detail),
-                        2,
-                    );
-                }
-            }
+        if stored_hash != computed_hash {
+            let detail = format!(
+                "Contract hash mismatch: stored={}... computed={}...",
+                &stored_hash[..stored_hash.len().min(16)],
+                &computed_hash[..computed_hash.len().min(16)]
+            );
+            emit_violation("hash_mismatch", &detail, phase);
+            return (
+                format!("V2 contract violation (hash_mismatch): {}", detail),
+                2,
+            );
         }
     }
 
@@ -165,7 +164,7 @@ fn validate_end(
         }
 
         // Check allowed paths
-        let found = allowed_paths.iter().any(|allowed| norm_file == *allowed);
+        let found = allowed_paths.contains(&norm_file);
 
         if !found {
             let detail = format!("{} not in allowed_paths", norm_file);

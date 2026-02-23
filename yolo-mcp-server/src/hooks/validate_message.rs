@@ -75,16 +75,16 @@ pub fn validate_message(msg_json: &str) -> (Value, i32) {
     };
 
     // 3. Payload required fields
-    if !msg_type.is_empty() && type_exists {
-        if let Some(schema) = schemas.schemas.get(msg_type) {
-            for field in &schema.payload_required {
-                let has = msg
-                    .get("payload")
-                    .and_then(|p| p.get(field.as_str()))
-                    .is_some();
-                if !has {
-                    errors.push(format!("missing payload field: {}", field));
-                }
+    if !msg_type.is_empty() && type_exists
+        && let Some(schema) = schemas.schemas.get(msg_type)
+    {
+        for field in &schema.payload_required {
+            let has = msg
+                .get("payload")
+                .and_then(|p| p.get(field.as_str()))
+                .is_some();
+            if !has {
+                errors.push(format!("missing payload field: {}", field));
             }
         }
     }
@@ -94,15 +94,14 @@ pub fn validate_message(msg_json: &str) -> (Value, i32) {
         .get("author_role")
         .and_then(|v| v.as_str())
         .unwrap_or("");
-    if !author_role.is_empty() && !msg_type.is_empty() && type_exists {
-        if let Some(schema) = schemas.schemas.get(msg_type) {
-            if !schema.allowed_roles.contains(&author_role.to_string()) {
-                errors.push(format!(
-                    "role {} not authorized for {}",
-                    author_role, msg_type
-                ));
-            }
-        }
+    if !author_role.is_empty() && !msg_type.is_empty() && type_exists
+        && let Some(schema) = schemas.schemas.get(msg_type)
+        && !schema.allowed_roles.contains(&author_role.to_string())
+    {
+        errors.push(format!(
+            "role {} not authorized for {}",
+            author_role, msg_type
+        ));
     }
 
     // 5. Receive-direction check
@@ -110,15 +109,14 @@ pub fn validate_message(msg_json: &str) -> (Value, i32) {
         .get("target_role")
         .and_then(|v| v.as_str())
         .unwrap_or("");
-    if !target_role.is_empty() && !msg_type.is_empty() {
-        if let Some(role_info) = schemas.role_hierarchy.get(target_role) {
-            if !role_info.can_receive.contains(&msg_type.to_string()) {
-                errors.push(format!(
-                    "target role {} cannot receive {}",
-                    target_role, msg_type
-                ));
-            }
-        }
+    if !target_role.is_empty() && !msg_type.is_empty()
+        && let Some(role_info) = schemas.role_hierarchy.get(target_role)
+        && !role_info.can_receive.contains(&msg_type.to_string())
+    {
+        errors.push(format!(
+            "target role {} cannot receive {}",
+            target_role, msg_type
+        ));
     }
 
     // 6. File reference check against active contract
@@ -194,10 +192,10 @@ fn load_schemas() -> Option<MessageSchemas> {
     ];
 
     for path in &paths_to_try {
-        if let Ok(content) = fs::read_to_string(path) {
-            if let Ok(schemas) = serde_json::from_str(&content) {
-                return Some(schemas);
-            }
+        if let Ok(content) = fs::read_to_string(path)
+            && let Ok(schemas) = serde_json::from_str(&content)
+        {
+            return Some(schemas);
         }
     }
 

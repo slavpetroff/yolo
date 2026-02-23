@@ -213,17 +213,17 @@ fn find_current_plan(snapshot: &Value) -> String {
     {
         for plan in plans {
             let status = plan.get("status").and_then(|v| v.as_str()).unwrap_or("");
-            if status == "running" || status == "pending" {
-                if let Some(id) = plan.get("id").and_then(|v| v.as_str()) {
-                    return id.to_string();
-                }
+            if (status == "running" || status == "pending")
+                && let Some(id) = plan.get("id").and_then(|v| v.as_str())
+            {
+                return id.to_string();
             }
         }
         // Fallback: first plan by id
-        if let Some(first) = plans.first() {
-            if let Some(id) = first.get("id").and_then(|v| v.as_str()) {
-                return id.to_string();
-            }
+        if let Some(first) = plans.first()
+            && let Some(id) = first.get("id").and_then(|v| v.as_str())
+        {
+            return id.to_string();
         }
     }
 
