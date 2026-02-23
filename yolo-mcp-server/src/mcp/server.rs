@@ -95,6 +95,7 @@ async fn handle_request(
     let method = req.method.as_str();
     let mut success = true;
     let mut telemetry_name = method.to_string();
+    let mut retry_count = 0u32;
 
     let result = match method {
         "initialize" => {
@@ -194,6 +195,8 @@ async fn handle_request(
             )
             .await;
 
+            retry_count = retry_stats.attempts.saturating_sub(1);
+
             if retry_stats.retried {
                 eprintln!(
                     "[retry] tool={} attempts={} circuit_opened={}",
@@ -233,7 +236,7 @@ async fn handle_request(
     let output_len = serde_json::to_string(&response).map(|s| s.len()).unwrap_or(0);
 
     let elapsed = start_time.elapsed().as_millis() as u64;
-    let _ = telemetry.record_tool_call(
+    let _ = telemetry.record_tool_call_with_retry(
         &telemetry_name,
         None,
         None,
@@ -241,6 +244,7 @@ async fn handle_request(
         output_len,
         elapsed,
         success,
+        retry_count,
     );
 
     response

@@ -33,6 +33,8 @@ impl TelemetryDb {
             )",
             [],
         )?;
+        // Add retry_count column if missing (backward-compat migration)
+        let _ = conn.execute("ALTER TABLE tool_usage ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0", []);
         conn.execute(
             "CREATE TABLE IF NOT EXISTS agent_token_usage (
                 id INTEGER PRIMARY KEY,
@@ -124,11 +126,25 @@ impl TelemetryDb {
         execution_time_ms: u64,
         success: bool,
     ) -> Result<()> {
+        self.record_tool_call_with_retry(tool_name, agent_role, session_id, input_length, output_length, execution_time_ms, success, 0)
+    }
+
+    pub fn record_tool_call_with_retry(
+        &self,
+        tool_name: &str,
+        agent_role: Option<&str>,
+        session_id: Option<&str>,
+        input_length: usize,
+        output_length: usize,
+        execution_time_ms: u64,
+        success: bool,
+        retry_count: u32,
+    ) -> Result<()> {
         let ts = Utc::now().to_rfc3339();
         let conn = self.conn.lock().unwrap();
         conn.execute(
-            "INSERT INTO tool_usage (tool_name, agent_role, session_id, input_length, output_length, execution_time_ms, success, timestamp)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            "INSERT INTO tool_usage (tool_name, agent_role, session_id, input_length, output_length, execution_time_ms, success, retry_count, timestamp)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             (
                 tool_name,
                 agent_role,
@@ -137,6 +153,7 @@ impl TelemetryDb {
                 output_length as i64,
                 execution_time_ms as i64,
                 success,
+                retry_count as i64,
                 &ts,
             ),
         )?;
