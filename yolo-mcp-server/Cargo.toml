@@ -7,6 +7,7 @@ edition = "2024"
 anyhow = "1.0.101"
 chrono = "0.4.43"
 filetime = "0.2.27"
+jsonschema = "0.28"
 libc = "0.2"
 regex = "1.12.3"
 reqwest = { version = "0.13.2", features = ["blocking", "json"] }
