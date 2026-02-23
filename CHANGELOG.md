@@ -2,6 +2,31 @@
 
 All notable changes to YOLO will be documented in this file.
 
+## v2.7.0 (2026-02-23)
+
+### Review Feedback Loop
+- **Automated Architect-Reviewer loop** — On plan rejection, Architect revises and Reviewer re-reviews automatically
+- **Delta-findings passing** — Prior findings forwarded between iterations so resolved issues are not re-flagged
+- **Per-plan loop independence** — Each plan maintains its own cycle counter
+- **Configurable hard cap** — `review_max_cycles` (default 3, range 1-5) triggers hard stop when exceeded
+
+### QA Feedback Loop
+- **Automated Dev-QA remediation loop** — On QA failure, Dev auto-fixes and QA re-verifies
+- **`fixable_by` classification routing** — Failures categorized as `dev`, `architect`, or `manual`; only dev-fixable issues trigger auto-remediation
+- **Scoped Dev remediation context** — Dev receives only failing check context, not the full plan
+- **Delta re-runs** — Only previously-failed checks re-run on retry (not all 5)
+
+### Infrastructure
+- `review_max_cycles` / `qa_max_cycles` config keys (default 3, range 1-5)
+- `suggested_fix` and `auto_fixable` fields on review findings
+- `fixable_by` field on all QA command outputs
+- 6 loop event types: `review_start`, `review_cycle`, `review_done`, `qa_start`, `qa_cycle`, `qa_done`
+
+### Agent Updates
+- **Architect** — Revision protocol: receives delta-findings, produces targeted plan patches
+- **Reviewer** — Delta-aware review: compares current plan against prior findings, escalation on stale issues
+- **QA** — Remediation classification: tags each failure with `fixable_by` for routing
+
 ## v2.6.0 (2026-02-23)
 
 ### New Agents
