@@ -612,6 +612,92 @@ mod tests {
     }
 
     #[test]
+    fn test_cross_cutting_stale_lease_plus_atomic_read() {
+        // Cross-cutting integration test: verify Plan 4 (stale lease detection) and
+        // Plan 2 (atomic IO checksum fallback) work together under new flag defaults.
+        use super::super::atomic_io;
+
+        let dir = TempDir::new().unwrap();
+        let planning = dir.path().join(".yolo-planning");
+        let phases = planning.join("phases");
+        let phase_dir = phases.join("11-self-healing");
+        fs::create_dir_all(&phase_dir).unwrap();
+
+        // Enable all recovery flags (new defaults)
+        let config = serde_json::json!({
+            "v3_event_recovery": true,
+            "v3_snapshot_resume": true,
+            "v3_lease_locks": true
+        });
+        fs::write(planning.join("config.json"), config.to_string()).unwrap();
+
+        // Create plans
+        fs::write(phase_dir.join("11-01-PLAN.md"), "title: \"Retry\"\nwave: 1\n").unwrap();
+        fs::write(phase_dir.join("11-02-PLAN.md"), "title: \"Atomic IO\"\nwave: 1\n").unwrap();
+
+        // --- Test Plan 4: stale lease detection within recovery ---
+        // Create an expired lease for plan 11-01
+        let locks_dir = planning.join(".locks");
+        fs::create_dir_all(&locks_dir).unwrap();
+        let expired_lease = serde_json::json!({
+            "resource": "11-01",
+            "owner": "agent-crashed",
+            "acquired_at": "2020-01-01T00:00:00Z",
+            "ttl_secs": 1,
+            "type": "lease",
+        });
+        fs::write(
+            locks_dir.join("11-01.lease"),
+            serde_json::to_string_pretty(&expired_lease).unwrap(),
+        ).unwrap();
+
+        // Verify stale lease detection works
+        assert!(lease_lock::is_lease_expired(dir.path(), "11-01"));
+        assert!(!lease_lock::is_lease_expired(dir.path(), "11-02"));
+
+        // --- Test Plan 2: atomic IO with checksum within recovery context ---
+        // Write execution state using atomic_write_with_checksum
+        let state_path = planning.join(".execution-state.json");
+        let state_content = b"{\"phase\": 11, \"status\": \"running\"}";
+        atomic_io::atomic_write_with_checksum(&state_path, state_content).unwrap();
+
+        // Verify checksum is valid
+        assert!(atomic_io::verify_checksum(&state_path).unwrap());
+
+        // Corrupt the state file
+        fs::write(&state_path, b"CORRUPT").unwrap();
+        assert!(!atomic_io::verify_checksum(&state_path).unwrap());
+
+        // Write v2 (v1 becomes backup), then corrupt v2 and set sidecar to v1 hash
+        // so that read_verified falls back to backup
+        atomic_io::atomic_write_with_checksum(&state_path, state_content).unwrap();
+        atomic_io::atomic_write_with_checksum(&state_path, b"{\"phase\": 11, \"status\": \"v2\"}").unwrap();
+        // Corrupt main
+        fs::write(&state_path, b"BROKEN").unwrap();
+        // Set sidecar to match backup (v1 content)
+        let v1_hash = atomic_io::sha256_hex(state_content);
+        fs::write(state_path.with_extension("json.sha256"), v1_hash.as_bytes()).unwrap();
+
+        // read_verified should restore from backup
+        let recovered = atomic_io::read_verified(&state_path).unwrap();
+        assert_eq!(recovered, state_content);
+
+        // --- Verify recovery pipeline still works ---
+        // Restore correct state for recover-state
+        atomic_io::atomic_write_with_checksum(&state_path, state_content).unwrap();
+
+        let args = vec!["11".into()];
+        let (out, code) = execute(&args, dir.path()).unwrap();
+        assert_eq!(code, 0);
+
+        let result: Value = serde_json::from_str(&out).unwrap();
+        let delta = &result["delta"];
+        assert_eq!(delta["recovered"], true);
+        assert_eq!(delta["phase"], 11);
+        assert_eq!(delta["plans"].as_array().unwrap().len(), 2);
+    }
+
+    #[test]
     fn test_recover_fresh_lease_not_stale() {
         let dir = setup_test_env();
         let planning = dir.path().join(".yolo-planning");
