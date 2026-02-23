@@ -1,8 +1,10 @@
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::Path;
+use std::process::Output;
 use std::sync::{Arc, Mutex};
 use tokio::process::Command;
+use tokio::time::{timeout, Duration};
 
 use crate::commands::tier_context;
 
@@ -16,6 +18,22 @@ impl ToolState {
         Self {
             locks: Mutex::new(HashMap::new()),
             last_prefix_hashes: Mutex::new(HashMap::new()),
+        }
+    }
+}
+
+/// Default command timeout in milliseconds (30 seconds).
+const DEFAULT_TIMEOUT_MS: u64 = 30_000;
+
+/// Spawn a command with a timeout. On timeout, kill the child and return an error.
+async fn run_command_with_timeout(cmd: &mut Command, timeout_ms: u64) -> Result<Output, String> {
+    let child = cmd.kill_on_drop(true).spawn().map_err(|e| format!("Failed to spawn command: {}", e))?;
+    match timeout(Duration::from_millis(timeout_ms), child.wait_with_output()).await {
+        Ok(Ok(output)) => Ok(output),
+        Ok(Err(e)) => Err(format!("Command failed: {}", e)),
+        Err(_) => {
+            // Timeout elapsed — child is killed on drop via kill_on_drop(true)
+            Err(format!("Command timed out after {}ms", timeout_ms))
         }
     }
 }
