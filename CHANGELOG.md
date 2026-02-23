@@ -2,6 +2,24 @@
 
 All notable changes to YOLO will be documented in this file.
 
+## v2.9.1 (2026-02-23)
+
+### Fixed
+- **`commands`** — Keep skills as `Vec<String>` in detect_stack.rs
+- **`parse-frontmatter`** — Use `Ok` with exit code 1 for expected errors instead of `Err`
+
+### Changed
+- **`resolve_model`** — Replace `VALID_AGENTS`/`VALID_MODELS` arrays with `AgentRole` and `Model` enums
+- **`session-start`** — Consolidate cache dir reads and getuid into helpers
+- **`commands`** — Deduplicate config_read.rs response builder
+- **`phase_detect`** — Replace string state machines with `PhaseState` enum
+- **`commands`** — Replace regex with str methods in compile_progress.rs
+- **`commands`** — Replace serde_json unwrap with `?` operator
+- **`yolo`** — Rust idiom cleanup (phase 3b)
+
+### Added
+- **`enums`** — Unit tests for StepStatus, PhaseState, Route, AgentRole, and Model enums
+
 ## v2.8.2 (2026-02-23)
 
 ### Fix
