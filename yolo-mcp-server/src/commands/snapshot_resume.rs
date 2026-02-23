@@ -327,6 +327,82 @@ mod tests {
     }
 
     #[test]
+    fn test_snapshot_save_restore_with_default_config() {
+        // Integration test: save a snapshot and restore it using default config (flags enabled)
+        let dir = TempDir::new().unwrap();
+        let planning = dir.path().join(".yolo-planning");
+        fs::create_dir_all(&planning).unwrap();
+
+        // Use config matching new defaults (all recovery flags enabled)
+        let config = serde_json::json!({
+            "v3_snapshot_resume": true,
+            "v3_event_recovery": true,
+            "v3_lease_locks": true
+        });
+        fs::write(planning.join("config.json"), config.to_string()).unwrap();
+
+        // Create execution state
+        let exec_state = serde_json::json!({
+            "phase": 11,
+            "status": "running",
+            "wave": 2,
+            "plans_complete": 4,
+            "plans_total": 5
+        });
+        fs::write(
+            planning.join(".execution-state.json"),
+            serde_json::to_string_pretty(&exec_state).unwrap(),
+        ).unwrap();
+
+        // Init git repo for git log
+        let _ = Command::new("git").args(["init"]).current_dir(dir.path()).output();
+        let _ = Command::new("git").args(["commit", "--allow-empty", "-m", "feat: wave 1 done"]).current_dir(dir.path()).output();
+
+        // Save snapshot with explicit agent role
+        let save_args: Vec<String> = vec![
+            "save".into(), "11".into(),
+            ".yolo-planning/.execution-state.json".into(),
+            "dev".into(),
+            "compaction".into(),
+        ];
+        let (save_out, save_code) = execute(&save_args, dir.path()).unwrap();
+        assert_eq!(save_code, 0);
+        assert!(!save_out.is_empty(), "Save should return snapshot path");
+
+        // Verify snapshot file content
+        let snapshots_dir = planning.join(".snapshots");
+        let entries: Vec<_> = fs::read_dir(&snapshots_dir).unwrap().flatten().collect();
+        assert_eq!(entries.len(), 1);
+
+        let snap_content = fs::read_to_string(entries[0].path()).unwrap();
+        let snap: Value = serde_json::from_str(&snap_content).unwrap();
+
+        // Verify snapshot contains execution state
+        assert_eq!(snap["execution_state"]["phase"], 11);
+        assert_eq!(snap["execution_state"]["status"], "running");
+        assert_eq!(snap["execution_state"]["wave"], 2);
+
+        // Verify agent role
+        assert_eq!(snap["agent_role"], "dev");
+
+        // Verify compaction trigger
+        assert_eq!(snap["compaction_trigger"], "compaction");
+
+        // Verify recent commits (git log)
+        assert!(snap["recent_commits"].is_array());
+
+        // Restore snapshot - should find our saved one
+        let restore_args: Vec<String> = vec!["restore".into(), "11".into(), "dev".into()];
+        let (restore_out, restore_code) = execute(&restore_args, dir.path()).unwrap();
+        assert_eq!(restore_code, 0);
+        assert!(!restore_out.is_empty(), "Restore should return snapshot path");
+
+        // Restored path should point to a valid file
+        let restored_path = std::path::Path::new(restore_out.trim());
+        assert!(restored_path.exists(), "Restored snapshot path should exist: {}", restore_out);
+    }
+
+    #[test]
     fn test_disabled_feature_flag() {
         let dir = TempDir::new().unwrap();
         let planning = dir.path().join(".yolo-planning");
