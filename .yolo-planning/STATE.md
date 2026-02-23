@@ -1,9 +1,9 @@
 # State
 
 **Project:** YOLO Plugin
-**Milestone:** None (idle)
-**Phase:** —
-**Status:** Idle
+**Milestone:** Workflow Validation & Rust Quality Audit
+**Phase:** 1 — QA & Reviewer Gate Enforcement
+**Status:** Planned
 
 ## Decisions
 None.
