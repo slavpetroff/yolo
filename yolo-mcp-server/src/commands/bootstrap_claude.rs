@@ -158,7 +158,6 @@ fn migrate_key_decisions(buffer: &str, state_path: &Path) -> (bool, String) {
             tmp_state.push_str(ur);
             tmp_state.push('\n');
         }
-        rows_inserted = true;
     }
 
     if !past_separator {
