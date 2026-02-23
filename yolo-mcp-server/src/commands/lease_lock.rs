@@ -61,6 +61,23 @@ fn is_expired(lock_data: &Value) -> bool {
     true // Can't parse timestamp, treat as expired
 }
 
+/// Check if a lease for the given resource exists and is expired.
+/// Returns `true` if a lease file exists and has expired, `false` otherwise.
+pub fn is_lease_expired(cwd: &Path, resource: &str) -> bool {
+    let dir = locks_dir(cwd);
+    let filename = lock_filename(resource);
+    let lock_path = dir.join(format!("{}.lease", filename));
+
+    if !lock_path.exists() {
+        return false;
+    }
+
+    match read_lease(&lock_path) {
+        Some(data) => is_expired(&data),
+        None => false,
+    }
+}
+
 /// Acquire a lease lock with TTL.
 /// If `ttl_secs` equals `DEFAULT_TTL_SECS`, the config value from `task_lease_ttl_secs` is used.
 pub fn acquire(resource: &ResourceId, owner: &str, ttl_secs: u64, cwd: &Path) -> Result<Value, Value> {
