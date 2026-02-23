@@ -41,14 +41,22 @@ Return report as structured text in your completion message:
 ```
 QA REPORT:
 passed: true|false
+remediation_eligible: true|false
 checks:
-- name: verify-plan-completion | status: pass|fail | evidence: ...
-- name: commit-lint | status: pass|fail | evidence: ...
-- name: check-regression | status: pass|fail | evidence: ...
-- name: diff-against-plan | status: pass|fail | evidence: ...
-- name: validate-requirements | status: pass|fail | evidence: ...
-regressions: 0
+- name: verify-plan-completion | status: pass | fixable_by: none
+- name: commit-lint | status: fail | fixable_by: dev | detail: "2 violations"
+- name: diff-against-plan | status: pass | fixable_by: none
+- name: validate-requirements | status: fail | fixable_by: dev | detail: "1 unverified"
+- name: check-regression | status: pass | fixable_by: manual
+hard_stop_reasons: []
+dev_fixable_failures:
+- cmd: commit-lint | detail: "Hash abc123: missing type prefix" | suggested_fix: "feat(scope): description"
+- cmd: validate-requirements | detail: "Unverified: thing works" | suggested_fix: "Add evidence to SUMMARY"
 ```
+
+- `remediation_eligible: true` when all failures are dev-fixable
+- `hard_stop_reasons` lists architect/manual failures that block auto-remediation
+- `dev_fixable_failures` provides scoped context for Dev subagent
 
 ## Remediation Classification
 
