@@ -24,6 +24,18 @@ teardown() {
   [ "$output" = "false" ]
 }
 
+@test "v2_typed_protocol defaults to true" {
+  run jq -r '.v2_typed_protocol' "$CONFIG_DIR/defaults.json"
+  [ "$status" -eq 0 ]
+  [ "$output" = "true" ]
+}
+
+@test "v3_schema_validation defaults to true" {
+  run jq -r '.v3_schema_validation' "$CONFIG_DIR/defaults.json"
+  [ "$status" -eq 0 ]
+  [ "$output" = "true" ]
+}
+
 @test "V3 flags can be toggled to true" {
   jq '.v3_context_cache = true' "$TEST_TEMP_DIR/.yolo-planning/config.json" > "$TEST_TEMP_DIR/.yolo-planning/config.tmp" && mv "$TEST_TEMP_DIR/.yolo-planning/config.tmp" "$TEST_TEMP_DIR/.yolo-planning/config.json"
   run jq -r '.v3_context_cache' "$TEST_TEMP_DIR/.yolo-planning/config.json"
