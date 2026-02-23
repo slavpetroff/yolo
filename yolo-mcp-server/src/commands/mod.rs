@@ -1,3 +1,4 @@
+pub mod atomic_io;
 pub mod domain_types;
 pub mod feature_flags;
 pub mod bootstrap_claude;
