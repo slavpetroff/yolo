@@ -1,9 +1,8 @@
+use crate::commands::feature_flags::{self, FeatureFlag};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::fs;
-use std::path::Path;
-
-const PLANNING_DIR: &str = ".yolo-planning";
+use std::path::{Path, PathBuf};
 
 /// Validates a task against its contract sidecar.
 ///
@@ -19,7 +18,9 @@ pub fn validate_contract(
     task_num: u32,
     modified_files: &[String],
 ) -> (String, i32) {
-    let (v3_lite, v2_hard) = read_feature_flags();
+    let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let v3_lite = feature_flags::is_enabled(FeatureFlag::V3ContractLite, &cwd);
+    let v2_hard = feature_flags::is_enabled(FeatureFlag::V2HardContracts, &cwd);
 
     if !v3_lite && !v2_hard {
         return (String::new(), 0);
@@ -49,30 +50,6 @@ pub fn validate_contract(
         "end" => validate_end(&contract, task_num, modified_files, v2_hard),
         _ => (format!("Unknown mode: {}. Valid: start, end", mode), 0),
     }
-}
-
-fn read_feature_flags() -> (bool, bool) {
-    let config_path = format!("{}/config.json", PLANNING_DIR);
-    let content = match fs::read_to_string(&config_path) {
-        Ok(c) => c,
-        Err(_) => return (false, false),
-    };
-
-    let config: Value = match serde_json::from_str(&content) {
-        Ok(v) => v,
-        Err(_) => return (false, false),
-    };
-
-    let v3_lite = config
-        .get("v3_contract_lite")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-    let v2_hard = config
-        .get("v2_hard_contracts")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-
-    (v3_lite, v2_hard)
 }
 
 fn validate_start(contract: &Value, task_num: u32, v2_hard: bool) -> (String, i32) {
