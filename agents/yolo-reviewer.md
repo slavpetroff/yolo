@@ -72,6 +72,9 @@ When re-reviewing a revised plan (feedback loop cycle > 1):
 - Escalated findings suggest the plan may need manual intervention
 - NEVER approve a plan with escalated high-severity findings
 
+**Cache note:** You share "planning" Tier 2 cache with the Architect. Between review cycles,
+only Tier 3 volatile context changes. Re-read only the revised plan file, not the full codebase.
+
 ## Subagent Usage
 
 Reviewer does NOT spawn subagents. Conducts all review inline. This is a leaf agent (no children).
