@@ -56,7 +56,7 @@ YOLO is a Claude Code plugin that bolts an actual development lifecycle onto you
 ### What You Get
 
 - **One command lifecycle** -- `/yolo:vibe` auto-detects state and runs the right workflow (scope, plan, execute, archive)
-- **8 specialized agents** with platform-enforced tool permissions -- Debugger is read-only (`plan` mode), Reviewer and QA are write-restricted
+- **8 specialized agents** with platform-enforced tool permissions via subagent_type routing -- Debugger is read-only (`plan` mode), Reviewer and QA are write-restricted
 - **19 hook handlers across 11 event types** -- continuous verification, security filtering, session lifecycle
 - **Atomic commits** per task with conventional format, auto-push optional
 - **Session persistence** -- close your terminal, come back tomorrow, `/yolo:resume` picks up where you left off
@@ -411,6 +411,20 @@ When `qa_gate` is active, completed work is verified by 5 QA checks. On failure:
 ### Cache Efficiency
 
 Review loop agents share the "planning" Tier 2 cache. QA loop agents share the "execution" Tier 2 cache. Loops stay warm between iterations -- no context recompilation on retry.
+
+<br>
+
+## Release Automation
+
+Archive (`/yolo:vibe --archive`) includes a consolidated release step (Step 8b) that runs automatically after milestone tagging:
+
+1. **Version bump** via `yolo bump-version` (patch default, `--major`/`--minor` supported)
+2. **CHANGELOG finalization** -- `[Unreleased]` header replaced with version and date
+3. **Release commit** -- `chore: release v{version}`
+4. **Version tag** -- `v{version}` (in addition to milestone tag)
+5. **Push** gated by `auto_push` config (`never`/`always`/`after_phase`)
+
+Skip with `--no-release`. Override bump type with `--major` or `--minor`.
 
 <br>
 
