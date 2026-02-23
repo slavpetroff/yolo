@@ -1,8 +1,9 @@
+use crate::commands::feature_flags::{self, FeatureFlag};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 const PLANNING_DIR: &str = ".yolo-planning";
 const SCHEMAS_PATH: &str = "config/schemas/message-schemas.json";
@@ -20,7 +21,8 @@ const SCHEMAS_PATH: &str = "config/schemas/message-schemas.json";
 /// Returns `{valid: bool, errors: [...]}` JSON.
 /// Exit 0 when valid (or flag off), exit 2 when invalid.
 pub fn validate_message(msg_json: &str) -> (Value, i32) {
-    let v2_typed = read_v2_typed_flag();
+    let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let v2_typed = feature_flags::is_enabled(FeatureFlag::V2TypedProtocol, &cwd);
     if !v2_typed {
         return (
             json!({"valid": true, "errors": [], "reason": "v2_typed_protocol=false"}),
@@ -158,22 +160,6 @@ pub fn validate_message_hook(input: &Value) -> (Value, i32) {
     };
 
     validate_message(&msg_str)
-}
-
-fn read_v2_typed_flag() -> bool {
-    let config_path = format!("{}/config.json", PLANNING_DIR);
-    let content = match fs::read_to_string(&config_path) {
-        Ok(c) => c,
-        Err(_) => return false,
-    };
-    let config: Value = match serde_json::from_str(&content) {
-        Ok(v) => v,
-        Err(_) => return false,
-    };
-    config
-        .get("v2_typed_protocol")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false)
 }
 
 #[derive(Debug, Deserialize)]

@@ -1,35 +1,10 @@
+use super::feature_flags::{self, FeatureFlag};
 use chrono::Utc;
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 const DEFAULT_TTL_SECS: u64 = 300;
-
-/// Check if v2_hard_gates is enabled (lease locks enforce via hard gates).
-fn is_hard_gates_enabled(cwd: &Path) -> bool {
-    let config_path = cwd.join(".yolo-planning").join("config.json");
-    if config_path.exists() {
-        if let Ok(content) = fs::read_to_string(&config_path) {
-            if let Ok(config) = serde_json::from_str::<Value>(&content) {
-                return config.get("v2_hard_gates").and_then(|v| v.as_bool()).unwrap_or(false);
-            }
-        }
-    }
-    false
-}
-
-/// Check if v3_lock_lite is enabled (base lock feature).
-fn is_lock_enabled(cwd: &Path) -> bool {
-    let config_path = cwd.join(".yolo-planning").join("config.json");
-    if config_path.exists() {
-        if let Ok(content) = fs::read_to_string(&config_path) {
-            if let Ok(config) = serde_json::from_str::<Value>(&content) {
-                return config.get("v3_lock_lite").and_then(|v| v.as_bool()).unwrap_or(false);
-            }
-        }
-    }
-    false
-}
 
 /// Get the locks directory path.
 fn locks_dir(cwd: &Path) -> PathBuf {
@@ -91,7 +66,7 @@ pub fn acquire(resource: &str, owner: &str, ttl_secs: u64, cwd: &Path) -> Result
                 // Re-entrant acquire, renew
                 return renew(resource, owner, ttl_secs, cwd);
             } else {
-                let hard = is_hard_gates_enabled(cwd);
+                let hard = feature_flags::is_enabled(FeatureFlag::V2HardGates, cwd);
                 return Err(json!({
                     "action": "acquire",
                     "result": "conflict",
@@ -252,7 +227,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         return Err("Usage: yolo lease-lock <acquire|release|renew|cleanup> [resource] [--owner=<owner>] [--ttl=<seconds>]".to_string());
     }
 
-    if !is_lock_enabled(cwd) {
+    if !feature_flags::is_enabled(FeatureFlag::V3LockLite, cwd) {
         return Ok((json!({"result": "skip", "reason": "v3_lock_lite=false"}).to_string(), 0));
     }
 
@@ -279,7 +254,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
             match acquire(&res, &owner, ttl_secs, cwd) {
                 Ok(v) => Ok((v.to_string(), 0)),
                 Err(v) => {
-                    let code = if is_hard_gates_enabled(cwd) { 2 } else { 1 };
+                    let code = if feature_flags::is_enabled(FeatureFlag::V2HardGates, cwd) { 2 } else { 1 };
                     Ok((v.to_string(), code))
                 }
             }
