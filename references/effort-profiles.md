@@ -16,6 +16,31 @@ See: @references/model-profiles.md for model profile details.
 
 ---
 
+## Plan Approval by Profile (EFRT-07)
+
+| Profile  | cautious | standard | confident / pure-vibe |
+| -------- | -------- | -------- | --------------------- |
+| Thorough | required | required | OFF                   |
+| Balanced | required | OFF      | OFF                   |
+| Fast     | OFF      | OFF      | OFF                   |
+| Turbo    | OFF      | OFF      | OFF                   |
+
+Platform-enforced: Dev cannot write files until lead approves. No lead agent at Turbo; plan approval requires a lead.
+
+## Effort Parameter Mapping
+
+| Level  | Behavior                                       |
+| ------ | ---------------------------------------------- |
+| max    | No effort override (default maximum reasoning) |
+| high   | Deep reasoning with focused scope              |
+| medium | Moderate reasoning depth, standard exploration |
+| low    | Minimal reasoning, direct execution            |
+| skip   | Agent is not spawned at all                    |
+
+Per-invocation override: `--effort=<level>` overrides config default for one invocation (EFRT-05).
+
+---
+
 ## Thorough (EFRT-01)
 
 **Recommended model profile:** Quality | **Use when:** Critical features, complex architecture, production-impacting changes.
@@ -30,25 +55,6 @@ See: @references/model-profiles.md for model profile details.
 | QA        | high  | Deep tier (30+ checks). Full anti-pattern scan, requirement mapping                 |
 | Scout     | high  | Broad research, cross-reference, adjacent topics. Runs on session model (Opus)      |
 | Debugger  | high  | All 3 hypotheses tested. Full regression suite. Detailed report                     |
-
-### Plan Approval (EFRT-07)
-
-| Autonomy              | Gate     |
-| --------------------- | -------- |
-| cautious              | required |
-| standard              | required |
-| confident / pure-vibe | OFF      |
-
-Platform-enforced: Dev cannot write files until lead approves.
-
-### Effort Parameter Mapping
-
-| Level | Behavior                                       |
-| ----- | ---------------------------------------------- |
-| max   | No effort override (default maximum reasoning) |
-| high  | Deep reasoning with focused scope              |
-
-Per-invocation override: `--effort=thorough` overrides config default for one invocation (EFRT-05).
 
 ---
 
@@ -67,23 +73,6 @@ Per-invocation override: `--effort=thorough` overrides config default for one in
 | Scout     | medium | Targeted research, one source per finding. Runs on session model (Opus) |
 | Debugger  | medium | Focused investigation, rank-order hypotheses, stop on confirmation      |
 
-### Plan Approval (EFRT-07)
-
-| Autonomy              | Gate     |
-| --------------------- | -------- |
-| cautious              | required |
-| standard              | OFF      |
-| confident / pure-vibe | OFF      |
-
-### Effort Parameter Mapping
-
-| Level  | Behavior                                       |
-| ------ | ---------------------------------------------- |
-| high   | Deep reasoning with focused scope              |
-| medium | Moderate reasoning depth, standard exploration |
-
-Per-invocation override: `--effort=balanced` overrides config default for one invocation (EFRT-05).
-
 ---
 
 ## Fast (EFRT-03)
@@ -101,21 +90,6 @@ Per-invocation override: `--effort=balanced` overrides config default for one in
 | Scout     | low    | Single-source lookups, one URL max, no exploration                     |
 | Debugger  | medium | Single most likely hypothesis first. Standard fix-and-verify           |
 
-### Plan Approval (EFRT-07)
-
-| Autonomy   | Gate |
-| ---------- | ---- |
-| All levels | OFF  |
-
-### Effort Parameter Mapping
-
-| Level  | Behavior                                       |
-| ------ | ---------------------------------------------- |
-| medium | Moderate reasoning depth, standard exploration |
-| low    | Minimal reasoning, direct execution            |
-
-Per-invocation override: `--effort=fast` overrides config default for one invocation (EFRT-05).
-
 ---
 
 ## Turbo (EFRT-04)
@@ -132,20 +106,3 @@ Per-invocation override: `--effort=fast` overrides config default for one invoca
 | QA        | skip  | Not spawned. User judges output directly                           |
 | Scout     | skip  | Not spawned                                                        |
 | Debugger  | low   | Single hypothesis, targeted fix, minimal report (root cause + fix) |
-
-### Plan Approval (EFRT-07)
-
-| Autonomy   | Gate |
-| ---------- | ---- |
-| All levels | OFF  |
-
-No lead agent at Turbo; plan approval requires a lead.
-
-### Effort Parameter Mapping
-
-| Level | Behavior                            |
-| ----- | ----------------------------------- |
-| low   | Minimal reasoning, direct execution |
-| skip  | Agent is not spawned at all         |
-
-Per-invocation override: `--effort=turbo` overrides config default for one invocation (EFRT-05).
