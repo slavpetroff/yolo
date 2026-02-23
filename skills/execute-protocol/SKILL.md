@@ -354,20 +354,6 @@ if [ -f "{phase-dir}/.context-dev.md" ]; then
 fi
 ```
 
-**Compiled context format:** The compiled context uses a 3-tier structure to maximize Anthropic API prompt prefix caching. Tier 1 is byte-identical across all roles for the same project, enabling cache hits even across different agent types. Tier 2 is byte-identical within role families (planning or execution), enabling cache hits across same-family agents. Tier 3 contains phase-specific content that changes per phase.
-
-```
---- TIER 1: SHARED BASE ---
-{project-wide: architecture, conventions — byte-identical for all roles}
---- TIER 2: ROLE FAMILY ({family}) ---
-{family-scoped: patterns, codebase structure — byte-identical within planning or execution families}
---- TIER 3: VOLATILE TAIL (phase={N}) ---
-{phase-specific: goal, requirements, delta}
---- END COMPILED CONTEXT ---
-```
-
-Tier 1 (`--- TIER 1: SHARED BASE ---`) contains project-wide content shared by every agent. Tier 2 (`--- TIER 2: ROLE FAMILY ({family}) ---`) contains family-scoped content (e.g., all execution agents share the same Tier 2). Tier 3 (`--- TIER 3: VOLATILE TAIL (phase={N}) ---`) contains phase-specific content. This 3-tier separation means the API caches Tier 1 across all concurrent agents, and Tier 1 + Tier 2 across same-family agents — only Tier 3 changes per phase.
-
 **V2 Token Budgets (REQ-12):** If yolo control-plane `compile` or `full` action was used and included token budget enforcement, skip this step. Otherwise, if `v2_token_budgets=true` in config:
 
 - After context compilation, enforce per-role token budgets. When `v3_contract_lite=true` or `v2_hard_contracts=true`, pass the contract path and task number for per-task budget computation:
