@@ -18,7 +18,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 ## Active Context
 
 **Work:** Idle — no active milestone
-**Last shipped:** Type Safety & Self-Healing (2026-02-24) — 2 phases, 50 tasks, 42 commits
+**Last shipped:** Type Safety & Self-Healing (2026-02-24) — 2 phases, 10 plans, 50 tasks, 42 commits, v2.9.0
 **Next action:** Run /yolo:vibe to start new work
 
 ## Installed Skills
