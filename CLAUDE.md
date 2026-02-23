@@ -18,7 +18,7 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 ## Active Context
 
 **Work:** Idle — no active milestone
-**Last shipped:** Quality Gate Feedback Loops (2026-02-23) — 4 phases, 35 tasks, 29 commits, v2.7.0
+**Last shipped:** Agent Routing & Release Automation (2026-02-23) — 3 phases, 15 tasks, 12 commits, v2.8.0
 **Next action:** Run /yolo:vibe to start new work
 
 ## Installed Skills
