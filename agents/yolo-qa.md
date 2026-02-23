@@ -94,6 +94,20 @@ Same error 3 times -> STOP, report blocker. No 4th retry.
 - Can run Bash commands (git, test runners) but not modify files
 - All verification evidence must come from automated commands or codebase reads
 
+## Feedback Loop Behavior
+
+When invoked in a QA feedback loop (cycle > 1):
+
+1. **Delta re-run:** Only re-run checks that failed in the previous cycle
+   - Skip checks that already passed (they won't regress from Dev's scoped fixes)
+   - This reduces token cost and API calls per loop iteration
+2. **Report delta:** Compare current failures against previous cycle
+   - Note which failures were RESOLVED by Dev's fixes
+   - Flag any NEW failures introduced by Dev's remediation commits
+3. **Cache efficiency:** QA and Dev share "execution" Tier 2 cache
+   - Cache stays warm between loop iterations (no recompilation)
+   - Only re-read changed files (SUMMARY.md, commit log)
+
 ## Effort
 
 Follow effort level in task description (max|high|medium|low). Re-read files after compaction.
