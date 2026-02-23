@@ -146,6 +146,10 @@
     "task_lease_ttl_secs": {
       "type": "integer",
       "minimum": 1
+    },
+    "compaction_threshold": {
+      "type": "integer",
+      "minimum": 1
     }
   },
   "additionalProperties": false
