@@ -2,6 +2,20 @@
 
 All notable changes to YOLO will be documented in this file.
 
+## v2.8.0 (2026-02-23)
+
+### Agent Routing
+- **subagent_type routing** — Execute-protocol spawns specialized agents (yolo-dev, yolo-architect) instead of generic general-purpose agents
+- **Mapping table** added to execute-protocol documenting role → subagent_type
+- **maxTurns resolution** for Architect agent in review feedback loop
+- **Lead agent routing** — plan.md spawns yolo-lead with proper tool constraints
+
+### Release Automation
+- **Consolidated release step (Step 8b)** in archive flow — auto bumps version, finalizes CHANGELOG, commits, tags, and optionally pushes
+- **--no-release flag** to skip release on archive
+- **--major / --minor flags** forwarded to version bump
+- **Push gated by auto_push** config
+
 ## v2.7.0 (2026-02-23)
 
 ### Review Feedback Loop
