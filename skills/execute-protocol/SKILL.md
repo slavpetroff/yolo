@@ -242,9 +242,27 @@ ARCH_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model architect .yolo-planning/conf
    - STOP execution -- do not create Dev team
    - Return to user with suggestion: "Review loop exhausted after {max} cycles. Fix issues manually and re-run `/yolo:vibe --execute {N}`"
 
-5. After all plans reviewed:
-   - If ALL plans approve or conditional: proceed to Step 3
-   - If ANY plan hit max_cycles with reject: STOP entire phase. Do not create Dev team.
+5. **Per-plan loop independence:**
+
+   Each plan in the phase gets its **own independent review loop**. Plans do NOT share loop state.
+
+   - Plans are reviewed sequentially in order (01, 02, 03, ...)
+   - Each plan starts with `REVIEW_CYCLE=1` and its own `ACCUMULATED_FINDINGS`
+   - If plan A passes review (approve/conditional), it is marked ready for Step 3 while plan B enters its own loop
+   - Loop variables (`REVIEW_CYCLE`, `PREVIOUS_FINDINGS`, `ACCUMULATED_FINDINGS`, `CURRENT_FINDINGS`) are scoped per plan -- reset at the start of each plan's review
+   - The `review_loops` object in execution-state.json tracks each plan independently under its plan ID key (e.g., `review_loops["01-01"]`, `review_loops["01-02"]`)
+
+   **Phase-level stop behavior:**
+   - If ANY plan hits max_cycles with a reject verdict: STOP the entire phase immediately
+   - Do not proceed to Step 3 for ANY plan (even those that already passed review)
+   - Display summary of all plan review outcomes:
+     ```
+     Review gate results:
+       ✓ Plan 01-01: approved (cycle 1/3)
+       ✗ Plan 01-02: REJECTED after 3 cycles
+     Phase halted — all plans must pass review before execution.
+     ```
+   - If ALL plans approve or conditional: proceed to Step 3 with all plans
 
 **When inactive:** Display `○ Review gate skipped (review_gate: {value})` and proceed to Step 3.
 
