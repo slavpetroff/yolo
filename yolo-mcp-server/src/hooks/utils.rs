@@ -147,7 +147,6 @@ pub fn normalize_agent_role(name: &str) -> String {
     match s.as_str() {
         "leader" => "lead".to_string(),
         "arch" => "architect".to_string(),
-        "security" | "sec" => "security".to_string(),
         "debug" => "debugger".to_string(),
         other => other.to_string(),
     }
@@ -205,8 +204,8 @@ mod tests {
     fn test_normalize_agent_role_aliases() {
         assert_eq!(normalize_agent_role("leader"), "lead");
         assert_eq!(normalize_agent_role("arch"), "architect");
-        assert_eq!(normalize_agent_role("sec"), "security");
         assert_eq!(normalize_agent_role("debug"), "debugger");
+        assert_eq!(normalize_agent_role("sec"), "sec");
     }
 
     #[test]

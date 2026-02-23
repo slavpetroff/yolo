@@ -67,7 +67,7 @@ fn write_cache(cache_path: &Path, content: &str, source_mtime: u64) {
 pub fn role_family(role: &str) -> &'static str {
     match role {
         "architect" | "lead" | "researcher" | "reviewer" => "planning",
-        "dev" | "senior" | "qa" | "security" | "debugger" => "execution",
+        "dev" | "qa" | "debugger" => "execution",
         _ => "default",
     }
 }
@@ -459,10 +459,10 @@ mod tests {
         assert_eq!(role_family("architect"), "planning");
         assert_eq!(role_family("lead"), "planning");
         assert_eq!(role_family("dev"), "execution");
-        assert_eq!(role_family("senior"), "execution");
         assert_eq!(role_family("qa"), "execution");
-        assert_eq!(role_family("security"), "execution");
         assert_eq!(role_family("debugger"), "execution");
+        assert_eq!(role_family("senior"), "default");
+        assert_eq!(role_family("security"), "default");
         assert_eq!(role_family("unknown"), "default");
         assert_eq!(role_family(""), "default");
     }
