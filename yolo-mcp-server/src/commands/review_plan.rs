@@ -29,7 +29,7 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
             "cmd": "review-plan",
             "verdict": "reject",
             "checks": [],
-            "findings": [{"severity": "high", "check": "file", "issue": format!("Plan file not found: {}", plan_path.display())}]
+            "findings": [{"severity": "high", "check": "file", "issue": format!("Plan file not found: {}", plan_path.display()), "suggested_fix": "Verify the plan file path is correct", "auto_fixable": false}]
         });
         return Ok((resp.to_string(), 1));
     }
@@ -45,7 +45,7 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
     match &frontmatter {
         None => {
             checks.push(json!({"name": "frontmatter", "status": "fail"}));
-            findings.push(json!({"severity": "high", "check": "frontmatter", "issue": "No valid YAML frontmatter found"}));
+            findings.push(json!({"severity": "high", "check": "frontmatter", "issue": "No valid YAML frontmatter found", "suggested_fix": "Add YAML frontmatter with required fields: phase, plan, title, wave, depends_on, must_haves", "auto_fixable": true}));
         }
         Some(fm) => {
             let required_fields = ["phase", "plan", "title", "wave", "depends_on", "must_haves"];
@@ -62,7 +62,9 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
                 findings.push(json!({
                     "severity": "high",
                     "check": "frontmatter",
-                    "issue": format!("Missing fields: {}", missing.join(", "))
+                    "issue": format!("Missing fields: {}", missing.join(", ")),
+                    "suggested_fix": format!("Add missing frontmatter fields: {}", missing.join(", ")),
+                    "auto_fixable": true
                 }));
             }
         }
@@ -75,7 +77,9 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
         findings.push(json!({
             "severity": "medium",
             "check": "task_count",
-            "issue": format!("Plan has {} tasks (recommended max: 5)", task_count)
+            "issue": format!("Plan has {} tasks (recommended max: 5)", task_count),
+            "suggested_fix": "Split plan into multiple plans with ≤5 tasks each",
+            "auto_fixable": true
         }));
     } else {
         checks.push(json!({"name": "task_count", "status": "pass", "count": task_count}));
@@ -89,7 +93,9 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
             findings.push(json!({
                 "severity": "high",
                 "check": "must_haves",
-                "issue": "must_haves is empty or missing"
+                "issue": "must_haves is empty or missing",
+                "suggested_fix": "Add specific, testable must_haves to plan frontmatter",
+                "auto_fixable": true
             }));
         } else {
             checks.push(json!({"name": "must_haves", "status": "pass", "count": must_haves.len()}));
@@ -99,7 +105,9 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
         findings.push(json!({
             "severity": "high",
             "check": "must_haves",
-            "issue": "Cannot check must_haves without frontmatter"
+            "issue": "Cannot check must_haves without frontmatter",
+            "suggested_fix": "Add specific, testable must_haves to plan frontmatter",
+            "auto_fixable": true
         }));
     }
 
@@ -116,7 +124,9 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
                         findings.push(json!({
                             "severity": "high",
                             "check": "wave_valid",
-                            "issue": "wave must be a positive integer (got 0)"
+                            "issue": "wave must be a positive integer (got 0)",
+                            "suggested_fix": "Set wave to a positive integer (1 for independent plans)",
+                            "auto_fixable": true
                         }));
                     }
                 } else {
@@ -124,7 +134,9 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
                     findings.push(json!({
                         "severity": "high",
                         "check": "wave_valid",
-                        "issue": format!("wave is not a valid integer: {}", v)
+                        "issue": format!("wave is not a valid integer: {}", v),
+                        "suggested_fix": "Set wave to a positive integer (1 for independent plans)",
+                        "auto_fixable": true
                     }));
                 }
             }
@@ -133,7 +145,9 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
                 findings.push(json!({
                     "severity": "high",
                     "check": "wave_valid",
-                    "issue": "wave field missing from frontmatter"
+                    "issue": "wave field missing from frontmatter",
+                    "suggested_fix": "Set wave to a positive integer (1 for independent plans)",
+                    "auto_fixable": true
                 }));
             }
         }
@@ -157,7 +171,9 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
                 findings.push(json!({
                     "severity": "low",
                     "check": "file_paths",
-                    "issue": format!("Referenced file not found: {}", file_ref)
+                    "issue": format!("Referenced file not found: {}", file_ref),
+                    "suggested_fix": "Verify file paths exist in codebase or update references",
+                    "auto_fixable": false
                 }));
             }
         }
