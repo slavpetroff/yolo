@@ -2,11 +2,12 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-pub fn execute(_args: &[String], cwd: &Path) -> Result<(String, i32), String> {
+pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
+    let suggest_route = args.iter().any(|a| a == "--suggest-route");
     let planning_dir = cwd.join(".yolo-planning");
 
     let mut out = String::new();
-    
+
     // --- jq availability (simulated for backward compat output shape) ---
     out.push_str("jq_available=true\n");
 
@@ -34,6 +35,9 @@ pub fn execute(_args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         out.push_str("has_codebase_map=false\n");
         out.push_str("brownfield=false\n");
         out.push_str("execution_state=none\n");
+        if suggest_route {
+            out.push_str("suggested_route=init\n");
+        }
         return Ok((out, 0));
     }
     out.push_str("planning_dir_exists=true\n");
@@ -233,7 +237,47 @@ pub fn execute(_args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     }
     out.push_str(&format!("execution_state={}\n", exec_state));
 
+    if suggest_route {
+        let route = suggest_route_mode(
+            &next_phase_state, project_exists, &exec_state, brownfield, phase_count,
+        );
+        out.push_str(&format!("suggested_route={}\n", route));
+    }
+
     Ok((out.trim_end().to_string() + "\n", 0))
+}
+
+fn suggest_route_mode(
+    next_phase_state: &str,
+    project_exists: bool,
+    execution_state: &str,
+    brownfield: bool,
+    _phase_count: usize,
+) -> &'static str {
+    // Resume interrupted execution
+    if execution_state == "running" {
+        return "resume";
+    }
+    // No project yet
+    if !project_exists {
+        if brownfield {
+            return "bootstrap";
+        }
+        return "init";
+    }
+    // All phases done
+    if next_phase_state == "all_done" {
+        return "archive";
+    }
+    // Needs planning
+    if next_phase_state == "needs_plan_and_execute" || next_phase_state == "no_phases" {
+        return "plan";
+    }
+    // Has plans, needs execution
+    if next_phase_state == "needs_execute" {
+        return "execute";
+    }
+    "plan"
 }
 
 #[cfg(test)]
