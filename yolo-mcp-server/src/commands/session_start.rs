@@ -14,8 +14,10 @@ struct StepResult {
     ms: u64,
 }
 
-pub fn execute_session_start(cwd: &Path) -> Result<(String, i32), String> {
+pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let start = Instant::now();
+    let with_progress = args.iter().any(|a| a == "--with-progress");
+    let with_git = args.iter().any(|a| a == "--with-git");
     let planning_dir = cwd.join(".yolo-planning");
     let script_dir = cwd.join("scripts");
     let claude_dir = get_claude_dir(cwd);

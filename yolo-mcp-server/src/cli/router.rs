@@ -412,7 +412,7 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
         }
         Some(Command::SessionStart) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-            session_start::execute_session_start(&cwd)
+            session_start::execute_session_start(&args, &cwd)
         }
         Some(Command::MetricsReport) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
