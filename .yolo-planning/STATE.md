@@ -2,14 +2,15 @@
 
 **Project:** YOLO Plugin
 **Milestone:** Workflow Integrity Enforcement
-**Phase:** 3 — Context Integrity — Architecture Persistence & Step Ordering
-**Status:** Complete (3 plans, 4 tasks, 4 commits)
+**Phase:** 4 — Integration Tests & Validation
+**Status:** Complete (2 plans, 3 tasks, 3 commits)
 
 ## Decisions
-- 3 plans, all wave 1 (parallel, disjoint files: tier_context.rs / SKILL.md / yolo-lead.md)
-- Step-ordering: append-only array in execution-state.json, validated at Step 5
-- Delegation reinforcement: 5 anchor points in SKILL.md + dedicated section in Lead agent
+- 2 plans, all wave 1 (parallel, disjoint files: workflow-integrity.bats / workflow-integrity-context.bats)
+- Plan 1: 16 static grep tests for agent spawn, gate enforcement, delegation
+- Plan 2: 18 tests (4 CLI compile-context + 14 static grep for step ordering and anti-takeover)
 - CLI all-pass fast-path triggered: QA agent spawn skipped
+- Milestone complete: all 4 phases done
 
 ## Todos
 None.

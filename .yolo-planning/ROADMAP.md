@@ -22,7 +22,8 @@
 **REQ:** REQ-03, REQ-05, REQ-06
 **Status:** Complete (2026-02-24) — 3 plans, 4 commits
 
-## Phase 4: Integration Tests & Validation
+## Phase 4: Integration Tests & Validation ✓
 **Goal:** Add bats tests verifying that review and QA agents are spawned during execution, feedback loops trigger correctly, and context includes ARCHITECTURE.md for all roles.
 **Success criteria:** New test files covering agent spawn verification, gate enforcement, context compilation with architecture, and step ordering. All existing tests still pass.
 **REQ:** REQ-07
+**Status:** Complete (2026-02-24) — 2 plans, 3 commits
