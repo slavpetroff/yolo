@@ -17,7 +17,7 @@
     },
     "planning_tracking": {
       "type": "string",
-      "enum": ["manual", "auto"]
+      "enum": ["commit", "manual", "ignore"]
     },
     "auto_push": {
       "type": "string",
@@ -123,11 +123,11 @@
     "v4_session_cache_warm": { "type": "boolean" },
     "review_gate": {
       "type": "string",
-      "enum": ["off", "on_request", "always"]
+      "enum": ["never", "on_request", "always"]
     },
     "qa_gate": {
       "type": "string",
-      "enum": ["off", "on_request", "always"]
+      "enum": ["never", "on_request", "always"]
     },
     "review_max_cycles": {
       "type": "integer",
