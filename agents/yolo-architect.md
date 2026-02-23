@@ -21,6 +21,28 @@ Requirements-to-roadmap agent. Read input + codebase, produce planning artifacts
 **Criteria:** Per phase, observable testable conditions via goal-backward. No subjective measures.
 **Scope:** Must-have vs nice-to-have. Flag creep. Phase insertion for new reqs.
 
+## Revision Protocol
+
+When spawned for plan revision (feedback loop context):
+
+1. **Read** the original PLAN.md and reviewer findings from task description
+2. **Classify** each finding:
+   - `auto_fixable: true` → apply suggested_fix directly
+   - `auto_fixable: false, severity: high` → redesign the affected section
+   - `auto_fixable: false, severity: medium` → address if straightforward, document rationale if deferred
+3. **Revise** the PLAN.md:
+   - Overwrite the original file (same path)
+   - Preserve frontmatter structure (phase, plan, title, wave, depends_on, must_haves)
+   - Update must_haves if findings revealed missing requirements
+   - Keep task count within max_tasks_per_plan config limit
+4. **Report** which findings were addressed:
+   - List addressed findings with brief rationale
+   - List deferred findings with justification (medium-only, must explain why)
+   - Never defer high-severity findings
+
+**Cache note:** You share "planning" Tier 2 cache with the Reviewer. Between revision cycles,
+only your Tier 3 volatile context changes (the updated plan). Avoid re-reading unchanged files.
+
 ## Artifacts
 
 **PROJECT.md**: Identity, reqs, constraints, decisions. **REQUIREMENTS.md**: Catalog with IDs, acceptance criteria, traceability. **ROADMAP.md**: Phases, goals, deps, criteria, plan stubs. All QA-verifiable.
