@@ -33,6 +33,12 @@ pub struct CircuitBreaker {
     pub reset_duration: Duration,
 }
 
+impl Default for CircuitBreaker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CircuitBreaker {
     pub fn new() -> Self {
         Self {
@@ -45,10 +51,10 @@ impl CircuitBreaker {
 
     /// Returns true if the circuit is open (tool should not be called).
     pub fn is_open(&self, tool_name: &str) -> bool {
-        if let Some(until) = self.open_until.get(tool_name) {
-            if Instant::now() < *until {
-                return true;
-            }
+        if let Some(until) = self.open_until.get(tool_name)
+            && Instant::now() < *until
+        {
+            return true;
         }
         false
     }

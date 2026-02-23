@@ -13,6 +13,12 @@ pub struct ToolState {
     last_prefix_hashes: Mutex<HashMap<String, String>>, // role -> last prefix_hash
 }
 
+impl Default for ToolState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ToolState {
     pub fn new() -> Self {
         Self {
@@ -28,12 +34,11 @@ const DEFAULT_TIMEOUT_MS: u64 = 30_000;
 /// Read `command_timeout_ms` from `.yolo-planning/config.json`, falling back to DEFAULT_TIMEOUT_MS.
 fn read_timeout_config() -> u64 {
     let config_path = Path::new(".yolo-planning/config.json");
-    if let Ok(data) = std::fs::read_to_string(config_path) {
-        if let Ok(v) = serde_json::from_str::<Value>(&data) {
-            if let Some(ms) = v.get("command_timeout_ms").and_then(|v| v.as_u64()) {
-                return ms;
-            }
-        }
+    if let Ok(data) = std::fs::read_to_string(config_path)
+        && let Ok(v) = serde_json::from_str::<Value>(&data)
+        && let Some(ms) = v.get("command_timeout_ms").and_then(|v| v.as_u64())
+    {
+        return ms;
     }
     DEFAULT_TIMEOUT_MS
 }

@@ -52,6 +52,7 @@ impl TelemetryDb {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn record_agent_tokens(
         &self,
         agent_role: &str,
@@ -116,6 +117,7 @@ impl TelemetryDb {
         Ok(results)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn record_tool_call(
         &self,
         tool_name: &str,
@@ -129,6 +131,7 @@ impl TelemetryDb {
         self.record_tool_call_with_retry(tool_name, agent_role, session_id, input_length, output_length, execution_time_ms, success, 0)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn record_tool_call_with_retry(
         &self,
         tool_name: &str,
