@@ -8,7 +8,8 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let start = Instant::now();
 
     if args.len() < 3 {
-        return Err(r#"{"error":"Usage: yolo parse-frontmatter <file_path>"}"#.to_string());
+        let out = json!({"error": "Usage: yolo parse-frontmatter <file_path>"});
+        return Ok((serde_json::to_string(&out).map_err(|e| e.to_string())? + "\n", 1));
     }
 
     let file_path_str = &args[2];
@@ -24,8 +25,13 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         return Ok((serde_json::to_string(&out).map_err(|e| e.to_string())? + "\n", 1));
     }
 
-    let content = fs::read_to_string(&resolved)
-        .map_err(|e| format!("{{\"error\":\"failed to read file: {}\"}}", e))?;
+    let content = match fs::read_to_string(&resolved) {
+        Ok(c) => c,
+        Err(e) => {
+            let out = json!({"error": format!("failed to read file: {}", e)});
+            return Ok((serde_json::to_string(&out).map_err(|e| e.to_string())? + "\n", 1));
+        }
+    };
 
     let frontmatter = parse_frontmatter_content(&content);
     let has_frontmatter = frontmatter.is_some();
