@@ -1,8 +1,91 @@
 use std::fs;
 use std::path::Path;
 
-const VALID_AGENTS: &[&str] = &["lead", "dev", "qa", "scout", "debugger", "architect", "docs", "researcher", "reviewer"];
-const VALID_MODELS: &[&str] = &["opus", "sonnet", "haiku"];
+#[derive(Clone, Copy)]
+enum AgentRole {
+    Lead,
+    Dev,
+    Qa,
+    Scout,
+    Debugger,
+    Architect,
+    Docs,
+    Researcher,
+    Reviewer,
+}
+
+impl AgentRole {
+    fn from_str(s: &str) -> Option<AgentRole> {
+        match s {
+            "lead" => Some(AgentRole::Lead),
+            "dev" => Some(AgentRole::Dev),
+            "qa" => Some(AgentRole::Qa),
+            "scout" => Some(AgentRole::Scout),
+            "debugger" => Some(AgentRole::Debugger),
+            "architect" => Some(AgentRole::Architect),
+            "docs" => Some(AgentRole::Docs),
+            "researcher" => Some(AgentRole::Researcher),
+            "reviewer" => Some(AgentRole::Reviewer),
+            _ => None,
+        }
+    }
+
+    fn as_str(&self) -> &'static str {
+        match self {
+            AgentRole::Lead => "lead",
+            AgentRole::Dev => "dev",
+            AgentRole::Qa => "qa",
+            AgentRole::Scout => "scout",
+            AgentRole::Debugger => "debugger",
+            AgentRole::Architect => "architect",
+            AgentRole::Docs => "docs",
+            AgentRole::Researcher => "researcher",
+            AgentRole::Reviewer => "reviewer",
+        }
+    }
+
+    fn all() -> &'static [AgentRole] {
+        &[
+            AgentRole::Lead, AgentRole::Dev, AgentRole::Qa, AgentRole::Scout,
+            AgentRole::Debugger, AgentRole::Architect, AgentRole::Docs,
+            AgentRole::Researcher, AgentRole::Reviewer,
+        ]
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Model {
+    Opus,
+    Sonnet,
+    Haiku,
+}
+
+impl Model {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Model::Opus => "opus",
+            Model::Sonnet => "sonnet",
+            Model::Haiku => "haiku",
+        }
+    }
+
+    fn cost_weight(&self) -> u32 {
+        match self {
+            Model::Opus => 100,
+            Model::Sonnet => 20,
+            Model::Haiku => 2,
+        }
+    }
+
+    fn from_str(s: &str) -> Option<Model> {
+        match s {
+            "opus" => Some(Model::Opus),
+            "sonnet" => Some(Model::Sonnet),
+            "haiku" => Some(Model::Haiku),
+            _ => None,
+        }
+    }
+}
 
 pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
     // Detect flags
@@ -31,7 +114,7 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
     // Validate single agent name (non --all mode)
     if !all_agents {
         let agent = positional[2].as_str();
-        if !VALID_AGENTS.contains(&agent) {
+        if AgentRole::from_str(agent).is_none() {
             return Err(format!(
                 "Invalid agent name '{}'. Valid: lead, dev, qa, scout, debugger, architect, docs, researcher, reviewer",
                 agent
@@ -74,15 +157,16 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
 
         // Build JSON object for all agents
         let mut map = serde_json::Map::new();
-        for &agent in VALID_AGENTS {
-            let model = resolve_agent_model(agent, &config, &profiles, &profile_name)?;
+        for &agent in AgentRole::all() {
+            let model = resolve_agent_model(agent.as_str(), &config, &profiles, &profile_name)?;
             if with_cost {
+                let resolved = Model::from_str(&model).unwrap();
                 let mut inner = serde_json::Map::new();
                 inner.insert("model".to_string(), serde_json::Value::String(model.clone()));
-                inner.insert("cost_weight".to_string(), serde_json::Value::Number(cost_weight(&model).into()));
-                map.insert(agent.to_string(), serde_json::Value::Object(inner));
+                inner.insert("cost_weight".to_string(), serde_json::Value::Number(resolved.cost_weight().into()));
+                map.insert(agent.as_str().to_string(), serde_json::Value::Object(inner));
             } else {
-                map.insert(agent.to_string(), serde_json::Value::String(model));
+                map.insert(agent.as_str().to_string(), serde_json::Value::String(model));
             }
         }
         let result = serde_json::to_string(&serde_json::Value::Object(map))
@@ -106,9 +190,10 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
     let model = resolve_agent_model(agent, &config, &profiles, &profile_name)?;
 
     if with_cost {
+        let resolved = Model::from_str(&model).unwrap();
         let mut map = serde_json::Map::new();
         map.insert("model".to_string(), serde_json::Value::String(model.clone()));
-        map.insert("cost_weight".to_string(), serde_json::Value::Number(cost_weight(&model).into()));
+        map.insert("cost_weight".to_string(), serde_json::Value::Number(resolved.cost_weight().into()));
         let result = serde_json::to_string(&serde_json::Value::Object(map))
             .map_err(|e| format!("JSON serialization error: {}", e))?;
         let _ = fs::write(&cache_file, &result);
@@ -174,7 +259,7 @@ fn resolve_agent_model(
     }
 
     // Validate final model
-    if !VALID_MODELS.contains(&model.as_str()) {
+    if Model::from_str(&model).is_none() {
         return Err(format!(
             "Invalid model '{}' for {}. Valid: opus, sonnet, haiku",
             model, agent
@@ -182,15 +267,6 @@ fn resolve_agent_model(
     }
 
     Ok(model)
-}
-
-fn cost_weight(model: &str) -> u32 {
-    match model {
-        "opus" => 100,
-        "sonnet" => 20,
-        "haiku" => 2,
-        _ => 0,
-    }
 }
 
 fn simple_hash(s: &str) -> u64 {
@@ -488,9 +564,8 @@ mod tests {
 
     #[test]
     fn test_cost_weight_values() {
-        assert_eq!(cost_weight("opus"), 100);
-        assert_eq!(cost_weight("sonnet"), 20);
-        assert_eq!(cost_weight("haiku"), 2);
-        assert_eq!(cost_weight("unknown"), 0);
+        assert_eq!(Model::Opus.cost_weight(), 100);
+        assert_eq!(Model::Sonnet.cost_weight(), 20);
+        assert_eq!(Model::Haiku.cost_weight(), 2);
     }
 }
