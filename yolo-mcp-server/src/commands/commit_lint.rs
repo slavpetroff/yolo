@@ -83,38 +83,3 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     Ok((resp.to_string(), if ok { 0 } else { 1 }))
 }
 
-/// Validate a single commit subject line against conventional commit format.
-/// Used for unit testing without git.
-fn validate_subject(subject: &str) -> bool {
-    let commit_re =
-        Regex::new(r"^(feat|fix|test|refactor|perf|docs|style|chore)\([a-z0-9._-]+\): .+")
-            .unwrap();
-    commit_re.is_match(subject)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_valid_commits_pass() {
-        assert!(validate_subject("feat(04-01): create QA agent definition"));
-        assert!(validate_subject("fix(router): handle edge case"));
-        assert!(validate_subject("chore(yolo): bump version"));
-        assert!(validate_subject("test(qa): add unit tests"));
-        assert!(validate_subject("refactor(commands): simplify parsing"));
-        assert!(validate_subject("perf(compile): reduce allocations"));
-        assert!(validate_subject("docs(readme): update install steps"));
-        assert!(validate_subject("style(fmt): run rustfmt"));
-    }
-
-    #[test]
-    fn test_invalid_format_fails() {
-        assert!(!validate_subject("Update readme"));
-        assert!(!validate_subject("feat: missing scope"));
-        assert!(!validate_subject("feat(CAPS): wrong case scope"));
-        assert!(!validate_subject("unknown(scope): bad type"));
-        assert!(!validate_subject("feat(scope):missing space"));
-        assert!(!validate_subject(""));
-    }
-}

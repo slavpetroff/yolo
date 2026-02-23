@@ -61,14 +61,6 @@ enum Model {
 }
 
 impl Model {
-    fn as_str(&self) -> &'static str {
-        match self {
-            Model::Opus => "opus",
-            Model::Sonnet => "sonnet",
-            Model::Haiku => "haiku",
-        }
-    }
-
     fn cost_weight(&self) -> u32 {
         match self {
             Model::Opus => 100,
