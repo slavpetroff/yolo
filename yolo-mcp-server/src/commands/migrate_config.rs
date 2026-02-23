@@ -77,8 +77,46 @@ pub fn migrate_config(config_path: &Path, defaults_path: &Path) -> Result<usize,
         .count();
     let added = missing_before.saturating_sub(missing_after);
 
-    // Atomic write via temp file
     let merged_val = Value::Object(merged);
+
+    // Schema validation: validate merged config against config.schema.json
+    let schema_path = defaults_path.with_file_name("config.schema.json");
+    if schema_path.exists() {
+        let schema = read_json(&schema_path)?;
+        let validator = jsonschema::validator_for(&schema)
+            .map_err(|e| format!("Invalid config schema: {e}"))?;
+        let errors: Vec<String> = validator
+            .iter_errors(&merged_val)
+            .map(|e| format!("  - {}: {}", e.instance_path, e))
+            .collect();
+        if !errors.is_empty() {
+            return Err(format!(
+                "Config validation failed:\n{}",
+                errors.join("\n")
+            ));
+        }
+    } else {
+        eprintln!(
+            "WARNING: config.schema.json not found at {}, skipping validation",
+            schema_path.display()
+        );
+    }
+
+    // Warn if key enforcement flags are disabled
+    let enforcement_flags = [
+        "v2_typed_protocol",
+        "v3_schema_validation",
+        "v2_hard_gates",
+        "v2_hard_contracts",
+    ];
+    for flag in &enforcement_flags {
+        let enabled = merged_val.get(*flag).and_then(|v| v.as_bool()).unwrap_or(false);
+        if !enabled {
+            eprintln!("WARNING: enforcement flag '{}' is disabled", flag);
+        }
+    }
+
+    // Atomic write via temp file
     let tmp = config_path.with_extension("json.tmp");
     fs::write(&tmp, serde_json::to_string_pretty(&merged_val).unwrap())
         .map_err(|e| format!("Failed to write temp config: {e}"))?;
