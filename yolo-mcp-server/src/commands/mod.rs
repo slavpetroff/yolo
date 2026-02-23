@@ -1,3 +1,5 @@
+pub mod domain_types;
+pub mod feature_flags;
 pub mod bootstrap_claude;
 pub mod bootstrap_project;
 pub mod bootstrap_requirements;
