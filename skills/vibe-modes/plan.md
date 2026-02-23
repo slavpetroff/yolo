@@ -36,7 +36,7 @@
 
      When team should be created (based on prefer_teams):
      - Create team via TeamCreate: `team_name="yolo-plan-{NN}"`, `description="Planning Phase {N}: {phase-name}"`
-     - Spawn Lead with `team_name: "yolo-plan-{NN}"`, `name: "lead"` parameters on the Task tool invocation.
+     - Spawn Lead with `team_name: "yolo-plan-{NN}"`, `name: "lead"`, `subagent_type: "yolo:yolo-lead"` parameters on the Task tool invocation.
      - **HARD GATE -- Shutdown before proceeding (NON-NEGOTIABLE):** After all team agents complete their work, you MUST shut down the team BEFORE validating output, presenting results, auto-chaining to Execute, or asking the user anything. This gate CANNOT be skipped, deferred, or optimized away -- even after compaction. Lingering agents burn API credits silently.
        1. Send `shutdown_request` to EVERY active teammate via SendMessage (Lead -- excluding yourself, the orchestrator)
        2. Wait for each `shutdown_response` (approved=true). If rejected, re-request (max 3 attempts per teammate -- then proceed).
@@ -46,9 +46,9 @@
        **WHY THIS EXISTS:** Without this gate, each Plan invocation spawns a new Lead that lingers in tmux. After 2-3 phases, multiple @lea panes accumulate, each burning API credits doing nothing. This is the #1 user-reported cost issue.
 
      When team should NOT be created (Lead-only with when_parallel/auto):
-     - Spawn yolo-lead as subagent via Task tool without team (single agent, no team overhead).
-   - Spawn yolo-lead as subagent via Task tool. The Task description MUST start with `{LEAD_CONTEXT}` content as the first block (prefix-first injection for cache-optimal context), followed by the planning instructions (phase goal, parallel dev guidance). If no compiled context, fall back to full file list.
-   - **CRITICAL:** Add `model: "${LEAD_MODEL}"` and `maxTurns: ${LEAD_MAX_TURNS}` parameters to the Task tool invocation.
+     - Spawn yolo-lead as subagent via Task tool without team (single agent, no team overhead). Include `subagent_type: "yolo:yolo-lead"`.
+   - Spawn yolo-lead as subagent via Task tool. The Task description MUST start with `{LEAD_CONTEXT}` content as the first block (prefix-first injection for cache-optimal context), followed by the planning instructions (phase goal, parallel dev guidance). If no compiled context, fall back to full file list. Include `subagent_type: "yolo:yolo-lead"`.
+   - **CRITICAL:** Add `model: "${LEAD_MODEL}"`, `maxTurns: ${LEAD_MAX_TURNS}`, and `subagent_type: "yolo:yolo-lead"` parameters to the Task tool invocation.
    - **CRITICAL:** Include in the Lead prompt: "Plans will be executed by a team of parallel Dev agents -- one agent per plan. Maximize wave 1 plans (no deps) so agents start simultaneously. Ensure same-wave plans modify disjoint file sets to avoid merge conflicts."
    - Display `◆ Spawning Lead agent...` -> `✓ Lead agent complete`.
 7. **Validate output:** Verify PLAN.md has valid frontmatter (phase, plan, title, wave, depends_on, must_haves) and tasks. Check wave deps acyclic.
