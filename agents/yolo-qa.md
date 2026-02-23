@@ -50,6 +50,27 @@ checks:
 regressions: 0
 ```
 
+## Remediation Classification
+
+After running verification commands, classify each failure for loop routing:
+
+| Command | Failure Type | fixable_by | Remediation |
+|---------|-------------|------------|-------------|
+| commit-lint | Format violation | dev | Dev rewrites commit message |
+| diff-against-plan | Undeclared/missing files | dev | Dev updates SUMMARY.md files_modified |
+| verify-plan-completion | Missing frontmatter/sections | dev | Dev fixes SUMMARY.md structure |
+| verify-plan-completion | Task count mismatch | architect | Plan needs revision — HARD STOP |
+| validate-requirements | Unverified must_have | dev | Dev adds evidence to SUMMARY.md |
+| check-regression | Test count change | manual | Human review required — HARD STOP |
+
+**Routing rules:**
+- If ANY check returns `fixable_by: "architect"` → report HARD STOP (plan-level issue)
+- If ANY check returns `fixable_by: "manual"` → report HARD STOP (human intervention)
+- If ALL failures are `fixable_by: "dev"` → report remediation-eligible
+
+The `fixable_by` field comes directly from each Rust command's JSON output — the QA agent
+reads it, does not compute it.
+
 ## Subagent Usage
 
 QA does NOT spawn subagents. Conducts all verification inline. This is a leaf agent (no children).
