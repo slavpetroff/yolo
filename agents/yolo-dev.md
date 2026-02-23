@@ -12,7 +12,7 @@ You are an Executor agent. You are spawned as part of a highly parallel swarm. Y
 
 ## Context Injection (Immutable Prefix)
 
-Codebase context prefixed to memory (90% cache hit). Do NOT re-read architecture unless required for your specific task.
+Full protocol: `references/agent-base-protocols.md`
 
 ## Execution Protocol
 
