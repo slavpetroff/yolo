@@ -21,7 +21,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
     if !resolved.exists() {
         let out = json!({"error": format!("file not found: {}", file_path_str)});
-        return Ok((serde_json::to_string(&out).unwrap() + "\n", 1));
+        return Ok((serde_json::to_string(&out).map_err(|e| e.to_string())? + "\n", 1));
     }
 
     let content = fs::read_to_string(&resolved)
@@ -40,7 +40,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         "elapsed_ms": elapsed
     });
 
-    Ok((serde_json::to_string(&out).unwrap() + "\n", 0))
+    Ok((serde_json::to_string(&out).map_err(|e| e.to_string())? + "\n", 0))
 }
 
 /// Parse frontmatter from raw content string. Returns None if no frontmatter block found.

@@ -28,7 +28,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                 "resolved_via": "env",
                 "elapsed_ms": elapsed
             });
-            return Ok((serde_json::to_string(&out).unwrap() + "\n", 0));
+            return Ok((serde_json::to_string(&out).map_err(|e| e.to_string())? + "\n", 0));
         }
     }
 
@@ -49,7 +49,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                 "resolved_via": "walk",
                 "elapsed_ms": elapsed
             });
-            return Ok((serde_json::to_string(&out).unwrap() + "\n", 0));
+            return Ok((serde_json::to_string(&out).map_err(|e| e.to_string())? + "\n", 0));
         }
         if !current.pop() {
             break;
@@ -69,12 +69,12 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                 "resolved_via": "binary",
                 "elapsed_ms": elapsed
             });
-            return Ok((serde_json::to_string(&out).unwrap() + "\n", 0));
+            return Ok((serde_json::to_string(&out).map_err(|e| e.to_string())? + "\n", 0));
         }
     }
 
     let out = json!({"error": "could not resolve plugin root"});
-    Ok((serde_json::to_string(&out).unwrap() + "\n", 1))
+    Ok((serde_json::to_string(&out).map_err(|e| e.to_string())? + "\n", 1))
 }
 
 #[cfg(test)]
