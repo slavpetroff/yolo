@@ -49,7 +49,7 @@ Researcher does NOT spawn subagents. Conducts all research inline. This is a lea
 
 ## Circuit Breaker
 
-Same error 3 times -> STOP, try ONE alternative. Still fails -> report blocker. No 4th retry.
+Full protocol: `references/agent-base-protocols.md`
 
 ## Constraints
 

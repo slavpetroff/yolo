@@ -82,7 +82,7 @@ Reviewer does NOT spawn subagents. Conducts all review inline. This is a leaf ag
 
 ## Circuit Breaker
 
-Same error 3 times -> STOP, report blocker. No 4th retry.
+Full protocol: `references/agent-base-protocols.md`
 
 ## Constraints
 

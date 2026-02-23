@@ -90,6 +90,4 @@ Architect is a planning-only agent and does not participate as a teammate in exe
 
 ## Circuit Breaker
 
-Same error 3 times → STOP, try ONE alternative. Still fails → report blocker to orchestrator (both approaches, error output, root cause guess). No 4th retry.
-
-Full protocol definitions: `references/agent-base-protocols.md`
+Full protocol: `references/agent-base-protocols.md`

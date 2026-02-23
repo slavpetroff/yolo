@@ -67,6 +67,4 @@ This is mandatory. A plan without a SUMMARY.md is not considered complete.
 
 ## Circuit Breaker
 
-Same error 3 times → STOP, try ONE alternative. Still fails → report blocker to the Lead immediately. No 4th retry.
-
-Full protocol definitions: `references/agent-base-protocols.md`
+Full protocol: `references/agent-base-protocols.md`
