@@ -1,5 +1,6 @@
 use super::domain_types::ResourceId;
 use super::feature_flags::{self, FeatureFlag};
+use super::log_event;
 use chrono::Utc;
 use serde_json::{json, Value};
 use std::fs;
@@ -241,6 +242,61 @@ pub fn cleanup_expired(cwd: &Path) -> Value {
         "action": "cleanup",
         "cleaned": count,
         "resources": cleaned,
+    })
+}
+
+/// Scan `.locks/` for expired leases, remove them, log `task_reassigned` events,
+/// and return a JSON report with previous owner info.
+pub fn reassign_expired_tasks(cwd: &Path) -> Value {
+    let dir = locks_dir(cwd);
+    let mut reassigned: Vec<Value> = Vec::new();
+
+    if !dir.exists() {
+        return json!({"action": "reassign", "reassigned": [], "count": 0});
+    }
+
+    if let Ok(entries) = fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            if let Some(name) = entry.file_name().to_str() {
+                if name.ends_with(".lease") {
+                    if let Some(data) = read_lease(&entry.path()) {
+                        if is_expired(&data) {
+                            let resource = data.get("resource").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+                            let prev_owner = data.get("owner").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+                            let acquired_at = data.get("owner").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+                            let _ = fs::remove_file(entry.path());
+
+                            // Log task_reassigned event if v3_event_log is enabled
+                            let _ = log_event::log(
+                                "task_reassigned",
+                                "0",
+                                None,
+                                &[
+                                    ("resource".to_string(), resource.clone()),
+                                    ("previous_owner".to_string(), prev_owner.clone()),
+                                    ("reason".to_string(), "lease_expired".to_string()),
+                                ],
+                                cwd,
+                            );
+
+                            reassigned.push(json!({
+                                "resource": resource,
+                                "previous_owner": prev_owner,
+                                "acquired_at": acquired_at,
+                            }));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let count = reassigned.len();
+    json!({
+        "action": "reassign",
+        "reassigned": reassigned,
+        "count": count,
     })
 }
 
@@ -533,5 +589,58 @@ mod tests {
         let result = acquire(&rid("src/main.rs"), "dev-1", DEFAULT_TTL_SECS, dir.path()).unwrap();
         assert_eq!(result["result"], "acquired");
         assert_eq!(result["ttl_secs"], 180);
+    }
+
+    #[test]
+    fn test_reassign_expired_tasks_removes_expired() {
+        let dir = setup_test_env(true, false);
+        let lock_dir = locks_dir(dir.path());
+        fs::create_dir_all(&lock_dir).unwrap();
+
+        // Create two expired leases
+        let expired1 = json!({
+            "resource": "task-a", "owner": "agent-1",
+            "acquired_at": "2020-01-01T00:00:00Z", "ttl_secs": 1, "type": "lease",
+        });
+        let expired2 = json!({
+            "resource": "task-b", "owner": "agent-2",
+            "acquired_at": "2020-01-01T00:00:00Z", "ttl_secs": 1, "type": "lease",
+        });
+        fs::write(lock_dir.join("task-a.lease"), serde_json::to_string_pretty(&expired1).unwrap()).unwrap();
+        fs::write(lock_dir.join("task-b.lease"), serde_json::to_string_pretty(&expired2).unwrap()).unwrap();
+
+        // Create a fresh lease that should NOT be reassigned
+        let ts = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        let fresh = json!({
+            "resource": "task-c", "owner": "agent-3",
+            "acquired_at": ts, "ttl_secs": 3600, "type": "lease",
+        });
+        fs::write(lock_dir.join("task-c.lease"), serde_json::to_string_pretty(&fresh).unwrap()).unwrap();
+
+        let result = reassign_expired_tasks(dir.path());
+        assert_eq!(result["action"], "reassign");
+        assert_eq!(result["count"], 2);
+
+        let reassigned = result["reassigned"].as_array().unwrap();
+        assert_eq!(reassigned.len(), 2);
+
+        // Verify previous owner info is included
+        let owners: Vec<&str> = reassigned.iter().map(|r| r["previous_owner"].as_str().unwrap()).collect();
+        assert!(owners.contains(&"agent-1"));
+        assert!(owners.contains(&"agent-2"));
+
+        // Expired leases removed, fresh stays
+        assert!(!lock_dir.join("task-a.lease").exists());
+        assert!(!lock_dir.join("task-b.lease").exists());
+        assert!(lock_dir.join("task-c.lease").exists());
+    }
+
+    #[test]
+    fn test_reassign_expired_tasks_empty() {
+        let dir = setup_test_env(true, false);
+        let result = reassign_expired_tasks(dir.path());
+        assert_eq!(result["action"], "reassign");
+        assert_eq!(result["count"], 0);
+        assert!(result["reassigned"].as_array().unwrap().is_empty());
     }
 }
