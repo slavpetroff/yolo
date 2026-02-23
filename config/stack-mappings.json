@@ -1,60 +1,72 @@
 {
   "_description": "Maps detected project stack to recommended Claude Code skills",
   "_usage": "Used by /yolo:init and /yolo:vibe to suggest relevant skills",
+  "_todo": "Skill names are placeholders — map to actual marketplace skill IDs when skill registry is available",
   "languages": {
     "python": {
       "detect": ["pyproject.toml", "requirements.txt", "setup.py"],
       "skills": ["python-skill"],
+      "_skill_status": "placeholder",
       "description": "Python project"
     },
     "rust": {
       "detect": ["Cargo.toml"],
       "skills": ["rust-skill"],
+      "_skill_status": "placeholder",
       "description": "Rust project"
     },
     "go": {
       "detect": ["go.mod"],
       "skills": ["go-skill"],
+      "_skill_status": "placeholder",
       "description": "Go project"
     },
     "elixir": {
       "detect": ["mix.exs"],
       "skills": ["elixir-skill"],
+      "_skill_status": "placeholder",
       "description": "Elixir project"
     },
     "java": {
       "detect": ["pom.xml", "build.gradle"],
       "skills": ["java-skill"],
+      "_skill_status": "placeholder",
       "description": "Java project"
     },
     "dotnet": {
       "detect": ["*.csproj", "*.sln"],
       "skills": ["dotnet-skill"],
+      "_skill_status": "placeholder",
       "description": ".NET project"
     },
     "deno": {
       "detect": ["deno.json", "deno.jsonc", "deno.lock"],
       "skills": ["deno-skill"],
+      "_skill_status": "placeholder",
       "description": "Deno runtime"
     },
     "bun": {
       "detect": ["bun.lockb", "bunfig.toml"],
       "skills": ["bun-skill"],
+      "_skill_status": "placeholder",
       "description": "Bun runtime"
     },
     "ruby": {
       "detect": ["Gemfile", "*.gemspec"],
       "skills": ["ruby-skill"],
+      "_skill_status": "placeholder",
       "description": "Ruby project"
     },
     "php": {
       "detect": ["composer.json", "composer.lock"],
       "skills": ["php-skill"],
+      "_skill_status": "placeholder",
       "description": "PHP project"
     },
     "kotlin": {
       "detect": ["build.gradle.kts"],
       "skills": ["kotlin-skill"],
+      "_skill_status": "placeholder",
       "description": "Kotlin project"
     }
   },
