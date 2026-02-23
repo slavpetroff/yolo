@@ -50,7 +50,7 @@ teardown() {
 @test "hard-gate: insufficient args returns error JSON" {
   cd "$TEST_TEMP_DIR"
   run "$YOLO_BIN" hard-gate
-  [ "$status" -eq 0 ]
+  [ "$status" -eq 2 ]
   echo "$output" | jq -e '.gate == "unknown"'
   echo "$output" | jq -e '.result == "error"'
 }

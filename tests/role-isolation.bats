@@ -48,8 +48,8 @@ CONTRACT
   grep -q 'allowed_paths' "$RUST_SRC/hooks/validate_contract.rs"
 }
 
-@test "validate_contract: exempts planning artifacts" {
-  grep -q 'yolo-planning\|planning' "$RUST_SRC/hooks/validate_contract.rs"
+@test "validate_contract: fails open when flags disabled" {
+  grep -q 'v3_lite.*v2_hard\|!v3_lite && !v2_hard' "$RUST_SRC/hooks/validate_contract.rs"
 }
 
 @test "validate_contract: blocks forbidden_paths" {

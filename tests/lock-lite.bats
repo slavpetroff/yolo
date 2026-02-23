@@ -66,7 +66,7 @@ teardown() {
 
   # Second owner checks for conflict
   run "$YOLO_BIN" lock check "scripts/foo.sh" --owner=task-2
-  [ "$status" -eq 1 ]
+  [ "$status" -eq 2 ]
   echo "$output" | jq -e '.has_conflicts == true'
 }
 

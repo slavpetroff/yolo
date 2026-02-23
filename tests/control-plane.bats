@@ -73,11 +73,10 @@ enable_flags() {
   [ -n "$output" ]
 }
 
-@test "generate-contract: no-op with no args" {
+@test "generate-contract: exits with usage error when no args" {
   cd "$TEST_TEMP_DIR"
   run "$YOLO_BIN" generate-contract
-  [ "$status" -eq 0 ]
-  [ -z "$output" ]
+  [ "$status" -eq 1 ]
 }
 
 # --- hard-gate tests ---

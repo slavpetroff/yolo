@@ -89,7 +89,9 @@ create_test_config() {
   "review_gate": "on_request",
   "qa_gate": "on_request",
   "review_max_cycles": 3,
-  "qa_max_cycles": 3
+  "qa_max_cycles": 3,
+  "command_timeout_ms": 30000,
+  "task_lease_ttl_secs": 300
 }
 CONF
 }

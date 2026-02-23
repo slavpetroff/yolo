@@ -159,20 +159,21 @@ EOF
 
   run "$YOLO_BIN" recover-state 5 .yolo-planning/phases
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.phase == 5'
-  echo "$output" | jq -e '.status == "running"'
-  echo "$output" | jq -e '.plans | length == 2'
-  echo "$output" | jq -e '.plans[0].status == "complete"'
-  echo "$output" | jq -e '.plans[1].status == "pending"'
+  echo "$output" | jq -e '.delta.phase == 5'
+  echo "$output" | jq -e '.delta.status == "running"'
+  echo "$output" | jq -e '.delta.plans | length == 2'
+  echo "$output" | jq -e '.delta.plans[0].status == "complete"'
+  echo "$output" | jq -e '.delta.plans[1].status == "pending"'
 }
 
-@test "recover-state: exits 0 when flag disabled" {
+@test "recover-state: exits with skip code when flag disabled" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_event_recovery = false' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
     mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   run "$YOLO_BIN" recover-state 5
-  [ "$status" -eq 0 ]
-  [ "$output" = "{}" ]
+  [ "$status" -eq 3 ]
+  echo "$output" | jq -e '.ok == true'
+  echo "$output" | jq -e '.delta.recovered == false'
 }
 
 # --- route-monorepo tests (yolo route-monorepo) ---

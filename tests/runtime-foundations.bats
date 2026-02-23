@@ -71,12 +71,13 @@ teardown() {
   echo "$LAST" | jq -e '.data.status == "complete"'
 }
 
-@test "log-event: exits 0 when flag disabled" {
+@test "log-event: exits with skip code when flag disabled" {
   cd "$TEST_TEMP_DIR"
   jq '.v3_event_log = false' .yolo-planning/config.json > .yolo-planning/config.json.tmp && \
     mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   run "$YOLO_BIN" log-event phase_start 5
-  [ "$status" -eq 0 ]
+  [ "$status" -eq 3 ]
+  echo "$output" | jq -e '.ok == true'
   [ ! -f ".yolo-planning/.events/event-log.jsonl" ]
 }
 

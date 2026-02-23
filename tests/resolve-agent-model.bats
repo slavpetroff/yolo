@@ -19,10 +19,10 @@ teardown() {
   [ "$output" = "opus" ]
 }
 
-@test "resolves scout model from quality profile" {
-  run "$YOLO_BIN" resolve-model scout "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
+@test "resolves researcher model from quality profile" {
+  run "$YOLO_BIN" resolve-model researcher "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
   [ "$status" -eq 0 ]
-  [ "$output" = "haiku" ]
+  [ "$output" = "sonnet" ]
 }
 
 @test "resolves dev model from balanced profile" {

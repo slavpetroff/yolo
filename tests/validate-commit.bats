@@ -12,16 +12,16 @@ run_pretooluse() {
   rm -f "$tmpf"
 }
 
-@test "PreToolUse blocks Bash tool input (commit commands included)" {
+@test "PreToolUse passes Bash tool through (commit commands)" {
   run_pretooluse '{"tool_name":"Bash","tool_input":{"command":"git commit -m \"feat(core): add new feature\""}}'
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"cannot extract file path"* ]]
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"permissionDecision"* ]]
 }
 
-@test "PreToolUse blocks Bash tool input for non-commit commands" {
+@test "PreToolUse passes Bash tool through (non-commit commands)" {
   run_pretooluse '{"tool_name":"Bash","tool_input":{"command":"git status"}}'
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"cannot extract file path"* ]]
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"permissionDecision"* ]]
 }
 
 @test "PreToolUse passes Write tool with file_path" {

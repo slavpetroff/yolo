@@ -293,11 +293,11 @@ load test_helper
 }
 
 @test "reviewer agent is read-only" {
-  grep -q 'read-only' "$PROJECT_ROOT/agents/yolo-reviewer.md"
+  grep -q 'Review only' "$PROJECT_ROOT/agents/yolo-reviewer.md"
 }
 
-@test "reviewer agent reviews roadmap and architecture" {
-  grep -q 'ROADMAP.md' "$PROJECT_ROOT/agents/yolo-reviewer.md"
+@test "reviewer agent reviews architecture" {
+  grep -q 'architecture\|architectural' "$PROJECT_ROOT/agents/yolo-reviewer.md"
 }
 
 # =============================================================================

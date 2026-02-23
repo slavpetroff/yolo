@@ -1,4 +1,5 @@
 ---
+name: yolo:vibe
 description: "The one command. Detects state, parses intent, routes to any lifecycle mode -- bootstrap, scope, plan, execute, verify, discuss, archive, and more."
 argument-hint: "[intent or flags] [--plan] [--execute] [--verify] [--discuss] [--assumptions] [--scope] [--add] [--insert] [--remove] [--archive] [--yolo] [--effort=level] [--skip-audit] [--plan=NN] [N]"
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch
