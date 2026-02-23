@@ -7,7 +7,7 @@ const LINE_CAP: usize = 200;
 /// Compile completed SUMMARY.md files into a condensed rolling digest.
 /// 200-line cap. Fail-open: exits 0 on any error.
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
-    let phases_dir = if args.len() > 0 && !args[0].is_empty() {
+    let phases_dir = if !args.is_empty() && !args[0].is_empty() {
         cwd.join(&args[0])
     } else {
         cwd.join(".yolo-planning/phases")
@@ -190,7 +190,7 @@ fn extract_entry(summary_path: &Path) -> Option<String> {
         .unwrap_or_else(|| "(no details)".to_string());
     let built_line = built_line
         .trim()
-        .trim_start_matches(|c| c == '-' || c == '*')
+        .trim_start_matches(['-', '*'])
         .trim()
         .to_string();
     let built_line = if built_line.is_empty() {
@@ -224,8 +224,8 @@ fn extract_section_lines(content: &str, heading: &str, max_lines: usize) -> Vec<
     let heading_lower = heading.to_lowercase();
 
     for line in content.lines() {
-        if line.starts_with("## ") {
-            let h = line[3..].trim().to_lowercase();
+        if let Some(stripped) = line.strip_prefix("## ") {
+            let h = stripped.trim().to_lowercase();
             if h == heading_lower {
                 found = true;
                 continue;

@@ -95,13 +95,12 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 }
 
 fn is_v2_hard_gates_enabled(config_path: &Path) -> bool {
-    if let Ok(content) = fs::read_to_string(config_path) {
-        if let Ok(config) = serde_json::from_str::<Value>(&content) {
+    if let Ok(content) = fs::read_to_string(config_path)
+        && let Ok(config) = serde_json::from_str::<Value>(&content) {
             return config.get("v2_hard_gates")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(false);
         }
-    }
     false
 }
 
@@ -188,16 +187,14 @@ fn check_gate_passes(cwd: &Path, gate_type: &str, phase: &str, plan: &str, task:
         .current_dir(cwd)
         .output();
 
-    if let Ok(out) = output {
-        if let Ok(text) = String::from_utf8(out.stdout) {
-            if let Ok(result) = serde_json::from_str::<Value>(&text) {
-                return result.get("result")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s == "pass")
-                    .unwrap_or(false);
-            }
+    if let Ok(out) = output
+        && let Ok(text) = String::from_utf8(out.stdout)
+        && let Ok(result) = serde_json::from_str::<Value>(&text) {
+            return result.get("result")
+                .and_then(|v| v.as_str())
+                .map(|s| s == "pass")
+                .unwrap_or(false);
         }
-    }
     false
 }
 

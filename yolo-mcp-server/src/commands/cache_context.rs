@@ -28,12 +28,11 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let mut hash_input = format!("phase={}:role={}", phase, role);
 
     // Plan content SHA-256 (if plan exists)
-    if let Some(ref pp) = plan_path {
-        if pp.is_file() {
+    if let Some(ref pp) = plan_path
+        && pp.is_file() {
             let plan_sum = sha256_file(pp).unwrap_or_else(|| "noplan".to_string());
             hash_input.push_str(&format!(":plan={}", plan_sum));
         }
-    }
 
     // Config V3 flags
     if config_path.is_file() {
@@ -56,15 +55,14 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     }
 
     // Rolling summary fingerprint
-    if config_path.is_file() {
-        if rolling_summary_enabled(&config_path) {
+    if config_path.is_file()
+        && rolling_summary_enabled(&config_path) {
             let rolling_path = cwd.join(".yolo-planning/ROLLING-CONTEXT.md");
             if rolling_path.is_file() {
                 let rolling_sum = sha256_file(&rolling_path).unwrap_or_else(|| "norolling".to_string());
                 hash_input.push_str(&format!(":rolling={}", rolling_sum));
             }
         }
-    }
 
     // Compute final hash, truncated to 16 chars
     let hash = sha256_str(&hash_input);
@@ -171,15 +169,14 @@ fn codebase_fingerprint(codebase_dir: &Path) -> String {
     if let Ok(rd) = fs::read_dir(codebase_dir) {
         for entry in rd.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |e| e == "md") {
-                if let Ok(meta) = fs::metadata(&path) {
+            if path.extension().is_some_and(|e| e == "md")
+                && let Ok(meta) = fs::metadata(&path) {
                     entries.push(format!(
                         "{}:{}",
                         path.file_name().unwrap_or_default().to_string_lossy(),
                         meta.len()
                     ));
                 }
-            }
         }
     }
     entries.sort();

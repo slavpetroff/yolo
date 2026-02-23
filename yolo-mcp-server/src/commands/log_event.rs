@@ -93,17 +93,15 @@ pub fn log(
 
     if correlation_id.is_empty() {
         let exec_state_path = planning_dir.join(".execution-state.json");
-        if exec_state_path.exists() {
-            if let Ok(state_str) = fs::read_to_string(&exec_state_path) {
-                if let Ok(state) = serde_json::from_str::<Value>(&state_str) {
-                    correlation_id = state
-                        .get("correlation_id")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .to_string();
-                }
+        if exec_state_path.exists()
+            && let Ok(state_str) = fs::read_to_string(&exec_state_path)
+            && let Ok(state) = serde_json::from_str::<Value>(&state_str) {
+                correlation_id = state
+                    .get("correlation_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
             }
-        }
     }
 
     let ts = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
@@ -118,11 +116,10 @@ pub fn log(
         "phase": phase.parse::<i64>().unwrap_or(0),
     });
 
-    if let Some(p) = plan {
-        if let Ok(plan_num) = p.parse::<i64>() {
+    if let Some(p) = plan
+        && let Ok(plan_num) = p.parse::<i64>() {
             obj["plan"] = json!(plan_num);
         }
-    }
 
     if !data_pairs.is_empty() {
         let mut data_obj = serde_json::Map::new();
@@ -169,7 +166,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let phase = &args[3];
     let remaining = if args.len() > 4 { &args[4..] } else { &[] };
 
-    let (plan, data_pairs) = parse_args(&remaining.to_vec());
+    let (plan, data_pairs) = parse_args(remaining);
 
     let result = log(event_type, phase, plan.as_deref(), &data_pairs, cwd)?;
 

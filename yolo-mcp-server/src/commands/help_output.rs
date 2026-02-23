@@ -277,11 +277,10 @@ fn resolve_plugin_root(args: &[String]) -> Result<String, String> {
         return Ok(args[1].clone());
     }
 
-    if let Ok(root) = std::env::var("CLAUDE_PLUGIN_ROOT") {
-        if !root.is_empty() {
+    if let Ok(root) = std::env::var("CLAUDE_PLUGIN_ROOT")
+        && !root.is_empty() {
             return Ok(root);
         }
-    }
 
     // Fall back to cache directory scan
     let config_dir = std::env::var("CLAUDE_CONFIG_DIR")
@@ -300,11 +299,10 @@ fn resolve_plugin_root(args: &[String]) -> Result<String, String> {
     let mut versions: Vec<String> = Vec::new();
     if let Ok(entries) = fs::read_dir(cache_path) {
         for entry in entries.flatten() {
-            if entry.path().is_dir() {
-                if let Some(name) = entry.file_name().to_str() {
+            if entry.path().is_dir()
+                && let Some(name) = entry.file_name().to_str() {
                     versions.push(name.to_string());
                 }
-            }
         }
     }
 
@@ -442,11 +440,10 @@ fn format_help(entries: &[CommandEntry], version: Option<&str>) -> String {
     ];
 
     for (key, title, subtitle) in &sections {
-        if let Some(cmds) = groups.get(key) {
-            if !cmds.is_empty() {
+        if let Some(cmds) = groups.get(key)
+            && !cmds.is_empty() {
                 format_section(&mut out, title, subtitle, cmds);
             }
-        }
     }
 
     // Troubleshooting section
