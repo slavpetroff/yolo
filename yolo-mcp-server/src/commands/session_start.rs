@@ -193,6 +193,62 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
     let ctx = build_context(cwd, &planning_dir, &state_msg);
     steps.push(StepResult { name: "build_context", status: "ok", ms: step_start.elapsed().as_millis() as u64 });
 
+    // 16. Optional: compile progress data
+    let progress_data = if with_progress {
+        step_start = Instant::now();
+        match super::compile_progress::execute(
+            &vec!["yolo".into(), "compile-progress".into()],
+            cwd,
+        ) {
+            Ok((output, 0)) => {
+                steps.push(StepResult {
+                    name: "compile_progress",
+                    status: "ok",
+                    ms: step_start.elapsed().as_millis() as u64,
+                });
+                serde_json::from_str::<Value>(&output).ok()
+            }
+            _ => {
+                steps.push(StepResult {
+                    name: "compile_progress",
+                    status: "error",
+                    ms: step_start.elapsed().as_millis() as u64,
+                });
+                None
+            }
+        }
+    } else {
+        None
+    };
+
+    // 17. Optional: git state
+    let git_data = if with_git {
+        step_start = Instant::now();
+        match super::git_state::execute(
+            &vec!["yolo".into(), "git-state".into()],
+            cwd,
+        ) {
+            Ok((output, 0)) => {
+                steps.push(StepResult {
+                    name: "git_state",
+                    status: "ok",
+                    ms: step_start.elapsed().as_millis() as u64,
+                });
+                serde_json::from_str::<Value>(&output).ok()
+            }
+            _ => {
+                steps.push(StepResult {
+                    name: "git_state",
+                    status: "error",
+                    ms: step_start.elapsed().as_millis() as u64,
+                });
+                None
+            }
+        }
+    } else {
+        None
+    };
+
     let steps_json: Vec<Value> = steps.iter().map(|s| json!({
         "step": s.name,
         "status": s.status,
@@ -215,6 +271,8 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
                 "auto_push": ctx.config_auto_push
             }
         },
+        "progress": progress_data,
+        "git": git_data,
         "elapsed_ms": start.elapsed().as_millis() as u64
     });
 
