@@ -78,7 +78,6 @@ create_test_config() {
   "v3_lease_locks": false,
   "v3_event_recovery": false,
   "v3_monorepo_routing": false,
-  "v3_rolling_summary": false,
   "v2_hard_contracts": false,
   "v2_hard_gates": false,
   "v2_typed_protocol": false,
@@ -88,7 +87,9 @@ create_test_config() {
   "v4_post_edit_test_check": false,
   "v4_session_cache_warm": false,
   "review_gate": "on_request",
-  "qa_gate": "on_request"
+  "qa_gate": "on_request",
+  "review_max_cycles": 3,
+  "qa_max_cycles": 3
 }
 CONF
 }

@@ -40,7 +40,8 @@ teardown() {
   jq '.v3_event_log = true | .v2_typed_protocol = true' .yolo-planning/config.json > .yolo-planning/config.json.tmp \
     && mv .yolo-planning/config.json.tmp .yolo-planning/config.json
   run "$YOLO_BIN" log-event bogus_event 1
-  [ "$status" -eq 0 ]
+  # Unknown event types are rejected with non-zero exit
+  [ "$status" -ne 0 ]
   # Event file should not exist or not contain the bogus event
   if [ -f .yolo-planning/.events/event-log.jsonl ]; then
     run grep -c "bogus_event" .yolo-planning/.events/event-log.jsonl

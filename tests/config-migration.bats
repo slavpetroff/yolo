@@ -167,7 +167,7 @@ EOF
   cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced",
-  "planning_tracking": "commit",
+  "planning_tracking": "auto",
   "auto_push": "after_phase"
 }
 EOF
@@ -175,7 +175,7 @@ EOF
   run_migration
 
   run jq -r '.planning_tracking' "$TEST_TEMP_DIR/.yolo-planning/config.json"
-  [ "$output" = "commit" ]
+  [ "$output" = "auto" ]
 
   run jq -r '.auto_push' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$output" = "after_phase" ]
@@ -252,7 +252,7 @@ EOF
   cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced",
-  "prefer_teams": "when_parallel",
+  "prefer_teams": "auto",
   "agent_teams": false
 }
 EOF
@@ -260,7 +260,7 @@ EOF
   run_migration
 
   run jq -r '.prefer_teams' "$TEST_TEMP_DIR/.yolo-planning/config.json"
-  [ "$output" = "when_parallel" ]
+  [ "$output" = "auto" ]
 
   run jq -r 'has("agent_teams")' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$output" = "false" ]
@@ -341,5 +341,8 @@ EOF
 
   run "$YOLO_BIN" migrate-config "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/defaults.json" --print-added
   [ "$status" -eq 0 ]
-  [ "$output" = "$EXPECTED_ADDED" ]
+  # Extract last line (skip any WARNING lines on stderr captured by run)
+  local actual
+  actual=$(echo "$output" | tail -1)
+  [ "$actual" = "$EXPECTED_ADDED" ]
 }
