@@ -225,9 +225,8 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
                 return json!({ "content": [{"type": "text", "text": "No test runner detected. Looked for: Cargo.toml, tests/*.bats, pytest.ini/pyproject.toml, package.json"}], "isError": true });
             };
 
-            let output = cmd.output().await;
-                
-            match output {
+            let timeout_ms = read_timeout_config();
+            match run_command_with_timeout(&mut cmd, timeout_ms).await {
                 Ok(out) => {
                     let stdout = String::from_utf8_lossy(&out.stdout);
                     let stderr = String::from_utf8_lossy(&out.stderr);
