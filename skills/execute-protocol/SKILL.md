@@ -654,6 +654,14 @@ QA_REPORT='{"passed": true, "checks": []}'
    PASSED_CHECKS=$(echo "$QA_REPORT" | jq '[.checks[] | select(.status == "pass")] | map(.name)')
    ```
 
+   **Track loop start in execution-state.json:**
+   ```bash
+   jq --arg plan "{NN-MM}" --argjson max "$QA_MAX_CYCLES" \
+     '.qa_loops[$plan] = {"cycle": 0, "max": $max, "status": "running", "failed_checks_per_cycle": []}' \
+     .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
+     mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+   ```
+
    Resolve Dev model:
    ```bash
    DEV_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
@@ -667,6 +675,21 @@ QA_REPORT='{"passed": true, "checks": []}'
    ```
 
    b. Display: `◆ QA remediation cycle {QA_CYCLE}/{QA_MAX_CYCLES} — spawning Dev to fix {N} failures...`
+
+   **Track cycle in execution-state.json:**
+   ```bash
+   FAILED_COUNT=$(echo "$FAILED_CHECKS" | jq 'length')
+   DEV_FIXABLE=$(echo "$FAILED_CHECKS" | jq '[.[] | select(.fixable_by == "dev")] | length')
+   HARD_STOP_COUNT=$(echo "$FAILED_CHECKS" | jq '[.[] | select(.fixable_by == "architect" or .fixable_by == "manual")] | length')
+   FAILED_NAMES=$(echo "$FAILED_CHECKS" | jq '[.[] | .name]')
+   CYCLE_SUMMARY=$(jq -n --argjson cycle "$QA_CYCLE" --argjson fc "$FAILED_COUNT" \
+     --argjson df "$DEV_FIXABLE" --argjson hs "$HARD_STOP_COUNT" --argjson names "$FAILED_NAMES" \
+     '{cycle: $cycle, failed_count: $fc, checks: $names, dev_fixable: $df, hard_stop: $hs}')
+   jq --arg plan "{NN-MM}" --argjson cycle "$QA_CYCLE" --argjson summary "$CYCLE_SUMMARY" \
+     '.qa_loops[$plan].cycle = $cycle | .qa_loops[$plan].failed_checks_per_cycle += [$summary]' \
+     .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
+     mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+   ```
 
    c. For each failed check, build a scoped remediation task (see "Dev remediation context scoping" below).
 
@@ -707,9 +730,20 @@ QA_REPORT='{"passed": true, "checks": []}'
    PASSED_CHECKS=$(echo "$PASSED_CHECKS" "$NEW_PASSES" | jq -s 'add | unique')
    ```
 
-   g. If all checks now pass: exit loop. Display `✓ QA verification passed (cycle {QA_CYCLE}/{QA_MAX_CYCLES})`.
+   g. If all checks now pass: exit loop. Display `✓ QA verification passed (cycle {QA_CYCLE}/{QA_MAX_CYCLES})`. Update execution-state:
+      ```bash
+      jq --arg plan "{NN-MM}" '.qa_loops[$plan].status = "passed"' \
+        .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
+        mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+      ```
 
 3. **Max cycles exceeded** (loop exits with failures remaining):
+   - Update execution-state:
+     ```bash
+     jq --arg plan "{NN-MM}" '.qa_loops[$plan].status = "failed"' \
+       .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
+       mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+     ```
    - Display `✗ QA verification FAILED after {QA_MAX_CYCLES} cycles`
    - Display all remaining failures:
      ```bash
