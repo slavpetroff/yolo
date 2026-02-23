@@ -1,6 +1,5 @@
 use std::fs;
 use std::path::Path;
-use regex::Regex;
 use serde_json::json;
 use super::structured_response::Timer;
 use super::utils;
@@ -46,8 +45,6 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let mut active_phase: Option<String> = None;
     let mut active_phase_title: Option<String> = None;
 
-    let task_re = Regex::new(r"^## Task \d+").unwrap();
-
     for (dirname, path) in &phase_dirs {
         let (p_count, s_count) = count_plans_and_summaries(path);
         plans_total += p_count;
@@ -73,7 +70,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         }
 
         // Count tasks in plan files
-        let (t_total, t_completed) = count_tasks_in_phase(path, &task_re);
+        let (t_total, t_completed) = count_tasks_in_phase(path);
         tasks_total += t_total;
         tasks_completed += t_completed;
     }
@@ -158,17 +155,39 @@ fn resolve_milestone(planning_dir: &Path, milestones_dir: &Path) -> (Option<Stri
     (None, None)
 }
 
+/// Check if name matches `DD-DD-PLAN.md` pattern (e.g. "01-02-PLAN.md").
+fn is_plan_file(name: &str) -> bool {
+    // "01-02-PLAN.md" is exactly 15 chars
+    name.len() == 15
+        && name.as_bytes()[0].is_ascii_digit()
+        && name.as_bytes()[1].is_ascii_digit()
+        && name.as_bytes()[2] == b'-'
+        && name.as_bytes()[3].is_ascii_digit()
+        && name.as_bytes()[4].is_ascii_digit()
+        && name.ends_with("-PLAN.md")
+}
+
+/// Check if name matches `DD-DD-SUMMARY.md` pattern.
+fn is_summary_file(name: &str) -> bool {
+    // "01-02-SUMMARY.md" is exactly 18 chars
+    name.len() == 18
+        && name.as_bytes()[0].is_ascii_digit()
+        && name.as_bytes()[1].is_ascii_digit()
+        && name.as_bytes()[2] == b'-'
+        && name.as_bytes()[3].is_ascii_digit()
+        && name.as_bytes()[4].is_ascii_digit()
+        && name.ends_with("-SUMMARY.md")
+}
+
 fn count_plans_and_summaries(dir: &Path) -> (usize, usize) {
-    let plan_re = Regex::new(r"^\d{2}-\d{2}-PLAN\.md$").unwrap();
-    let summary_re = Regex::new(r"^\d{2}-\d{2}-SUMMARY\.md$").unwrap();
     let mut plans = 0;
     let mut summaries = 0;
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.filter_map(|e| e.ok()) {
             let name = entry.file_name().to_string_lossy().to_string();
-            if plan_re.is_match(&name) {
+            if is_plan_file(&name) {
                 plans += 1;
-            } else if summary_re.is_match(&name) {
+            } else if is_summary_file(&name) {
                 summaries += 1;
             }
         }
@@ -176,8 +195,7 @@ fn count_plans_and_summaries(dir: &Path) -> (usize, usize) {
     (plans, summaries)
 }
 
-fn count_tasks_in_phase(dir: &Path, task_re: &Regex) -> (usize, usize) {
-    let plan_re = Regex::new(r"^(\d{2}-\d{2})-PLAN\.md$").unwrap();
+fn count_tasks_in_phase(dir: &Path) -> (usize, usize) {
     let mut total = 0;
     let mut completed = 0;
     if let Ok(entries) = fs::read_dir(dir) {
@@ -185,19 +203,17 @@ fn count_tasks_in_phase(dir: &Path, task_re: &Regex) -> (usize, usize) {
             .filter_map(|e| e.ok())
             .filter(|e| {
                 let name = e.file_name().to_string_lossy().to_string();
-                plan_re.is_match(&name)
+                is_plan_file(&name)
             })
             .collect();
         plan_files.sort_by_key(|e| e.file_name());
 
         for entry in plan_files {
             let name = entry.file_name().to_string_lossy().to_string();
-            let prefix = plan_re.captures(&name)
-                .and_then(|c| c.get(1))
-                .map(|m| m.as_str().to_string())
-                .unwrap_or_default();
+            // Extract prefix "DD-DD" from "DD-DD-PLAN.md" (first 5 chars)
+            let prefix = &name[..5];
 
-            let task_count = count_task_headers(&entry.path(), task_re);
+            let task_count = count_task_headers(&entry.path());
             total += task_count;
 
             let summary_name = format!("{}-SUMMARY.md", prefix);
@@ -209,11 +225,20 @@ fn count_tasks_in_phase(dir: &Path, task_re: &Regex) -> (usize, usize) {
     (total, completed)
 }
 
-fn count_task_headers(path: &Path, task_re: &Regex) -> usize {
+/// Check if a line matches `## Task N` where N starts with a digit.
+fn is_task_header(line: &str) -> bool {
+    if let Some(rest) = line.strip_prefix("## Task ") {
+        rest.as_bytes().first().is_some_and(|b| b.is_ascii_digit())
+    } else {
+        false
+    }
+}
+
+fn count_task_headers(path: &Path) -> usize {
     let mut count = 0;
     if let Ok(content) = fs::read_to_string(path) {
         for line in content.lines() {
-            if task_re.is_match(line) {
+            if is_task_header(line) {
                 count += 1;
             }
         }
