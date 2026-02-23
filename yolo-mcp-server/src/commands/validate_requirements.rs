@@ -317,6 +317,12 @@ Commit linting passes for all conventional commits.
         assert_eq!(parsed["ok"], true);
         assert_eq!(parsed["verified"], 2);
         assert_eq!(parsed["unverified"], 0);
+        assert_eq!(parsed["fixable_by"], "none");
+        // Each verified requirement should have fixable_by: "none"
+        let reqs = parsed["requirements"].as_array().unwrap();
+        for req in reqs {
+            assert_eq!(req["fixable_by"], "none");
+        }
     }
 
     #[test]
@@ -364,6 +370,8 @@ must_haves:
         assert_eq!(parsed["unverified"], 1);
         let reqs = parsed["requirements"].as_array().unwrap();
         assert_eq!(reqs[0]["status"], "unverified");
+        assert_eq!(parsed["fixable_by"], "dev");
+        assert_eq!(reqs[0]["fixable_by"], "dev");
     }
 
     #[test]
@@ -409,5 +417,6 @@ must_haves: []
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
         assert_eq!(parsed["ok"], true);
         assert_eq!(parsed["total"], 0);
+        assert_eq!(parsed["fixable_by"], "none");
     }
 }

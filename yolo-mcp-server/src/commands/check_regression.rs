@@ -110,6 +110,7 @@ mod tests {
         assert_eq!(parsed["ok"], true);
         assert_eq!(parsed["bats_files"], 2);
         assert_eq!(parsed["regressions"], 0);
+        assert_eq!(parsed["fixable_by"], "manual");
         // rust_tests may be 0 in a temp dir without a Cargo project
         assert!(parsed["rust_tests"].is_number());
     }
@@ -130,5 +131,6 @@ mod tests {
         assert_eq!(parsed["ok"], true);
         assert_eq!(parsed["bats_files"], 0);
         assert_eq!(parsed["rust_tests"], 0);
+        assert_eq!(parsed["fixable_by"], "manual");
     }
 }

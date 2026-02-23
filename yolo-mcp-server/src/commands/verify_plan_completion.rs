@@ -355,6 +355,11 @@ Do another thing.
         assert_eq!(code, 0, "Expected exit 0, got {}: {}", code, output);
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
         assert_eq!(parsed["ok"], true);
+        // All passing checks should have fixable_by: "none"
+        let checks = parsed["checks"].as_array().unwrap();
+        for check in checks {
+            assert_eq!(check["fixable_by"], "none", "Passing check {} should have fixable_by=none", check["name"]);
+        }
     }
 
     #[test]
@@ -407,5 +412,12 @@ must_haves:
         let checks = parsed["checks"].as_array().unwrap();
         assert!(checks.iter().any(|c| c["name"] == "frontmatter_fields"
             && c["status"] == "fail"));
+        // Failed checks should have a non-"none" fixable_by
+        for check in checks {
+            if check["status"] == "fail" {
+                assert_ne!(check["fixable_by"], "none", "Failed check {} should not have fixable_by=none", check["name"]);
+                assert!(check["fixable_by"].is_string(), "Failed check {} should have fixable_by field", check["name"]);
+            }
+        }
     }
 }

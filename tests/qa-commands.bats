@@ -62,6 +62,9 @@ teardown() {
     "$TEST_TEMP_DIR/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.ok == true'
+  # All passing checks should have fixable_by field
+  echo "$output" | jq -e '.checks | all(has("fixable_by"))'
+  echo "$output" | jq -e '.checks | all(.fixable_by == "none")'
 }
 
 @test "verify-plan-completion fails for missing fields" {
@@ -80,6 +83,9 @@ SUMMARY
     "$TEST_TEMP_DIR/phases/01-test/01-01-PLAN.md"
   [ "$status" -eq 1 ]
   echo "$output" | jq -e '.ok == false'
+  # Failed checks should have fixable_by set to non-"none"
+  echo "$output" | jq -e '.checks | all(has("fixable_by"))'
+  echo "$output" | jq -e '[.checks[] | select(.status == "fail")] | all(.fixable_by != "none")'
 }
 
 @test "commit-lint passes for valid commits" {
@@ -104,6 +110,8 @@ SUMMARY
   # May pass or fail depending on evidence, but should produce JSON
   echo "$output" | jq -e '.cmd == "validate-requirements"'
   echo "$output" | jq -e '.requirements | length > 0'
+  echo "$output" | jq -e 'has("fixable_by")'
+  echo "$output" | jq -e '.requirements | all(has("fixable_by"))'
 }
 
 @test "check-regression reports test counts" {
@@ -112,4 +120,5 @@ SUMMARY
   echo "$output" | jq -e '.cmd == "check-regression"'
   echo "$output" | jq -e 'has("rust_tests")'
   echo "$output" | jq -e 'has("bats_files")'
+  echo "$output" | jq -e '.fixable_by == "manual"'
 }

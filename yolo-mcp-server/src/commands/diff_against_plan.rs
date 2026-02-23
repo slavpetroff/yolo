@@ -263,6 +263,7 @@ Something.
         assert_eq!(code, 1);
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
         assert_eq!(parsed["ok"], false);
+        assert_eq!(parsed["fixable_by"], "dev");
     }
 
     #[test]
@@ -294,5 +295,7 @@ commit_hashes: []
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
         assert_eq!(parsed["declared"], 1);
         assert_eq!(parsed["actual"], 0);
+        // missing files means ok=false, fixable_by=dev
+        assert_eq!(parsed["fixable_by"], "dev");
     }
 }
