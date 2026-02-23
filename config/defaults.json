@@ -51,5 +51,7 @@
   "v4_post_edit_test_check": false,
   "v4_session_cache_warm": false,
   "review_gate": "on_request",
-  "qa_gate": "on_request"
+  "qa_gate": "on_request",
+  "review_max_cycles": 3,
+  "qa_max_cycles": 3
 }
