@@ -11,7 +11,7 @@
       "name": "yolo",
       "source": "./",
       "description": "Development lifecycle plugin — 24 commands, 7 agents, continuous verification",
-      "version": "2.7.0",
+      "version": "2.8.0",
       "license": "MIT",
       "keywords": [
         "vibe-coding",
