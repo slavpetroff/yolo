@@ -155,8 +155,8 @@ fn resolve_milestone(planning_dir: &Path, milestones_dir: &Path) -> (Option<Stri
 
 /// Check if name matches `DD-DD-PLAN.md` pattern (e.g. "01-02-PLAN.md").
 fn is_plan_file(name: &str) -> bool {
-    // "01-02-PLAN.md" is exactly 15 chars
-    name.len() == 15
+    // "01-02-PLAN.md" is exactly 13 chars
+    name.len() == 13
         && name.as_bytes()[0].is_ascii_digit()
         && name.as_bytes()[1].is_ascii_digit()
         && name.as_bytes()[2] == b'-'
@@ -167,8 +167,8 @@ fn is_plan_file(name: &str) -> bool {
 
 /// Check if name matches `DD-DD-SUMMARY.md` pattern.
 fn is_summary_file(name: &str) -> bool {
-    // "01-02-SUMMARY.md" is exactly 18 chars
-    name.len() == 18
+    // "01-02-SUMMARY.md" is exactly 16 chars
+    name.len() == 16
         && name.as_bytes()[0].is_ascii_digit()
         && name.as_bytes()[1].is_ascii_digit()
         && name.as_bytes()[2] == b'-'
