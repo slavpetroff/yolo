@@ -505,6 +505,68 @@ mod tests {
     }
 
     #[test]
+    fn test_recover_with_all_features_enabled() {
+        let dir = TempDir::new().unwrap();
+        let planning = dir.path().join(".yolo-planning");
+        let phases = planning.join("phases");
+        let phase_dir = phases.join("05-infra");
+        fs::create_dir_all(&phase_dir).unwrap();
+
+        // Enable all recovery flags (matches new defaults)
+        let config = serde_json::json!({
+            "v3_event_recovery": true,
+            "v3_snapshot_resume": true,
+            "v3_lease_locks": true
+        });
+        fs::write(planning.join("config.json"), config.to_string()).unwrap();
+
+        // Create 4 plans across 2 waves
+        fs::write(phase_dir.join("05-01-PLAN.md"), "title: \"Retry logic\"\nwave: 1\n").unwrap();
+        fs::write(phase_dir.join("05-02-PLAN.md"), "title: \"Atomic writes\"\nwave: 1\n").unwrap();
+        fs::write(phase_dir.join("05-03-PLAN.md"), "title: \"Timeouts\"\nwave: 1\n").unwrap();
+        fs::write(phase_dir.join("05-04-PLAN.md"), "title: \"Enable flags\"\nwave: 2\n").unwrap();
+
+        // Mark wave 1 plans as complete via SUMMARY files
+        for id in &["05-01", "05-02", "05-03"] {
+            fs::write(
+                phase_dir.join(format!("{}-SUMMARY.md", id)),
+                "---\nstatus: complete\n---\n",
+            ).unwrap();
+        }
+
+        // Add event log entries confirming plan 01 completion
+        let events_dir = planning.join(".events");
+        fs::create_dir_all(&events_dir).unwrap();
+        let event = serde_json::json!({"type": "plan_end", "phase": 5, "plan": "01", "data": {"status": "complete"}});
+        fs::write(events_dir.join("event-log.jsonl"), format!("{}\n", event)).unwrap();
+
+        let args = vec!["5".into()];
+        let (out, code) = execute(&args, dir.path()).unwrap();
+        assert_eq!(code, 0);
+
+        let result: Value = serde_json::from_str(&out).unwrap();
+        let delta = &result["delta"];
+
+        // All recovery features enabled, full pipeline works
+        assert_eq!(delta["recovered"], true);
+        assert_eq!(delta["phase"], 5);
+        assert_eq!(delta["phase_name"], "infra");
+        assert_eq!(delta["status"], "running"); // wave 1 done, wave 2 pending
+
+        // Wave tracking
+        assert_eq!(delta["wave"], 2);
+        assert_eq!(delta["total_waves"], 2);
+
+        // Plan statuses from SUMMARY files
+        let plans = delta["plans"].as_array().unwrap();
+        assert_eq!(plans.len(), 4);
+        assert_eq!(plans[0]["status"], "complete");
+        assert_eq!(plans[1]["status"], "complete");
+        assert_eq!(plans[2]["status"], "complete");
+        assert_eq!(plans[3]["status"], "pending");
+    }
+
+    #[test]
     fn test_recover_stale_lease() {
         let dir = setup_test_env();
         let planning = dir.path().join(".yolo-planning");
