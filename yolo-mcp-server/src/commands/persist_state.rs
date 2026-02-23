@@ -2,6 +2,7 @@ use serde_json::json;
 use std::fs;
 use std::path::Path;
 use std::time::Instant;
+use super::atomic_io;
 
 struct PersistDelta {
     has_decisions: bool,
@@ -43,7 +44,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
     let (output, delta) = generate_root_state(&content, project_name);
 
-    fs::write(&output_path, &output)
+    atomic_io::atomic_write_with_checksum(&output_path, output.as_bytes())
         .map_err(|e| format!("Failed to write output: {}", e))?;
 
     let output_path_str = output_path.to_string_lossy().to_string();
