@@ -1,72 +1,56 @@
-# Agent Routing & Release Automation Roadmap
+# Type Safety & Self-Healing Roadmap
 
-**Goal:** Fix two workflow issues: (1) execute-protocol spawns generic `general-purpose` agents instead of specialized agents (yolo-dev, yolo-architect) — losing tool constraints, turn limits, and role isolation; (2) archive flow has no consolidated release step — version bump, changelog finalization, and release tagging are done manually in a dedicated phase instead of automatically on milestone complete.
+**Goal:** Harden the YOLO plugin with (1) strict typification and contract enforcement across config, CLI, hooks, and inter-agent messaging — eliminating fail-open gaps where invalid data silently degrades, and (2) self-healing infrastructure that automatically recovers from transient failures, state corruption, and agent crashes without human intervention.
 
-**Scope:** 3 phases
+**Scope:** 2 phases
 
 ## Progress
 | Phase | Status | Plans | Tasks | Commits |
 |-------|--------|-------|-------|----------|
-| 1 | Complete | 2 | 6 | 5 |
-| 2 | Complete | 1 | 3 | 2 |
-| 3 | Complete | 2 | 6 | 5 |
+| 1 | Planned | 5 | 0 | 0 |
+| 2 | Pending | 0 | 0 | 0 |
 
 ---
 
 ## Phase List
-- [x] [Phase 1: Specialized Agent Routing](#phase-1-specialized-agent-routing)
-- [x] [Phase 2: Archive Release Automation](#phase-2-archive-release-automation)
-- [x] [Phase 3: Testing & Release](#phase-3-testing--release)
+- [ ] [Phase 1: Hard Typification & Contract Enforcement](#phase-1-hard-typification--contract-enforcement)
+- [ ] [Phase 2: Self-Healing Infrastructure](#phase-2-self-healing-infrastructure)
 
 ---
 
-## Phase 1: Specialized Agent Routing
+## Phase 1: Hard Typification & Contract Enforcement
 
-**Goal:** Fix all Task tool spawn points in execute-protocol SKILL.md to pass `subagent_type` so that specialized agents with proper tool constraints, turn limits, and permission modes are used instead of generic general-purpose agents.
+**Goal:** Add strict type validation across the system's weakest points — config schema, feature flag enforcement, CLI command routing, and hook input contracts — then enable the existing typed protocol and schema validation flags by default.
 
 **Success Criteria:**
-- Step 3 Dev spawning includes `subagent_type: "yolo:yolo-dev"` in TaskCreate
-- Step 2b Architect spawning (review feedback loop) includes `subagent_type: "yolo:yolo-architect"` in TaskCreate
-- Step 3d Dev spawning (QA remediation loop) includes `subagent_type: "yolo:yolo-dev"` in TaskCreate
-- Each spawn point passes `model` and `max_turns` from resolve-model/resolve-turns to the Task tool
-- Agent frontmatter (tools, disallowedTools, permissionMode, maxTurns) is respected by the platform when subagent_type is set
-- Document the subagent_type mapping table in execute-protocol (role → subagent_type)
-- All existing tests pass
+- `config/config.schema.json` exists with full JSON Schema for all 57 config keys
+- `migrate_config.rs` validates merged config against schema at startup, hard error on violation
+- Feature flags use a Rust enum (`FeatureFlag`) instead of string keys — compile-time exhaustiveness
+- Startup validation logs warning if any enforcement flag is disabled
+- CLI router uses `Command` enum (not string match) for all 73+ commands
+- Domain newtypes `TaskId`, `Phase`, `Wave` replace raw String/u64 in at minimum 3 critical paths (lock, gate, state)
+- `v2_typed_protocol` and `v3_schema_validation` defaults changed to `true` in `config/defaults.json`
+- Hook inputs for `security_filter` and `validate_contract` use typed structs instead of `Value`
+- All existing tests pass + new tests for schema validation, flag enum, typed hooks
 
 **Dependencies:** None
 
 ---
 
-## Phase 2: Archive Release Automation
+## Phase 2: Self-Healing Infrastructure
 
-**Goal:** Add a consolidated release step to archive.md so that on milestone complete, version is automatically bumped, changelog finalized, release committed, tagged, and optionally pushed — eliminating the need for a manual release phase.
+**Goal:** Add automatic failure recovery — MCP tool retry with backoff, atomic file writes for state integrity, command execution timeouts, and per-task lease TTL — then enable the existing recovery feature flags.
 
 **Success Criteria:**
-- New Step 5c in archive.md invokes release automation after archive commit
-- Version bump via `yolo bump-version` (patch by default)
-- CHANGELOG.md `[Unreleased]` section finalized with new version + date
-- Release commit: `chore: release v{version}`
-- Git tag: `v{version}` (in addition to existing milestone tag)
-- Push gated by `auto_push` config (`never` → skip, `always` → push, `after_phase` → push)
-- `--no-release` flag on archive to skip release step entirely
-- `--major` / `--minor` flags forwarded to bump-version
-- Existing archive steps (audit, move, milestone tag, ACTIVE update) remain intact
-- Release step runs AFTER milestone tag but BEFORE ACTIVE update
+- MCP tool handler wraps all 5 tools with exponential backoff (100ms→200ms→400ms, 3 retries, jitter)
+- Circuit breaker disables tool after 5 consecutive failures (resets after 60s)
+- All critical file writes (`execution-state.json`, `event-log.jsonl`, config) use atomic temp+rename pattern
+- `.sha256` sidecar files written alongside critical state files, validated on read
+- Backup restore on checksum mismatch (read `.backup`, log recovery event)
+- `Command::new()` spawns wrapped with 30s timeout (configurable via `command_timeout_ms` config key)
+- Per-task lease TTL: tasks auto-released after 5min idle, re-queued for assignment
+- `v3_event_recovery`, `v3_snapshot_resume`, `v3_lease_locks` defaults changed to `true`
+- Telemetry tracks recovery events (retry count, checksum mismatch, timeout kill, task reassignment)
+- All existing tests pass + new tests for retry logic, atomic writes, timeout enforcement, task lease
 
 **Dependencies:** Phase 1
-
----
-
-## Phase 3: Testing & Release
-
-**Goal:** Add tests for both fixes, update documentation, and bump version.
-
-**Success Criteria:**
-- Bats tests verifying `subagent_type` appears in execute-protocol spawn blocks
-- Bats tests verifying archive.md contains release automation step
-- README.md updated with agent routing and auto-release documentation
-- CHANGELOG.md updated with v2.8.0 entry
-- Version bumped to 2.8.0
-- All existing + new tests pass
-
-**Dependencies:** Phase 2
