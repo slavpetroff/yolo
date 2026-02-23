@@ -573,9 +573,9 @@ mod tests {
         // Tier 1: CONVENTIONS + STACK (shared base for all roles)
         assert!(dev_tier1.contains("CONV_CONTENT_MARKER"));
         assert!(dev_tier1.contains("STACK_CONTENT_MARKER"));
-        // Tier 2 execution: ROADMAP only
+        // Tier 2 execution: ARCHITECTURE + ROADMAP
         assert!(dev_tier2.contains("ROADMAP_CONTENT_MARKER"));
-        assert!(!dev_tier2.contains("ARCH_CONTENT_MARKER"));
+        assert!(dev_tier2.contains("ARCH_CONTENT_MARKER"));
         assert!(!dev_tier2.contains("REQ_CONTENT_MARKER"));
 
         // Architect (planning family): tier1=CONVENTIONS+STACK, tier2=ARCHITECTURE+ROADMAP+REQUIREMENTS
@@ -595,7 +595,7 @@ mod tests {
         assert!(qa_tier1.contains("CONV_CONTENT_MARKER"));
         assert!(qa_tier1.contains("STACK_CONTENT_MARKER"));
         assert!(qa_tier2.contains("ROADMAP_CONTENT_MARKER"));
-        assert!(!qa_tier2.contains("ARCH_CONTENT_MARKER"));
+        assert!(qa_tier2.contains("ARCH_CONTENT_MARKER"));
 
         let _ = std::fs::remove_dir_all(&tmp);
     }
@@ -814,9 +814,9 @@ mod tests {
         // Tier 1 same as architect
         assert!(dev_tier1.contains("Convention rules"));
         assert!(dev_tier1.contains("Stack: Rust"));
-        // Tier 2 execution contains ROADMAP.md only
+        // Tier 2 execution contains ARCHITECTURE.md + ROADMAP.md
         assert!(dev_tier2.contains("Roadmap content"));
-        assert!(!dev_tier2.contains("Architecture overview"));
+        assert!(dev_tier2.contains("Architecture overview"));
         assert!(!dev_tier2.contains("Requirements list"));
 
         let _ = std::fs::remove_dir_all(&tmp);

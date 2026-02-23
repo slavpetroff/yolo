@@ -81,7 +81,7 @@ pub fn tier1_files() -> Vec<&'static str> {
 pub fn tier2_files(family: &str) -> Vec<&'static str> {
     match family {
         "planning" => vec!["ARCHITECTURE.md", "ROADMAP.md", "REQUIREMENTS.md"],
-        "execution" => vec!["ROADMAP.md"],
+        "execution" => vec!["ARCHITECTURE.md", "ROADMAP.md"],
         _ => vec!["ROADMAP.md"],
     }
 }
@@ -479,7 +479,7 @@ mod tests {
         assert_eq!(planning, vec!["ARCHITECTURE.md", "ROADMAP.md", "REQUIREMENTS.md"]);
 
         let execution = tier2_files("execution");
-        assert_eq!(execution, vec!["ROADMAP.md"]);
+        assert_eq!(execution, vec!["ARCHITECTURE.md", "ROADMAP.md"]);
 
         let default = tier2_files("default");
         assert_eq!(default, vec!["ROADMAP.md"]);
@@ -529,9 +529,9 @@ mod tests {
         // Different families must produce different tier 2 content
         assert_ne!(t2_dev, t2_lead);
 
-        // Planning family gets ARCHITECTURE.md, execution does not
+        // Both families now get ARCHITECTURE.md; they still differ because planning includes REQUIREMENTS.md
         assert!(t2_lead.contains("Architecture overview"));
-        assert!(!t2_dev.contains("Architecture overview"));
+        assert!(t2_dev.contains("Architecture overview"));
     }
 
     #[test]
@@ -647,10 +647,10 @@ mod tests {
         let t2_planning = build_tier2(&planning, "planning");
         let t2_execution = build_tier2(&planning, "execution");
 
-        // Different families must have different content
+        // Different families must have different content (planning has REQUIREMENTS.md, execution does not)
         assert_ne!(t2_planning, t2_execution);
         assert!(t2_planning.contains("Architecture overview"));
-        assert!(!t2_execution.contains("Architecture overview"));
+        assert!(t2_execution.contains("Architecture overview"));
 
         // Subsequent calls return same content
         let t2_planning2 = build_tier2(&planning, "planning");
