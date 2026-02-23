@@ -15,59 +15,27 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     }
 
     // --- Collect installed skills ---
-    let mut installed_global = String::new();
-    let mut installed_project = String::new();
-    let mut installed_agents = String::new();
+    fn collect_skills(dir: &Path) -> Vec<String> {
+        if !dir.exists() { return Vec::new(); }
+        let Ok(entries) = fs::read_dir(dir) else { return Vec::new(); };
+        entries.filter_map(|e| e.ok())
+            .filter_map(|e| e.file_name().to_str().map(|s| s.to_string()))
+            .collect()
+    }
 
     let home_dir_str = std::env::var("HOME").unwrap_or_else(|_| "".to_string());
     let home_dir = Path::new(&home_dir_str);
-    
-    // Global Claude skills (using standard path logic)
+
     let claude_global = home_dir.join(".claude").join("skills");
-    if claude_global.exists() {
-        if let Ok(entries) = fs::read_dir(&claude_global) {
-            let mut skills = Vec::new();
-            for e in entries.filter_map(|x| x.ok()) {
-                if let Some(name) = e.file_name().to_str() {
-                    skills.push(name.to_string());
-                }
-            }
-            installed_global = skills.join(",");
-        }
-    }
-
-    // Agent skills
     let agent_global = home_dir.join(".agents").join("skills");
-    if agent_global.exists() {
-        if let Ok(entries) = fs::read_dir(&agent_global) {
-            let mut skills = Vec::new();
-            for e in entries.filter_map(|x| x.ok()) {
-                if let Some(name) = e.file_name().to_str() {
-                    skills.push(name.to_string());
-                }
-            }
-            installed_agents = skills.join(",");
-        }
-    }
-
-    // Project skills
     let claude_project = project_dir.join(".claude").join("skills");
-    if claude_project.exists() {
-        if let Ok(entries) = fs::read_dir(&claude_project) {
-            let mut skills = Vec::new();
-            for e in entries.filter_map(|x| x.ok()) {
-                if let Some(name) = e.file_name().to_str() {
-                    skills.push(name.to_string());
-                }
-            }
-            installed_project = skills.join(",");
-        }
-    }
 
-    let mut all_installed = Vec::new();
-    for s in installed_global.split(',') { if !s.is_empty() { all_installed.push(s.to_string()); } }
-    for s in installed_project.split(',') { if !s.is_empty() { all_installed.push(s.to_string()); } }
-    for s in installed_agents.split(',') { if !s.is_empty() { all_installed.push(s.to_string()); } }
+    let installed_global = collect_skills(&claude_global);
+    let installed_agents = collect_skills(&agent_global);
+    let installed_project = collect_skills(&claude_project);
+
+    let all_installed: Vec<String> = [&installed_global, &installed_project, &installed_agents]
+        .into_iter().flatten().cloned().collect();
 
     // --- Read manifest files ---
     fn read_manifest(filename: &str, project_dir: &Path) -> String {
@@ -297,9 +265,9 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let mut out = json!({
         "detected_stack": detected,
         "installed": {
-            "global": installed_global.split(',').filter(|s| !s.is_empty()).collect::<Vec<&str>>(),
-            "project": installed_project.split(',').filter(|s| !s.is_empty()).collect::<Vec<&str>>(),
-            "agents": installed_agents.split(',').filter(|s| !s.is_empty()).collect::<Vec<&str>>()
+            "global": installed_global,
+            "project": installed_project,
+            "agents": installed_agents
         },
         "recommended_skills": recommended_skills,
         "suggestions": suggestions,
