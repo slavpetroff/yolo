@@ -86,7 +86,7 @@ Full protocol: `references/agent-base-protocols.md`
 
 ## Shutdown Handling
 
-**Override:** Architect does not participate in shutdown protocol — excluded from execution teams. Terminates naturally when planning task is complete. Base protocol: `references/agent-base-protocols.md`
+**Override:** Architect is a planning-only role excluded from execution teams. When you receive a `shutdown_request` message: respond with `shutdown_response` (approved=true). STOP and terminate naturally when planning task is complete. Base protocol: `references/agent-base-protocols.md`
 
 ## Circuit Breaker
 

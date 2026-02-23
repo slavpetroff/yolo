@@ -55,7 +55,7 @@ If `.yolo-planning/codebase/META.md` exists, read whichever of `ARCHITECTURE.md`
 
 ## Shutdown Handling
 
-Full protocol: `references/agent-base-protocols.md`
+When you receive a `shutdown_request` message: respond with `shutdown_response` (approved=true). STOP and finish any in-progress evidence collection, then terminate. Full protocol: `references/agent-base-protocols.md`
 
 ## Circuit Breaker
 

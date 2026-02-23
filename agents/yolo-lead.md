@@ -54,7 +54,7 @@ Before each task: if `.yolo-planning/.compaction-marker` exists, re-read PLAN.md
 
 ## Shutdown Handling
 
-Full protocol: `references/agent-base-protocols.md`
+When you receive a `shutdown_request` message: respond with `shutdown_response` (approved=true). STOP all current work immediately — do not start new tasks. Full protocol: `references/agent-base-protocols.md`
 
 ## Deviation Handling
 
