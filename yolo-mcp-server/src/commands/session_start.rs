@@ -342,6 +342,22 @@ fn flatten_todos_migration(planning_dir: &Path) {
     }
 }
 
+fn get_uid() -> u32 {
+    unsafe { libc::getuid() }
+}
+
+fn sorted_cache_dirs(dir: &Path) -> Vec<PathBuf> {
+    let mut dirs: Vec<PathBuf> = fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|e| e.path().is_dir())
+        .map(|e| e.path())
+        .collect();
+    dirs.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
+    dirs
+}
+
 fn write_config_cache_and_validate(planning_dir: &Path) -> (bool, String) {
     let mut config_val: Value = json!({});
     let mut warnings = String::new();
@@ -354,8 +370,7 @@ fn write_config_cache_and_validate(planning_dir: &Path) -> (bool, String) {
     }
 
     // Write Cache (native uid)
-    let uid = unsafe { libc::getuid() };
-    let cache_path = format!("/tmp/yolo-config-cache-{}", uid);
+    let cache_path = format!("/tmp/yolo-config-cache-{}", get_uid());
     let get_str = |key: &str, def: &str| -> String {
         config_val.get(key).and_then(|v| v.as_str()).unwrap_or(def).to_string()
     };
@@ -419,8 +434,7 @@ fn check_first_run(claude_dir: &Path) -> String {
 }
 
 fn check_for_updates(_script_dir: &Path) -> String {
-    let uid = unsafe { libc::getuid() };
-    let cache_path = format!("/tmp/yolo-update-check-{}", uid);
+    let cache_path = format!("/tmp/yolo-update-check-{}", get_uid());
     let mut local_ver = "0.0.0".to_string();
     let mut remote_ver = "0.0.0".to_string();
 
@@ -562,16 +576,7 @@ fn cleanup_and_sync_cache(claude_dir: &Path) {
     
     // Clean old caches
     if cache_dir.exists() && fs::create_dir(&cleanup_lock).is_ok() {
-        let mut dirs: Vec<PathBuf> = Vec::new();
-        if let Ok(entries) = fs::read_dir(&cache_dir) {
-            for entry in entries.flatten() {
-                if entry.path().is_dir() {
-                    dirs.push(entry.path());
-                }
-            }
-        }
-        dirs.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
-        
+        let dirs = sorted_cache_dirs(&cache_dir);
         if dirs.len() > 1 {
             for dir in dirs.iter().take(dirs.len() - 1) {
                 let _ = fs::remove_dir_all(dir);
@@ -582,16 +587,7 @@ fn cleanup_and_sync_cache(claude_dir: &Path) {
     
     // Integrity check
     if cache_dir.exists() {
-        let mut dirs: Vec<PathBuf> = Vec::new();
-        if let Ok(entries) = fs::read_dir(&cache_dir) {
-            for entry in entries.flatten() {
-                if entry.path().is_dir() {
-                    dirs.push(entry.path());
-                }
-            }
-        }
-        dirs.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
-        
+        let dirs = sorted_cache_dirs(&cache_dir);
         if let Some(latest) = dirs.last() {
             let required = vec![
                 "commands/init.md",
@@ -625,16 +621,8 @@ fn cleanup_and_sync_cache(claude_dir: &Path) {
             }
         }
         
-        let mut latest_cache = None;
-        if let Ok(entries) = fs::read_dir(&cache_dir) {
-            let mut d = Vec::new();
-            for e in entries.flatten() {
-                if e.path().is_dir() { d.push(e.path()); }
-            }
-            d.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
-            latest_cache = d.last().cloned();
-        }
-        
+        let latest_cache = sorted_cache_dirs(&cache_dir).last().cloned();
+
         if let Some(lc) = &latest_cache {
             if let Ok(content) = fs::read_to_string(lc.join(".claude-plugin/plugin.json")) {
                 if let Ok(val) = serde_json::from_str::<Value>(&content) {
@@ -659,15 +647,7 @@ fn cleanup_and_sync_cache(claude_dir: &Path) {
     
     // Sync global commands mirror
     let yolo_global = claude_dir.join("commands/yolo");
-    let mut latest_cache = None;
-    if let Ok(entries) = fs::read_dir(&cache_dir) {
-        let mut d = Vec::new();
-        for e in entries.flatten() { if e.path().is_dir() { d.push(e.path()); } }
-        d.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
-        latest_cache = d.last().cloned();
-    }
-    
-    if let Some(lc) = latest_cache {
+    if let Some(lc) = sorted_cache_dirs(&cache_dir).last().cloned() {
         let cache_cmds = lc.join("commands");
         if cache_cmds.exists() {
             let _ = fs::create_dir_all(&yolo_global);
