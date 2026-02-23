@@ -793,7 +793,7 @@ struct ContextResult {
     config_auto_push: String,
 }
 
-fn build_context(cwd: &Path, planning_dir: &Path, state_msg: &str) -> ContextResult {
+fn build_context(_cwd: &Path, planning_dir: &Path, state_msg: &str) -> ContextResult {
     let mut ctx = String::from("YOLO project detected.");
 
     let mut config_effort = "balanced".to_string();
