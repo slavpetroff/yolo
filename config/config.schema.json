@@ -6,11 +6,11 @@
   "properties": {
     "effort": {
       "type": "string",
-      "enum": ["minimal", "balanced", "thorough"]
+      "enum": ["thorough", "balanced", "fast", "turbo"]
     },
     "autonomy": {
       "type": "string",
-      "enum": ["minimal", "standard", "full"]
+      "enum": ["cautious", "standard", "confident", "pure-vibe"]
     },
     "auto_commit": {
       "type": "boolean"
