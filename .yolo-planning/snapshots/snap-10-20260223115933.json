@@ -1,0 +1,48 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "completed_at": "2026-02-23T23:49:00Z",
+    "correlation_id": "016cd502-8b05-44f7-a9a3-fa84fd1de432",
+    "phase": 10,
+    "phase_name": "hard-typification-contracts",
+    "plans": [
+      {
+        "id": "10-01",
+        "status": "complete",
+        "title": "Config JSON Schema and Startup Validation",
+        "wave": 1
+      },
+      {
+        "id": "10-02",
+        "status": "complete",
+        "title": "Feature Flag Enum with Compile-Time Exhaustiveness",
+        "wave": 1
+      },
+      {
+        "id": "10-03",
+        "status": "complete",
+        "title": "CLI Command Enum for Type-Safe Routing",
+        "wave": 1
+      },
+      {
+        "id": "10-04",
+        "status": "complete",
+        "title": "Domain Newtypes and Typed Hook Inputs",
+        "wave": 1
+      },
+      {
+        "id": "10-05",
+        "status": "complete",
+        "title": "Enable Default Flags and Integration Tests",
+        "wave": 2
+      }
+    ],
+    "started_at": "2026-02-23T23:15:00Z",
+    "status": "complete",
+    "total_waves": 2,
+    "wave": 2
+  },
+  "matcher": "auto",
+  "phase": "10",
+  "timestamp": "2026-02-23T11:59:33Z"
+}
