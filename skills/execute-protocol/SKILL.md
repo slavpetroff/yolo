@@ -119,6 +119,7 @@ ACCUMULATED_FINDINGS=$(echo "$ACCUMULATED_FINDINGS" | jq --argjson f "$CURRENT_F
 2. Resolve Architect model:
 ```bash
 ARCH_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+ARCH_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns architect .yolo-planning/config.json "{effort}")
 ```
 
 3. **Loop** while `VERDICT == "reject"` AND `REVIEW_CYCLE < REVIEW_MAX_CYCLES`:
@@ -183,6 +184,8 @@ ARCH_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model architect .yolo-planning/conf
      5. Do NOT change the plan's scope — only fix the identified issues
    activeForm: "Revising plan {NN-MM} (cycle {REVIEW_CYCLE})"
    model: "${ARCH_MODEL}"
+   maxTurns: ${ARCH_MAX_TURNS}
+   subagent_type: "yolo:yolo-architect"
    ```
 
    e. After Architect completes, re-run review on the revised plan:
