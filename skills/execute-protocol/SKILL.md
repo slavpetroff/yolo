@@ -52,7 +52,7 @@ Log a confirmation: `◆ Correlation ID: {CORRELATION_ID}`
 - Exit 2: partial -- STOP with details from JSON output
 - No cross_phase_deps in plan: command returns exit 0 with `checked: 0` -- skip silently
 
-### Step 2b: Review gate (optional)
+### Step 2b: Review gate
 
 **Activation:** Read `review_gate` from config:
 ```bash
@@ -72,12 +72,86 @@ Read `review_max_cycles` from config (default 3):
 REVIEW_MAX_CYCLES=$(jq -r '.review_max_cycles // 3' .yolo-planning/config.json 2>/dev/null)
 ```
 
-For each plan in the phase, run automated review:
+**Resolve Reviewer model** (once, before plan loop):
+```bash
+REVIEWER_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model reviewer .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+if [ $? -ne 0 ]; then echo "$REVIEWER_MODEL" >&2; REVIEWER_MODEL=""; fi
+REVIEWER_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns reviewer .yolo-planning/config.json "{effort}")
+if [ $? -ne 0 ]; then REVIEWER_MAX_TURNS=15; fi
+```
+
+For each plan in the phase, run **two-stage review**:
+
+**Stage 1 — CLI pre-check** (fast structural validation):
 
 ```bash
 REVIEW_RESULT=$("$HOME/.cargo/bin/yolo" review-plan {plan_path} {phase_dir})
-VERDICT=$(echo "$REVIEW_RESULT" | jq -r '.verdict')
+CLI_EXIT=$?
+CLI_VERDICT=$(echo "$REVIEW_RESULT" | jq -r '.verdict')
+CLI_FINDINGS=$(echo "$REVIEW_RESULT" | jq '.findings')
 ```
+
+- If `CLI_EXIT != 0` and `CLI_VERDICT == "reject"`: fast-fail immediately. Display `✗ Plan {NN-MM} CLI pre-check: rejected (structural errors)`. Display findings. Skip Stage 2. Enter feedback loop with CLI verdict.
+- If `CLI_VERDICT == "approve"` or `CLI_VERDICT == "conditional"`: proceed to Stage 2.
+
+**Stage 2 — Reviewer agent spawn** (adversarial design review):
+
+Spawn `yolo-reviewer` agent via Task tool:
+```
+subject: "Review plan {NN-MM}"
+description: |
+  {PLANNING_CONTEXT}
+
+  Review this plan adversarially.
+
+  **Plan path:** {plan_path}
+  **Phase directory:** {phase_dir}
+  {If CLI had conditional findings: "**CLI pre-check findings (structural):** {CLI_FINDINGS}"}
+
+  Follow your Core Protocol:
+  1. Read the plan file
+  2. Verify referenced codebase files exist
+  3. Run `yolo review-plan` for automated checks
+  4. Analyze adversarially
+  5. Produce structured VERDICT
+
+activeForm: "Reviewing plan {NN-MM}"
+model: "${REVIEWER_MODEL}"
+maxTurns: ${REVIEWER_MAX_TURNS}
+subagent_type: "yolo:yolo-reviewer"
+```
+
+**Verdict parsing from agent output:**
+- Extract `VERDICT:` line from agent completion message
+- Extract `FINDINGS:` block (everything after FINDINGS: until end of structured block)
+- Parse each finding line: `[id:X] [severity:Y] [file:Z] issue: DESC | suggestion: FIX` into JSON
+- Convert to JSON array: `{"id": "X", "severity": "Y", "file": "Z", "title": "DESC", "description": "DESC", "suggestion": "FIX"}`
+- If parsing fails (agent didn't follow format): treat as `conditional` with a warning finding about unparseable verdict
+
+```bash
+# Extract VERDICT line from agent completion
+AGENT_VERDICT=$(echo "$AGENT_OUTPUT" | grep -oP '(?<=VERDICT:\s)(approve|reject|conditional)' | head -1)
+# Extract FINDINGS block
+AGENT_FINDINGS_RAW=$(echo "$AGENT_OUTPUT" | sed -n '/^FINDINGS:/,/^$/p' | tail -n +2)
+# Parse findings into JSON array
+CURRENT_FINDINGS=$(echo "$AGENT_FINDINGS_RAW" | while IFS= read -r line; do
+  echo "$line" | sed -n 's/\[id:\([^]]*\)\] \[severity:\([^]]*\)\] \[file:\([^]]*\)\] issue: \(.*\) | suggestion: \(.*\)/{"id":"\1","severity":"\2","file":"\3","title":"\4","description":"\4","suggestion":"\5"}/p'
+done | jq -s '.')
+# Fallback if parsing fails
+if [ -z "$AGENT_VERDICT" ]; then
+  AGENT_VERDICT="conditional"
+  CURRENT_FINDINGS='[{"id":"parse-fail","severity":"medium","file":"","title":"Unparseable reviewer verdict","description":"Reviewer agent did not produce a structured verdict. Treating as conditional.","suggestion":"Review agent output manually."}]'
+fi
+VERDICT="$AGENT_VERDICT"
+```
+
+**Agent spawn fallback:**
+- If agent spawn fails (Task tool error, timeout, no completion): fall back to CLI-only verdict
+- Display: `⚠ Reviewer agent unavailable — falling back to CLI review for plan {NN-MM}`
+- Log: `"$HOME/.cargo/bin/yolo" log-event review_agent_fallback {phase} plan={NN-MM} reason={error} 2>/dev/null || true`
+- Use the CLI verdict from Stage 1 as the gate verdict: `VERDICT="$CLI_VERDICT"`, `CURRENT_FINDINGS="$CLI_FINDINGS"`
+
+**Combined verdict handling:**
 
 **Verdict: approve** -- Display `✓ Plan {NN-MM} review: approved` and proceed. No loop needed.
 
@@ -184,11 +258,58 @@ ARCH_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns architect .yolo-planning/
    subagent_type: "yolo:yolo-architect"
    ```
 
-   e. After Architect completes, re-run review on the revised plan:
+   e. After Architect completes, re-run **two-stage review** on the revised plan:
+
+   **Stage 1 — CLI pre-check:**
    ```bash
    REVIEW_RESULT=$("$HOME/.cargo/bin/yolo" review-plan {plan_path} {phase_dir})
-   VERDICT=$(echo "$REVIEW_RESULT" | jq -r '.verdict')
-   CURRENT_FINDINGS=$(echo "$REVIEW_RESULT" | jq '.findings')
+   CLI_EXIT=$?
+   CLI_VERDICT=$(echo "$REVIEW_RESULT" | jq -r '.verdict')
+   CLI_FINDINGS=$(echo "$REVIEW_RESULT" | jq '.findings')
+   ```
+
+   - If `CLI_EXIT != 0` and `CLI_VERDICT == "reject"`: use CLI verdict directly (structural failure, skip agent). Set `VERDICT="$CLI_VERDICT"`, `CURRENT_FINDINGS="$CLI_FINDINGS"`.
+   - If `CLI_VERDICT == "approve"` or `CLI_VERDICT == "conditional"`: proceed to Stage 2.
+
+   **Stage 2 — Reviewer agent re-review:**
+   Spawn `yolo-reviewer` agent with delta context from previous cycles:
+   ```
+   subject: "Re-review plan {NN-MM} (cycle {REVIEW_CYCLE})"
+   description: |
+     {PLANNING_CONTEXT}
+
+     Re-review this revised plan (feedback loop cycle {REVIEW_CYCLE}/{REVIEW_MAX_CYCLES}).
+
+     **Plan path:** {plan_path}
+     **Phase directory:** {phase_dir}
+     **Review cycle:** {REVIEW_CYCLE} of {REVIEW_MAX_CYCLES}
+     **Previous cycle findings:**
+     {PREVIOUS_FINDINGS_SUMMARY}
+
+     Follow Delta-Aware Review protocol:
+     1. Read the revised plan
+     2. Compare against previous findings
+     3. Classify: resolved, persistent, new, changed severity
+     4. Produce structured VERDICT with delta annotations
+
+   activeForm: "Re-reviewing plan {NN-MM} (cycle {REVIEW_CYCLE})"
+   model: "${REVIEWER_MODEL}"
+   maxTurns: ${REVIEWER_MAX_TURNS}
+   subagent_type: "yolo:yolo-reviewer"
+   ```
+
+   **Parse agent re-review output** (same parsing as initial review):
+   - Extract `VERDICT:` and `FINDINGS:` from agent completion
+   - Convert findings to JSON array for `CURRENT_FINDINGS`
+   - If parsing fails: treat as `conditional` with warning finding
+
+   **Fallback on re-review:** If agent spawn fails during a re-review cycle, fall back to CLI verdict:
+   - Display: `⚠ Reviewer agent unavailable — falling back to CLI review for plan {NN-MM} (cycle {REVIEW_CYCLE})`
+   - Log: `"$HOME/.cargo/bin/yolo" log-event review_agent_fallback {phase} plan={NN-MM} cycle=${REVIEW_CYCLE} reason={error} 2>/dev/null || true`
+   - Use: `VERDICT="$CLI_VERDICT"`, `CURRENT_FINDINGS="$CLI_FINDINGS"`
+
+   **Accumulate findings:**
+   ```bash
    ACCUMULATED_FINDINGS=$(echo "$ACCUMULATED_FINDINGS" | jq --argjson f "$CURRENT_FINDINGS" '. + $f')
    ```
 
