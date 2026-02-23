@@ -73,18 +73,101 @@ REVIEW_GATE=$(jq -r '.review_gate // "on_request"' .yolo-planning/config.json 2>
 
 **When active:**
 
-1. For each plan in the phase, run automated checks:
+Read `review_max_cycles` from config (default 3):
 ```bash
-REVIEW_RESULT=$("$HOME/.cargo/bin/yolo" review-plan {plan_path} {phase_dir})
+REVIEW_MAX_CYCLES=$(jq -r '.review_max_cycles // 3' .yolo-planning/config.json 2>/dev/null)
 ```
 
-2. Parse verdict from JSON output:
-   - `verdict: "approve"` -- Display `✓ Plan {NN-MM} review: approved` and proceed
-   - `verdict: "conditional"` -- Display `⚠ Plan {NN-MM} review: conditional` with findings. Attach findings to Dev context as warnings. Proceed.
-   - `verdict: "reject"` -- Display `✗ Plan {NN-MM} review: rejected` with findings. STOP execution. Return findings to user with suggestion: "Fix issues and re-run `/yolo:vibe --execute {N}`"
+For each plan in the phase, run automated review:
 
-3. If ALL plans approve or conditional: proceed to Step 3
-4. If ANY plan rejected: STOP. Do not create Dev team.
+```bash
+REVIEW_RESULT=$("$HOME/.cargo/bin/yolo" review-plan {plan_path} {phase_dir})
+VERDICT=$(echo "$REVIEW_RESULT" | jq -r '.verdict')
+```
+
+**Verdict: approve** -- Display `✓ Plan {NN-MM} review: approved` and proceed. No loop needed.
+
+**Verdict: conditional** (first pass or final loop cycle):
+- Attach findings as warnings to DEV_CONTEXT variable (append to compiled context)
+- Display `⚠ Plan {NN-MM} review: conditional (cycle 1/{max})`
+- Proceed to Step 3
+
+**Verdict: reject** -- Enter review feedback loop:
+
+1. Initialize loop state:
+```bash
+REVIEW_CYCLE=1
+ACCUMULATED_FINDINGS="[]"
+CURRENT_FINDINGS=$(echo "$REVIEW_RESULT" | jq '.findings')
+ACCUMULATED_FINDINGS=$(echo "$ACCUMULATED_FINDINGS" | jq --argjson f "$CURRENT_FINDINGS" '. + $f')
+```
+
+2. Resolve Architect model:
+```bash
+ARCH_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+```
+
+3. **Loop** while `VERDICT == "reject"` AND `REVIEW_CYCLE < REVIEW_MAX_CYCLES`:
+
+   a. Increment cycle:
+   ```bash
+   REVIEW_CYCLE=$((REVIEW_CYCLE + 1))
+   ```
+
+   b. Display: `◆ Review loop cycle {REVIEW_CYCLE}/{REVIEW_MAX_CYCLES} — spawning Architect to revise plan...`
+
+   c. Spawn Architect subagent via Task tool (subagent, NOT team):
+   ```
+   subject: "Revise plan {NN-MM} — review cycle {REVIEW_CYCLE}"
+   description: |
+     {PLANNING_CONTEXT}
+
+     You are revising a plan that was rejected by the Reviewer.
+
+     **Plan path:** {plan_path}
+     **Review cycle:** {REVIEW_CYCLE} of {REVIEW_MAX_CYCLES}
+
+     **Findings to address (high + medium severity only):**
+     {DELTA_FINDINGS_JSON}
+
+     Instructions:
+     1. Read the plan at {plan_path}
+     2. Address each finding listed above
+     3. Overwrite the original PLAN.md with your revised version
+     4. Preserve the YAML frontmatter structure
+     5. Do NOT change the plan's scope — only fix the identified issues
+
+     Note: You share the "planning" Tier 2 cache with the Reviewer.
+     Only the Tier 3 delta (these findings) changes between iterations.
+   activeForm: "Revising plan {NN-MM} (cycle {REVIEW_CYCLE})"
+   model: "${ARCH_MODEL}"
+   ```
+
+   d. After Architect completes, re-run review on the revised plan:
+   ```bash
+   REVIEW_RESULT=$("$HOME/.cargo/bin/yolo" review-plan {plan_path} {phase_dir})
+   VERDICT=$(echo "$REVIEW_RESULT" | jq -r '.verdict')
+   CURRENT_FINDINGS=$(echo "$REVIEW_RESULT" | jq '.findings')
+   ACCUMULATED_FINDINGS=$(echo "$ACCUMULATED_FINDINGS" | jq --argjson f "$CURRENT_FINDINGS" '. + $f')
+   ```
+
+   e. Parse new verdict:
+      - `verdict: "approve"` -- Exit loop. Display `✓ Plan {NN-MM} review: approved (cycle {REVIEW_CYCLE}/{max})`
+      - `verdict: "conditional"` -- Exit loop. Attach findings as warnings to DEV_CONTEXT. Display `⚠ Plan {NN-MM} review: conditional (cycle {REVIEW_CYCLE}/{max})`. Proceed to Step 3.
+      - `verdict: "reject"` -- Continue loop (next iteration)
+
+4. **Max cycles exceeded** (loop exits with `VERDICT == "reject"`):
+   - Display `✗ Plan {NN-MM} review: REJECTED after {REVIEW_MAX_CYCLES} cycles`
+   - Display accumulated findings summary (deduplicated by finding ID):
+     ```bash
+     echo "$ACCUMULATED_FINDINGS" | jq -r 'group_by(.id) | map(last) | .[] | "  ✗ [\(.severity)] \(.title): \(.description)"'
+     ```
+   - STOP execution -- do not create Dev team
+   - Return to user with suggestion: "Review loop exhausted after {max} cycles. Fix issues manually and re-run `/yolo:vibe --execute {N}`"
+
+5. After all plans reviewed:
+   - If ALL plans approve or conditional: proceed to Step 3
+   - If ANY plan hit max_cycles with reject: STOP entire phase. Do not create Dev team.
 
 **When inactive:** Display `○ Review gate skipped (review_gate: {value})` and proceed to Step 3.
 
