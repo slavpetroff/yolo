@@ -33,7 +33,7 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
         let resp = json!({
             "ok": false,
             "cmd": "verify-plan-completion",
-            "checks": [{"name": "summary_exists", "status": "fail", "detail": format!("SUMMARY not found: {}", summary_path.display())}]
+            "checks": [{"name": "summary_exists", "status": "fail", "detail": format!("SUMMARY not found: {}", summary_path.display()), "fixable_by": "dev"}]
         });
         return Ok((resp.to_string(), 1));
     }
@@ -46,7 +46,7 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
         let resp = json!({
             "ok": false,
             "cmd": "verify-plan-completion",
-            "checks": [{"name": "plan_exists", "status": "fail", "detail": format!("PLAN not found: {}", plan_path.display())}]
+            "checks": [{"name": "plan_exists", "status": "fail", "detail": format!("PLAN not found: {}", plan_path.display()), "fixable_by": "dev"}]
         });
         return Ok((resp.to_string(), 1));
     }
@@ -69,7 +69,7 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
     ];
     match &frontmatter {
         None => {
-            checks.push(json!({"name": "frontmatter_fields", "status": "fail", "detail": "No YAML frontmatter found in SUMMARY"}));
+            checks.push(json!({"name": "frontmatter_fields", "status": "fail", "detail": "No YAML frontmatter found in SUMMARY", "fixable_by": "dev"}));
             all_pass = false;
         }
         Some(fm) => {
@@ -80,10 +80,10 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
                 .collect();
             if missing.is_empty() {
                 checks.push(
-                    json!({"name": "frontmatter_fields", "status": "pass", "detail": "All required fields present"}),
+                    json!({"name": "frontmatter_fields", "status": "pass", "detail": "All required fields present", "fixable_by": "none"}),
                 );
             } else {
-                checks.push(json!({"name": "frontmatter_fields", "status": "fail", "detail": format!("Missing fields: {}", missing.join(", "))}));
+                checks.push(json!({"name": "frontmatter_fields", "status": "fail", "detail": format!("Missing fields: {}", missing.join(", ")), "fixable_by": "dev"}));
                 all_pass = false;
             }
         }
@@ -96,14 +96,14 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
             .and_then(|v| v.parse::<u32>().ok())
             .unwrap_or(0);
         if plan_task_count == tasks_total {
-            checks.push(json!({"name": "task_count_match", "status": "pass", "detail": format!("Plan tasks ({}) matches tasks_total ({})", plan_task_count, tasks_total)}));
+            checks.push(json!({"name": "task_count_match", "status": "pass", "detail": format!("Plan tasks ({}) matches tasks_total ({})", plan_task_count, tasks_total), "fixable_by": "none"}));
         } else {
-            checks.push(json!({"name": "task_count_match", "status": "fail", "detail": format!("Plan tasks ({}) != tasks_total ({})", plan_task_count, tasks_total)}));
+            checks.push(json!({"name": "task_count_match", "status": "fail", "detail": format!("Plan tasks ({}) != tasks_total ({})", plan_task_count, tasks_total), "fixable_by": "architect"}));
             all_pass = false;
         }
     } else {
         checks.push(
-            json!({"name": "task_count_match", "status": "fail", "detail": "Cannot check: no frontmatter"}),
+            json!({"name": "task_count_match", "status": "fail", "detail": "Cannot check: no frontmatter", "fixable_by": "architect"}),
         );
         all_pass = false;
     }
@@ -116,17 +116,17 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
             .unwrap_or(0);
         if status == "complete" {
             if tasks_completed == plan_task_count {
-                checks.push(json!({"name": "completion_match", "status": "pass", "detail": format!("tasks_completed ({}) matches plan tasks ({})", tasks_completed, plan_task_count)}));
+                checks.push(json!({"name": "completion_match", "status": "pass", "detail": format!("tasks_completed ({}) matches plan tasks ({})", tasks_completed, plan_task_count), "fixable_by": "none"}));
             } else {
-                checks.push(json!({"name": "completion_match", "status": "fail", "detail": format!("tasks_completed ({}) != plan tasks ({})", tasks_completed, plan_task_count)}));
+                checks.push(json!({"name": "completion_match", "status": "fail", "detail": format!("tasks_completed ({}) != plan tasks ({})", tasks_completed, plan_task_count), "fixable_by": "dev"}));
                 all_pass = false;
             }
         } else {
-            checks.push(json!({"name": "completion_match", "status": "pass", "detail": format!("Status is '{}', not 'complete' — skipping completion check", status)}));
+            checks.push(json!({"name": "completion_match", "status": "pass", "detail": format!("Status is '{}', not 'complete' — skipping completion check", status), "fixable_by": "none"}));
         }
     } else {
         checks.push(
-            json!({"name": "completion_match", "status": "fail", "detail": "Cannot check: no frontmatter"}),
+            json!({"name": "completion_match", "status": "fail", "detail": "Cannot check: no frontmatter", "fixable_by": "dev"}),
         );
         all_pass = false;
     }
@@ -137,22 +137,22 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
         let hex_re = Regex::new(r"^[0-9a-fA-F]{7,}$").unwrap();
         if hashes.is_empty() {
             checks.push(
-                json!({"name": "commit_hashes", "status": "fail", "detail": "commit_hashes is empty"}),
+                json!({"name": "commit_hashes", "status": "fail", "detail": "commit_hashes is empty", "fixable_by": "dev"}),
             );
             all_pass = false;
         } else {
             let invalid: Vec<&String> =
                 hashes.iter().filter(|h| !hex_re.is_match(h)).collect();
             if invalid.is_empty() {
-                checks.push(json!({"name": "commit_hashes", "status": "pass", "detail": format!("{} valid hashes", hashes.len())}));
+                checks.push(json!({"name": "commit_hashes", "status": "pass", "detail": format!("{} valid hashes", hashes.len()), "fixable_by": "none"}));
             } else {
-                checks.push(json!({"name": "commit_hashes", "status": "fail", "detail": format!("Invalid hashes: {:?}", invalid)}));
+                checks.push(json!({"name": "commit_hashes", "status": "fail", "detail": format!("Invalid hashes: {:?}", invalid), "fixable_by": "dev"}));
                 all_pass = false;
             }
         }
     } else {
         checks.push(
-            json!({"name": "commit_hashes", "status": "fail", "detail": "Cannot check: no frontmatter"}),
+            json!({"name": "commit_hashes", "status": "fail", "detail": "Cannot check: no frontmatter", "fixable_by": "dev"}),
         );
         all_pass = false;
     }
@@ -161,7 +161,7 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
     let has_what_built = summary_content.contains("## What Was Built");
     let has_files_modified = summary_content.contains("## Files Modified");
     if has_what_built && has_files_modified {
-        checks.push(json!({"name": "body_sections", "status": "pass", "detail": "Both '## What Was Built' and '## Files Modified' present"}));
+        checks.push(json!({"name": "body_sections", "status": "pass", "detail": "Both '## What Was Built' and '## Files Modified' present", "fixable_by": "none"}));
     } else {
         let mut missing_sections = Vec::new();
         if !has_what_built {
@@ -170,7 +170,7 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
         if !has_files_modified {
             missing_sections.push("## Files Modified");
         }
-        checks.push(json!({"name": "body_sections", "status": "fail", "detail": format!("Missing sections: {}", missing_sections.join(", "))}));
+        checks.push(json!({"name": "body_sections", "status": "fail", "detail": format!("Missing sections: {}", missing_sections.join(", ")), "fixable_by": "dev"}));
         all_pass = false;
     }
 

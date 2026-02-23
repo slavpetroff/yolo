@@ -64,7 +64,9 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
             violations.push(json!({
                 "hash": short_hash,
                 "subject": subject,
-                "issue": "Does not match conventional commit format: {type}({scope}): {description}"
+                "issue": "Does not match conventional commit format: {type}({scope}): {description}",
+                "fixable_by": "dev",
+                "suggested_fix": format!("Rewrite commit as: {{type}}({{scope}}): {{description}}")
             }));
         }
     }
