@@ -128,8 +128,8 @@ fn parse_list_field(frontmatter: &str, field_name: &str) -> Vec<String> {
         }
 
         if in_field {
-            if trimmed.starts_with("- ") {
-                let item = trimmed[2..].trim().trim_matches('"').trim_matches('\'');
+            if let Some(stripped) = trimmed.strip_prefix("- ") {
+                let item = stripped.trim().trim_matches('"').trim_matches('\'');
                 if !item.is_empty() {
                     result.push(item.to_string());
                 }
@@ -159,8 +159,8 @@ fn extract_declared_files(content: &str) -> Vec<String> {
             if trimmed.starts_with("## ") {
                 break; // Next section
             }
-            if trimmed.starts_with("- ") {
-                let path = trimmed[2..]
+            if let Some(stripped) = trimmed.strip_prefix("- ") {
+                let path = stripped
                     .trim()
                     .trim_matches('`')
                     .trim();
@@ -185,8 +185,8 @@ fn get_git_files(hashes: &[String], cwd: &Path) -> Vec<String> {
             .current_dir(cwd)
             .output();
 
-        if let Ok(o) = output {
-            if o.status.success() {
+        if let Ok(o) = output
+            && o.status.success() {
                 let stdout = String::from_utf8_lossy(&o.stdout);
                 for line in stdout.lines() {
                     if let Some(caps) = stat_re.captures(line) {
@@ -197,7 +197,6 @@ fn get_git_files(hashes: &[String], cwd: &Path) -> Vec<String> {
                     }
                 }
             }
-        }
     }
 
     files.into_iter().collect()

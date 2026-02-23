@@ -11,7 +11,7 @@ fn locks_dir(cwd: &Path) -> PathBuf {
 
 /// Sanitize a resource name into a safe filename.
 fn lock_filename(resource: &str) -> String {
-    resource.replace('/', "__").replace('\\', "__").replace(' ', "_")
+    resource.replace(['/', '\\'], "__").replace(' ', "_")
 }
 
 /// Acquire a lock on a resource. Creates a lock file with metadata.
@@ -24,29 +24,27 @@ pub fn acquire(resource: &str, owner: &str, cwd: &Path) -> Result<Value, Value> 
     let lock_path = dir.join(format!("{}.lock", filename));
 
     // Check if lock already exists
-    if lock_path.exists() {
-        if let Ok(content) = fs::read_to_string(&lock_path) {
-            if let Ok(existing) = serde_json::from_str::<Value>(&content) {
-                let existing_owner = existing.get("owner").and_then(|v| v.as_str()).unwrap_or("");
-                if existing_owner == owner {
-                    // Same owner, re-entrant acquire
-                    return Ok(json!({
-                        "action": "acquire",
-                        "result": "already_held",
-                        "resource": resource,
-                        "owner": owner,
-                    }));
-                }
-                return Err(json!({
+    if lock_path.exists()
+        && let Ok(content) = fs::read_to_string(&lock_path)
+        && let Ok(existing) = serde_json::from_str::<Value>(&content) {
+            let existing_owner = existing.get("owner").and_then(|v| v.as_str()).unwrap_or("");
+            if existing_owner == owner {
+                // Same owner, re-entrant acquire
+                return Ok(json!({
                     "action": "acquire",
-                    "result": "conflict",
+                    "result": "already_held",
                     "resource": resource,
-                    "held_by": existing_owner,
-                    "requested_by": owner,
+                    "owner": owner,
                 }));
             }
+            return Err(json!({
+                "action": "acquire",
+                "result": "conflict",
+                "resource": resource,
+                "held_by": existing_owner,
+                "requested_by": owner,
+            }));
         }
-    }
 
     let ts = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
     let lock_data = json!({
@@ -82,8 +80,8 @@ pub fn release(resource: &str, owner: &str, cwd: &Path) -> Result<Value, Value> 
     }
 
     // Verify ownership before release
-    if let Ok(content) = fs::read_to_string(&lock_path) {
-        if let Ok(existing) = serde_json::from_str::<Value>(&content) {
+    if let Ok(content) = fs::read_to_string(&lock_path)
+        && let Ok(existing) = serde_json::from_str::<Value>(&content) {
             let existing_owner = existing.get("owner").and_then(|v| v.as_str()).unwrap_or("");
             if existing_owner != owner {
                 return Err(json!({
@@ -95,7 +93,6 @@ pub fn release(resource: &str, owner: &str, cwd: &Path) -> Result<Value, Value> 
                 }));
             }
         }
-    }
 
     fs::remove_file(&lock_path)
         .map_err(|e| json!({"action": "release", "result": "error", "error": e.to_string()}))?;
@@ -119,20 +116,18 @@ pub fn check(resources: &[&str], owner: &str, cwd: &Path) -> Value {
         let filename = lock_filename(resource);
         let lock_path = dir.join(format!("{}.lock", filename));
 
-        if lock_path.exists() {
-            if let Ok(content) = fs::read_to_string(&lock_path) {
-                if let Ok(existing) = serde_json::from_str::<Value>(&content) {
-                    let existing_owner = existing.get("owner").and_then(|v| v.as_str()).unwrap_or("");
-                    if existing_owner != owner {
-                        conflicts.push(json!({
-                            "resource": resource,
-                            "held_by": existing_owner,
-                        }));
-                        continue;
-                    }
+        if lock_path.exists()
+            && let Ok(content) = fs::read_to_string(&lock_path)
+            && let Ok(existing) = serde_json::from_str::<Value>(&content) {
+                let existing_owner = existing.get("owner").and_then(|v| v.as_str()).unwrap_or("");
+                if existing_owner != owner {
+                    conflicts.push(json!({
+                        "resource": resource,
+                        "held_by": existing_owner,
+                    }));
+                    continue;
                 }
             }
-        }
         available.push(resource);
     }
 

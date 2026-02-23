@@ -33,11 +33,10 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 }
 
 fn resolve_claude_dir() -> std::path::PathBuf {
-    if let Ok(dir) = std::env::var("CLAUDE_CONFIG_DIR") {
-        if !dir.is_empty() {
+    if let Ok(dir) = std::env::var("CLAUDE_CONFIG_DIR")
+        && !dir.is_empty() {
             return std::path::PathBuf::from(dir);
         }
-    }
     if let Ok(home) = std::env::var("HOME") {
         std::path::PathBuf::from(home).join(".claude")
     } else {
@@ -194,32 +193,28 @@ fn scan_stale_markers(planning_dir: &Path) -> Vec<String> {
 
     // Check watchdog PID
     let watchdog_pid_file = planning_dir.join(".watchdog-pid");
-    if watchdog_pid_file.exists() {
-        if let Ok(content) = fs::read_to_string(&watchdog_pid_file) {
+    if watchdog_pid_file.exists()
+        && let Ok(content) = fs::read_to_string(&watchdog_pid_file) {
             let trimmed = content.trim();
-            if let Ok(pid) = trimmed.parse::<u32>() {
-                if !process_alive(pid) {
+            if let Ok(pid) = trimmed.parse::<u32>()
+                && !process_alive(pid) {
                     findings.push("stale_marker|.watchdog-pid|dead process".to_string());
                 }
-            }
         }
-    }
 
     // Check compaction marker age
     let compaction_marker = planning_dir.join(".compaction-marker");
-    if compaction_marker.exists() {
-        if let Ok(meta) = fs::metadata(&compaction_marker) {
-            if let Ok(mtime) = meta.modified() {
-                let age = SystemTime::now()
-                    .duration_since(mtime)
-                    .unwrap_or_default()
-                    .as_secs();
-                if age > COMPACTION_MARKER_MAX_AGE_SECS {
-                    findings.push(format!("stale_marker|.compaction-marker|age: {age}s"));
-                }
+    if compaction_marker.exists()
+        && let Ok(meta) = fs::metadata(&compaction_marker)
+        && let Ok(mtime) = meta.modified() {
+            let age = SystemTime::now()
+                .duration_since(mtime)
+                .unwrap_or_default()
+                .as_secs();
+            if age > COMPACTION_MARKER_MAX_AGE_SECS {
+                findings.push(format!("stale_marker|.compaction-marker|age: {age}s"));
             }
         }
-    }
 
     // Check active agent marker
     let active_agent_file = planning_dir.join(".active-agent");
@@ -332,19 +327,16 @@ fn cleanup_stale_markers(planning_dir: &Path, log_file: &Path) {
 
         let is_stale = match *marker_name {
             ".watchdog-pid" => {
-                if let Ok(content) = fs::read_to_string(&marker_path) {
-                    if let Ok(pid) = content.trim().parse::<u32>() {
+                if let Ok(content) = fs::read_to_string(&marker_path)
+                    && let Ok(pid) = content.trim().parse::<u32>() {
                         !process_alive(pid)
                     } else {
                         false
                     }
-                } else {
-                    false
-                }
             }
             ".compaction-marker" => {
-                if let Ok(meta) = fs::metadata(&marker_path) {
-                    if let Ok(mtime) = meta.modified() {
+                if let Ok(meta) = fs::metadata(&marker_path)
+                    && let Ok(mtime) = meta.modified() {
                         SystemTime::now()
                             .duration_since(mtime)
                             .unwrap_or_default()
@@ -353,20 +345,16 @@ fn cleanup_stale_markers(planning_dir: &Path, log_file: &Path) {
                     } else {
                         false
                     }
-                } else {
-                    false
-                }
             }
             ".active-agent" => true, // Always considered stale in cleanup
             _ => false,
         };
 
-        if is_stale {
-            if fs::remove_file(&marker_path).is_ok() {
+        if is_stale
+            && fs::remove_file(&marker_path).is_ok() {
                 log_action(log_file, &format!("removed stale marker: {marker_name}"));
                 removed += 1;
             }
-        }
     }
 
     log_action(
@@ -381,8 +369,8 @@ fn most_recent_mtime(dir: &Path) -> u64 {
     let mut latest = 0u64;
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.flatten() {
-            if let Ok(meta) = entry.metadata() {
-                if let Ok(mtime) = meta.modified() {
+            if let Ok(meta) = entry.metadata()
+                && let Ok(mtime) = meta.modified() {
                     let secs = mtime
                         .duration_since(UNIX_EPOCH)
                         .unwrap_or_default()
@@ -391,7 +379,6 @@ fn most_recent_mtime(dir: &Path) -> u64 {
                         latest = secs;
                     }
                 }
-            }
         }
     }
     latest

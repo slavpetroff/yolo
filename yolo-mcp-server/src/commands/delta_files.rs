@@ -20,11 +20,10 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
     // Strategy 1: git-based
     if is_git_repo(cwd) {
-        if let Some(files) = git_strategy(cwd) {
-            if !files.is_empty() {
+        if let Some(files) = git_strategy(cwd)
+            && !files.is_empty() {
                 return Ok((files, 0));
             }
-        }
         // Git ran but found nothing — try SUMMARY.md fallback
         if phase_dir.is_dir() {
             let files = summary_strategy(&phase_dir);
@@ -73,22 +72,19 @@ fn git_strategy(cwd: &Path) -> Option<String> {
     let last_tag = git_output(cwd, &["describe", "--tags", "--abbrev=0"]);
     if let Some(tag) = last_tag {
         let tag = tag.trim().to_string();
-        if !tag.is_empty() {
-            if let Some(tag_files) = git_diff_names(cwd, &["diff", "--name-only", &format!("{}..HEAD", tag)]) {
-                if !tag_files.is_empty() {
-                    // Skip tag-based fallback entirely if diff exceeds cap (not useful context)
-                    if tag_files.len() <= MAX_FALLBACK_FILES {
-                        let sorted: BTreeSet<String> = tag_files.into_iter().collect();
-                        return Some(sorted.into_iter().collect::<Vec<_>>().join("\n"));
-                    }
-                }
+        if !tag.is_empty()
+            && let Some(tag_files) = git_diff_names(cwd, &["diff", "--name-only", &format!("{}..HEAD", tag)])
+            && !tag_files.is_empty()
+            && tag_files.len() <= MAX_FALLBACK_FILES {
+                // Skip tag-based fallback entirely if diff exceeds cap (not useful context)
+                let sorted: BTreeSet<String> = tag_files.into_iter().collect();
+                return Some(sorted.into_iter().collect::<Vec<_>>().join("\n"));
             }
-        }
     }
 
     // Fallback: last 5 commits
-    if let Some(recent) = git_diff_names(cwd, &["diff", "--name-only", "HEAD~5..HEAD"]) {
-        if !recent.is_empty() {
+    if let Some(recent) = git_diff_names(cwd, &["diff", "--name-only", "HEAD~5..HEAD"])
+        && !recent.is_empty() {
             let sorted: BTreeSet<String> = recent.into_iter().collect();
             let sorted_vec: Vec<String> = sorted.into_iter().collect();
             if sorted_vec.len() > MAX_FALLBACK_FILES {
@@ -99,7 +95,6 @@ fn git_strategy(cwd: &Path) -> Option<String> {
             }
             return Some(sorted_vec.join("\n"));
         }
-    }
 
     None
 }
@@ -112,8 +107,8 @@ fn summary_strategy(phase_dir: &Path) -> String {
         for entry in entries.flatten() {
             let path = entry.path();
             let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-            if name.ends_with("-SUMMARY.md") {
-                if let Ok(content) = fs::read_to_string(&path) {
+            if name.ends_with("-SUMMARY.md")
+                && let Ok(content) = fs::read_to_string(&path) {
                     let mut in_files_section = false;
                     for line in content.lines() {
                         if line.starts_with("## Files Modified") {
@@ -138,7 +133,6 @@ fn summary_strategy(phase_dir: &Path) -> String {
                         }
                     }
                 }
-            }
         }
     }
 
