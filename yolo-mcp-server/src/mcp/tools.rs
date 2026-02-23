@@ -25,6 +25,19 @@ impl ToolState {
 /// Default command timeout in milliseconds (30 seconds).
 const DEFAULT_TIMEOUT_MS: u64 = 30_000;
 
+/// Read `command_timeout_ms` from `.yolo-planning/config.json`, falling back to DEFAULT_TIMEOUT_MS.
+fn read_timeout_config() -> u64 {
+    let config_path = Path::new(".yolo-planning/config.json");
+    if let Ok(data) = std::fs::read_to_string(config_path) {
+        if let Ok(v) = serde_json::from_str::<Value>(&data) {
+            if let Some(ms) = v.get("command_timeout_ms").and_then(|v| v.as_u64()) {
+                return ms;
+            }
+        }
+    }
+    DEFAULT_TIMEOUT_MS
+}
+
 /// Spawn a command with a timeout. On timeout, kill the child and return an error.
 async fn run_command_with_timeout(cmd: &mut Command, timeout_ms: u64) -> Result<Output, String> {
     let child = cmd.kill_on_drop(true).spawn().map_err(|e| format!("Failed to spawn command: {}", e))?;
