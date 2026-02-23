@@ -783,9 +783,7 @@ Dev receives ONLY the specific failure details for each check — not the full Q
 
 ### Step 4: Verification (Native Testing)
 
-**Deprecated `yolo-qa` Agent:** The conceptual QA agent has been natively integrated into the Dev execution tools via MCP. The Dev agent is responsible for executing expected tests from the PLAN.md directly using the native run_test_suite MCP command and fixing their own stack traces within the exact same context loop.
-
-No parallel QA agent should be spawned. Verification operates continuously within the Dev lifecycle.
+Dev agents run tests inline via `run_test_suite` MCP command. No separate QA agent is spawned for verification.
 
 ### Step 4.5: Human acceptance testing (UAT)
 
