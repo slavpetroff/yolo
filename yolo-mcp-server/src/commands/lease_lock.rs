@@ -303,7 +303,7 @@ pub fn reassign_expired_tasks(cwd: &Path) -> Value {
 /// CLI entry point: `yolo lease-lock <action> <resource> [--owner=<owner>] [--ttl=<seconds>]`
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     if args.len() < 3 {
-        return Err("Usage: yolo lease-lock <acquire|release|renew|cleanup> [resource] [--owner=<owner>] [--ttl=<seconds>]".to_string());
+        return Err("Usage: yolo lease-lock <acquire|release|renew|cleanup|reassign> [resource] [--owner=<owner>] [--ttl=<seconds>]".to_string());
     }
 
     if !feature_flags::is_enabled(FeatureFlag::V3LockLite, cwd) {
@@ -353,10 +353,20 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
             }
         }
         "cleanup" => {
-            let result = cleanup_expired(cwd);
+            let mut result = cleanup_expired(cwd);
+            // Also include reassignment info from expired leases
+            let reassign_result = reassign_expired_tasks(cwd);
+            if let Some(obj) = result.as_object_mut() {
+                obj.insert("reassigned".to_string(), reassign_result["reassigned"].clone());
+                obj.insert("reassigned_count".to_string(), reassign_result["count"].clone());
+            }
             Ok((result.to_string(), 0))
         }
-        _ => Err(format!("Unknown lease-lock action: {}. Use acquire, release, renew, or cleanup.", action)),
+        "reassign" => {
+            let result = reassign_expired_tasks(cwd);
+            Ok((result.to_string(), 0))
+        }
+        _ => Err(format!("Unknown lease-lock action: {}. Use acquire, release, renew, cleanup, or reassign.", action)),
     }
 }
 
@@ -642,5 +652,36 @@ mod tests {
         assert_eq!(result["action"], "reassign");
         assert_eq!(result["count"], 0);
         assert!(result["reassigned"].as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_cli_reassign_action() {
+        let dir = setup_test_env(true, false);
+        let lock_dir = locks_dir(dir.path());
+        fs::create_dir_all(&lock_dir).unwrap();
+
+        let expired = json!({
+            "resource": "stale-task", "owner": "crashed-agent",
+            "acquired_at": "2020-01-01T00:00:00Z", "ttl_secs": 1, "type": "lease",
+        });
+        fs::write(lock_dir.join("stale-task.lease"), serde_json::to_string_pretty(&expired).unwrap()).unwrap();
+
+        let args = vec!["yolo".into(), "lease-lock".into(), "reassign".into()];
+        let (out, code) = execute(&args, dir.path()).unwrap();
+        assert_eq!(code, 0);
+
+        let parsed: Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(parsed["action"], "reassign");
+        assert_eq!(parsed["count"], 1);
+        assert!(!lock_dir.join("stale-task.lease").exists());
+    }
+
+    #[test]
+    fn test_cli_unknown_action() {
+        let dir = setup_test_env(true, false);
+        let args = vec!["yolo".into(), "lease-lock".into(), "invalid".into()];
+        let result = execute(&args, dir.path());
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("reassign"));
     }
 }
