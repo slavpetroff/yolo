@@ -3,7 +3,7 @@ use std::env;
 use std::io::Read;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
-use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, token_budget, token_economics_report, lock_lite, lease_lock, two_phase_complete, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, log_event, collect_metrics, compress_context, prune_completed, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary, cache_context, cache_nuke, delta_files, help_output, bump_version, doctor_cleanup, auto_repair, rollout_stage, verify, install_hooks, migrate_config, migrate_orphaned_state, tier_context, clean_stale_teams, tmux_watchdog, verify_init_todo, verify_vibe, verify_claude_bootstrap, pre_push_hook, validate_plan, review_plan, check_regression, commit_lint, diff_against_plan, validate_requirements, verify_plan_completion};
+use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, token_budget, token_economics_report, lock_lite, lease_lock, two_phase_complete, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, log_event, collect_metrics, compress_context, prune_completed, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary, cache_context, cache_nuke, delta_files, help_output, bump_version, doctor_cleanup, auto_repair, rollout_stage, verify, install_hooks, migrate_config, migrate_orphaned_state, tier_context, clean_stale_teams, tmux_watchdog, verify_init_todo, verify_vibe, verify_claude_bootstrap, pre_push_hook, validate_plan, review_plan, check_regression, commit_lint, diff_against_plan, validate_requirements, verify_plan_completion, compile_progress, git_state};
 use crate::hooks;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -77,6 +77,8 @@ pub enum Command {
     DiffAgainstPlan,
     ValidateRequirements,
     VerifyPlanCompletion,
+    CompileProgress,
+    GitState,
 }
 
 impl Command {
@@ -151,6 +153,8 @@ impl Command {
             "diff-against-plan" => Some(Command::DiffAgainstPlan),
             "validate-requirements" => Some(Command::ValidateRequirements),
             "verify-plan-completion" => Some(Command::VerifyPlanCompletion),
+            "compile-progress" => Some(Command::CompileProgress),
+            "git-state" => Some(Command::GitState),
             _ => None,
         }
     }
@@ -227,6 +231,8 @@ impl Command {
             Command::DiffAgainstPlan => "diff-against-plan",
             Command::ValidateRequirements => "validate-requirements",
             Command::VerifyPlanCompletion => "verify-plan-completion",
+            Command::CompileProgress => "compile-progress",
+            Command::GitState => "git-state",
         }
     }
 
@@ -250,6 +256,7 @@ impl Command {
             "verify-claude-bootstrap", "pre-push", "validate-plan", "review-plan",
             "check-regression", "commit-lint", "diff-against-plan",
             "validate-requirements", "verify-plan-completion",
+            "compile-progress", "git-state",
         ]
     }
 
@@ -774,6 +781,14 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
         Some(Command::VerifyPlanCompletion) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             verify_plan_completion::execute(&args, &cwd)
+        }
+        Some(Command::CompileProgress) => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            compile_progress::execute(&args, &cwd)
+        }
+        Some(Command::GitState) => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            git_state::execute(&args, &cwd)
         }
         None => {
             let suggestion = Command::suggest(&args[1]);
