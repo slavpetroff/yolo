@@ -517,4 +517,146 @@ Do stuff.
         assert_eq!(parsed["ok"], true, "Low-severity file findings should not reject: {}", output);
         assert!(code == 0 || code == 2, "Expected exit 0 or 2, got {}: {}", code, output);
     }
+
+    #[test]
+    fn test_findings_include_suggested_fix() {
+        let dir = tempdir().unwrap();
+        let plan_path = dir.path().join("fix-PLAN.md");
+        fs::write(&plan_path, "\
+---
+phase: \"01\"
+plan: \"01\"
+title: \"Missing must_haves\"
+wave: 1
+depends_on: []
+must_haves: []
+---
+
+# Plan
+
+### Task 1: Something
+
+Do it.
+").unwrap();
+
+        let args = vec![
+            "yolo".to_string(),
+            "review-plan".to_string(),
+            plan_path.to_string_lossy().to_string(),
+        ];
+        let (output, _code) = execute(&args, dir.path()).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        let findings = parsed["findings"].as_array().unwrap();
+        for finding in findings {
+            let sf = finding["suggested_fix"].as_str();
+            assert!(sf.is_some(), "Finding missing suggested_fix: {}", finding);
+            assert!(!sf.unwrap().is_empty(), "suggested_fix is empty: {}", finding);
+        }
+    }
+
+    #[test]
+    fn test_findings_include_auto_fixable() {
+        let dir = tempdir().unwrap();
+        let plan_path = dir.path().join("fixable-PLAN.md");
+        fs::write(&plan_path, "\
+---
+phase: \"01\"
+plan: \"01\"
+title: \"Missing must_haves\"
+wave: 1
+depends_on: []
+must_haves: []
+---
+
+# Plan
+
+### Task 1: Something
+
+Do it.
+").unwrap();
+
+        let args = vec![
+            "yolo".to_string(),
+            "review-plan".to_string(),
+            plan_path.to_string_lossy().to_string(),
+        ];
+        let (output, _code) = execute(&args, dir.path()).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        let findings = parsed["findings"].as_array().unwrap();
+        for finding in findings {
+            assert!(finding["auto_fixable"].is_boolean(), "Finding missing auto_fixable boolean: {}", finding);
+        }
+    }
+
+    #[test]
+    fn test_auto_fixable_true_for_frontmatter() {
+        let dir = tempdir().unwrap();
+        let plan_path = dir.path().join("fm-PLAN.md");
+        fs::write(&plan_path, "\
+---
+phase: \"01\"
+title: \"Incomplete frontmatter\"
+wave: 1
+---
+
+# Plan
+
+### Task 1: Something
+
+Do it.
+").unwrap();
+
+        let args = vec![
+            "yolo".to_string(),
+            "review-plan".to_string(),
+            plan_path.to_string_lossy().to_string(),
+        ];
+        let (output, _code) = execute(&args, dir.path()).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        let findings = parsed["findings"].as_array().unwrap();
+        let fm_finding = findings.iter().find(|f| f["check"] == "frontmatter").unwrap();
+        assert_eq!(fm_finding["auto_fixable"], true, "frontmatter findings should be auto_fixable");
+        assert!(fm_finding["suggested_fix"].as_str().unwrap().contains("Add missing frontmatter fields"));
+    }
+
+    #[test]
+    fn test_auto_fixable_false_for_file_paths() {
+        let dir = tempdir().unwrap();
+        let phases_dir = dir.path().join("phases").join("01-test");
+        fs::create_dir_all(&phases_dir).unwrap();
+
+        let plan_path = phases_dir.join("01-01-PLAN.md");
+        fs::write(&plan_path, "\
+---
+phase: \"01\"
+plan: \"01\"
+title: \"File paths test\"
+wave: 1
+depends_on: []
+must_haves:
+  - \"It works\"
+---
+
+# Plan
+
+### Task 1: Check files
+
+**Files:** `nonexistent/file.rs`
+
+Do stuff.
+").unwrap();
+
+        let args = vec![
+            "yolo".to_string(),
+            "review-plan".to_string(),
+            plan_path.to_string_lossy().to_string(),
+            phases_dir.to_string_lossy().to_string(),
+        ];
+        let (output, _code) = execute(&args, dir.path()).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        let findings = parsed["findings"].as_array().unwrap();
+        let fp_finding = findings.iter().find(|f| f["check"] == "file_paths").unwrap();
+        assert_eq!(fp_finding["auto_fixable"], false, "file_paths findings should NOT be auto_fixable");
+        assert!(fp_finding["suggested_fix"].as_str().unwrap().contains("Verify file paths"));
+    }
 }
