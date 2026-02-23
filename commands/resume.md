@@ -1,6 +1,4 @@
 ---
-name: yolo:resume
-category: supporting
 disable-model-invocation: true
 description: Restore project context from .yolo-planning/ state.
 argument-hint:

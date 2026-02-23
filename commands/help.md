@@ -1,6 +1,4 @@
 ---
-name: yolo:help
-category: supporting
 disable-model-invocation: true
 description: Display all available YOLO commands with descriptions and usage examples.
 argument-hint: [command-name]

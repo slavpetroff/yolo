@@ -1,6 +1,4 @@
 ---
-name: yolo:init
-category: lifecycle
 disable-model-invocation: true
 description: Set up environment, scaffold .yolo-planning, detect project context, and bootstrap project-defining files.
 argument-hint:

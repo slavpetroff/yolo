@@ -1,6 +1,4 @@
 ---
-name: yolo:doctor
-category: supporting
 disable-model-invocation: true
 description: Run health checks on YOLO installation and project setup.
 allowed-tools: Read, Bash, Glob, Grep

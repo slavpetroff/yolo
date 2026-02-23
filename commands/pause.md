@@ -1,6 +1,4 @@
 ---
-name: yolo:pause
-category: supporting
 disable-model-invocation: true
 description: Save session notes for next time (state auto-persists).
 argument-hint: [notes]

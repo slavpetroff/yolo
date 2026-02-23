@@ -1,6 +1,4 @@
 ---
-name: yolo:uninstall
-category: advanced
 disable-model-invocation: true
 description: Cleanly remove all YOLO traces from the system before plugin uninstall.
 argument-hint:

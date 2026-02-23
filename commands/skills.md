@@ -1,6 +1,4 @@
 ---
-name: yolo:skills
-category: supporting
 disable-model-invocation: true
 description: Browse and install community skills from skills.sh based on your project's tech stack.
 argument-hint: [--search <query>] [--list] [--refresh]

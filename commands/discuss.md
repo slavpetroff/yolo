@@ -1,6 +1,4 @@
 ---
-name: yolo:discuss
-category: lifecycle
 description: "Start or continue phase discussion to build context before planning."
 argument-hint: "[N]"
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep

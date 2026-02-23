@@ -1,6 +1,4 @@
 ---
-name: yolo:update
-category: advanced
 disable-model-invocation: true
 description: Update YOLO to the latest version with automatic cache refresh.
 argument-hint: "[--check]"

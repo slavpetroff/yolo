@@ -1,6 +1,4 @@
 ---
-name: yolo:config
-category: supporting
 disable-model-invocation: true
 description: View and modify YOLO configuration including effort profile, verification tier, and skill-hook wiring.
 argument-hint: [setting value]

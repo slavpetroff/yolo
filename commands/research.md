@@ -1,6 +1,4 @@
 ---
-name: yolo:research
-category: advanced
 description: Run standalone research by spawning Scout agent(s) for web searches and documentation lookups.
 argument-hint: <research-topic> [--parallel]
 allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, Task
