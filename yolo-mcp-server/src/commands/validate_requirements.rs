@@ -31,7 +31,8 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
             "total": 0,
             "verified": 0,
             "unverified": 0,
-            "requirements": [{"requirement": "N/A", "status": "unverified", "evidence": format!("Plan not found: {}", plan_path.display())}],
+            "requirements": [{"requirement": "N/A", "status": "unverified", "evidence": format!("Plan not found: {}", plan_path.display()), "fixable_by": "dev"}],
+            "fixable_by": "dev",
         });
         return Ok((resp.to_string(), 1));
     }
@@ -53,6 +54,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
             "verified": 0,
             "unverified": 0,
             "requirements": [],
+            "fixable_by": "none",
         });
         return Ok((resp.to_string(), 0));
     }
@@ -96,6 +98,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                 "requirement": must_have,
                 "status": "verified",
                 "evidence": evidence,
+                "fixable_by": "none",
             }));
         } else {
             unverified_count += 1;
@@ -103,11 +106,13 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
                 "requirement": must_have,
                 "status": "unverified",
                 "evidence": "No evidence found in SUMMARY files or git log",
+                "fixable_by": "dev",
             }));
         }
     }
 
     let ok = unverified_count == 0;
+    let fixable_by = if ok { "none" } else { "dev" };
     let resp = json!({
         "ok": ok,
         "cmd": "validate-requirements",
@@ -115,6 +120,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         "verified": verified_count,
         "unverified": unverified_count,
         "requirements": requirements,
+        "fixable_by": fixable_by,
     });
 
     Ok((resp.to_string(), if ok { 0 } else { 1 }))
