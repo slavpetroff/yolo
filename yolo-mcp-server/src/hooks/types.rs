@@ -81,6 +81,51 @@ impl HookOutput {
     }
 }
 
+/// Typed input for the security filter hook.
+#[derive(Debug, Clone, Deserialize)]
+pub struct SecurityFilterInput {
+    pub tool_name: Option<String>,
+    pub tool_input: Option<SecurityToolInput>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SecurityToolInput {
+    pub file_path: Option<String>,
+    pub path: Option<String>,
+    pub pattern: Option<String>,
+}
+
+/// Typed input for the contract validation hook.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ContractValidationInput {
+    pub mode: Option<String>,
+    pub contract_path: Option<String>,
+    pub task_number: Option<u32>,
+    pub modified_files: Option<Vec<String>>,
+}
+
+impl SecurityFilterInput {
+    /// Try to parse from a HookInput, falling back to None fields on failure.
+    pub fn from_hook_input(input: &HookInput) -> Self {
+        serde_json::from_value(input.data.clone()).unwrap_or(SecurityFilterInput {
+            tool_name: None,
+            tool_input: None,
+        })
+    }
+}
+
+impl ContractValidationInput {
+    /// Try to parse from a serde_json::Value.
+    pub fn from_value(value: &serde_json::Value) -> Self {
+        serde_json::from_value(value.clone()).unwrap_or(ContractValidationInput {
+            mode: None,
+            contract_path: None,
+            task_number: None,
+            modified_files: None,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -189,5 +234,66 @@ mod tests {
         assert_eq!(json, "\"PreToolUse\"");
         let back: HookEvent = serde_json::from_str(&json).unwrap();
         assert_eq!(back, HookEvent::PreToolUse);
+    }
+
+    #[test]
+    fn test_security_filter_input_from_hook_input() {
+        let input = HookInput {
+            data: serde_json::json!({
+                "tool_name": "Read",
+                "tool_input": {
+                    "file_path": "/project/src/main.rs",
+                    "path": null,
+                    "pattern": null
+                }
+            }),
+        };
+        let typed = SecurityFilterInput::from_hook_input(&input);
+        assert_eq!(typed.tool_name.as_deref(), Some("Read"));
+        let ti = typed.tool_input.unwrap();
+        assert_eq!(ti.file_path.as_deref(), Some("/project/src/main.rs"));
+        assert!(ti.path.is_none());
+        assert!(ti.pattern.is_none());
+    }
+
+    #[test]
+    fn test_security_filter_input_fallback() {
+        let input = HookInput {
+            data: serde_json::json!({"unexpected": 42}),
+        };
+        let typed = SecurityFilterInput::from_hook_input(&input);
+        assert!(typed.tool_name.is_none());
+        assert!(typed.tool_input.is_none());
+    }
+
+    #[test]
+    fn test_contract_validation_input_from_value() {
+        let value = serde_json::json!({
+            "mode": "start",
+            "contract_path": "/project/.yolo-planning/contract.json",
+            "task_number": 3,
+            "modified_files": ["src/main.rs", "src/lib.rs"]
+        });
+        let typed = ContractValidationInput::from_value(&value);
+        assert_eq!(typed.mode.as_deref(), Some("start"));
+        assert_eq!(
+            typed.contract_path.as_deref(),
+            Some("/project/.yolo-planning/contract.json")
+        );
+        assert_eq!(typed.task_number, Some(3));
+        assert_eq!(
+            typed.modified_files.as_deref(),
+            Some(&["src/main.rs".to_string(), "src/lib.rs".to_string()][..])
+        );
+    }
+
+    #[test]
+    fn test_contract_validation_input_fallback() {
+        let value = serde_json::json!({"bogus": true});
+        let typed = ContractValidationInput::from_value(&value);
+        assert!(typed.mode.is_none());
+        assert!(typed.contract_path.is_none());
+        assert!(typed.task_number.is_none());
+        assert!(typed.modified_files.is_none());
     }
 }
