@@ -24,9 +24,5 @@ uuid = { version = "1", features = ["v4"] }
 name = "yolo-mcp-server"
 path = "src/main.rs"
 
-[[bin]]
-name = "yolo"
-path = "src/main.rs"
-
 [dev-dependencies]
 tempfile = "3.25.0"
