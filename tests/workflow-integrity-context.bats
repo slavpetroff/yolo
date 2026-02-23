@@ -2,7 +2,7 @@
 
 load test_helper
 
-# --- Context compilation tests for ARCHITECTURE.md in execution family ---
+# --- Task 1: Context compilation tests for ARCHITECTURE.md in execution family ---
 
 setup() {
   setup_temp_dir
@@ -47,4 +47,71 @@ teardown() {
   run "$YOLO_BIN" compile-context 1 observer "$TEST_TEMP_DIR/phases"
   [ "$status" -eq 0 ]
   ! grep -q "Architecture overview" "$TEST_TEMP_DIR/phases/.context-observer.md"
+}
+
+# --- Task 2: Step ordering and anti-takeover integration tests ---
+
+SKILL_FILE="$BATS_TEST_DIRNAME/../skills/execute-protocol/SKILL.md"
+LEAD_FILE="$BATS_TEST_DIRNAME/../agents/yolo-lead.md"
+
+# Step tracking in execution-state.json schema
+
+@test "SKILL.md defines steps_completed in execution-state.json schema" {
+  grep -q '"steps_completed": \[\]' "$SKILL_FILE"
+}
+
+@test "SKILL.md tracks step_2 completion" {
+  grep -q 'steps_completed += \["step_2"\]' "$SKILL_FILE"
+}
+
+@test "SKILL.md tracks step_2b completion" {
+  grep -q 'steps_completed += \["step_2b"\]' "$SKILL_FILE"
+}
+
+@test "SKILL.md tracks step_3 completion" {
+  grep -q 'steps_completed += \["step_3"\]' "$SKILL_FILE"
+}
+
+@test "SKILL.md tracks step_3c completion" {
+  grep -q 'steps_completed += \["step_3c"\]' "$SKILL_FILE"
+}
+
+@test "SKILL.md tracks step_3d completion" {
+  grep -q 'steps_completed += \["step_3d"\]' "$SKILL_FILE"
+}
+
+@test "SKILL.md tracks step_4 conditional completion" {
+  grep -q 'steps_completed += \["step_4"\]' "$SKILL_FILE"
+}
+
+# Step 5 validation gate
+
+@test "SKILL.md defines REQUIRED_STEPS variable" {
+  grep -q 'REQUIRED_STEPS=' "$SKILL_FILE"
+}
+
+@test "SKILL.md contains Step ordering violation error message" {
+  grep -q "Step ordering violation" "$SKILL_FILE"
+}
+
+@test "SKILL.md contains Step ordering verified success message" {
+  grep -q "Step ordering verified" "$SKILL_FILE"
+}
+
+@test "SKILL.md contains jq subtraction formula for step validation" {
+  grep -q '\$req - \$done' "$SKILL_FILE"
+}
+
+# Anti-takeover in Lead agent
+
+@test "Lead agent has Anti-Takeover Protocol section" {
+  grep -q "## Anti-Takeover Protocol" "$LEAD_FILE"
+}
+
+@test "Lead agent has NEVER Write/Edit rule" {
+  grep -q "NEVER Write/Edit" "$LEAD_FILE"
+}
+
+@test "Lead agent has create a NEW Dev agent recovery instruction" {
+  grep -q "create a NEW Dev agent" "$LEAD_FILE"
 }
