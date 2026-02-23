@@ -922,7 +922,11 @@ QA_MAX_CYCLES=$(jq -r '.qa_max_cycles // 3' .yolo-planning/config.json 2>/dev/nu
    subagent_type: "yolo:yolo-dev"
    ```
 
-   e. **Delta re-run optimization:** After Dev completes, re-run ONLY previously failed checks (skip checks in PASSED_CHECKS):
+   e. **Two-stage re-verification (delta re-run optimization):**
+
+   After Dev completes, re-run ONLY previously failed checks via CLI (skip checks in PASSED_CHECKS):
+
+   **Stage 1 -- CLI delta re-run:**
    ```bash
    # Build list of check names that need re-running
    RERUN_CHECKS=$(echo "$FAILED_CHECKS" | jq -r '.[].name')
@@ -934,13 +938,58 @@ QA_MAX_CYCLES=$(jq -r '.qa_max_cycles // 3' .yolo-planning/config.json 2>/dev/nu
    #   "check-regression"       → yolo check-regression ...
    # Skip any check whose name appears in PASSED_CHECKS — it already passed and
    # does not need re-verification. This saves token cost per cycle.
+   # Collect results into CLI_RERUN_REPORT (same structure as CLI_QA_REPORT)
    ```
 
+   **Fast-path:** If ALL re-run CLI checks pass (exit 0), skip agent spawn. All failures resolved by Dev. Exit loop immediately.
+
+   **Stage 2 -- QA agent re-verification spawn:**
+
+   When ANY re-run CLI check still fails, spawn `yolo-qa` agent with delta context:
+
+   ```
+   subject: "QA re-verification for plan {NN-MM} (cycle {QA_CYCLE})"
+   description: |
+     {EXECUTION_CONTEXT}
+
+     Re-verify this plan after Dev remediation (QA feedback loop cycle {QA_CYCLE}/{QA_MAX_CYCLES}).
+
+     **Plan path:** {plan_path}
+     **Summary path:** {summary_path}
+     **Phase directory:** {phase_dir}
+     **QA cycle:** {QA_CYCLE} of {QA_MAX_CYCLES}
+
+     **CLI re-run results (delta -- only previously-failed checks):**
+     {CLI_RERUN_REPORT}
+
+     **Previous cycle failures:**
+     {PREVIOUS_FAILED_CHECKS}
+
+     Follow Delta Re-run protocol:
+     1. Review CLI re-run results for previously-failed checks
+     2. Cross-reference any remaining failures with codebase
+     3. Check that Dev's fixes didn't introduce NEW failures
+     4. Classify: resolved, persistent, new
+     5. Produce structured QA REPORT with delta annotations
+
+   activeForm: "QA re-verifying plan {NN-MM} (cycle {QA_CYCLE})"
+   model: "${QA_MODEL}"
+   maxTurns: ${QA_MAX_TURNS}
+   subagent_type: "yolo:yolo-qa"
+   ```
+
+   **Parse re-verification output:** Same report parsing as initial QA (extract `QA REPORT:` block, parse `passed:`, `checks:`, etc.). Map agent checks to JSON for `FAILED_CHECKS` / `PASSED_CHECKS` update. Agent can override CLI `fixable_by` classifications.
+
+   **Fallback on re-verification:** If agent spawn fails, use CLI re-run results:
+   - Display: `Warning: QA agent unavailable -- falling back to CLI re-verification for plan {NN-MM} (cycle {QA_CYCLE})`
+   - Log: `"$HOME/.cargo/bin/yolo" log-event qa_agent_fallback {phase} plan={NN-MM} cycle=${QA_CYCLE} reason={error} 2>/dev/null || true`
+   - Use: `QA_REPORT="$CLI_RERUN_REPORT"`
+
    > **Cache note:** Dev and QA share the "execution" Tier 2 cache.
-   > Only Tier 3 content (remediation tasks) changes between iterations.
+   > Only Tier 3 content (remediation tasks, delta re-run results) changes between iterations.
    > This avoids re-sending the full context on each cycle, saving significant tokens.
 
-   f. Update failure list:
+   f. Update failure list from `QA_REPORT` (agent or fallback):
    ```bash
    FAILED_CHECKS=$(echo "$QA_REPORT" | jq '[.checks[] | select(.status == "fail")]')
    NEW_PASSES=$(echo "$QA_REPORT" | jq '[.checks[] | select(.status == "pass")] | map(.name)')
