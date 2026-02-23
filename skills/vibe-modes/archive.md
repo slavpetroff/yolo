@@ -44,6 +44,64 @@ FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
    Strips PLAN.md files from completed phases (SUMMARYs are preserved as the authoritative record). Reduces archived milestone size and keeps only outcome artifacts. If prune fails, log warning and continue (fail-open).
 7. Git branch merge: if `milestone/{SLUG}` branch exists, merge --no-ff. Conflict -> abort, warn. No branch -> skip.
 8. Git tag: unless --no-tag, `git tag -a {tag} -m "Shipped milestone: {name}"`. Default: `milestone/{SLUG}`.
+8b. **Consolidated release (unless --no-release):**
+   Automatically bump version, finalize changelog, commit, tag, and optionally push.
+
+   ```bash
+   # Skip if --no-release flag was passed
+   AUTO_PUSH=$(jq -r '.auto_push // "never"' .yolo-planning/config.json 2>/dev/null)
+   ```
+
+   **Version bump:**
+   ```bash
+   # Forward --major or --minor if passed, otherwise default patch bump
+   if [ "$BUMP_TYPE" = "major" ]; then
+     OLD_VERSION=$(cat VERSION)
+     # Compute major bump manually: X.Y.Z -> (X+1).0.0
+     MAJOR=$(echo "$OLD_VERSION" | cut -d. -f1)
+     NEW_VERSION="$((MAJOR + 1)).0.0"
+     echo "$NEW_VERSION" > VERSION
+     # Update all version files
+   elif [ "$BUMP_TYPE" = "minor" ]; then
+     OLD_VERSION=$(cat VERSION)
+     MAJOR=$(echo "$OLD_VERSION" | cut -d. -f1)
+     MINOR=$(echo "$OLD_VERSION" | cut -d. -f2)
+     NEW_VERSION="${MAJOR}.$((MINOR + 1)).0"
+     echo "$NEW_VERSION" > VERSION
+   else
+     "$HOME/.cargo/bin/yolo" bump-version
+   fi
+   NEW_VERSION=$(cat VERSION)
+   ```
+   Display: `◆ Version bump: {OLD_VERSION} → {NEW_VERSION}`
+
+   **Finalize changelog:**
+   If CHANGELOG.md contains `## [Unreleased]`: replace with `## [{NEW_VERSION}] - {YYYY-MM-DD}`.
+   Display: `✓ CHANGELOG.md finalized` or `○ No [Unreleased] section`
+
+   **Release commit:**
+   ```bash
+   git add VERSION .claude-plugin/plugin.json .claude-plugin/marketplace.json marketplace.json
+   # Add CHANGELOG.md only if modified
+   git diff --quiet CHANGELOG.md 2>/dev/null || git add CHANGELOG.md
+   git commit -m "chore: release v${NEW_VERSION}"
+   ```
+   Display: `✓ Release commit: chore: release v{NEW_VERSION}`
+
+   **Version tag:**
+   ```bash
+   git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
+   ```
+   Display: `✓ Tagged: v{NEW_VERSION}`
+
+   **Push (gated by auto_push):**
+   ```bash
+   if [ "$AUTO_PUSH" = "always" ] || [ "$AUTO_PUSH" = "after_phase" ]; then
+     git push && git push --tags
+   fi
+   ```
+   - `auto_push=never`: Display `○ Push skipped (auto_push: never). Run git push && git push --tags when ready.`
+   - `auto_push=always` or `after_phase`: Display `✓ Pushed with tags`
 9. Update ACTIVE: remaining milestones -> set ACTIVE to first. None -> remove ACTIVE.
 10. Regenerate CLAUDE.md: update Active Context, remove shipped refs. Preserve non-YOLO content -- only replace YOLO-managed sections, keep user's own sections intact.
 11. Present: Phase Banner with metrics (phases, tasks, commits, requirements, deviations), archive path, tag, branch status, memory status. Run `"$HOME/.cargo/bin/yolo" suggest-next vibe`.
