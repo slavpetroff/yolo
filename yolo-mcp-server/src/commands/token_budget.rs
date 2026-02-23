@@ -10,12 +10,11 @@ const DEFAULT_BUDGET: u64 = 32000;
 /// Load token budget config from config/token-budgets.json relative to cwd.
 fn load_budgets(cwd: &Path) -> Value {
     let budgets_path = cwd.join("config").join("token-budgets.json");
-    if budgets_path.exists() {
-        if let Ok(content) = fs::read_to_string(&budgets_path) {
-            if let Ok(v) = serde_json::from_str::<Value>(&content) {
-                return v;
-            }
-        }
+    if budgets_path.exists()
+        && let Ok(content) = fs::read_to_string(&budgets_path)
+        && let Ok(v) = serde_json::from_str::<Value>(&content)
+    {
+        return v;
     }
     json!({
         "budgets": {},
@@ -27,12 +26,11 @@ fn load_budgets(cwd: &Path) -> Value {
 /// Check if v2_token_budgets is enabled in config.json.
 fn is_enabled(cwd: &Path) -> bool {
     let config_path = cwd.join(".yolo-planning").join("config.json");
-    if config_path.exists() {
-        if let Ok(content) = fs::read_to_string(&config_path) {
-            if let Ok(config) = serde_json::from_str::<Value>(&content) {
-                return config.get("v2_token_budgets").and_then(|v| v.as_bool()).unwrap_or(false);
-            }
-        }
+    if config_path.exists()
+        && let Ok(content) = fs::read_to_string(&config_path)
+        && let Ok(config) = serde_json::from_str::<Value>(&content)
+    {
+        return config.get("v2_token_budgets").and_then(|v| v.as_bool()).unwrap_or(false);
     }
     false
 }
@@ -41,12 +39,11 @@ fn is_enabled(cwd: &Path) -> bool {
 /// then falls back to per-role budget from token-budgets.json, then DEFAULT_BUDGET.
 fn resolve_budget(role: &str, budgets_config: &Value, contract: Option<&Value>) -> u64 {
     // Per-task budget from contract metadata
-    if let Some(c) = contract {
-        if let Some(max) = c.get("max_token_budget").and_then(|v| v.as_u64()) {
-            if max > 0 {
-                return max;
-            }
-        }
+    if let Some(c) = contract
+        && let Some(max) = c.get("max_token_budget").and_then(|v| v.as_u64())
+        && max > 0
+    {
+        return max;
     }
 
     // Per-role fallback from token-budgets.json

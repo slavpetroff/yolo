@@ -30,18 +30,16 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 /// Load rollout stage definitions from rollout-stages.json or use defaults.
 fn load_stages(planning_dir: &Path) -> Vec<(String, String)> {
     let stages_file = planning_dir.join("rollout-stages.json");
-    if stages_file.exists() {
-        if let Ok(content) = fs::read_to_string(&stages_file) {
-            if let Ok(val) = serde_json::from_str::<Value>(&content) {
-                if let Some(stages) = val.get("stages").and_then(|v| v.as_array()) {
-                    return stages.iter().filter_map(|s| {
-                        let name = s.get("name")?.as_str()?.to_string();
-                        let desc = s.get("description").and_then(|d| d.as_str()).unwrap_or("").to_string();
-                        Some((name, desc))
-                    }).collect();
-                }
-            }
-        }
+    if stages_file.exists()
+        && let Ok(content) = fs::read_to_string(&stages_file)
+        && let Ok(val) = serde_json::from_str::<Value>(&content)
+        && let Some(stages) = val.get("stages").and_then(|v| v.as_array())
+    {
+        return stages.iter().filter_map(|s| {
+            let name = s.get("name")?.as_str()?.to_string();
+            let desc = s.get("description").and_then(|d| d.as_str()).unwrap_or("").to_string();
+            Some((name, desc))
+        }).collect();
     }
     DEFAULT_STAGES.iter().map(|(n, d)| (n.to_string(), d.to_string())).collect()
 }
@@ -60,12 +58,11 @@ fn count_completed_phases(planning_dir: &Path) -> usize {
 
     let mut completed_phases = std::collections::HashSet::new();
     for line in content.lines() {
-        if let Ok(event) = serde_json::from_str::<Value>(line) {
-            if event.get("event").and_then(|e| e.as_str()) == Some("phase_end") {
-                if let Some(phase) = event.get("phase").and_then(|p| p.as_i64()) {
-                    completed_phases.insert(phase);
-                }
-            }
+        if let Ok(event) = serde_json::from_str::<Value>(line)
+            && event.get("event").and_then(|e| e.as_str()) == Some("phase_end")
+            && let Some(phase) = event.get("phase").and_then(|p| p.as_i64())
+        {
+            completed_phases.insert(phase);
         }
     }
 

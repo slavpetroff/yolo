@@ -41,8 +41,8 @@ fn parse_flags(args: &[String]) -> Flags {
         json_output: false,
     };
     for arg in args {
-        if arg.starts_with("--phase=") {
-            flags.phase_filter = Some(arg["--phase=".len()..].to_string());
+        if let Some(rest) = arg.strip_prefix("--phase=") {
+            flags.phase_filter = Some(rest.to_string());
         } else if arg == "--json" {
             flags.json_output = true;
         }
@@ -55,10 +55,10 @@ fn load_jsonl(path: &Path) -> Vec<Value> {
     if let Ok(content) = fs::read_to_string(path) {
         for line in content.lines() {
             let trimmed = line.trim();
-            if !trimmed.is_empty() {
-                if let Ok(v) = serde_json::from_str::<Value>(trimmed) {
-                    res.push(v);
-                }
+            if !trimmed.is_empty()
+                && let Ok(v) = serde_json::from_str::<Value>(trimmed)
+            {
+                res.push(v);
             }
         }
     }
@@ -81,10 +81,10 @@ fn build_agent_stats(
         if m["event"].as_str() != Some("agent_token_usage") {
             continue;
         }
-        if let Some(pf) = phase_filter {
-            if !matches_phase(m, pf) {
-                continue;
-            }
+        if let Some(pf) = phase_filter
+            && !matches_phase(m, pf)
+        {
+            continue;
         }
 
         let role = m["data"]["role"]
@@ -255,6 +255,7 @@ fn progress_bar(pct: f64, width: i64) -> String {
     format!("{}{}{}{}", color, bar_filled, bar_empty, C_RESET)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_branded(
     stats: &BTreeMap<(String, String), AgentTokenStats>,
     overall_cache: f64,
@@ -450,6 +451,7 @@ fn render_branded(
     out
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_json_output(
     stats: &BTreeMap<(String, String), AgentTokenStats>,
     overall_cache: f64,

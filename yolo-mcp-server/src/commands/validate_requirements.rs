@@ -179,8 +179,8 @@ fn parse_list_field(frontmatter: &str, field_name: &str) -> Vec<String> {
         }
 
         if in_field {
-            if trimmed.starts_with("- ") {
-                let item = trimmed[2..].trim().trim_matches('"').trim_matches('\'');
+            if let Some(rest) = trimmed.strip_prefix("- ") {
+                let item = rest.trim().trim_matches('"').trim_matches('\'');
                 if !item.is_empty() {
                     result.push(item.to_string());
                 }
@@ -197,26 +197,26 @@ fn parse_list_field(frontmatter: &str, field_name: &str) -> Vec<String> {
 fn collect_summaries(phase_dir: &Path) -> String {
     let mut content = String::new();
 
-    if phase_dir.is_dir() {
-        if let Ok(entries) = fs::read_dir(phase_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                let name = path.file_name().unwrap_or_default().to_string_lossy();
-                if name.contains("SUMMARY") && name.ends_with(".md") {
-                    if let Ok(c) = fs::read_to_string(&path) {
-                        content.push_str(&c);
-                        content.push('\n');
-                    }
-                }
+    if phase_dir.is_dir()
+        && let Ok(entries) = fs::read_dir(phase_dir)
+    {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = path.file_name().unwrap_or_default().to_string_lossy();
+            if name.contains("SUMMARY") && name.ends_with(".md")
+                && let Ok(c) = fs::read_to_string(&path)
+            {
+                content.push_str(&c);
+                content.push('\n');
             }
         }
     }
 
     // Also check if phase_dir itself is a SUMMARY file
-    if phase_dir.is_file() {
-        if let Ok(c) = fs::read_to_string(phase_dir) {
-            content.push_str(&c);
-        }
+    if phase_dir.is_file()
+        && let Ok(c) = fs::read_to_string(phase_dir)
+    {
+        content.push_str(&c);
     }
 
     content

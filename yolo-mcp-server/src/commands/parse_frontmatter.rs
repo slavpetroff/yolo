@@ -35,7 +35,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
     let frontmatter = parse_frontmatter_content(&content);
     let has_frontmatter = frontmatter.is_some();
-    let fm_value = frontmatter.unwrap_or_else(|| serde_json::Map::new());
+    let fm_value = frontmatter.unwrap_or_default();
 
     let elapsed = start.elapsed().as_millis();
     let out = json!({
@@ -67,10 +67,10 @@ fn parse_frontmatter_content(content: &str) -> Option<serde_json::Map<String, se
     for line in lines {
         if line.trim() == "---" {
             // Flush any pending list
-            if let Some(key) = current_key.take() {
-                if !current_list.is_empty() {
-                    map.insert(key, serde_json::Value::Array(current_list.drain(..).collect()));
-                }
+            if let Some(key) = current_key.take()
+                && !current_list.is_empty()
+            {
+                map.insert(key, serde_json::Value::Array(std::mem::take(&mut current_list)));
             }
             found_end = true;
             break;
@@ -90,10 +90,10 @@ fn parse_frontmatter_content(content: &str) -> Option<serde_json::Map<String, se
         // Key-value line
         if let Some((key_part, val_part)) = line.split_once(':') {
             // Flush any pending list
-            if let Some(key) = current_key.take() {
-                if !current_list.is_empty() {
-                    map.insert(key, serde_json::Value::Array(current_list.drain(..).collect()));
-                }
+            if let Some(key) = current_key.take()
+                && !current_list.is_empty()
+            {
+                map.insert(key, serde_json::Value::Array(std::mem::take(&mut current_list)));
             }
 
             let key = key_part.trim().to_string();

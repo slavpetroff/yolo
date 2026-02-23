@@ -22,7 +22,7 @@ pub fn generate_metrics_report(cwd: &Path, phase_filter: Option<&str>) -> Result
     if let Some(pf) = phase_filter {
         out.push_str(&format!("Phase filter: {}\n", pf));
     }
-    out.push_str("\n");
+    out.push('\n');
 
     // Load data
     let events: Vec<Value> = load_jsonl(&events_file);
@@ -56,15 +56,13 @@ pub fn generate_metrics_report(cwd: &Path, phase_filter: Option<&str>) -> Result
     if start_count > 0 && confirm_count > 0 {
         let mut latencies: Vec<f64> = vec![];
         for confirm in &task_confirms {
-            if let Some(task_id) = confirm["data"]["task_id"].as_str() {
-                if let Some(start) = task_starts.iter().find(|s| s["data"]["task_id"].as_str() == Some(task_id)) {
-                    if let (Some(start_ts), Some(end_ts)) = (start["ts"].as_str(), confirm["ts"].as_str()) {
-                        if let (Ok(s_time), Ok(e_time)) = (DateTime::parse_from_rfc3339(start_ts), DateTime::parse_from_rfc3339(end_ts)) {
-                            let duration = e_time.signed_duration_since(s_time).num_seconds();
-                            latencies.push(duration as f64);
-                        }
-                    }
-                }
+            if let Some(task_id) = confirm["data"]["task_id"].as_str()
+                && let Some(start) = task_starts.iter().find(|s| s["data"]["task_id"].as_str() == Some(task_id))
+                && let (Some(start_ts), Some(end_ts)) = (start["ts"].as_str(), confirm["ts"].as_str())
+                && let (Ok(s_time), Ok(e_time)) = (DateTime::parse_from_rfc3339(start_ts), DateTime::parse_from_rfc3339(end_ts))
+            {
+                let duration = e_time.signed_duration_since(s_time).num_seconds();
+                latencies.push(duration as f64);
             }
         }
         
@@ -100,7 +98,7 @@ pub fn generate_metrics_report(cwd: &Path, phase_filter: Option<&str>) -> Result
     } else {
         out.push_str("- No gate events recorded\n");
     }
-    out.push_str("\n");
+    out.push('\n');
 
     // --- Metric 4: Lease Conflicts ---
     out.push_str("## Lease Conflicts\n");
@@ -128,18 +126,17 @@ pub fn generate_metrics_report(cwd: &Path, phase_filter: Option<&str>) -> Result
     } else {
         out.push_str("- No smart routing data\n");
     }
-    out.push_str("\n");
+    out.push('\n');
 
     // Context Profile
     let mut profile_effort = "unknown".to_string();
     let mut profile_autonomy = "unknown".to_string();
-    if config_file.exists() {
-        if let Ok(content) = fs::read_to_string(&config_file) {
-            if let Ok(cfg) = serde_json::from_str::<Value>(&content) {
-                profile_effort = cfg["effort"].as_str().unwrap_or("unknown").to_string();
-                profile_autonomy = cfg["autonomy"].as_str().unwrap_or("unknown").to_string();
-            }
-        }
+    if config_file.exists()
+        && let Ok(content) = fs::read_to_string(&config_file)
+        && let Ok(cfg) = serde_json::from_str::<Value>(&content)
+    {
+        profile_effort = cfg["effort"].as_str().unwrap_or("unknown").to_string();
+        profile_autonomy = cfg["autonomy"].as_str().unwrap_or("unknown").to_string();
     }
 
     // Summary Table
