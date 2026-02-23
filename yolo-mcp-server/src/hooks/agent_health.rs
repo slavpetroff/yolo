@@ -147,7 +147,7 @@ pub fn cmd_cleanup(planning_dir: &Path) -> Result<HookOutput, String> {
 }
 
 /// Orphan recovery: find tasks owned by the dead agent and clear ownership.
-fn orphan_recovery(role: &str, pid: u32, planning_dir: &Path) -> String {
+fn orphan_recovery(role: &str, pid: u32, _planning_dir: &Path) -> String {
     let tasks_dir = resolve_tasks_dir();
     let mut advisory = String::new();
 
