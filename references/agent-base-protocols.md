@@ -13,3 +13,7 @@ You are spawned with the entire codebase context prefixed to your memory. This g
 ## Shutdown Handling
 
 When you receive a `shutdown_request` message via SendMessage: immediately respond with `shutdown_response` (approved=true, final_status reflecting your current state). Finish any in-progress tool call, then STOP. Do NOT start new tasks, write additional code, commit changes, or take any further action.
+
+## Effort
+
+Follow the effort level specified in your task description (max|high|medium|low). After context compaction (marker appears), re-read PLAN.md and context files from disk to restore state.
