@@ -20,7 +20,7 @@
   },
   "role_families": {
     "planning": ["lead", "architect"],
-    "execution": ["dev", "senior", "qa", "security", "debugger"],
+    "execution": ["dev", "qa", "debugger"],
     "default": ["docs", "reviewer"]
   },
   "truncation_strategy": "head",
