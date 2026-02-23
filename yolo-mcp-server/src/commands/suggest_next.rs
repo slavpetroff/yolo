@@ -58,38 +58,36 @@ fn gather_context(cwd: &Path) -> Context {
 
     let mut phases_dir = planning_dir.join("phases");
     let active_file = planning_dir.join("ACTIVE");
-    if active_file.exists() {
-        if let Ok(active_ms) = fs::read_to_string(&active_file) {
-            let active_ms = active_ms.trim();
-            if !active_ms.is_empty() {
-                let ms_phases = planning_dir.join("milestones").join(active_ms).join("phases");
-                if ms_phases.exists() {
-                    phases_dir = ms_phases;
-                }
+    if active_file.exists()
+        && let Ok(active_ms) = fs::read_to_string(&active_file)
+    {
+        let active_ms = active_ms.trim();
+        if !active_ms.is_empty() {
+            let ms_phases = planning_dir.join("milestones").join(active_ms).join("phases");
+            if ms_phases.exists() {
+                phases_dir = ms_phases;
             }
         }
     }
 
     let project_md = planning_dir.join("PROJECT.md");
-    if project_md.exists() {
-        if let Ok(content) = fs::read_to_string(&project_md) {
-            if !content.contains("{project-name}") {
-                ctx.has_project = true;
-            }
-        }
+    if project_md.exists()
+        && let Ok(content) = fs::read_to_string(&project_md)
+        && !content.contains("{project-name}")
+    {
+        ctx.has_project = true;
     }
 
     let config_json = planning_dir.join("config.json");
-    if config_json.exists() {
-        if let Ok(content) = fs::read_to_string(&config_json) {
-            if let Ok(json) = serde_json::from_str::<Value>(&content) {
-                if let Some(effort) = json.get("effort").and_then(|v| v.as_str()) {
-                    ctx.effort = effort.to_string();
-                }
-                if let Some(autonomy) = json.get("autonomy").and_then(|v| v.as_str()) {
-                    ctx.cfg_autonomy = autonomy.to_string();
-                }
-            }
+    if config_json.exists()
+        && let Ok(content) = fs::read_to_string(&config_json)
+        && let Ok(json) = serde_json::from_str::<Value>(&content)
+    {
+        if let Some(effort) = json.get("effort").and_then(|v| v.as_str()) {
+            ctx.effort = effort.to_string();
+        }
+        if let Some(autonomy) = json.get("autonomy").and_then(|v| v.as_str()) {
+            ctx.cfg_autonomy = autonomy.to_string();
         }
     }
 
@@ -108,7 +106,7 @@ fn gather_context(cwd: &Path) -> Context {
                 let dir_path = entry.path();
                 let dir_name = dir_path.file_name().unwrap_or_default().to_string_lossy();
                 let splits: Vec<&str> = dir_name.splitn(2, '-').collect();
-                let phase_num = splits.get(0).copied().unwrap_or("").to_string();
+                let phase_num = splits.first().copied().unwrap_or("").to_string();
                 let phase_slug = splits.get(1).copied().unwrap_or("").to_string();
 
                 let mut plans = 0;
@@ -120,12 +118,11 @@ fn gather_context(cwd: &Path) -> Context {
                         if fn_str.ends_with("-PLAN.md") { plans += 1; }
                         if fn_str.ends_with("-SUMMARY.md") { summaries += 1; }
 
-                        if fn_str.ends_with("-VERIFICATION.md") {
-                            if let Ok(c) = fs::read_to_string(fe.path()) {
-                                if let Some(line) = c.lines().find(|l| l.starts_with("result:")) {
-                                    ctx.last_qa_result = Some(line.replace("result:", "").trim().to_lowercase());
-                                }
-                            }
+                        if fn_str.ends_with("-VERIFICATION.md")
+                            && let Ok(c) = fs::read_to_string(fe.path())
+                            && let Some(line) = c.lines().find(|l| l.starts_with("result:"))
+                        {
+                            ctx.last_qa_result = Some(line.replace("result:", "").trim().to_lowercase());
                         }
                     }
                 }
@@ -162,43 +159,42 @@ fn gather_context(cwd: &Path) -> Context {
             ctx.all_done = true;
         }
 
-        if let Some(act_dir) = &ctx.active_phase_dir {
-            if let Ok(files) = fs::read_dir(act_dir) {
-                for fe in files.filter_map(|e| e.ok()) {
-                    let path = fe.path();
-                    let fn_str = fe.file_name().to_string_lossy().to_string();
-                    
-                    if fn_str.ends_with("-SUMMARY.md") {
-                        if let Ok(c) = fs::read_to_string(&path) {
-                            for line in c.lines() {
-                                if line.starts_with("deviations:") {
-                                    let d_val = line.replace("deviations:", "").trim().to_string();
-                                    if d_val != "0" && d_val != "[]" && !d_val.is_empty() {
-                                        if let Ok(num) = d_val.parse::<usize>() {
-                                            ctx.deviation_count += num;
-                                        } else {
-                                            ctx.deviation_count += 1;
-                                        }
-                                    }
-                                }
-                                if line.starts_with("status:") {
-                                    let s_val = line.replace("status:", "").trim().to_lowercase();
-                                    if s_val == "failed" || s_val == "partial" {
-                                        let plan_id = fn_str.replace("-SUMMARY.md", "");
-                                        ctx.failing_plan_ids.push(plan_id);
-                                    }
-                                }
-                            }
-                        }
-                    }
+        if let Some(act_dir) = &ctx.active_phase_dir
+            && let Ok(files) = fs::read_dir(act_dir)
+        {
+            for fe in files.filter_map(|e| e.ok()) {
+                let path = fe.path();
+                let fn_str = fe.file_name().to_string_lossy().to_string();
 
-                    if fn_str.ends_with("-UAT.md") {
-                        if let Ok(c) = fs::read_to_string(&path) {
-                            if c.lines().any(|l| l.starts_with("status:") && l.replace("status:", "").trim().to_lowercase() == "complete") {
-                                ctx.has_uat = true;
+                if fn_str.ends_with("-SUMMARY.md")
+                    && let Ok(c) = fs::read_to_string(&path)
+                {
+                    for line in c.lines() {
+                        if line.starts_with("deviations:") {
+                            let d_val = line.replace("deviations:", "").trim().to_string();
+                            if d_val != "0" && d_val != "[]" && !d_val.is_empty() {
+                                if let Ok(num) = d_val.parse::<usize>() {
+                                    ctx.deviation_count += num;
+                                } else {
+                                    ctx.deviation_count += 1;
+                                }
+                            }
+                        }
+                        if line.starts_with("status:") {
+                            let s_val = line.replace("status:", "").trim().to_lowercase();
+                            if s_val == "failed" || s_val == "partial" {
+                                let plan_id = fn_str.replace("-SUMMARY.md", "");
+                                ctx.failing_plan_ids.push(plan_id);
                             }
                         }
                     }
+                }
+
+                if fn_str.ends_with("-UAT.md")
+                    && let Ok(c) = fs::read_to_string(&path)
+                    && c.lines().any(|l| l.starts_with("status:") && l.replace("status:", "").trim().to_lowercase() == "complete")
+                {
+                    ctx.has_uat = true;
                 }
             }
         }
@@ -208,41 +204,41 @@ fn gather_context(cwd: &Path) -> Context {
     if codebase_dir.exists() {
         ctx.map_exists = true;
         let meta_file = codebase_dir.join("META.md");
-        if meta_file.exists() && Command::new("git").arg("rev-parse").arg("--git-dir").current_dir(cwd).output().is_ok() {
-            if let Ok(c) = fs::read_to_string(&meta_file) {
-                let mut git_hash = None;
-                let mut file_count = None;
-                for line in c.lines() {
-                    if line.starts_with("git_hash:") {
-                        let parts: Vec<&str> = line.split_whitespace().collect();
-                        if parts.len() > 1 { git_hash = Some(parts[1].to_string()); }
-                    }
-                    if line.starts_with("file_count:") {
-                        let parts: Vec<&str> = line.split_whitespace().collect();
-                        if parts.len() > 1 { file_count = parts[1].parse::<i64>().ok(); }
-                    }
+        if meta_file.exists() && Command::new("git").arg("rev-parse").arg("--git-dir").current_dir(cwd).output().is_ok()
+            && let Ok(c) = fs::read_to_string(&meta_file)
+        {
+            let mut git_hash = None;
+            let mut file_count = None;
+            for line in c.lines() {
+                if line.starts_with("git_hash:") {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if parts.len() > 1 { git_hash = Some(parts[1].to_string()); }
                 }
+                if line.starts_with("file_count:") {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if parts.len() > 1 { file_count = parts[1].parse::<i64>().ok(); }
+                }
+            }
 
-                if let (Some(hash), Some(cnt)) = (git_hash, file_count) {
-                    if cnt > 0 {
-                        let diff_status = Command::new("git").args(&["cat-file", "-e", &hash]).current_dir(cwd).output();
-                        if let Ok(out) = diff_status {
-                            if out.status.success() {
-                                let diff_out = Command::new("git").args(&["diff", "--name-only", &format!("{}..HEAD", hash)]).current_dir(cwd).output();
-                                if let Ok(d_o) = diff_out {
-                                    if d_o.status.success() {
-                                        let changed_str = String::from_utf8_lossy(&d_o.stdout);
-                                        let changed: i64 = changed_str.lines().filter(|l| !l.trim().is_empty()).count() as i64;
-                                        ctx.map_staleness = (changed * 100) / cnt;
-                                    }
-                                }
-                            } else {
-                                ctx.map_staleness = 100;
-                            }
-                        } else {
-                            ctx.map_staleness = 100;
+            if let (Some(hash), Some(cnt)) = (git_hash, file_count)
+                && cnt > 0
+            {
+                let diff_status = Command::new("git").args(["cat-file", "-e", &hash]).current_dir(cwd).output();
+                if let Ok(out) = diff_status {
+                    if out.status.success() {
+                        let diff_out = Command::new("git").args(["diff", "--name-only", &format!("{}..HEAD", hash)]).current_dir(cwd).output();
+                        if let Ok(d_o) = diff_out
+                            && d_o.status.success()
+                        {
+                            let changed_str = String::from_utf8_lossy(&d_o.stdout);
+                            let changed: i64 = changed_str.lines().filter(|l| !l.trim().is_empty()).count() as i64;
+                            ctx.map_staleness = (changed * 100) / cnt;
                         }
+                    } else {
+                        ctx.map_staleness = 100;
                     }
+                } else {
+                    ctx.map_staleness = 100;
                 }
             }
         }

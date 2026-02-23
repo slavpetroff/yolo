@@ -130,8 +130,8 @@ fn parse_depends_on(frontmatter: &str) -> Vec<String> {
     for line in frontmatter.lines() {
         let trimmed = line.trim();
 
-        if trimmed.starts_with("depends_on:") {
-            let value = trimmed["depends_on:".len()..].trim();
+        if let Some(rest) = trimmed.strip_prefix("depends_on:") {
+            let value = rest.trim();
 
             // Check for inline array: depends_on: ["01", "02"]
             if value.starts_with('[') {
@@ -156,8 +156,8 @@ fn parse_depends_on(frontmatter: &str) -> Vec<String> {
         }
 
         if in_depends_on {
-            if trimmed.starts_with("- ") {
-                let item = trimmed[2..].trim().trim_matches('"').trim_matches('\'');
+            if let Some(rest) = trimmed.strip_prefix("- ") {
+                let item = rest.trim().trim_matches('"').trim_matches('\'');
                 if !item.is_empty() {
                     result.push(item.to_string());
                 }
@@ -180,8 +180,8 @@ fn parse_cross_phase_deps(frontmatter: &str) -> Vec<CrossPhaseDep> {
     for line in frontmatter.lines() {
         let trimmed = line.trim();
 
-        if trimmed.starts_with("cross_phase_deps:") {
-            let value = trimmed["cross_phase_deps:".len()..].trim();
+        if let Some(rest) = trimmed.strip_prefix("cross_phase_deps:") {
+            let value = rest.trim();
 
             // Check for inline array
             if value.starts_with('[') {
@@ -204,8 +204,8 @@ fn parse_cross_phase_deps(frontmatter: &str) -> Vec<CrossPhaseDep> {
         }
 
         if in_cross_phase {
-            if trimmed.starts_with("- ") {
-                let item = trimmed[2..].trim().trim_matches('"').trim_matches('\'');
+            if let Some(rest) = trimmed.strip_prefix("- ") {
+                let item = rest.trim().trim_matches('"').trim_matches('\'');
                 if let Some(dep) = CrossPhaseDep::parse(item) {
                     result.push(dep);
                 }
@@ -268,7 +268,7 @@ fn plan_file_exists(phase_dir: &Path, plan_id: &str) -> bool {
                 // Check if plan_id appears as a component
                 let stem = name_str.trim_end_matches("-PLAN.md");
                 let parts: Vec<&str> = stem.split('-').collect();
-                if parts.contains(&plan_id.as_ref()) {
+                if parts.contains(&plan_id) {
                     return true;
                 }
             }
@@ -373,7 +373,7 @@ fn find_summary_file(phase_dir: &Path, plan_id: &str) -> Option<std::path::PathB
             if name_str.ends_with("-SUMMARY.md") {
                 let stem = name_str.trim_end_matches("-SUMMARY.md");
                 let parts: Vec<&str> = stem.split('-').collect();
-                if parts.contains(&plan_id.as_ref()) {
+                if parts.contains(&plan_id) {
                     return Some(entry.path());
                 }
             }

@@ -86,12 +86,11 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     // --- Project existence ---
     let mut project_exists = false;
     let project_md = planning_dir.join("PROJECT.md");
-    if project_md.exists() {
-        if let Ok(content) = fs::read_to_string(&project_md) {
-            if !content.contains("{project-description}") {
-                project_exists = true;
-            }
-        }
+    if project_md.exists()
+        && let Ok(content) = fs::read_to_string(&project_md)
+        && !content.contains("{project-description}")
+    {
+        project_exists = true;
     }
     out.push_str(&format!("project_exists={}\n", project_exists));
 
@@ -101,17 +100,17 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let mut phases_dir = planning_dir.join("phases");
 
     let active_file = planning_dir.join("ACTIVE");
-    if active_file.exists() {
-        if let Ok(content) = fs::read_to_string(&active_file) {
-            let slug = content.trim();
-            if !slug.is_empty() {
-                let candidate = planning_dir.join("milestones").join(slug).join("phases");
-                if candidate.exists() && candidate.is_dir() {
-                    active_milestone = slug.to_string();
-                    phases_dir = candidate;
-                } else {
-                    active_milestone_error = true;
-                }
+    if active_file.exists()
+        && let Ok(content) = fs::read_to_string(&active_file)
+    {
+        let slug = content.trim();
+        if !slug.is_empty() {
+            let candidate = planning_dir.join("milestones").join(slug).join("phases");
+            if candidate.exists() && candidate.is_dir() {
+                active_milestone = slug.to_string();
+                phases_dir = candidate;
+            } else {
+                active_milestone_error = true;
             }
         }
     }
@@ -129,70 +128,70 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
     let mut all_done = true;
 
-    if phases_dir.exists() && phases_dir.is_dir() {
-        if let Ok(mut entries) = fs::read_dir(&phases_dir) {
-            let mut dirs = Vec::new();
-            while let Some(Ok(entry)) = entries.next() {
-                let path = entry.path();
-                if path.is_dir() {
-                    if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                        dirs.push((name.to_string(), path));
+    if phases_dir.exists() && phases_dir.is_dir()
+        && let Ok(mut entries) = fs::read_dir(&phases_dir)
+    {
+        let mut dirs = Vec::new();
+        while let Some(Ok(entry)) = entries.next() {
+            let path = entry.path();
+            if path.is_dir()
+                && let Some(name) = path.file_name().and_then(|n| n.to_str())
+            {
+                dirs.push((name.to_string(), path));
+            }
+        }
+        dirs.sort_by(|a, b| a.0.cmp(&b.0));
+        phase_count = dirs.len();
+
+        if phase_count > 0 {
+            let re = regex::Regex::new(r"^(\d+).*").unwrap();
+            for (dirname, path) in dirs {
+                let num = if let Some(caps) = re.captures(&dirname) {
+                    caps.get(1).map(|m| m.as_str()).unwrap_or("")
+                } else {
+                    ""
+                };
+
+                // Count PLAN and SUMMARY files
+                let mut p_count = 0;
+                let mut s_count = 0;
+                if let Ok(files) = fs::read_dir(&path) {
+                    for f in files.filter_map(|e| e.ok()) {
+                        let fname = f.file_name();
+                        let fn_str = fname.to_string_lossy();
+                        if fn_str.ends_with("-PLAN.md") {
+                            p_count += 1;
+                        } else if fn_str.ends_with("-SUMMARY.md") {
+                            s_count += 1;
+                        }
                     }
+                }
+
+                if p_count == 0 {
+                    if next_phase == "none" {
+                        next_phase = num.to_string();
+                        next_phase_slug = dirname.clone();
+                        next_phase_state = PhaseState::NeedsPlanAndExecute;
+                        next_phase_plans = p_count;
+                        next_phase_summaries = s_count;
+                    }
+                    all_done = false;
+                    break;
+                } else if s_count < p_count {
+                    if next_phase == "none" {
+                        next_phase = num.to_string();
+                        next_phase_slug = dirname.clone();
+                        next_phase_state = PhaseState::NeedsExecute;
+                        next_phase_plans = p_count;
+                        next_phase_summaries = s_count;
+                    }
+                    all_done = false;
+                    break;
                 }
             }
-            dirs.sort_by(|a, b| a.0.cmp(&b.0));
-            phase_count = dirs.len();
 
-            if phase_count > 0 {
-                for (dirname, path) in dirs {
-                    let re = regex::Regex::new(r"^(\d+).*").unwrap();
-                    let num = if let Some(caps) = re.captures(&dirname) {
-                        caps.get(1).map(|m| m.as_str()).unwrap_or("")
-                    } else {
-                        ""
-                    };
-
-                    // Count PLAN and SUMMARY files
-                    let mut p_count = 0;
-                    let mut s_count = 0;
-                    if let Ok(files) = fs::read_dir(&path) {
-                        for f in files.filter_map(|e| e.ok()) {
-                            let fname = f.file_name();
-                            let fn_str = fname.to_string_lossy();
-                            if fn_str.ends_with("-PLAN.md") {
-                                p_count += 1;
-                            } else if fn_str.ends_with("-SUMMARY.md") {
-                                s_count += 1;
-                            }
-                        }
-                    }
-
-                    if p_count == 0 {
-                        if next_phase == "none" {
-                            next_phase = num.to_string();
-                            next_phase_slug = dirname.clone();
-                            next_phase_state = PhaseState::NeedsPlanAndExecute;
-                            next_phase_plans = p_count;
-                            next_phase_summaries = s_count;
-                        }
-                        all_done = false;
-                        break;
-                    } else if s_count < p_count {
-                        if next_phase == "none" {
-                            next_phase = num.to_string();
-                            next_phase_slug = dirname.clone();
-                            next_phase_state = PhaseState::NeedsExecute;
-                            next_phase_plans = p_count;
-                            next_phase_summaries = s_count;
-                        }
-                        all_done = false;
-                        break;
-                    }
-                }
-                
-                if all_done && next_phase == "none" {
-                    next_phase_state = PhaseState::AllDone;
-                }
+            if all_done && next_phase == "none" {
+                next_phase_state = PhaseState::AllDone;
             }
         }
     }
@@ -218,21 +217,20 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let mut cfg_context_compiler = "true".to_string();
     let mut cfg_compaction = "130000".to_string();
 
-    if config_file.exists() {
-        if let Ok(content) = fs::read_to_string(&config_file) {
-            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content) {
-                if let Some(v) = parsed.get("effort").and_then(|v| v.as_str()) { cfg_effort = v.to_string(); }
-                if let Some(v) = parsed.get("autonomy").and_then(|v| v.as_str()) { cfg_autonomy = v.to_string(); }
-                if let Some(v) = parsed.get("auto_commit").and_then(|v| v.as_bool()) { cfg_auto_commit = v.to_string(); }
-                if let Some(v) = parsed.get("planning_tracking").and_then(|v| v.as_str()) { cfg_planning_tracking = v.to_string(); }
-                if let Some(v) = parsed.get("auto_push").and_then(|v| v.as_str()) { cfg_auto_push = v.to_string(); }
-                if let Some(v) = parsed.get("verification_tier").and_then(|v| v.as_str()) { cfg_verification_tier = v.to_string(); }
-                if let Some(v) = parsed.get("prefer_teams").and_then(|v| v.as_str()) { cfg_prefer_teams = v.to_string(); }
-                if let Some(v) = parsed.get("max_tasks_per_plan").and_then(|v| v.as_i64()) { cfg_max_tasks = v.to_string(); }
-                if let Some(v) = parsed.get("context_compiler").and_then(|v| v.as_bool()) { cfg_context_compiler = v.to_string(); }
-                if let Some(v) = parsed.get("compaction_threshold").and_then(|v| v.as_i64()) { cfg_compaction = v.to_string(); }
-            }
-        }
+    if config_file.exists()
+        && let Ok(content) = fs::read_to_string(&config_file)
+        && let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content)
+    {
+        if let Some(v) = parsed.get("effort").and_then(|v| v.as_str()) { cfg_effort = v.to_string(); }
+        if let Some(v) = parsed.get("autonomy").and_then(|v| v.as_str()) { cfg_autonomy = v.to_string(); }
+        if let Some(v) = parsed.get("auto_commit").and_then(|v| v.as_bool()) { cfg_auto_commit = v.to_string(); }
+        if let Some(v) = parsed.get("planning_tracking").and_then(|v| v.as_str()) { cfg_planning_tracking = v.to_string(); }
+        if let Some(v) = parsed.get("auto_push").and_then(|v| v.as_str()) { cfg_auto_push = v.to_string(); }
+        if let Some(v) = parsed.get("verification_tier").and_then(|v| v.as_str()) { cfg_verification_tier = v.to_string(); }
+        if let Some(v) = parsed.get("prefer_teams").and_then(|v| v.as_str()) { cfg_prefer_teams = v.to_string(); }
+        if let Some(v) = parsed.get("max_tasks_per_plan").and_then(|v| v.as_i64()) { cfg_max_tasks = v.to_string(); }
+        if let Some(v) = parsed.get("context_compiler").and_then(|v| v.as_bool()) { cfg_context_compiler = v.to_string(); }
+        if let Some(v) = parsed.get("compaction_threshold").and_then(|v| v.as_i64()) { cfg_compaction = v.to_string(); }
     }
 
     out.push_str(&format!("config_effort={}\n", cfg_effort));
@@ -267,14 +265,12 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     // --- Execution state ---
     let exec_state_file = planning_dir.join(".execution-state.json");
     let mut exec_state = "none".to_string();
-    if exec_state_file.exists() {
-        if let Ok(content) = fs::read_to_string(&exec_state_file) {
-            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content) {
-                if let Some(s) = parsed.get("status").and_then(|v| v.as_str()) {
-                    exec_state = s.to_string();
-                }
-            }
-        }
+    if exec_state_file.exists()
+        && let Ok(content) = fs::read_to_string(&exec_state_file)
+        && let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content)
+        && let Some(s) = parsed.get("status").and_then(|v| v.as_str())
+    {
+        exec_state = s.to_string();
     }
     out.push_str(&format!("execution_state={}\n", exec_state));
 

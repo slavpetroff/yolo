@@ -245,8 +245,9 @@ fn simple_hash(s: &str) -> String {
 
 fn read_yolo_version() -> String {
     // Try VERSION file relative to binary location first (works in dev/target builds)
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(parent) = exe.parent() {
+    if let Ok(exe) = std::env::current_exe()
+        && let Some(parent) = exe.parent()
+    {
             for ancestor in [parent, parent.parent().unwrap_or(parent)] {
                 let vp = ancestor.join("VERSION");
                 if let Ok(v) = fs::read_to_string(&vp) {
@@ -256,7 +257,6 @@ fn read_yolo_version() -> String {
                     }
                 }
             }
-        }
     }
     // Try plugin cache directory (works when installed via marketplace)
     if let Some(v) = read_version_from_plugin_cache() {
@@ -295,12 +295,11 @@ fn read_version_from_plugin_cache() -> Option<String> {
 // === Cache freshness check ===
 
 fn cache_fresh(path: &str, ttl_secs: u64) -> bool {
-    if let Ok(meta) = fs::metadata(path) {
-        if let Ok(modified) = meta.modified() {
-            if let Ok(elapsed) = modified.elapsed() {
-                return elapsed < Duration::from_secs(ttl_secs);
-            }
-        }
+    if let Ok(meta) = fs::metadata(path)
+        && let Ok(modified) = meta.modified()
+        && let Ok(elapsed) = modified.elapsed()
+    {
+        return elapsed < Duration::from_secs(ttl_secs);
     }
     false
 }
@@ -392,10 +391,11 @@ fn compute_fast_cache() -> FastCache {
             let mut max_phase = 0i64;
             for entry in entries.flatten() {
                 let name = entry.file_name().to_string_lossy().to_string();
-                if entry.path().is_dir() {
-                    if let Some(n) = extract_first_number(&name) {
-                        if n > max_phase { max_phase = n; }
-                    }
+                if entry.path().is_dir()
+                    && let Some(n) = extract_first_number(&name)
+                    && n > max_phase
+                {
+                    max_phase = n;
                 }
             }
             fc.total_phases = max_phase;
@@ -405,29 +405,29 @@ fn compute_fast_cache() -> FastCache {
 
     // Parse config.json
     let config_path = planning_dir.join("config.json");
-    if let Ok(content) = fs::read_to_string(&config_path) {
-        if let Ok(cfg) = serde_json::from_str::<Value>(&content) {
-            if let Some(e) = cfg.get("effort").and_then(|v| v.as_str()) {
-                fc.effort = e.to_string();
-            }
-            if let Some(m) = cfg.get("model_profile").and_then(|v| v.as_str()) {
-                fc.model_profile = m.to_string();
-            }
+    if let Ok(content) = fs::read_to_string(&config_path)
+        && let Ok(cfg) = serde_json::from_str::<Value>(&content)
+    {
+        if let Some(e) = cfg.get("effort").and_then(|v| v.as_str()) {
+            fc.effort = e.to_string();
+        }
+        if let Some(m) = cfg.get("model_profile").and_then(|v| v.as_str()) {
+            fc.model_profile = m.to_string();
         }
     }
 
     // Git info
-    if let Ok(out) = Command::new("git").args(["branch", "--show-current"]).output() {
-        if out.status.success() {
-            fc.branch = String::from_utf8_lossy(&out.stdout).trim().to_string();
-        }
+    if let Ok(out) = Command::new("git").args(["branch", "--show-current"]).output()
+        && out.status.success()
+    {
+        fc.branch = String::from_utf8_lossy(&out.stdout).trim().to_string();
     }
     // Repo name from remote or directory
-    if let Ok(out) = Command::new("git").args(["remote", "get-url", "origin"]).output() {
-        if out.status.success() {
-            let url = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            fc.repo_name = extract_repo_name(&url);
-        }
+    if let Ok(out) = Command::new("git").args(["remote", "get-url", "origin"]).output()
+        && out.status.success()
+    {
+        let url = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        fc.repo_name = extract_repo_name(&url);
     }
     if fc.repo_name.is_empty() {
         fc.repo_name = std::env::current_dir()
@@ -437,30 +437,30 @@ fn compute_fast_cache() -> FastCache {
     }
 
     // Staged/modified counts
-    if let Ok(out) = Command::new("git").args(["diff", "--cached", "--numstat"]).output() {
-        if out.status.success() {
-            fc.staged = String::from_utf8_lossy(&out.stdout).lines().count() as i64;
-        }
+    if let Ok(out) = Command::new("git").args(["diff", "--cached", "--numstat"]).output()
+        && out.status.success()
+    {
+        fc.staged = String::from_utf8_lossy(&out.stdout).lines().count() as i64;
     }
-    if let Ok(out) = Command::new("git").args(["diff", "--numstat"]).output() {
-        if out.status.success() {
-            fc.modified = String::from_utf8_lossy(&out.stdout).lines().count() as i64;
-        }
+    if let Ok(out) = Command::new("git").args(["diff", "--numstat"]).output()
+        && out.status.success()
+    {
+        fc.modified = String::from_utf8_lossy(&out.stdout).lines().count() as i64;
     }
 
     // Plan counts
     if let Ok(entries) = fs::read_dir(planning_dir.join("phases")) {
         for entry in entries.flatten() {
-            if entry.path().is_dir() {
-                if let Ok(files) = fs::read_dir(entry.path()) {
-                    for f in files.flatten() {
-                        let name = f.file_name().to_string_lossy().to_string();
-                        if name.ends_with("-PLAN.md") || name.ends_with(".plan.jsonl") {
-                            fc.plans_total += 1;
-                        }
-                        if name.ends_with("-SUMMARY.md") {
-                            fc.plans_done += 1;
-                        }
+            if entry.path().is_dir()
+                && let Ok(files) = fs::read_dir(entry.path())
+            {
+                for f in files.flatten() {
+                    let name = f.file_name().to_string_lossy().to_string();
+                    if name.ends_with("-PLAN.md") || name.ends_with(".plan.jsonl") {
+                        fc.plans_total += 1;
+                    }
+                    if name.ends_with("-SUMMARY.md") {
+                        fc.plans_done += 1;
                     }
                 }
             }
@@ -469,23 +469,23 @@ fn compute_fast_cache() -> FastCache {
 
     // Execution state
     let exec_path = planning_dir.join(".execution-state.json");
-    if let Ok(content) = fs::read_to_string(&exec_path) {
-        if let Ok(exec) = serde_json::from_str::<Value>(&content) {
-            fc.exec_status = exec.get("status").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            fc.exec_wave = exec.get("wave").and_then(|v| v.as_i64()).unwrap_or(0);
-            fc.exec_twaves = exec.get("total_waves").and_then(|v| v.as_i64()).unwrap_or(0);
+    if let Ok(content) = fs::read_to_string(&exec_path)
+        && let Ok(exec) = serde_json::from_str::<Value>(&content)
+    {
+        fc.exec_status = exec.get("status").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        fc.exec_wave = exec.get("wave").and_then(|v| v.as_i64()).unwrap_or(0);
+        fc.exec_twaves = exec.get("total_waves").and_then(|v| v.as_i64()).unwrap_or(0);
 
-            if let Some(plans) = exec.get("plans").and_then(|v| v.as_array()) {
-                fc.exec_total = plans.len() as i64;
-                fc.exec_done = plans.iter()
-                    .filter(|p| p.get("status").and_then(|s| s.as_str()) == Some("complete"))
-                    .count() as i64;
-                fc.exec_current = plans.iter()
-                    .find(|p| p.get("status").and_then(|s| s.as_str()) == Some("running"))
-                    .and_then(|p| p.get("title").and_then(|t| t.as_str()))
-                    .unwrap_or("")
-                    .to_string();
-            }
+        if let Some(plans) = exec.get("plans").and_then(|v| v.as_array()) {
+            fc.exec_total = plans.len() as i64;
+            fc.exec_done = plans.iter()
+                .filter(|p| p.get("status").and_then(|s| s.as_str()) == Some("complete"))
+                .count() as i64;
+            fc.exec_current = plans.iter()
+                .find(|p| p.get("status").and_then(|s| s.as_str()) == Some("running"))
+                .and_then(|p| p.get("title").and_then(|t| t.as_str()))
+                .unwrap_or("")
+                .to_string();
         }
     }
 
@@ -587,17 +587,17 @@ fn compute_slow_cache() -> SlowCache {
         ])
         .output();
 
-    if let Ok(out) = remote_ver_result {
-        if out.status.success() {
-            let remote_ver = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            let local_ver = read_yolo_version();
-            if !remote_ver.is_empty() && !local_ver.is_empty()
-                && remote_ver != local_ver && remote_ver != "?"
-            {
-                // Simple version comparison: if remote is lexicographically greater
-                if version_is_newer(&remote_ver, &local_ver) {
-                    sc.update_avail = Some(remote_ver);
-                }
+    if let Ok(out) = remote_ver_result
+        && out.status.success()
+    {
+        let remote_ver = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        let local_ver = read_yolo_version();
+        if !remote_ver.is_empty() && !local_ver.is_empty()
+            && remote_ver != local_ver && remote_ver != "?"
+        {
+            // Simple version comparison: if remote is lexicographically greater
+            if version_is_newer(&remote_ver, &local_ver) {
+                sc.update_avail = Some(remote_ver);
             }
         }
     }
@@ -607,30 +607,26 @@ fn compute_slow_cache() -> SlowCache {
 
 fn get_oauth_token() -> Option<String> {
     // Priority 1: env var
-    if let Ok(token) = std::env::var("YOLO_OAUTH_TOKEN") {
-        if !token.is_empty() {
-            return Some(token);
-        }
+    if let Ok(token) = std::env::var("YOLO_OAUTH_TOKEN")
+        && !token.is_empty()
+    {
+        return Some(token);
     }
 
     // Priority 2: macOS Keychain
-    if cfg!(target_os = "macos") {
-        if let Ok(out) = Command::new("security")
+    if cfg!(target_os = "macos")
+        && let Ok(out) = Command::new("security")
             .args(["find-generic-password", "-s", "Claude Code-credentials", "-w"])
             .output()
+        && out.status.success()
+    {
+        let cred_json = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if let Ok(cred) = serde_json::from_str::<Value>(&cred_json)
+            && let Some(token) = cred.pointer("/claudeAiOauth/accessToken")
+                .and_then(|v| v.as_str())
+            && !token.is_empty()
         {
-            if out.status.success() {
-                let cred_json = String::from_utf8_lossy(&out.stdout).trim().to_string();
-                if let Ok(cred) = serde_json::from_str::<Value>(&cred_json) {
-                    if let Some(token) = cred.pointer("/claudeAiOauth/accessToken")
-                        .and_then(|v| v.as_str())
-                    {
-                        if !token.is_empty() {
-                            return Some(token.to_string());
-                        }
-                    }
-                }
-            }
+            return Some(token.to_string());
         }
     }
 
@@ -641,16 +637,13 @@ fn get_oauth_token() -> Option<String> {
 
     for name in &[".credentials.json", "credentials.json"] {
         let path = format!("{}/{}", claude_dir, name);
-        if let Ok(content) = fs::read_to_string(&path) {
-            if let Ok(cred) = serde_json::from_str::<Value>(&content) {
-                if let Some(token) = cred.pointer("/claudeAiOauth/accessToken")
-                    .and_then(|v| v.as_str())
-                {
-                    if !token.is_empty() {
-                        return Some(token.to_string());
-                    }
-                }
-            }
+        if let Ok(content) = fs::read_to_string(&path)
+            && let Ok(cred) = serde_json::from_str::<Value>(&content)
+            && let Some(token) = cred.pointer("/claudeAiOauth/accessToken")
+                .and_then(|v| v.as_str())
+            && !token.is_empty()
+        {
+            return Some(token.to_string());
         }
     }
 
