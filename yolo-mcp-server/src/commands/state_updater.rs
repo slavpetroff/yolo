@@ -252,7 +252,7 @@ fn update_roadmap(phase_dir: &Path, planning_root: &Path) -> Result<(), String> 
     Ok(())
 }
 
-fn update_model_profile(phase_dir: &Path, planning_root: &Path) -> Result<(), String> {
+fn update_model_profile(_phase_dir: &Path, planning_root: &Path) -> Result<(), String> {
     let state_md = planning_root.join("STATE.md");
     if !state_md.exists() {
         return Ok(());
