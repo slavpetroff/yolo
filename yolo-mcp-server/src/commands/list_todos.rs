@@ -147,7 +147,7 @@ fn relative_age(date_str: &str) -> String {
 }
 
 fn parse_todo_line(line: &str) -> (String, String, String, String) {
-    let mut text = line.trim_start_matches("- ").to_string();
+    let text = line.trim_start_matches("- ").to_string();
     let mut priority = "normal".to_string();
 
     if text.starts_with("[HIGH] ") {
