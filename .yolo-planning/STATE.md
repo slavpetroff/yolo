@@ -1,35 +1,26 @@
 # YOLO State
 
-**Project:** Agent Quality & Intelligent Compression
-**Milestone:** Agent Quality & Intelligent Compression
-**Current Phase:** Complete
-**Status:** All Done
-**Started:** 2026-02-22
-**Progress:** 100%
+**Project:** Quality Gate Feedback Loops
+**Milestone:** Quality Gate Feedback Loops
+**Current Phase:** Phase 1
+**Status:** Ready
+**Started:** 2026-02-23
+**Progress:** 0%
 
 ## Phase Status
 | Phase | Status | Plans | Tasks | Commits |
 |-------|--------|-------|-------|---------|
-| 1 | Complete | 2 | 8 | 6 |
-| 2 | Complete | 2 | 9 | 6 |
-| 3 | Complete | 2 | 8 | 4 |
-| 4 | Complete | 2 | 8 | 9 |
-| 5 | Complete | 2 | 7 | 6 |
 
 ## Key Decisions
 | Decision | Date | Rationale |
 |----------|------|-----------|
-| MCP hybrid (keep server) | 2026-02-22 | Locking + test suite used via MCP (44+ calls). CLI for orchestration. Document pattern, remove compile_context overlap |
-| 3 new agents in existing families | 2026-02-22 | Researcher + Reviewer → "planning" family (Tier 2 cache with Architect/Lead). QA → "execution" family (Tier 2 cache with Dev) |
-| Rust-backed quality gates | 2026-02-22 | Reviewer and QA powered by Rust CLI commands, not just LLM instructions. Enforceable, measurable, fast |
+| Hard-cap cycle limits | 2026-02-23 | Prevent infinite loops. Default 3, configurable 1-5. Hard stop if exceeded — never proceed with hope of eventual fix |
+| Cache-aware loops | 2026-02-23 | Reviewer/Architect share "planning" Tier 2 cache. QA/Dev share "execution" Tier 2 cache. Loops stay within same cache family — zero recompilation overhead |
+| Fixability classification | 2026-02-23 | QA failures categorized as dev-fixable, architect-fixable, or manual. Only dev-fixable issues trigger auto-remediation loop |
 
 ## Todos
 None
 
 ## Recent Activity
-- 2026-02-23: Phase 5 complete — Integration, Testing & Release (2 plans, 7 tasks, 6 commits)
-- 2026-02-22: Phase 4 complete — QA Agent (2 plans, 8 tasks, 9 commits)
-- 2026-02-22: Phase 3 complete — Reviewer Agent (2 plans, 8 tasks, 4 commits)
-- 2026-02-22: Phase 2 complete — Researcher Agent (2 plans, 9 tasks, 6 commits)
-- 2026-02-22: Phase 1 complete — MCP Hygiene & Compression Foundation (2 plans, 8 tasks, 6 commits)
-- 2026-02-22: Created "Agent Quality & Intelligent Compression" milestone (5 phases)
+- 2026-02-23: Scoped "Quality Gate Feedback Loops" milestone (4 phases)
+- 2026-02-23: Archived "Agent Quality & Intelligent Compression" milestone (5 phases, 40 tasks, 31 commits, v2.6.0)
