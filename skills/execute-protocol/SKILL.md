@@ -740,6 +740,8 @@ QA_REPORT='{"passed": true, "checks": []}'
      4. Do NOT change plan scope — only fix the identified QA failures
    activeForm: "QA remediation cycle {QA_CYCLE} for plan {NN-MM}"
    model: "${DEV_MODEL}"
+   maxTurns: ${DEV_MAX_TURNS}
+   subagent_type: "yolo:yolo-dev"
    ```
 
    e. **Delta re-run optimization:** After Dev completes, re-run ONLY previously failed checks (skip checks in PASSED_CHECKS):
