@@ -1,0 +1,29 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "ara-phase3-exec",
+    "phase": 3,
+    "phase_name": "testing-release",
+    "plans": [
+      {
+        "id": "03-01",
+        "status": "pending",
+        "title": "Bats tests for agent routing and archive release",
+        "wave": 1
+      },
+      {
+        "id": "03-02",
+        "status": "pending",
+        "title": "Documentation updates and version bump to v2.8.0",
+        "wave": 1
+      }
+    ],
+    "started_at": "2026-02-23T16:00:00Z",
+    "status": "running",
+    "total_waves": 1,
+    "wave": 1
+  },
+  "matcher": "auto",
+  "phase": "3",
+  "timestamp": "2026-02-23T09:08:03Z"
+}
