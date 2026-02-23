@@ -1,18 +1,24 @@
 use sha2::{Sha256, Digest};
 use std::fs;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+/// Append a suffix to a path, preserving the original extension.
+/// `state.json` + `sha256` => `state.json.sha256`
+/// `STATE` + `sha256` => `STATE.sha256`
+fn append_suffix(path: &Path, suffix: &str) -> PathBuf {
+    let mut s = path.as_os_str().to_os_string();
+    s.push(".");
+    s.push(suffix);
+    PathBuf::from(s)
+}
 
 /// Write content to a file atomically using temp-file + rename.
 /// Writes to `{path}.tmp.{pid}`, fsyncs, then renames to `{path}`.
 /// On rename failure, the temp file is removed.
 pub fn atomic_write(path: &Path, content: &[u8]) -> io::Result<()> {
     let pid = std::process::id();
-    let tmp_path = path.with_extension(format!(
-        "{}.tmp.{}",
-        path.extension().map(|e| e.to_string_lossy().to_string()).unwrap_or_default(),
-        pid
-    ));
+    let tmp_path = append_suffix(path, &format!("tmp.{}", pid));
 
     // Ensure parent directory exists
     if let Some(parent) = path.parent() {
@@ -48,10 +54,7 @@ pub fn sha256_hex(content: &[u8]) -> String {
 /// Write a SHA256 sidecar file at `{path}.sha256`.
 pub fn write_checksum(path: &Path, content: &[u8]) -> io::Result<()> {
     let hex = sha256_hex(content);
-    let sidecar = path.with_extension(format!(
-        "{}.sha256",
-        path.extension().map(|e| e.to_string_lossy().to_string()).unwrap_or_default()
-    ));
+    let sidecar = append_suffix(path, "sha256");
     fs::write(&sidecar, hex.as_bytes())
 }
 
@@ -59,10 +62,7 @@ pub fn write_checksum(path: &Path, content: &[u8]) -> io::Result<()> {
 /// Returns Ok(false) if the sidecar is missing (backwards compat).
 /// Returns Ok(true) if checksums match, Ok(false) if they don't.
 pub fn verify_checksum(path: &Path) -> io::Result<bool> {
-    let sidecar = path.with_extension(format!(
-        "{}.sha256",
-        path.extension().map(|e| e.to_string_lossy().to_string()).unwrap_or_default()
-    ));
+    let sidecar = append_suffix(path, "sha256");
 
     if !sidecar.exists() {
         return Ok(false);
@@ -82,24 +82,13 @@ pub fn verify_checksum(path: &Path) -> io::Result<bool> {
 pub fn atomic_write_with_checksum(path: &Path, content: &[u8]) -> io::Result<()> {
     // Create backup of current file if it exists
     if path.exists() {
-        let backup = path.with_extension(format!(
-            "{}.backup",
-            path.extension().map(|e| e.to_string_lossy().to_string()).unwrap_or_default()
-        ));
+        let backup = append_suffix(path, "backup");
         let _ = fs::copy(path, &backup);
     }
 
     atomic_write(path, content)?;
     write_checksum(path, content)?;
     Ok(())
-}
-
-fn sidecar_path(path: &Path, suffix: &str) -> std::path::PathBuf {
-    path.with_extension(format!(
-        "{}.{}",
-        path.extension().map(|e| e.to_string_lossy().to_string()).unwrap_or_default(),
-        suffix
-    ))
 }
 
 /// Read a file and verify its checksum. If mismatch, attempt backup restore.
@@ -111,10 +100,10 @@ pub fn read_verified(path: &Path) -> io::Result<Vec<u8>> {
         Ok(true) => return Ok(content),
         Ok(false) => {
             // Sidecar missing or mismatch — try backup
-            let backup = sidecar_path(path, "backup");
+            let backup = append_suffix(path, "backup");
             if backup.exists() {
                 let backup_content = fs::read(&backup)?;
-                let sidecar = sidecar_path(path, "sha256");
+                let sidecar = append_suffix(path, "sha256");
                 if sidecar.exists() {
                     let expected = fs::read_to_string(&sidecar)?;
                     let actual = sha256_hex(&backup_content);
@@ -338,6 +327,136 @@ mod tests {
         atomic_write_with_checksum(&file, b"hello string").unwrap();
         let result = read_verified_string(&file).unwrap();
         assert_eq!(result, "hello string");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    // --- Integration tests for corruption recovery ---
+
+    #[test]
+    fn test_integration_full_corruption_recovery_flow() {
+        let dir = test_dir("integration_recovery");
+        let file = dir.join("execution-state.json");
+
+        // Write v1
+        atomic_write_with_checksum(&file, b"{\"phase\": 1}").unwrap();
+        assert!(verify_checksum(&file).unwrap());
+
+        // Write v2 — v1 becomes backup
+        atomic_write_with_checksum(&file, b"{\"phase\": 2}").unwrap();
+        assert!(verify_checksum(&file).unwrap());
+
+        // Verify backup exists with v1 content
+        let backup = file.with_extension("json.backup");
+        assert!(backup.exists());
+        assert_eq!(fs::read(&backup).unwrap(), b"{\"phase\": 1}");
+
+        // Corrupt the main file by flipping bytes
+        fs::write(&file, b"{\"phase\": CORRUPT}").unwrap();
+        assert!(!verify_checksum(&file).unwrap());
+
+        // Set sidecar to match backup (simulating: sidecar from v1 was preserved)
+        let v1_hash = sha256_hex(b"{\"phase\": 1}");
+        fs::write(file.with_extension("json.sha256"), v1_hash.as_bytes()).unwrap();
+
+        // read_verified should detect mismatch and restore from backup
+        let recovered = read_verified(&file).unwrap();
+        assert_eq!(recovered, b"{\"phase\": 1}");
+
+        // After recovery, the main file should be restored
+        assert_eq!(fs::read(&file).unwrap(), b"{\"phase\": 1}");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_integration_sidecar_is_correct_hex() {
+        let dir = test_dir("integration_sidecar_hex");
+        let file = dir.join("state.json");
+        let content = b"test content for hex check";
+
+        atomic_write_with_checksum(&file, content).unwrap();
+
+        let sidecar = file.with_extension("json.sha256");
+        let stored_hex = fs::read_to_string(&sidecar).unwrap();
+        let expected_hex = sha256_hex(content);
+
+        assert_eq!(stored_hex, expected_hex);
+        assert_eq!(stored_hex.len(), 64); // SHA256 hex is always 64 chars
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_integration_backup_exists_after_second_write() {
+        let dir = test_dir("integration_backup_exists");
+        let file = dir.join("config.json");
+
+        let backup = file.with_extension("json.backup");
+        assert!(!backup.exists());
+
+        atomic_write_with_checksum(&file, b"first").unwrap();
+        assert!(!backup.exists()); // No backup after first write
+
+        atomic_write_with_checksum(&file, b"second").unwrap();
+        assert!(backup.exists()); // Backup exists after second write
+        assert_eq!(fs::read(&backup).unwrap(), b"first");
+
+        atomic_write_with_checksum(&file, b"third").unwrap();
+        assert_eq!(fs::read(&backup).unwrap(), b"second"); // Backup updated
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_integration_atomic_write_cleans_temp_on_failure() {
+        let dir = test_dir("integration_temp_cleanup");
+        // Create a read-only directory to force rename failure
+        let ro_dir = dir.join("readonly");
+        fs::create_dir_all(&ro_dir).unwrap();
+        let target = ro_dir.join("file.json");
+
+        // First, write successfully
+        atomic_write(&target, b"initial").unwrap();
+
+        // Make directory read-only
+        let mut perms = fs::metadata(&ro_dir).unwrap().permissions();
+        #[allow(clippy::permissions_set_readonly_false)]
+        {
+            perms.set_readonly(true);
+        }
+        let _ = fs::set_permissions(&ro_dir, perms.clone());
+
+        // Attempt write — should fail (can't create temp file in read-only dir)
+        let result = atomic_write(&target, b"should fail");
+
+        // Restore permissions for cleanup
+        perms.set_readonly(false);
+        let _ = fs::set_permissions(&ro_dir, perms);
+
+        // Verify either failed or temp file was cleaned up
+        if result.is_err() {
+            // No temp files should remain
+            let entries: Vec<_> = fs::read_dir(&ro_dir)
+                .unwrap()
+                .filter_map(|e| e.ok())
+                .filter(|e| e.file_name().to_string_lossy().contains(".tmp."))
+                .collect();
+            assert!(entries.is_empty(), "temp files should be cleaned up on failure");
+        }
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_integration_file_without_extension() {
+        let dir = test_dir("integration_no_ext");
+        let file = dir.join("STATE");
+
+        atomic_write_with_checksum(&file, b"no extension").unwrap();
+        assert!(file.exists());
+        assert_eq!(fs::read(&file).unwrap(), b"no extension");
+        assert!(verify_checksum(&file).unwrap());
 
         let _ = fs::remove_dir_all(&dir);
     }
