@@ -816,4 +816,72 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(&tmp);
     }
+
+    #[tokio::test]
+    async fn test_timeout_kills_long_running_command() {
+        // spawn a sleep command with a very short timeout
+        let mut cmd = Command::new("sleep");
+        cmd.arg("60");
+        let start = std::time::Instant::now();
+        let result = run_command_with_timeout(&mut cmd, 200).await;
+        let elapsed = start.elapsed();
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("timed out after 200ms"));
+        // Should complete well under the 60s sleep
+        assert!(elapsed.as_secs() < 5);
+    }
+
+    #[tokio::test]
+    async fn test_timeout_allows_fast_command() {
+        let mut cmd = Command::new("echo");
+        cmd.arg("hello");
+        let result = run_command_with_timeout(&mut cmd, 5000).await;
+
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("hello"));
+    }
+
+    #[tokio::test]
+    async fn test_timeout_error_includes_duration() {
+        let mut cmd = Command::new("sleep");
+        cmd.arg("60");
+        let result = run_command_with_timeout(&mut cmd, 150).await;
+
+        let err = result.unwrap_err();
+        assert!(err.contains("150ms"), "Error should include timeout duration: {}", err);
+    }
+
+    #[tokio::test]
+    async fn test_read_timeout_config_default() {
+        // In a temp dir with no config.json, should return default
+        let tmp = std::env::temp_dir().join(format!("yolo-test-timeout-cfg-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let val = read_timeout_config();
+        assert_eq!(val, DEFAULT_TIMEOUT_MS);
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_read_timeout_config_custom() {
+        let tmp = std::env::temp_dir().join(format!("yolo-test-timeout-custom-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".yolo-planning")).unwrap();
+        std::fs::write(
+            tmp.join(".yolo-planning/config.json"),
+            r#"{"command_timeout_ms": 60000}"#,
+        ).unwrap();
+
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let val = read_timeout_config();
+        assert_eq!(val, 60000);
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
 }
