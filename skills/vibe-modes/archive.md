@@ -16,7 +16,7 @@ FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
 
 **Steps:**
 1. Resolve context: ACTIVE -> milestone-scoped paths. No ACTIVE -> SLUG="default", root paths.
-2. Parse args: --tag=vN.N.N (custom tag), --no-tag (skip), --force (skip audit).
+2. Parse args: --tag=vN.N.N (custom tag), --no-tag (skip), --force (skip audit), --no-release (skip version bump/release), --major (major version bump), --minor (minor version bump).
 3. Compute summary: from ROADMAP (phases), SUMMARY.md files (tasks/commits/deviations), REQUIREMENTS.md (satisfied count).
 4. **Rolling summary (conditional):** If `v3_rolling_summary=true` in config:
    ```bash
