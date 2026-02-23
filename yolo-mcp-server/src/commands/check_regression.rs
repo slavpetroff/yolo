@@ -30,6 +30,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         "rust_tests": rust_tests,
         "bats_files": bats_files,
         "regressions": 0,
+        "fixable_by": "manual",
     });
 
     Ok((resp.to_string(), 0))

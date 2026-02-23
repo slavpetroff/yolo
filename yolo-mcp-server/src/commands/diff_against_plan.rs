@@ -31,6 +31,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
             "actual": 0,
             "undeclared": [],
             "missing": ["SUMMARY file not found"],
+            "fixable_by": "dev",
         });
         return Ok((resp.to_string(), 1));
     }
@@ -60,6 +61,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
     let ok = undeclared.is_empty() && missing.is_empty();
 
+    let fixable_by = if ok { "none" } else { "dev" };
     let resp = json!({
         "ok": ok,
         "cmd": "diff-against-plan",
@@ -67,6 +69,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         "actual": actual_files.len(),
         "undeclared": undeclared,
         "missing": missing,
+        "fixable_by": fixable_by,
     });
 
     Ok((resp.to_string(), if ok { 0 } else { 1 }))
