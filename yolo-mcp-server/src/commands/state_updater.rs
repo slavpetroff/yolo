@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::fs;
 use serde_json::{json, Value};
+use super::atomic_io;
 use super::structured_response::{StructuredResponse, Timer};
 
 pub fn update_state(file_path: &str) -> Result<String, String> {
@@ -45,7 +46,7 @@ pub fn update_state(file_path: &str) -> Result<String, String> {
             let content = fs::read_to_string(&state_md).unwrap_or_default();
             if content.contains("Status: ready") {
                 let updated = content.replace("Status: ready", "Status: active");
-                let _ = fs::write(&state_md, updated);
+                let _ = atomic_io::atomic_write_with_checksum(&state_md, updated.as_bytes());
                 status_changed_to = Some("active".to_string());
             }
         }
@@ -168,7 +169,7 @@ fn update_state_md(phase_dir: &Path, planning_root: &Path) -> Result<(), String>
 
     let mut new_content = new_lines.join("\n");
     new_content.push('\n');
-    let _ = fs::write(&state_md, new_content);
+    let _ = atomic_io::atomic_write_with_checksum(&state_md, new_content.as_bytes());
 
     Ok(())
 }
@@ -246,7 +247,7 @@ fn update_roadmap(phase_dir: &Path, planning_root: &Path) -> Result<(), String> 
 
     let mut new_content = new_lines.join("\n");
     new_content.push('\n');
-    let _ = fs::write(&roadmap, new_content);
+    let _ = atomic_io::atomic_write_with_checksum(&roadmap, new_content.as_bytes());
 
     Ok(())
 }
@@ -306,7 +307,7 @@ fn update_model_profile(phase_dir: &Path, planning_root: &Path) -> Result<(), St
 
     let mut new_content = new_lines.join("\n");
     new_content.push('\n');
-    let _ = fs::write(&state_md, new_content);
+    let _ = atomic_io::atomic_write_with_checksum(&state_md, new_content.as_bytes());
 
     Ok(())
 }
@@ -383,7 +384,7 @@ fn advance_phase(phase_dir: &Path, planning_root: &Path) -> Result<AdvanceInfo, 
 
     let mut new_content = new_lines.join("\n");
     new_content.push('\n');
-    let _ = fs::write(&state_md, new_content);
+    let _ = atomic_io::atomic_write_with_checksum(&state_md, new_content.as_bytes());
 
     Ok(info)
 }
@@ -450,7 +451,7 @@ fn update_execution_state(planning_root: &Path, phase: &str, plan: &str, status:
             }
 
             if let Ok(updated) = serde_json::to_string_pretty(&json) {
-                let _ = fs::write(&state_file, updated);
+                let _ = atomic_io::atomic_write_with_checksum(&state_file, updated.as_bytes());
             }
         }
     }
