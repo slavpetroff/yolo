@@ -277,7 +277,10 @@ mod tests {
                 "v2_typed_protocol": { "type": "boolean" },
                 "v3_schema_validation": { "type": "boolean" },
                 "v2_hard_gates": { "type": "boolean" },
-                "v2_hard_contracts": { "type": "boolean" }
+                "v2_hard_contracts": { "type": "boolean" },
+                "model_profile": { "type": "string" },
+                "model_overrides": { "type": "object" },
+                "prefer_teams": { "type": "string" }
             },
             "additionalProperties": false
         });
@@ -344,6 +347,37 @@ mod tests {
         fs::write(&config, json!({"effort": "thorough"}).to_string()).unwrap();
 
         assert!(migrate_config(&config, &defaults).is_ok());
+    }
+
+    #[test]
+    fn test_real_defaults_validates_against_real_schema() {
+        // CI guardrail: ensure config/defaults.json stays in sync with config/config.schema.json
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let config_dir = std::path::Path::new(manifest_dir).parent().unwrap().join("config");
+        let defaults_path = config_dir.join("defaults.json");
+        let schema_path = config_dir.join("config.schema.json");
+
+        assert!(defaults_path.exists(), "config/defaults.json not found");
+        assert!(schema_path.exists(), "config/config.schema.json not found");
+
+        let defaults: Value = serde_json::from_str(
+            &std::fs::read_to_string(&defaults_path).unwrap()
+        ).unwrap();
+        let schema: Value = serde_json::from_str(
+            &std::fs::read_to_string(&schema_path).unwrap()
+        ).unwrap();
+
+        let validator = jsonschema::validator_for(&schema)
+            .expect("config.schema.json is not a valid JSON Schema");
+        let errors: Vec<String> = validator
+            .iter_errors(&defaults)
+            .map(|e| format!("{}: {}", e.instance_path, e))
+            .collect();
+        assert!(
+            errors.is_empty(),
+            "defaults.json does not validate against config.schema.json:\n{}",
+            errors.join("\n")
+        );
     }
 
     #[test]
