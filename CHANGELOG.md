@@ -2,6 +2,11 @@
 
 All notable changes to YOLO will be documented in this file.
 
+## v2.8.2 (2026-02-23)
+
+### Fix
+- **Plugin manifest** — `mcp_server` (invalid key) → `mcpServers` (correct Claude Code plugin schema). Fixes plugin installation failure: "Unrecognized key: mcp_server"
+
 ## v2.8.0 (2026-02-23)
 
 ### Agent Routing

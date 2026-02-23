@@ -21,7 +21,7 @@ files_modified:
 ## Files Modified
 
 - `.yolo-planning/codebase/ARCHITECTURE.md` -- Added MCP/CLI Hybrid Pattern section with tool ownership table (gitignored, local only)
-- `.claude-plugin/plugin.json` -- Added mcp_server block, corrected description counts to 23 commands / 5 agents
+- `.claude-plugin/plugin.json` -- Added mcpServers block (was mcp_server, fixed in v2.8.2), corrected description counts to 23 commands / 5 agents
 - `skills/vibe-modes/archive.md` -- Inserted step 6b (prune-completed) with fail-open error handling
 
 ## Tasks Completed
@@ -33,7 +33,7 @@ files_modified:
 - **Note:** File is in `.yolo-planning/codebase/` which is gitignored by design. Updated locally for compile-context consumption. Not committable per project conventions.
 
 ### Task 2: plugin.json — MCP server declaration
-- Added `mcp_server` block: `{"command": "yolo-mcp-server", "args": []}`
+- Added `mcpServers` block: `{"yolo-expert": {"command": "yolo-mcp-server", "args": []}}` (originally `mcp_server`, fixed in v2.8.2)
 - Updated description from "24 commands, 7 agents" to "23 commands, 5 agents" matching actual current state
 - Commit: `edd1388`
 
