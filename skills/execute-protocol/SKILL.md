@@ -98,6 +98,7 @@ VERDICT=$(echo "$REVIEW_RESULT" | jq -r '.verdict')
 ```bash
 REVIEW_CYCLE=1
 ACCUMULATED_FINDINGS="[]"
+PREVIOUS_FINDINGS=""
 CURRENT_FINDINGS=$(echo "$REVIEW_RESULT" | jq '.findings')
 ACCUMULATED_FINDINGS=$(echo "$ACCUMULATED_FINDINGS" | jq --argjson f "$CURRENT_FINDINGS" '. + $f')
 ```
@@ -129,7 +130,35 @@ ARCH_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model architect .yolo-planning/conf
 
    b. Display: `◆ Review loop cycle {REVIEW_CYCLE}/{REVIEW_MAX_CYCLES} — spawning Architect to revise plan...`
 
-   c. Spawn Architect subagent via Task tool (subagent, NOT team):
+   c. **Extract delta findings** (token-efficient: only pass what changed):
+   ```bash
+   # On first loop iteration, PREVIOUS_FINDINGS is empty — all current findings are "new"
+   if [ -z "$PREVIOUS_FINDINGS" ]; then
+     DELTA_FINDINGS=$(echo "$CURRENT_FINDINGS" | jq '[.[] | select(.severity == "high" or .severity == "medium")]')
+   else
+     # Extract only NEW findings (not present in previous cycle by ID)
+     # and findings that CHANGED severity since last cycle
+     DELTA_FINDINGS=$(jq -n \
+       --argjson curr "$CURRENT_FINDINGS" \
+       --argjson prev "$PREVIOUS_FINDINGS" \
+       '[
+         # New findings: present in current but not in previous (by .id)
+         ($prev | map(.id)) as $prev_ids |
+         ($curr[] | select(.severity == "high" or .severity == "medium") |
+           select(.id as $id | $prev_ids | index($id) | not)),
+         # Changed severity: same .id exists in both but severity differs
+         ($curr[] | select(.severity == "high" or .severity == "medium") | . as $c |
+           ($prev[] | select(.id == $c.id and .severity != $c.severity)) | $c)
+       ] | unique_by(.id)')
+   fi
+   PREVIOUS_FINDINGS="$CURRENT_FINDINGS"
+   ```
+
+   > **Cache note:** Architect and Reviewer share the "planning" Tier 2 cache.
+   > Only Tier 3 content (these delta findings) changes between iterations.
+   > This avoids re-sending the full context on each cycle, saving significant tokens.
+
+   d. Spawn Architect subagent via Task tool (subagent, NOT team):
    ```
    subject: "Revise plan {NN-MM} — review cycle {REVIEW_CYCLE}"
    description: |
@@ -140,8 +169,11 @@ ARCH_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model architect .yolo-planning/conf
      **Plan path:** {plan_path}
      **Review cycle:** {REVIEW_CYCLE} of {REVIEW_MAX_CYCLES}
 
-     **Findings to address (high + medium severity only):**
-     {DELTA_FINDINGS_JSON}
+     **Delta findings to address (new + changed severity, high + medium only):**
+     {DELTA_FINDINGS}
+
+     Findings already addressed (no longer present in latest review) have been
+     excluded. Focus only on the items listed above.
 
      Instructions:
      1. Read the plan at {plan_path}
@@ -149,14 +181,11 @@ ARCH_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model architect .yolo-planning/conf
      3. Overwrite the original PLAN.md with your revised version
      4. Preserve the YAML frontmatter structure
      5. Do NOT change the plan's scope — only fix the identified issues
-
-     Note: You share the "planning" Tier 2 cache with the Reviewer.
-     Only the Tier 3 delta (these findings) changes between iterations.
    activeForm: "Revising plan {NN-MM} (cycle {REVIEW_CYCLE})"
    model: "${ARCH_MODEL}"
    ```
 
-   d. After Architect completes, re-run review on the revised plan:
+   e. After Architect completes, re-run review on the revised plan:
    ```bash
    REVIEW_RESULT=$("$HOME/.cargo/bin/yolo" review-plan {plan_path} {phase_dir})
    VERDICT=$(echo "$REVIEW_RESULT" | jq -r '.verdict')
@@ -179,7 +208,7 @@ ARCH_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model architect .yolo-planning/conf
    "$HOME/.cargo/bin/yolo" log-event review_loop_cycle {phase} plan={NN-MM} cycle=${REVIEW_CYCLE} verdict=${VERDICT} high_count=${HIGH_COUNT} 2>/dev/null || true
    ```
 
-   e. Parse new verdict:
+   f. Parse new verdict:
       - `verdict: "approve"` -- Exit loop. Display `✓ Plan {NN-MM} review: approved (cycle {REVIEW_CYCLE}/{max})`. Update execution-state and log:
         ```bash
         jq --arg plan "{NN-MM}" '.review_loops[$plan].status = "passed"' \
