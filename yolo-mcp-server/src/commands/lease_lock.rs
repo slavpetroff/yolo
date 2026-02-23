@@ -1,3 +1,4 @@
+use super::domain_types::ResourceId;
 use super::feature_flags::{self, FeatureFlag};
 use chrono::Utc;
 use serde_json::{json, Value};
@@ -47,11 +48,12 @@ fn is_expired(lock_data: &Value) -> bool {
 }
 
 /// Acquire a lease lock with TTL.
-pub fn acquire(resource: &str, owner: &str, ttl_secs: u64, cwd: &Path) -> Result<Value, Value> {
+pub fn acquire(resource: &ResourceId, owner: &str, ttl_secs: u64, cwd: &Path) -> Result<Value, Value> {
+    let resource_str = resource.as_str();
     let dir = locks_dir(cwd);
     let _ = fs::create_dir_all(&dir);
 
-    let filename = lock_filename(resource);
+    let filename = lock_filename(resource_str);
     let lock_path = dir.join(format!("{}.lease", filename));
 
     // Check existing lease
@@ -70,7 +72,7 @@ pub fn acquire(resource: &str, owner: &str, ttl_secs: u64, cwd: &Path) -> Result
                 return Err(json!({
                     "action": "acquire",
                     "result": "conflict",
-                    "resource": resource,
+                    "resource": resource_str,
                     "held_by": existing_owner,
                     "requested_by": owner,
                     "hard_enforcement": hard,
@@ -81,7 +83,7 @@ pub fn acquire(resource: &str, owner: &str, ttl_secs: u64, cwd: &Path) -> Result
 
     let ts = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
     let lock_data = json!({
-        "resource": resource,
+        "resource": resource_str,
         "owner": owner,
         "acquired_at": ts,
         "ttl_secs": ttl_secs,
@@ -94,7 +96,7 @@ pub fn acquire(resource: &str, owner: &str, ttl_secs: u64, cwd: &Path) -> Result
     Ok(json!({
         "action": "acquire",
         "result": "acquired",
-        "resource": resource,
+        "resource": resource_str,
         "owner": owner,
         "acquired_at": ts,
         "ttl_secs": ttl_secs,
@@ -102,16 +104,17 @@ pub fn acquire(resource: &str, owner: &str, ttl_secs: u64, cwd: &Path) -> Result
 }
 
 /// Renew an existing lease lock, resetting its TTL.
-pub fn renew(resource: &str, owner: &str, ttl_secs: u64, cwd: &Path) -> Result<Value, Value> {
+pub fn renew(resource: &ResourceId, owner: &str, ttl_secs: u64, cwd: &Path) -> Result<Value, Value> {
+    let resource_str = resource.as_str();
     let dir = locks_dir(cwd);
-    let filename = lock_filename(resource);
+    let filename = lock_filename(resource_str);
     let lock_path = dir.join(format!("{}.lease", filename));
 
     if !lock_path.exists() {
         return Err(json!({
             "action": "renew",
             "result": "not_held",
-            "resource": resource,
+            "resource": resource_str,
         }));
     }
 
@@ -121,7 +124,7 @@ pub fn renew(resource: &str, owner: &str, ttl_secs: u64, cwd: &Path) -> Result<V
             return Err(json!({
                 "action": "renew",
                 "result": "not_owner",
-                "resource": resource,
+                "resource": resource_str,
                 "held_by": existing_owner,
                 "requested_by": owner,
             }));
@@ -130,7 +133,7 @@ pub fn renew(resource: &str, owner: &str, ttl_secs: u64, cwd: &Path) -> Result<V
 
     let ts = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
     let lock_data = json!({
-        "resource": resource,
+        "resource": resource_str,
         "owner": owner,
         "acquired_at": ts,
         "ttl_secs": ttl_secs,
@@ -143,7 +146,7 @@ pub fn renew(resource: &str, owner: &str, ttl_secs: u64, cwd: &Path) -> Result<V
     Ok(json!({
         "action": "renew",
         "result": "renewed",
-        "resource": resource,
+        "resource": resource_str,
         "owner": owner,
         "acquired_at": ts,
         "ttl_secs": ttl_secs,
@@ -151,16 +154,17 @@ pub fn renew(resource: &str, owner: &str, ttl_secs: u64, cwd: &Path) -> Result<V
 }
 
 /// Release a lease lock.
-pub fn release(resource: &str, owner: &str, cwd: &Path) -> Result<Value, Value> {
+pub fn release(resource: &ResourceId, owner: &str, cwd: &Path) -> Result<Value, Value> {
+    let resource_str = resource.as_str();
     let dir = locks_dir(cwd);
-    let filename = lock_filename(resource);
+    let filename = lock_filename(resource_str);
     let lock_path = dir.join(format!("{}.lease", filename));
 
     if !lock_path.exists() {
         return Ok(json!({
             "action": "release",
             "result": "not_held",
-            "resource": resource,
+            "resource": resource_str,
         }));
     }
 
@@ -170,7 +174,7 @@ pub fn release(resource: &str, owner: &str, cwd: &Path) -> Result<Value, Value> 
             return Err(json!({
                 "action": "release",
                 "result": "not_owner",
-                "resource": resource,
+                "resource": resource_str,
                 "held_by": existing_owner,
                 "requested_by": owner,
             }));
@@ -183,7 +187,7 @@ pub fn release(resource: &str, owner: &str, cwd: &Path) -> Result<Value, Value> 
     Ok(json!({
         "action": "release",
         "result": "released",
-        "resource": resource,
+        "resource": resource_str,
         "owner": owner,
     }))
 }
@@ -250,7 +254,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
     match action.as_str() {
         "acquire" => {
-            let res = resource.ok_or("Missing resource argument")?;
+            let res = ResourceId::new(resource.ok_or("Missing resource argument")?);
             match acquire(&res, &owner, ttl_secs, cwd) {
                 Ok(v) => Ok((v.to_string(), 0)),
                 Err(v) => {
@@ -260,14 +264,14 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
             }
         }
         "release" => {
-            let res = resource.ok_or("Missing resource argument")?;
+            let res = ResourceId::new(resource.ok_or("Missing resource argument")?);
             match release(&res, &owner, cwd) {
                 Ok(v) => Ok((v.to_string(), 0)),
                 Err(v) => Ok((v.to_string(), 1)),
             }
         }
         "renew" => {
-            let res = resource.ok_or("Missing resource argument")?;
+            let res = ResourceId::new(resource.ok_or("Missing resource argument")?);
             match renew(&res, &owner, ttl_secs, cwd) {
                 Ok(v) => Ok((v.to_string(), 0)),
                 Err(v) => Ok((v.to_string(), 1)),
@@ -285,6 +289,10 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    fn rid(s: &str) -> ResourceId {
+        ResourceId::new(s)
+    }
 
     fn setup_test_env(lock_enabled: bool, hard_gates: bool) -> TempDir {
         let dir = TempDir::new().unwrap();
@@ -307,19 +315,19 @@ mod tests {
     #[test]
     fn test_acquire_and_release() {
         let dir = setup_test_env(true, false);
-        let result = acquire("src/main.rs", "dev-1", 300, dir.path()).unwrap();
+        let result = acquire(&rid("src/main.rs"), "dev-1", 300, dir.path()).unwrap();
         assert_eq!(result["result"], "acquired");
         assert_eq!(result["ttl_secs"], 300);
 
-        let result = release("src/main.rs", "dev-1", dir.path()).unwrap();
+        let result = release(&rid("src/main.rs"), "dev-1", dir.path()).unwrap();
         assert_eq!(result["result"], "released");
     }
 
     #[test]
     fn test_acquire_conflict() {
         let dir = setup_test_env(true, false);
-        acquire("src/main.rs", "dev-1", 300, dir.path()).unwrap();
-        let result = acquire("src/main.rs", "dev-2", 300, dir.path());
+        acquire(&rid("src/main.rs"), "dev-1", 300, dir.path()).unwrap();
+        let result = acquire(&rid("src/main.rs"), "dev-2", 300, dir.path());
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert_eq!(err["result"], "conflict");
@@ -341,7 +349,7 @@ mod tests {
         fs::write(lock_dir.join("src__main.rs.lease"), serde_json::to_string_pretty(&lock_data).unwrap()).unwrap();
 
         // Should succeed because old lease is expired
-        let result = acquire("src/main.rs", "dev-2", 300, dir.path()).unwrap();
+        let result = acquire(&rid("src/main.rs"), "dev-2", 300, dir.path()).unwrap();
         assert_eq!(result["result"], "acquired");
         assert_eq!(result["owner"], "dev-2");
     }
@@ -349,8 +357,8 @@ mod tests {
     #[test]
     fn test_renew() {
         let dir = setup_test_env(true, false);
-        acquire("src/main.rs", "dev-1", 300, dir.path()).unwrap();
-        let result = renew("src/main.rs", "dev-1", 600, dir.path()).unwrap();
+        acquire(&rid("src/main.rs"), "dev-1", 300, dir.path()).unwrap();
+        let result = renew(&rid("src/main.rs"), "dev-1", 600, dir.path()).unwrap();
         assert_eq!(result["result"], "renewed");
         assert_eq!(result["ttl_secs"], 600);
     }
@@ -358,7 +366,7 @@ mod tests {
     #[test]
     fn test_renew_not_held() {
         let dir = setup_test_env(true, false);
-        let result = renew("src/main.rs", "dev-1", 300, dir.path());
+        let result = renew(&rid("src/main.rs"), "dev-1", 300, dir.path());
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert_eq!(err["result"], "not_held");
@@ -367,8 +375,8 @@ mod tests {
     #[test]
     fn test_renew_wrong_owner() {
         let dir = setup_test_env(true, false);
-        acquire("src/main.rs", "dev-1", 300, dir.path()).unwrap();
-        let result = renew("src/main.rs", "dev-2", 300, dir.path());
+        acquire(&rid("src/main.rs"), "dev-1", 300, dir.path()).unwrap();
+        let result = renew(&rid("src/main.rs"), "dev-2", 300, dir.path());
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert_eq!(err["result"], "not_owner");
@@ -413,7 +421,7 @@ mod tests {
     #[test]
     fn test_hard_gates_enforcement() {
         let dir = setup_test_env(true, true);
-        acquire("src/main.rs", "dev-1", 300, dir.path()).unwrap();
+        acquire(&rid("src/main.rs"), "dev-1", 300, dir.path()).unwrap();
 
         // With hard gates enabled, conflict should return exit code 2
         let args = vec![
@@ -428,7 +436,7 @@ mod tests {
     #[test]
     fn test_soft_gates_enforcement() {
         let dir = setup_test_env(true, false);
-        acquire("src/main.rs", "dev-1", 300, dir.path()).unwrap();
+        acquire(&rid("src/main.rs"), "dev-1", 300, dir.path()).unwrap();
 
         // Without hard gates, conflict returns exit code 1
         let args = vec![
@@ -456,9 +464,9 @@ mod tests {
     #[test]
     fn test_reentrant_acquire_renews() {
         let dir = setup_test_env(true, false);
-        acquire("src/main.rs", "dev-1", 300, dir.path()).unwrap();
+        acquire(&rid("src/main.rs"), "dev-1", 300, dir.path()).unwrap();
         // Same owner re-acquires → should renew
-        let result = acquire("src/main.rs", "dev-1", 600, dir.path()).unwrap();
+        let result = acquire(&rid("src/main.rs"), "dev-1", 600, dir.path()).unwrap();
         assert_eq!(result["result"], "renewed");
         assert_eq!(result["ttl_secs"], 600);
     }
@@ -466,7 +474,7 @@ mod tests {
     #[test]
     fn test_release_not_held() {
         let dir = setup_test_env(true, false);
-        let result = release("src/main.rs", "dev-1", dir.path()).unwrap();
+        let result = release(&rid("src/main.rs"), "dev-1", dir.path()).unwrap();
         assert_eq!(result["result"], "not_held");
     }
 

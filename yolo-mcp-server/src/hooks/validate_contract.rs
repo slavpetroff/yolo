@@ -4,6 +4,8 @@ use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::types::ContractValidationInput;
+
 /// Validates a task against its contract sidecar.
 ///
 /// Modes:
@@ -207,27 +209,11 @@ fn emit_violation(violation_type: &str, detail: &str, phase: u64) {
 /// Hook entry point: wraps validate_contract for use from the hook dispatcher.
 /// Takes hook JSON input, extracts mode/contract_path/task_num/files from it.
 pub fn validate_contract_hook(input: &Value) -> (Value, i32) {
-    let mode = input
-        .get("mode")
-        .and_then(|v| v.as_str())
-        .unwrap_or("start");
-    let contract_path = input
-        .get("contract_path")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-    let task_num = input
-        .get("task_number")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0) as u32;
-    let modified_files: Vec<String> = input
-        .get("modified_files")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str().map(String::from))
-                .collect()
-        })
-        .unwrap_or_default();
+    let typed = ContractValidationInput::from_value(input);
+    let mode = typed.mode.as_deref().unwrap_or("start");
+    let contract_path = typed.contract_path.as_deref().unwrap_or("");
+    let task_num = typed.task_number.unwrap_or(0);
+    let modified_files = typed.modified_files.unwrap_or_default();
 
     let (msg, code) = validate_contract(mode, contract_path, task_num, &modified_files);
 
