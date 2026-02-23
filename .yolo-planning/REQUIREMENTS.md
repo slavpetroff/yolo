@@ -1,28 +1,31 @@
 # Requirements
 
-Defined: 2026-02-21
+Defined: 2026-02-23
 
 ## Requirements
 
-### REQ-01: Hybrid 2-tier cache prefix: shared base (Tier 1) + role-family (Tier 2) + volatile tail (Tier 3)
+### REQ-01: Fix all failing tests (3 failures in validate-commit.bats and vibe-mode-split.bats)
 **Must-have**
 
-### REQ-02: Token economics dashboard with per-agent cost, cache hit rates, waste identification, and ROI metrics
+### REQ-02: Audit Rust CLI commands and arguments for completeness — ensure no LLM calls needed for deterministic operations
 **Must-have**
 
-### REQ-03: CLAUDE.md moderate pruning to ~40 lines with verbose sections moved to on-demand skills
+### REQ-03: Create new Rust commands for deterministic work currently done in MD (frontmatter parsing, progress compilation, git state, plugin root resolution)
+**Must-have**
+
+### REQ-04: Enhance existing Rust commands with additional flags to avoid LLM reasoning (phase-detect --suggest-route, resolve-model --with-cost)
+**Must-have**
+
+### REQ-05: Compress agent instruction files to eliminate verbose boilerplate and redundant protocol descriptions
 **Should-have**
 
-### REQ-04: Selective migration of largest protocol references to skills system
+### REQ-06: Revise command markdown files to call Rust CLI instead of inline shell/jq patterns
 **Should-have**
 
-### REQ-05: Hook-based automation for linting, test validation, cache warming, and compaction triggers
-**Should-have**
-
-### REQ-06: Subagent isolation patterns for research and verification to protect main context
+### REQ-07: Consolidate repeated patterns across 23+ command files (plugin root, model resolution, phase progress)
 **Should-have**
 
 ## Out of Scope
-
-_(To be defined)_
-
+- New features unrelated to token efficiency
+- Changes to MCP server protocol
+- UI/UX redesign of output formats

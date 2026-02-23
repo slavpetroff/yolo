@@ -1,8 +1,8 @@
-# Token & Cache Architecture Optimization
+# Token Efficiency: Rust Offload & Instruction Compression
 
-Deeply analyze and optimize the YOLO plugin architecture for maximum token efficiency, LLM cache utilization, and output quality — leveraging all Claude Code utilities, best practices, and patterns for the highest possible ROI from AI-assisted development workflows
+Maximize token efficiency by offloading all deterministic LLM work to the Rust binary, fixing failing tests, and compressing agent/command instructions to eliminate wasted tokens.
 
-**Core value:** Deeply analyze and optimize the YOLO plugin architecture for maximum token efficiency, LLM cache utilization, and output quality — leveraging all Claude Code utilities, best practices, and patterns for the highest possible ROI from AI-assisted development workflows
+**Core value:** Every token spent on deterministic work (state parsing, file discovery, progress counting, frontmatter extraction, cost math) is a token wasted. Move it to Rust. Compress what remains.
 
 ## Requirements
 
@@ -13,8 +13,10 @@ Deeply analyze and optimize the YOLO plugin architecture for maximum token effic
 ### Out of Scope
 
 ## Constraints
-- **Zero dependencies**: No package.json, npm, or build step
-- **Bash + Markdown only**: All logic in shell scripts and markdown commands
+- All new Rust commands must follow existing CLI router pattern
+- No breaking changes to existing command interfaces
+- Tests must pass after each phase
+- Agent instructions must remain functional after compression
 
 ## Key Decisions
 
