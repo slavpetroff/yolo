@@ -8,53 +8,21 @@ YOLO spawns 7 specialized agents (Lead, Dev, QA, Scout, Debugger, Architect, Doc
 
 ## Preset Profiles
 
-### Quality (default)
+- **Quality** (default): Architecture decisions, production-critical work, anything embarrassing to get wrong. Est. ~$2.80/phase.
+- **Balanced**: Standard development work, most phases. Est. ~$1.40/phase (50% of Quality).
+- **Budget**: Prototyping, exploratory work, tight budget constraints. Est. ~$0.70/phase (25% of Quality).
 
-**Use when:** Architecture decisions, production-critical work, anything embarrassing to get wrong.
+### Model Assignment
 
-| Agent     | Model  | Rationale                                                      |
-| --------- | ------ | -------------------------------------------------------------- |
-| Lead      | opus   | Maximum planning depth and research quality                    |
-| Dev       | opus   | Complex implementation, deep reasoning                         |
-| QA        | sonnet | Solid verification without Opus cost                           |
-| Scout     | haiku  | Research throughput, 60x cheaper                               |
-| Debugger  | opus   | Root cause analysis needs deep reasoning                       |
-| Architect | opus   | Roadmap and phase structure requires strategic thinking        |
-| Docs      | sonnet | Documentation tasks benefit from clear prose without Opus cost |
-
-**Est. cost per phase:** ~$2.80 (baseline)
-
-### Balanced
-
-**Use when:** Standard development work, most phases.
-
-| Agent     | Model  | Rationale                                   |
-| --------- | ------ | ------------------------------------------- |
-| Lead      | sonnet | Good planning quality, 5x cheaper than Opus |
-| Dev       | sonnet | Solid implementation for most tasks         |
-| QA        | sonnet | Standard verification depth                 |
-| Scout     | haiku  | Research throughput, cost-effective         |
-| Debugger  | sonnet | Good debugging for common issues            |
-| Architect | sonnet | Clear roadmaps without Opus overhead        |
-| Docs      | sonnet | Standard documentation quality              |
-
-**Est. cost per phase:** ~$1.40 (50% of Quality)
-
-### Budget
-
-**Use when:** Prototyping, exploratory work, tight budget constraints.
-
-| Agent     | Model  | Rationale                                |
-| --------- | ------ | ---------------------------------------- |
-| Lead      | sonnet | Minimum viable planning (Haiku too weak) |
-| Dev       | sonnet | Maintains code quality baseline          |
-| QA        | haiku  | Quick verification, 25x cheaper          |
-| Scout     | haiku  | Fast research, minimal cost              |
-| Debugger  | sonnet | Root cause needs Sonnet minimum          |
-| Architect | sonnet | Roadmap clarity worth Sonnet cost        |
-| Docs      | sonnet | Maintains documentation quality baseline |
-
-**Est. cost per phase:** ~$0.70 (25% of Quality, 50% of Balanced)
+| Agent     | Quality | Balanced | Budget |
+| --------- | ------- | -------- | ------ |
+| Lead      | opus    | sonnet   | sonnet |
+| Dev       | opus    | sonnet   | sonnet |
+| QA        | sonnet  | sonnet   | haiku  |
+| Scout     | haiku   | haiku    | haiku  |
+| Debugger  | opus    | sonnet   | sonnet |
+| Architect | opus    | sonnet   | sonnet |
+| Docs      | sonnet  | sonnet   | sonnet |
 
 ## Per-Agent Overrides
 
