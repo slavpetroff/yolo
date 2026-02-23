@@ -2,15 +2,14 @@
 
 **Project:** YOLO Plugin
 **Milestone:** Workflow Integrity Enforcement
-**Phase:** 2 — QA Gate — Agent-Based Verification
-**Status:** Complete (2 plans, 3 tasks, 3 commits)
+**Phase:** 3 — Context Integrity — Architecture Persistence & Step Ordering
+**Status:** Complete (3 plans, 4 tasks, 4 commits)
 
 ## Decisions
-- Two-stage QA: CLI commands (data collection) → QA agent (adversarial verification)
-- CLI all-pass fast-path: skip agent when all 5 CLI checks pass
-- Agent can override CLI fixable_by classification
-- Finding IDs use `q-` prefix (distinct from reviewer's `f-` prefix)
-- Plans are wave 1 (parallel, disjoint files)
+- 3 plans, all wave 1 (parallel, disjoint files: tier_context.rs / SKILL.md / yolo-lead.md)
+- Step-ordering: append-only array in execution-state.json, validated at Step 5
+- Delegation reinforcement: 5 anchor points in SKILL.md + dedicated section in Lead agent
+- CLI all-pass fast-path triggered: QA agent spawn skipped
 
 ## Todos
 None.
