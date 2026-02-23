@@ -50,8 +50,8 @@
   "v2_role_isolation": false,
   "v2_two_phase_completion": false,
   "v2_token_budgets": true,
-  "review_gate": "on_request",
-  "qa_gate": "on_request",
+  "review_gate": "always",
+  "qa_gate": "always",
   "review_max_cycles": 3,
   "qa_max_cycles": 3
 }
