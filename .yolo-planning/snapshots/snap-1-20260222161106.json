@@ -1,0 +1,29 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "aqic-phase1-exec",
+    "phase": 1,
+    "phase_name": "mcp-hygiene-compression",
+    "plans": [
+      {
+        "id": "01-01",
+        "status": "in_progress",
+        "title": "Add markdown minification and compression CLI commands",
+        "wave": 1
+      },
+      {
+        "id": "01-02",
+        "status": "in_progress",
+        "title": "Document MCP hybrid pattern and wire archive pruning",
+        "wave": 1
+      }
+    ],
+    "started_at": "2026-02-23T00:45:00Z",
+    "status": "executing",
+    "total_waves": 1,
+    "wave": 1
+  },
+  "matcher": "auto",
+  "phase": "1",
+  "timestamp": "2026-02-22T16:11:06Z"
+}

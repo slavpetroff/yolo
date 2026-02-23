@@ -1,0 +1,29 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "bcdd1140-phase6-exec",
+    "phase": 6,
+    "phase_name": "critical-protocol-fixes",
+    "plans": [
+      {
+        "id": "06-01",
+        "status": "complete",
+        "title": "Fix token-budget pipeline and SUMMARY.md ownership spec",
+        "wave": 1
+      },
+      {
+        "id": "06-02",
+        "status": "complete",
+        "title": "Fix README and STACK.md stale claims",
+        "wave": 1
+      }
+    ],
+    "started_at": "2026-02-22T23:15:00Z",
+    "status": "complete",
+    "total_waves": 1,
+    "wave": 1
+  },
+  "matcher": "auto",
+  "phase": "6",
+  "timestamp": "2026-02-22T15:19:22Z"
+}

@@ -1,0 +1,32 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "completed_at": null,
+    "correlation_id": "qgfl-phase1-exec",
+    "phase": 1,
+    "phase_name": "loop-config-structured-feedback",
+    "plans": [
+      {
+        "commits": 0,
+        "id": "01-01",
+        "status": "in_progress",
+        "title": "Add loop config keys and enhance review_plan.rs with actionable feedback",
+        "wave": 1
+      },
+      {
+        "commits": 0,
+        "id": "01-02",
+        "status": "in_progress",
+        "title": "Add fixable_by classification to all QA commands and bats tests",
+        "wave": 1
+      }
+    ],
+    "started_at": "2026-02-23T01:00:00Z",
+    "status": "running",
+    "total_waves": 1,
+    "wave": 1
+  },
+  "matcher": "auto",
+  "phase": "1",
+  "timestamp": "2026-02-23T07:35:39Z"
+}
