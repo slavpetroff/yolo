@@ -72,17 +72,21 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
         // Read config + profiles
         let (config, profiles, profile_name) = load_config_and_profiles(config_path, profiles_path)?;
 
-        // Build JSON object for all agents
+        // Build JSON object for all agents (skip agents missing from profile)
         let mut map = serde_json::Map::new();
         for &agent in VALID_AGENTS {
-            let model = resolve_agent_model(agent, &config, &profiles, &profile_name)?;
-            if with_cost {
-                let mut inner = serde_json::Map::new();
-                inner.insert("model".to_string(), serde_json::Value::String(model.clone()));
-                inner.insert("cost_weight".to_string(), serde_json::Value::Number(cost_weight(&model).into()));
-                map.insert(agent.to_string(), serde_json::Value::Object(inner));
-            } else {
-                map.insert(agent.to_string(), serde_json::Value::String(model));
+            match resolve_agent_model(agent, &config, &profiles, &profile_name) {
+                Ok(model) => {
+                    if with_cost {
+                        let mut inner = serde_json::Map::new();
+                        inner.insert("model".to_string(), serde_json::Value::String(model.clone()));
+                        inner.insert("cost_weight".to_string(), serde_json::Value::Number(cost_weight(&model).into()));
+                        map.insert(agent.to_string(), serde_json::Value::Object(inner));
+                    } else {
+                        map.insert(agent.to_string(), serde_json::Value::String(model));
+                    }
+                }
+                Err(_) => continue, // Agent not in profile, skip
             }
         }
         let result = serde_json::to_string(&serde_json::Value::Object(map))

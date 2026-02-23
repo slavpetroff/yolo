@@ -81,3 +81,24 @@ teardown() {
   echo "$output" | grep -q "config_effort=balanced"
   echo "$output" | grep -q "config_autonomy=standard"
 }
+
+@test "phase-detect --suggest-route: init when no project" {
+  rm -rf .yolo-planning/PROJECT.md
+  run "$YOLO_BIN" phase-detect --suggest-route
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q "suggested_route="
+}
+
+@test "phase-detect --suggest-route: plan when needs planning" {
+  echo "# Proj" > .yolo-planning/PROJECT.md
+  mkdir -p .yolo-planning/phases/01-test/
+  run "$YOLO_BIN" phase-detect --suggest-route
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q "suggested_route=plan"
+}
+
+@test "phase-detect: no suggested_route without flag" {
+  run "$YOLO_BIN" phase-detect
+  [ "$status" -eq 0 ]
+  ! echo "$output" | grep -q "suggested_route"
+}
