@@ -674,7 +674,7 @@ After all tasks in a plan complete, the Dev agent MUST write `{phase-dir}/{NN-MM
 
 If SUMMARY.md is missing or invalid, the plan is NOT considered complete. The Lead must not update execution-state.json to `"complete"` until this gate passes.
 
-### Step 3d: QA gate verification (optional)
+### Step 3d: QA gate verification
 
 **Activation:** Read `qa_gate` from config:
 ```bash
@@ -689,7 +689,19 @@ QA_GATE=$(jq -r '.qa_gate // "on_request"' .yolo-planning/config.json 2>/dev/nul
 
 **When active:**
 
-For each completed plan in the phase, run the following verification commands:
+**Resolve QA agent model** (once, before plan loop):
+```bash
+QA_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model qa .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+if [ $? -ne 0 ]; then echo "$QA_MODEL" >&2; QA_MODEL=""; fi
+QA_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns qa .yolo-planning/config.json "{effort}")
+if [ $? -ne 0 ]; then QA_MAX_TURNS=25; fi
+```
+
+For each completed plan in the phase, run **two-stage QA verification**:
+
+#### Stage 1 -- CLI data collection
+
+Run the following 5 verification commands as data collectors:
 
 1. **Verify plan completion:**
 ```bash
@@ -721,17 +733,12 @@ Check: must_haves from plan have evidence in SUMMARY/code.
 ```
 Check: test count hasn't decreased.
 
-**Aggregate results and QA feedback loop:**
+**Aggregate CLI results:**
 
-Read `qa_max_cycles` from config (default 3):
+Run all 5 CLI commands above. Collect results into a structured report:
 ```bash
-QA_MAX_CYCLES=$(jq -r '.qa_max_cycles // 3' .yolo-planning/config.json 2>/dev/null)
-```
-
-Run all 5 QA commands above. Collect results into a structured report:
-```bash
-QA_REPORT='{"passed": true, "checks": []}'
-# For each check, capture exit code and output, append to QA_REPORT.checks[]
+CLI_QA_REPORT='{"passed": true, "checks": []}'
+# For each check, capture exit code and output, append to CLI_QA_REPORT.checks[]
 # Each check entry: {"name": "{check_name}", "status": "pass|fail", "evidence": "...", "fixable_by": "{dev|architect|manual}"}
 ```
 
@@ -742,9 +749,77 @@ QA_REPORT='{"passed": true, "checks": []}'
 - `validate-requirements` → `"dev"` (Dev can add evidence to SUMMARY.md)
 - `check-regression` → `"architect"` (test count decrease is a plan-level issue)
 
-**If ALL checks pass** (exit 0): Display `✓ QA verification passed` and proceed to Step 4.
+**Fast-path optimization:** If ALL 5 CLI commands pass (exit 0), skip agent spawn entirely. Display `✓ QA verification passed (CLI)` and proceed to Step 4. Agent adds value on failures, not on clean passes.
 
-**If ANY check fails** (exit 1): Categorize failures:
+#### Stage 2 -- QA agent spawn
+
+When ANY CLI check fails, spawn `yolo-qa` agent via Task tool with `subagent_type: "yolo:yolo-qa"`. Pass plan path, summary path, phase directory, and ALL CLI outputs as structured data. The agent's QA REPORT becomes the gate verdict.
+
+**Agent spawn template (initial QA):**
+```
+subject: "QA verification for plan {NN-MM}"
+description: |
+  {EXECUTION_CONTEXT}
+
+  Verify this plan's delivery adversarially.
+
+  **Plan path:** {plan_path}
+  **Summary path:** {summary_path}
+  **Phase directory:** {phase_dir}
+
+  **CLI verification results (Stage 1 data):**
+  {CLI_QA_REPORT}
+
+  Follow your Core Protocol:
+  1. Read SUMMARY.md files from the completed plan directory
+  2. Cross-reference CLI findings with actual codebase
+  3. Run verification commands yourself if you need additional data
+  4. Analyze adversarially — verify claims, check for subtle issues
+  5. Produce structured QA REPORT
+
+activeForm: "QA verifying plan {NN-MM}"
+model: "${QA_MODEL}"
+maxTurns: ${QA_MAX_TURNS}
+subagent_type: "yolo:yolo-qa"
+```
+
+**Report parsing from agent output:**
+- Extract `QA REPORT:` block from agent completion message
+- Parse `passed:`, `remediation_eligible:`, `checks:`, `hard_stop_reasons:`, `dev_fixable_failures:` fields
+- Convert checks into JSON array matching `CLI_QA_REPORT.checks[]` format: `{"name": "...", "status": "pass|fail", "evidence": "...", "fixable_by": "dev|architect|manual"}`
+- Agent can override CLI `fixable_by` classification (agent has more context from codebase cross-referencing)
+- If parsing fails (agent didn't follow format): treat as if agent returned CLI results unchanged, with a warning about unparseable report
+
+```bash
+# Extract QA REPORT block from agent completion
+AGENT_PASSED=$(echo "$AGENT_OUTPUT" | grep -oP '(?<=passed:\s)(true|false)' | head -1)
+AGENT_REMEDIATION=$(echo "$AGENT_OUTPUT" | grep -oP '(?<=remediation_eligible:\s)(true|false)' | head -1)
+AGENT_HARD_STOPS=$(echo "$AGENT_OUTPUT" | sed -n '/^hard_stop_reasons:/,/^[a-z_]*:/p' | tail -n +2 | head -n -1)
+AGENT_CHECKS_RAW=$(echo "$AGENT_OUTPUT" | sed -n '/^checks:/,/^hard_stop_reasons:/p' | tail -n +2 | head -n -1)
+# Parse checks into JSON
+QA_REPORT=$(echo "$AGENT_CHECKS_RAW" | while IFS= read -r line; do
+  echo "$line" | sed -n 's/- name: \([^ ]*\) | status: \([^ ]*\) | fixable_by: \([^ ]*\).*/{"name":"\1","status":"\2","fixable_by":"\3"}/p'
+done | jq -s '{passed: '"${AGENT_PASSED:-false}"', remediation_eligible: '"${AGENT_REMEDIATION:-false}"', checks: .}')
+# Fallback if parsing fails
+if [ -z "$AGENT_PASSED" ]; then
+  echo "Warning: QA agent report unparseable — using CLI results"
+  QA_REPORT="$CLI_QA_REPORT"
+fi
+```
+
+**Agent spawn fallback:**
+- If agent spawn fails (Task tool error, timeout, no completion): fall back to CLI-only aggregation
+- Display: `Warning: QA agent unavailable -- falling back to CLI verification for plan {NN-MM}`
+- Log: `"$HOME/.cargo/bin/yolo" log-event qa_agent_fallback {phase} plan={NN-MM} reason={error} 2>/dev/null || true`
+- Use the CLI aggregation from Stage 1 as the gate verdict: `QA_REPORT="$CLI_QA_REPORT"`
+
+#### Two-stage verdict handling
+
+Use `QA_REPORT` (from agent or fallback) for all downstream logic. The `fixable_by` field in `QA_REPORT.checks[]` now comes from the agent (or CLI on fallback).
+
+**If ALL checks pass**: Display `✓ QA verification passed` and proceed to Step 4.
+
+**If ANY check fails**: Categorize failures:
 
 1. **HARD STOP checks:** If ANY failure has `fixable_by: "architect"` or `fixable_by: "manual"`:
    - Display `✗ QA verification HARD STOP — non-dev-fixable failures found`
@@ -752,6 +827,13 @@ QA_REPORT='{"passed": true, "checks": []}'
    - STOP execution. Return to user with: "QA found issues requiring {architect revision | manual intervention}. Fix and re-run `/yolo:vibe --execute {N}`"
 
 2. **Dev-fixable checks — enter remediation loop:**
+
+**QA feedback loop:**
+
+Read `qa_max_cycles` from config (default 3):
+```bash
+QA_MAX_CYCLES=$(jq -r '.qa_max_cycles // 3' .yolo-planning/config.json 2>/dev/null)
+```
 
    Initialize loop state:
    ```bash
