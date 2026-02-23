@@ -70,3 +70,4 @@ pub mod commit_lint;
 pub mod diff_against_plan;
 pub mod validate_requirements;
 pub mod verify_plan_completion;
+pub mod parse_frontmatter;
