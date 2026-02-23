@@ -138,6 +138,14 @@
       "type": "integer",
       "minimum": 1,
       "maximum": 10
+    },
+    "command_timeout_ms": {
+      "type": "integer",
+      "minimum": 1000
+    },
+    "task_lease_ttl_secs": {
+      "type": "integer",
+      "minimum": 1
     }
   },
   "additionalProperties": false
