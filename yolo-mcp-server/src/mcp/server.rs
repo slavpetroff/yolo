@@ -521,4 +521,184 @@ mod tests {
 
         let _ = std::fs::remove_file(&db_path);
     }
+
+    // --- Integration tests for retry and circuit breaker ---
+
+    #[tokio::test]
+    async fn test_non_retryable_error_not_retried() {
+        // "Unknown tool" errors should NOT be retried
+        let db_path = temp_db_path("retry-nonretry");
+        let _ = std::fs::remove_file(&db_path);
+        let telemetry = Arc::new(TelemetryDb::new(db_path.clone()).unwrap());
+        let tool_state = Arc::new(ToolState::new());
+
+        let req = Request {
+            jsonrpc: "2.0".to_string(),
+            id: json!(10),
+            method: "tools/call".to_string(),
+            params: Some(json!({
+                "name": "nonexistent_tool",
+                "arguments": {}
+            })),
+        };
+
+        let _ = handle_request(req, telemetry.clone(), tool_state, 80, default_cb(), default_rc()).await;
+
+        let conn = rusqlite::Connection::open(&db_path).unwrap();
+        let retry_count: i64 = conn.query_row(
+            "SELECT retry_count FROM tool_usage ORDER BY id DESC LIMIT 1",
+            [],
+            |row| row.get(0),
+        ).unwrap();
+
+        assert_eq!(retry_count, 0, "Non-retryable errors should have retry_count=0");
+
+        let _ = std::fs::remove_file(&db_path);
+    }
+
+    #[tokio::test]
+    async fn test_retry_telemetry_records_zero_for_success() {
+        // Successful tool calls should have retry_count=0
+        let db_path = temp_db_path("retry-success-tel");
+        let _ = std::fs::remove_file(&db_path);
+        let telemetry = Arc::new(TelemetryDb::new(db_path.clone()).unwrap());
+        let tool_state = Arc::new(ToolState::new());
+
+        let req = Request {
+            jsonrpc: "2.0".to_string(),
+            id: json!(11),
+            method: "tools/call".to_string(),
+            params: Some(json!({
+                "name": "acquire_lock",
+                "arguments": {"task_id": "T-01", "file_path": "test.rs"}
+            })),
+        };
+
+        let _ = handle_request(req, telemetry.clone(), tool_state, 100, default_cb(), default_rc()).await;
+
+        let conn = rusqlite::Connection::open(&db_path).unwrap();
+        let retry_count: i64 = conn.query_row(
+            "SELECT retry_count FROM tool_usage ORDER BY id DESC LIMIT 1",
+            [],
+            |row| row.get(0),
+        ).unwrap();
+
+        assert_eq!(retry_count, 0, "Successful calls should have retry_count=0");
+
+        let _ = std::fs::remove_file(&db_path);
+    }
+
+    #[tokio::test]
+    async fn test_circuit_breaker_returns_error_when_open() {
+        // Directly test that circuit breaker blocks calls when open
+        let tool_state = Arc::new(ToolState::new());
+        let config = RetryConfig { max_retries: 0, base_delay_ms: 1, max_delay_ms: 1 };
+        let cb = Arc::new(tokio::sync::Mutex::new(CircuitBreaker::new()));
+
+        // Manually open the circuit breaker for a tool
+        {
+            let mut breaker = cb.lock().await;
+            breaker.failure_threshold = 1;
+            breaker.record_failure("acquire_lock");
+        }
+
+        let (result, stats) = retry::retry_tool_call(
+            "acquire_lock",
+            Some(json!({"task_id": "T-01", "file_path": "test.rs"})),
+            tool_state,
+            &config,
+            cb,
+        ).await;
+
+        assert_eq!(result.get("isError").unwrap().as_bool().unwrap(), true);
+        let text = result["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains("Circuit breaker open"), "Expected circuit breaker message, got: {}", text);
+        assert_eq!(stats.attempts, 0);
+        assert!(stats.circuit_opened);
+    }
+
+    #[tokio::test]
+    async fn test_retry_with_lock_conflict() {
+        // acquire_lock conflict returns isError:true with "Conflict: Locked by" which IS retryable
+        let tool_state = Arc::new(ToolState::new());
+        let config = RetryConfig { max_retries: 2, base_delay_ms: 1, max_delay_ms: 1 };
+        let cb = Arc::new(tokio::sync::Mutex::new(CircuitBreaker::new()));
+
+        // First acquire the lock with T-01
+        let _ = crate::mcp::tools::handle_tool_call(
+            "acquire_lock",
+            Some(json!({"task_id": "T-01", "file_path": "contested.rs"})),
+            tool_state.clone(),
+        ).await;
+
+        // Now try to acquire with T-02 -- this will fail with retryable error each time
+        let (result, stats) = retry::retry_tool_call(
+            "acquire_lock",
+            Some(json!({"task_id": "T-02", "file_path": "contested.rs"})),
+            tool_state,
+            &config,
+            cb,
+        ).await;
+
+        assert_eq!(result.get("isError").unwrap().as_bool().unwrap(), true);
+        assert!(stats.retried, "Lock conflict should trigger retries");
+        // max_retries=2 means up to 3 total attempts (1 initial + 2 retries)
+        assert_eq!(stats.attempts, 3, "Should have 3 attempts (1 + 2 retries)");
+    }
+
+    #[tokio::test]
+    async fn test_circuit_breaker_opens_after_consecutive_failures() {
+        let tool_state = Arc::new(ToolState::new());
+        let config = RetryConfig { max_retries: 0, base_delay_ms: 1, max_delay_ms: 1 };
+        let cb = Arc::new(tokio::sync::Mutex::new(CircuitBreaker::new()));
+
+        // Set threshold low for test
+        {
+            let mut breaker = cb.lock().await;
+            breaker.failure_threshold = 3;
+        }
+
+        // First acquire the lock with T-01 to create conflict
+        let _ = crate::mcp::tools::handle_tool_call(
+            "acquire_lock",
+            Some(json!({"task_id": "T-01", "file_path": "cb-test.rs"})),
+            tool_state.clone(),
+        ).await;
+
+        // Make 3 failing calls (max_retries=0 so each is 1 attempt + immediate failure recorded)
+        for i in 0..3 {
+            let (result, _) = retry::retry_tool_call(
+                "acquire_lock",
+                Some(json!({"task_id": "T-02", "file_path": "cb-test.rs"})),
+                tool_state.clone(),
+                &config,
+                cb.clone(),
+            ).await;
+            assert_eq!(result.get("isError").unwrap().as_bool().unwrap(), true, "Call {} should fail", i);
+        }
+
+        // Circuit should now be open
+        let breaker = cb.lock().await;
+        assert!(breaker.is_open("acquire_lock"), "Circuit breaker should be open after 3 failures");
+    }
+
+    #[tokio::test]
+    async fn test_input_validation_errors_not_retried() {
+        // "No test_path" errors should NOT be retried
+        let tool_state = Arc::new(ToolState::new());
+        let config = RetryConfig { max_retries: 3, base_delay_ms: 1, max_delay_ms: 1 };
+        let cb = Arc::new(tokio::sync::Mutex::new(CircuitBreaker::new()));
+
+        let (result, stats) = retry::retry_tool_call(
+            "run_test_suite",
+            Some(json!({})),
+            tool_state,
+            &config,
+            cb,
+        ).await;
+
+        assert_eq!(result.get("isError").unwrap().as_bool().unwrap(), true);
+        assert_eq!(stats.attempts, 1, "Input validation error should not be retried");
+        assert!(!stats.retried);
+    }
 }
