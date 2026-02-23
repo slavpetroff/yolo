@@ -1,5 +1,4 @@
 use std::env;
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 use serde_json::json;
@@ -57,21 +56,20 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         }
     }
 
-    // Strategy 3: Binary location — parent of parent of current_exe
+    // Strategy 3: Binary location — grandparent of current_exe.
+    // This always succeeds when current_exe resolves, since the binary must reside in a directory.
     if let Ok(exe) = env::current_exe() {
         if let Some(parent) = exe.parent() {
             let grandparent = parent.parent().unwrap_or(parent);
-            if grandparent.is_dir() {
-                let elapsed = start.elapsed().as_millis();
-                let out = json!({
-                    "ok": true,
-                    "cmd": "resolve-plugin-root",
-                    "plugin_root": grandparent.to_string_lossy(),
-                    "resolved_via": "binary",
-                    "elapsed_ms": elapsed
-                });
-                return Ok((serde_json::to_string(&out).unwrap() + "\n", 0));
-            }
+            let elapsed = start.elapsed().as_millis();
+            let out = json!({
+                "ok": true,
+                "cmd": "resolve-plugin-root",
+                "plugin_root": grandparent.to_string_lossy(),
+                "resolved_via": "binary",
+                "elapsed_ms": elapsed
+            });
+            return Ok((serde_json::to_string(&out).unwrap() + "\n", 0));
         }
     }
 
@@ -82,6 +80,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
     use tempfile::tempdir;
 
     #[test]
