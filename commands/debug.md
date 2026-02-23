@@ -31,9 +31,13 @@ Recent commits:
   git log. Overrides: `--competing`/`--parallel` = always ambiguous;
   `--serial` = never.
 
-3. **Routing decision:** Read prefer_teams config:
+3. **Routing decision:** Read prefer_teams config and resolve Debugger model:
     ```bash
     PREFER_TEAMS=$(jq -r '.prefer_teams // "always"' .yolo-planning/config.json 2>/dev/null)
+    DEBUGGER_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+    if [ $? -ne 0 ]; then echo "$DEBUGGER_MODEL" >&2; exit 1; fi
+    DEBUGGER_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns debugger .yolo-planning/config.json "$EFFORT_PROFILE")
+    if [ $? -ne 0 ]; then echo "$DEBUGGER_MAX_TURNS" >&2; exit 1; fi
     ```
 
     Decision tree:
@@ -45,13 +49,6 @@ Recent commits:
 4. **Spawn investigation:**
     **Path A: Competing Hypotheses** (prefer_teams='always' OR (effort=high AND ambiguous)):
     - Generate 3 hypotheses (cause, codebase area, confirming evidence)
-    - Resolve Debugger model:
-        ```bash
-        DEBUGGER_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-        if [ $? -ne 0 ]; then echo "$DEBUGGER_MODEL" >&2; exit 1; fi
-        DEBUGGER_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns debugger .yolo-planning/config.json "$EFFORT_PROFILE")
-        if [ $? -ne 0 ]; then echo "$DEBUGGER_MAX_TURNS" >&2; exit 1; fi
-        ```
     - Display: `◆ Spawning Debugger (${DEBUGGER_MODEL})...`
     - Create Agent Team "debug-{timestamp}" via TeamCreate
     - Create 3 tasks via TaskCreate, each with: bug report, ONE hypothesis only (no cross-contamination), working dir, codebase bootstrap instruction ("If `.yolo-planning/codebase/META.md` exists, read ARCHITECTURE.md, CONCERNS.md, PATTERNS.md, and DEPENDENCIES.md (whichever exist) from `.yolo-planning/codebase/` to bootstrap codebase understanding before investigating"), instruction to report via `debugger_report` schema (see `${CLAUDE_PLUGIN_ROOT}/references/handoff-schemas.md`), instruction: "If investigation reveals pre-existing failures unrelated to this bug, list them in your response under a 'Pre-existing Issues' heading with test name, file, and failure message." **Include `[analysis-only]` in each task subject** (e.g., "Hypothesis 1: race condition in sync handler [analysis-only]") so the TaskCompleted hook skips the commit-verification gate for report-only tasks.
@@ -62,13 +59,6 @@ Recent commits:
     - **HARD GATE — Shutdown before presenting results:** Send `shutdown_request` to each teammate, wait for `shutdown_response` (approved=true), re-request if rejected, then TeamDelete. Only THEN present results to user. Failure to shut down leaves agents running and consuming API credits.
 
     **Path B: Standard** (all other cases):
-    - Resolve Debugger model:
-        ```bash
-        DEBUGGER_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model debugger .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
-        if [ $? -ne 0 ]; then echo "$DEBUGGER_MODEL" >&2; exit 1; fi
-        DEBUGGER_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns debugger .yolo-planning/config.json "$EFFORT_PROFILE")
-        if [ $? -ne 0 ]; then echo "$DEBUGGER_MAX_TURNS" >&2; exit 1; fi
-        ```
     - Display: `◆ Spawning Debugger (${DEBUGGER_MODEL})...`
     - Spawn yolo-debugger as subagent via Task tool. **Add `model: "${DEBUGGER_MODEL}"` and `maxTurns: ${DEBUGGER_MAX_TURNS}` parameters.**
         ```text
