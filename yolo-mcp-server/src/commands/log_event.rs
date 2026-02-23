@@ -28,6 +28,9 @@ const ALLOWED_EVENT_TYPES: &[&str] = &[
     "snapshot_restored", "state_recovered", "message_rejected",
     // Token tracking
     "agent_token_usage",
+    // Feedback loop events
+    "review_loop_start", "review_loop_cycle", "review_loop_end",
+    "qa_loop_start", "qa_loop_cycle", "qa_loop_end",
 ];
 
 /// Parse key=value pairs from a slice of args, also extracting the first non-kv arg as plan.
