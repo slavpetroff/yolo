@@ -31,6 +31,7 @@ Loaded on demand by /yolo:vibe Execute mode. Not a user-facing command.
   "phase": N, "phase_name": "{slug}", "status": "running",
   "started_at": "{ISO 8601}", "wave": 1, "total_waves": N,
   "correlation_id": "{UUID}",
+  "steps_completed": [],
   "plans": [{"id": "NN-MM", "title": "...", "wave": W, "status": "pending|complete"}]
 }
 ```
@@ -51,6 +52,13 @@ Log a confirmation: `◆ Correlation ID: {CORRELATION_ID}`
 - Exit 1: deps unsatisfied -- STOP with error from JSON output. Display errors from the `errors` array: "Cross-phase dependency not met. {error}. Fix: Run /yolo:vibe {P}"
 - Exit 2: partial -- STOP with details from JSON output
 - No cross_phase_deps in plan: command returns exit 0 with `checked: 0` -- skip silently
+
+**Track step completion:**
+```bash
+jq '.steps_completed += ["step_2"]' \
+  .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
+  mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+```
 
 ### Step 2b: Review gate
 
@@ -394,6 +402,13 @@ ARCH_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns architect .yolo-planning/
 
 **When inactive:** Display `○ Review gate skipped (review_gate: {value})` and proceed to Step 3.
 
+**Track step completion:**
+```bash
+jq '.steps_completed += ["step_2b"]' \
+  .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
+  mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+```
+
 ### Step 3: Create Agent Team and execute
 
 **Team creation (multi-agent only):**
@@ -646,6 +661,13 @@ RESULT=$("$HOME/.cargo/bin/yolo" two-phase-complete {task_id} {phase} {plan} {co
 
 - When `v2_two_phase_completion=false`: skip (direct task completion as before).
 
+**Track step completion:**
+```bash
+jq '.steps_completed += ["step_3"]' \
+  .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
+  mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+```
+
 ### Step 3c: SUMMARY.md verification gate (mandatory)
 
 After all tasks in a plan complete, the Dev agent MUST write `{phase-dir}/{NN-MM}-SUMMARY.md` using the template at `templates/SUMMARY.md`.
@@ -673,6 +695,13 @@ After all tasks in a plan complete, the Dev agent MUST write `{phase-dir}/{NN-MM
 4. At least one entry in `commit_hashes`
 
 If SUMMARY.md is missing or invalid, the plan is NOT considered complete. The Lead must not update execution-state.json to `"complete"` until this gate passes.
+
+**Track step completion:**
+```bash
+jq '.steps_completed += ["step_3c"]' \
+  .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
+  mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+```
 
 ### Step 3d: QA gate verification
 
@@ -1051,6 +1080,13 @@ Dev receives ONLY the specific failure details for each check — not the full Q
 
 **When inactive:** Display `○ QA gate skipped (qa_gate: {value})` and proceed to Step 4.
 
+**Track step completion:**
+```bash
+jq '.steps_completed += ["step_3d"]' \
+  .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
+  mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+```
+
 ### Step 4: Verification (Native Testing)
 
 Dev agents run tests inline via `run_test_suite` MCP command. No separate QA agent is spawned for verification.
@@ -1080,6 +1116,13 @@ If autonomy is confident or pure-vibe: display "○ UAT verification skipped (au
    - If issues found: display issue summary, suggest `/yolo:fix`, STOP (do not proceed to Step 5)
 
 Note: "Run inline" means the execute-protocol agent runs the verify protocol directly, not by invoking /yolo:verify as a command. The protocol is the same; the entry point differs.
+
+**Track step completion (conditional — only if UAT was active):**
+```bash
+jq '.steps_completed += ["step_4"]' \
+  .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
+  mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+```
 
 ### Step 5: Update state and present summary
 
