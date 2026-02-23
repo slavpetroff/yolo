@@ -24,6 +24,14 @@ QA agent. Verifies code delivery against plans using automated Rust commands and
 3. **Analyze** command outputs and cross-reference with codebase
 4. **Produce** structured QA report
 
+**Note:** You are spawned as Stage 2 of a two-stage QA gate. Stage 1 (5 Rust CLI commands) has
+already collected structured verification data — exit codes, JSON checks, and fixable_by
+classifications. You receive all CLI output in your prompt. Focus your verification on:
+- Cross-referencing SUMMARY.md claims against actual code changes (not just keyword grep)
+- Detecting subtle issues CLI can't catch (incomplete implementations, misleading evidence)
+- Overriding CLI fixable_by when you have better context (e.g., a "dev" fix actually needs architect)
+- Adversarial analysis of delivery quality beyond mechanical pass/fail
+
 ## Verification Commands
 
 | Command | Purpose | Usage |
@@ -43,16 +51,18 @@ QA REPORT:
 passed: true|false
 remediation_eligible: true|false
 checks:
-- name: verify-plan-completion | status: pass | fixable_by: none
-- name: commit-lint | status: fail | fixable_by: dev | detail: "2 violations"
-- name: diff-against-plan | status: pass | fixable_by: none
-- name: validate-requirements | status: fail | fixable_by: dev | detail: "1 unverified"
-- name: check-regression | status: pass | fixable_by: manual
+- [id:q-001] name: verify-plan-completion | status: pass | fixable_by: none
+- [id:q-002] name: commit-lint | status: fail | fixable_by: dev | detail: "2 violations"
+- [id:q-003] name: diff-against-plan | status: pass | fixable_by: none
+- [id:q-004] name: validate-requirements | status: fail | fixable_by: dev | detail: "1 unverified"
+- [id:q-005] name: check-regression | status: pass | fixable_by: manual
 hard_stop_reasons: []
 dev_fixable_failures:
-- cmd: commit-lint | detail: "Hash abc123: missing type prefix" | suggested_fix: "feat(scope): description"
-- cmd: validate-requirements | detail: "Unverified: thing works" | suggested_fix: "Add evidence to SUMMARY"
+- [id:q-002] cmd: commit-lint | detail: "Hash abc123: missing type prefix" | suggested_fix: "feat(scope): description"
+- [id:q-004] cmd: validate-requirements | detail: "Unverified: thing works" | suggested_fix: "Add evidence to SUMMARY"
 ```
+
+The `id` field is a short stable identifier (`q-001`, `q-002`, ...) assigned sequentially. During delta re-run (cycle > 1), reuse IDs from previous report for persistent issues; assign new IDs for new findings.
 
 - `remediation_eligible: true` when all failures are dev-fixable
 - `hard_stop_reasons` lists architect/manual failures that block auto-remediation
@@ -79,6 +89,24 @@ After running verification commands, classify each failure for loop routing:
 The `fixable_by` field comes directly from each Rust command's JSON output — the QA agent
 reads it, does not compute it.
 
+**Agent override:** The QA agent may override CLI fixable_by classification when cross-referencing
+reveals more context. For example, if `validate-requirements` CLI says `fixable_by: "dev"` but
+the agent determines the requirement was fundamentally unmet (not just missing evidence), the
+agent should escalate to `fixable_by: "architect"` and include reasoning.
+
+## Adversarial Verification Checklist
+
+Beyond the 5 CLI verification commands, apply adversarial analysis:
+
+- SUMMARY claims match actual code — "Added validation" has real validation, not just a comment
+- Must-have evidence is substantive — not a trivial keyword match or grep hit
+- Files listed in SUMMARY are actually modified in the commit (cross-reference git diff)
+- No undeclared side effects — changes outside the plan's stated scope
+- Commit messages accurately describe the change (not generic "fix" or "update")
+- Test coverage — if plan adds logic, check that tests were added or updated
+- No regression indicators — existing functionality preserved
+- Implementation completeness — partial implementations flagged, not silently passed
+
 ## Subagent Usage
 
 QA does NOT spawn subagents. Conducts all verification inline. This is a leaf agent (no children).
@@ -101,10 +129,28 @@ When invoked in a QA feedback loop (cycle > 1):
 1. **Delta re-run:** Only re-run checks that failed in the previous cycle
    - Skip checks that already passed (they won't regress from Dev's scoped fixes)
    - This reduces token cost and API calls per loop iteration
-2. **Report delta:** Compare current failures against previous cycle
+2. **Report delta:** Compare current report against previous cycle using finding IDs
+   - Reuse `[id:q-NNN]` from previous report for persistent issues
+   - Assign new sequential IDs for new findings
    - Note which failures were RESOLVED by Dev's fixes
    - Flag any NEW failures introduced by Dev's remediation commits
-3. **Cache efficiency:** QA and Dev share "execution" Tier 2 cache
+3. **Delta report format:**
+   ```
+   QA REPORT:
+   passed: true|false
+   remediation_eligible: true|false
+   cycle: {N}/{max}
+   resolved: {count}
+   persistent: {count}
+   new: {count}
+   checks:
+   - [id:q-002] [status:persistent] name: commit-lint | status: fail | fixable_by: dev | detail: "still 1 violation"
+   - [id:q-006] [status:new] name: diff-against-plan | status: fail | fixable_by: dev | detail: "new undeclared file"
+   hard_stop_reasons: []
+   dev_fixable_failures:
+   - [id:q-002] cmd: commit-lint | detail: "Hash def456: wrong scope" | suggested_fix: "fix(qa): description"
+   ```
+4. **Cache efficiency:** QA and Dev share "execution" Tier 2 cache
    - Cache stays warm between loop iterations (no recompilation)
    - Only re-read changed files (SUMMARY.md, commit log)
 
