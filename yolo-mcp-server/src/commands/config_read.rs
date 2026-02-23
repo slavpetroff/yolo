@@ -1,7 +1,23 @@
 use std::fs;
 use std::path::Path;
 use std::time::Instant;
-use serde_json::json;
+use serde_json::{json, Value};
+
+fn build_response(key: &str, value: Option<&Value>, default: Option<&str>, elapsed: u128) -> String {
+    let (resolved, source) = match (value, default) {
+        (Some(v), _) => (v.clone(), "config"),
+        (None, Some(d)) => (Value::String(d.to_string()), "default"),
+        (None, None) => (Value::Null, "missing"),
+    };
+    serde_json::to_string(&json!({
+        "ok": true,
+        "cmd": "config-read",
+        "key": key,
+        "value": resolved,
+        "source": source,
+        "elapsed_ms": elapsed
+    })).unwrap() + "\n"
+}
 
 /// Read a config key from a JSON config file with dot-notation support for nested keys.
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
@@ -25,75 +41,20 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     // If config file doesn't exist, return missing/default
     if !resolved.exists() {
         let elapsed = start.elapsed().as_millis();
-        return if let Some(default) = default_value {
-            let out = json!({
-                "ok": true,
-                "cmd": "config-read",
-                "key": key,
-                "value": default,
-                "source": "default",
-                "elapsed_ms": elapsed
-            });
-            Ok((serde_json::to_string(&out).unwrap() + "\n", 0))
-        } else {
-            let out = json!({
-                "ok": true,
-                "cmd": "config-read",
-                "key": key,
-                "value": null,
-                "source": "missing",
-                "elapsed_ms": elapsed
-            });
-            Ok((serde_json::to_string(&out).unwrap() + "\n", 0))
-        };
+        return Ok((build_response(key, None, default_value, elapsed), 0));
     }
 
     let content = fs::read_to_string(&resolved)
         .map_err(|e| format!("{{\"error\":\"failed to read config: {}\"}}", e))?;
 
-    let config: serde_json::Value = serde_json::from_str(&content)
+    let config: Value = serde_json::from_str(&content)
         .map_err(|e| format!("{{\"error\":\"failed to parse config: {}\"}}", e))?;
 
     // Navigate dot-notation keys
     let value = resolve_dotted_key(&config, key);
     let elapsed = start.elapsed().as_millis();
 
-    match value {
-        Some(v) => {
-            let out = json!({
-                "ok": true,
-                "cmd": "config-read",
-                "key": key,
-                "value": v,
-                "source": "config",
-                "elapsed_ms": elapsed
-            });
-            Ok((serde_json::to_string(&out).unwrap() + "\n", 0))
-        }
-        None => {
-            if let Some(default) = default_value {
-                let out = json!({
-                    "ok": true,
-                    "cmd": "config-read",
-                    "key": key,
-                    "value": default,
-                    "source": "default",
-                    "elapsed_ms": elapsed
-                });
-                Ok((serde_json::to_string(&out).unwrap() + "\n", 0))
-            } else {
-                let out = json!({
-                    "ok": true,
-                    "cmd": "config-read",
-                    "key": key,
-                    "value": null,
-                    "source": "missing",
-                    "elapsed_ms": elapsed
-                });
-                Ok((serde_json::to_string(&out).unwrap() + "\n", 0))
-            }
-        }
-    }
+    Ok((build_response(key, value, default_value, elapsed), 0))
 }
 
 /// Navigate a JSON value using dot-notation (e.g., "agent_max_turns.scout").
