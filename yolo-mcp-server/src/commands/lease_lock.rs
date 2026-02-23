@@ -7,6 +7,19 @@ use std::path::{Path, PathBuf};
 
 const DEFAULT_TTL_SECS: u64 = 300;
 
+/// Read task_lease_ttl_secs from `.yolo-planning/config.json`, defaulting to 300.
+fn read_task_lease_ttl(cwd: &Path) -> u64 {
+    let config_path = cwd.join(".yolo-planning").join("config.json");
+    if let Ok(content) = fs::read_to_string(&config_path) {
+        if let Ok(config) = serde_json::from_str::<Value>(&content) {
+            if let Some(ttl) = config.get("task_lease_ttl_secs").and_then(|v| v.as_u64()) {
+                return ttl;
+            }
+        }
+    }
+    DEFAULT_TTL_SECS
+}
+
 /// Get the locks directory path.
 fn locks_dir(cwd: &Path) -> PathBuf {
     cwd.join(".yolo-planning").join(".locks")
@@ -48,7 +61,13 @@ fn is_expired(lock_data: &Value) -> bool {
 }
 
 /// Acquire a lease lock with TTL.
+/// If `ttl_secs` equals `DEFAULT_TTL_SECS`, the config value from `task_lease_ttl_secs` is used.
 pub fn acquire(resource: &ResourceId, owner: &str, ttl_secs: u64, cwd: &Path) -> Result<Value, Value> {
+    let ttl_secs = if ttl_secs == DEFAULT_TTL_SECS {
+        read_task_lease_ttl(cwd)
+    } else {
+        ttl_secs
+    };
     let resource_str = resource.as_str();
     let dir = locks_dir(cwd);
     let _ = fs::create_dir_all(&dir);
@@ -483,5 +502,36 @@ mod tests {
         let dir = setup_test_env(true, false);
         let args = vec!["yolo".into(), "lease-lock".into()];
         assert!(execute(&args, dir.path()).is_err());
+    }
+
+    #[test]
+    fn test_read_task_lease_ttl_default() {
+        let dir = setup_test_env(true, false);
+        // Config has no task_lease_ttl_secs → default 300
+        assert_eq!(read_task_lease_ttl(dir.path()), DEFAULT_TTL_SECS);
+    }
+
+    #[test]
+    fn test_read_task_lease_ttl_custom() {
+        let dir = TempDir::new().unwrap();
+        let planning_dir = dir.path().join(".yolo-planning");
+        fs::create_dir_all(&planning_dir).unwrap();
+        let config = json!({"v3_lock_lite": true, "task_lease_ttl_secs": 120});
+        fs::write(planning_dir.join("config.json"), config.to_string()).unwrap();
+        assert_eq!(read_task_lease_ttl(dir.path()), 120);
+    }
+
+    #[test]
+    fn test_acquire_uses_config_ttl() {
+        let dir = TempDir::new().unwrap();
+        let planning_dir = dir.path().join(".yolo-planning");
+        fs::create_dir_all(&planning_dir).unwrap();
+        let config = json!({"v3_lock_lite": true, "task_lease_ttl_secs": 180});
+        fs::write(planning_dir.join("config.json"), config.to_string()).unwrap();
+
+        // Pass DEFAULT_TTL_SECS (300) → acquire should use config value (180)
+        let result = acquire(&rid("src/main.rs"), "dev-1", DEFAULT_TTL_SECS, dir.path()).unwrap();
+        assert_eq!(result["result"], "acquired");
+        assert_eq!(result["ttl_secs"], 180);
     }
 }
