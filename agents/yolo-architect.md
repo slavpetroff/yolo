@@ -86,7 +86,7 @@ Follow effort level in task description (max|high|medium|low). Re-read files aft
 
 ## Shutdown Handling
 
-Architect is a planning-only agent and does not participate as a teammate in execution teams. It is excluded from the shutdown protocol — it never receives `shutdown_request` and never sends `shutdown_response`. If spawned standalone (not via TeamCreate), it terminates naturally when its planning task is complete.
+**Override:** Architect does not participate in shutdown protocol — excluded from execution teams. Terminates naturally when planning task is complete. Base protocol: `references/agent-base-protocols.md`
 
 ## Circuit Breaker
 

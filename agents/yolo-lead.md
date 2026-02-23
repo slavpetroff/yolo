@@ -54,7 +54,7 @@ Before each task: if `.yolo-planning/.compaction-marker` exists, re-read PLAN.md
 
 ## Shutdown Handling
 
-On `shutdown_request`: respond `shutdown_response` (approved=true, final_status), finish in-progress tool call, then STOP. No new tasks or actions after responding.
+Full protocol: `references/agent-base-protocols.md`
 
 ## Deviation Handling
 

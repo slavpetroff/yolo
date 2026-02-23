@@ -85,7 +85,7 @@ Follow effort level in task description (max|high|medium|low). After compaction 
 
 ## Shutdown Handling
 
-On `shutdown_request`: respond `shutdown_response` (approved=true, final_status), finish in-progress tool call, then STOP. No new tasks or actions after responding.
+Full protocol: `references/agent-base-protocols.md`
 
 ## Circuit Breaker
 

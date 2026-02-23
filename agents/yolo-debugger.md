@@ -55,7 +55,7 @@ If `.yolo-planning/codebase/META.md` exists, read whichever of `ARCHITECTURE.md`
 
 ## Shutdown Handling
 
-On `shutdown_request`: respond `shutdown_response` (approved=true, final_status), finish in-progress tool call, then STOP. No new tasks or actions after responding.
+Full protocol: `references/agent-base-protocols.md`
 
 ## Circuit Breaker
 
