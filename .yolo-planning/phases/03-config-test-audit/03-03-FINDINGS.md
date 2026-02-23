@@ -297,3 +297,72 @@ Six feature flags default to `true` in `config/defaults.json`. This section asse
 | `v3_event_recovery` | `true` | **Change to `false`** | Dependency `v3_event_log` is `false`; recovery without events is a no-op that misleads |
 | `v2_typed_protocol` | `true` | **Keep** | Prevents event/message type drift, low friction |
 | `v2_token_budgets` | `true` | **Keep** | Prevents runaway costs, generous defaults |
+
+---
+
+## Task 5: Schema Validation Test Adequacy Assessment
+
+### Current Test Coverage (4 tests in `schema-validation.bats`)
+
+| # | Test Name | What It Covers |
+|---|-----------|---------------|
+| 1 | `migrate-config rejects config with invalid effort type` | Type validation: integer where string expected |
+| 2 | `migrate-config accepts valid config` | Happy path: minimal valid config |
+| 3 | `migrate-config rejects unknown keys` | `additionalProperties: false` enforcement |
+| 4 | `defaults.json validates against config.schema.json via migrate-config` | Self-consistency: defaults.json is valid |
+
+### Schema Surface Area Not Tested
+
+The schema (`config/config.schema.json`) defines 48 properties across 5 types:
+
+- **10 enum-typed string fields** (effort, autonomy, planning_tracking, auto_push, verification_tier, visual_format, prefer_teams, model_profile, review_gate, qa_gate)
+- **5 bounded integer fields** (max_tasks_per_plan [1-10], review_max_cycles [1-10], qa_max_cycles [1-10], command_timeout_ms [min 1000], task_lease_ttl_secs [min 1])
+- **22 boolean flags** (all v2_*/v3_*/v4_* flags, plus auto_commit, skill_suggestions, etc.)
+- **3 object fields** (agent_max_turns with integer sub-properties, custom_profiles, model_overrides)
+- **1 array field** (qa_skip_agents)
+- **2 freeform string fields** (active_profile)
+
+### Recommended Additional Test Cases (Priority Order)
+
+**High Priority -- Enum Field Validation (5 tests)**
+
+| # | Test Case | Rationale |
+|---|-----------|-----------|
+| 1 | `effort` with invalid enum value (e.g., `"effort": "extreme"`) | Only type-level validation tested (int vs string), not enum-level |
+| 2 | `autonomy` with invalid enum value (e.g., `"autonomy": "reckless"`) | Second most common config change, should validate |
+| 3 | `auto_push` with invalid enum value (e.g., `"auto_push": "sometimes"`) | Safety-critical: wrong value could push unexpectedly |
+| 4 | `verification_tier` with invalid enum value | Affects quality gate behavior |
+| 5 | `model_profile` with invalid enum value | Affects cost/quality tradeoff |
+
+**High Priority -- Integer Boundary Validation (4 tests)**
+
+| # | Test Case | Rationale |
+|---|-----------|-----------|
+| 6 | `max_tasks_per_plan: 0` (below minimum of 1) | Boundary: could cause divide-by-zero or empty plans |
+| 7 | `max_tasks_per_plan: 11` (above maximum of 10) | Boundary: upper limit enforcement |
+| 8 | `command_timeout_ms: 500` (below minimum of 1000) | Boundary: too-low timeout could break commands |
+| 9 | `review_max_cycles: 0` (below minimum of 1) | Boundary: zero cycles would skip review entirely |
+
+**Medium Priority -- Type Validation (3 tests)**
+
+| # | Test Case | Rationale |
+|---|-----------|-----------|
+| 10 | Boolean field with string value (e.g., `"auto_commit": "true"`) | Common mistake: string "true" instead of boolean |
+| 11 | `agent_max_turns` with string sub-value (e.g., `"scout": "15"`) | Object field type validation |
+| 12 | `qa_skip_agents` with non-array value (e.g., `"qa_skip_agents": "docs"`) | Array type enforcement |
+
+**Low Priority -- Edge Cases (3 tests)**
+
+| # | Test Case | Rationale |
+|---|-----------|-----------|
+| 13 | Valid config with all 10 enum fields set to valid values | Comprehensive happy path |
+| 14 | Empty config `{}` validates successfully | Ensures all fields are optional |
+| 15 | Config with negative integer (e.g., `"task_lease_ttl_secs": -1`) | Negative value handling |
+
+### Gap Analysis Summary
+
+- **Current coverage:** 4 tests covering 3 scenarios (type error, happy path, unknown keys, self-validation)
+- **Recommended additions:** 15 test cases
+- **Most critical gap:** Enum value validation -- the most common user error (typos in enum values) is not tested at all
+- **Second gap:** Integer boundary validation -- `minimum`/`maximum` constraints in schema are not exercised
+- **Schema complexity:** 48 properties with `additionalProperties: false`. The 4 existing tests provide structural coverage but not semantic coverage of individual field constraints
