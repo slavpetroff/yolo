@@ -7,10 +7,10 @@
   "license": "MIT",
   "mcpServers": {
     "yolo-expert": {
-      "command": "yolo-mcp-server",
-      "args": []
+      "args": [],
+      "command": "yolo-mcp-server"
     }
   },
   "name": "yolo",
-  "version": "2.8.2"
+  "version": "2.9.0"
 }
