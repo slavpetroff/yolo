@@ -59,13 +59,11 @@ teardown() {
   echo "$output" | jq -e '.cost_weight' >/dev/null
 }
 
-@test "resolve-model --all returns JSON object with agents" {
+@test "resolve-model --all returns all 9 agents" {
   run "$YOLO_BIN" resolve-model --all "$TEST_TEMP_DIR/.yolo-planning/config.json" "$CONFIG_DIR/model-profiles.json"
   [ "$status" -eq 0 ]
   local count=$(echo "$output" | jq 'keys | length')
-  [ "$count" -ge 8 ]
-  echo "$output" | jq -e '.lead' >/dev/null
-  echo "$output" | jq -e '.dev' >/dev/null
+  [ "$count" -eq 9 ]
 }
 
 @test "resolve-model --all --with-cost returns nested JSON" {
