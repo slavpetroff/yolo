@@ -60,10 +60,9 @@ fn install_pre_push_hook(hook_path: &Path) -> Result<String, String> {
         }
 
         // Check if this is our managed hook
-        if let Ok(content) = fs::read_to_string(hook_path) {
-            if content.contains(YOLO_MARKER) {
+        if let Ok(content) = fs::read_to_string(hook_path)
+            && content.contains(YOLO_MARKER) {
                 return Ok("pre-push hook already installed".to_string());
-            }
         }
         return Ok("pre-push hook exists but is not managed by YOLO -- skipping".to_string());
     }

@@ -100,8 +100,8 @@ fn most_recent_mtime(dir: &Path) -> u64 {
     let mut latest = 0u64;
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.flatten() {
-            if let Ok(meta) = entry.metadata() {
-                if let Ok(mtime) = meta.modified() {
+            if let Ok(meta) = entry.metadata()
+                && let Ok(mtime) = meta.modified() {
                     let secs = mtime
                         .duration_since(UNIX_EPOCH)
                         .unwrap_or_default()
@@ -109,7 +109,6 @@ fn most_recent_mtime(dir: &Path) -> u64 {
                     if secs > latest {
                         latest = secs;
                     }
-                }
             }
         }
     }

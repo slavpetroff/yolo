@@ -70,10 +70,9 @@ fn write_json_version(path: &Path, pointer: &str, version: &str) -> Result<(), S
 /// Increment the patch component of a semver string.
 fn increment_patch(version: &str) -> String {
     let parts: Vec<&str> = version.split('.').collect();
-    if parts.len() == 3 {
-        if let Ok(patch) = parts[2].parse::<u64>() {
+    if parts.len() == 3
+        && let Ok(patch) = parts[2].parse::<u64>() {
             return format!("{}.{}.{}", parts[0], parts[1], patch + 1);
-        }
     }
     // Fallback: append .1
     format!("{}.1", version)

@@ -87,14 +87,13 @@ pub fn generate_index(cwd: &Path) -> Result<(String, i32), String> {
     // Extract milestones from ROADMAP.md
     let mut milestones: Vec<String> = Vec::new();
     let roadmap_path = archive_dir.join("ROADMAP.md");
-    if roadmap_path.exists() {
-        if let Ok(content) = fs::read_to_string(&roadmap_path) {
+    if roadmap_path.exists()
+        && let Ok(content) = fs::read_to_string(&roadmap_path) {
             for line in content.lines() {
                 if let Some(stripped) = line.strip_prefix("## ") {
                     milestones.push(stripped.trim().to_string());
                 }
             }
-        }
     }
 
     // Build final JSON

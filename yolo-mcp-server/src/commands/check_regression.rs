@@ -74,10 +74,9 @@ fn count_bats_recursive(dir: &Path) -> u32 {
             let path = entry.path();
             if path.is_dir() {
                 count += count_bats_recursive(&path);
-            } else if let Some(ext) = path.extension() {
-                if ext == "bats" {
+            } else if let Some(ext) = path.extension()
+                && ext == "bats" {
                     count += 1;
-                }
             }
         }
     }

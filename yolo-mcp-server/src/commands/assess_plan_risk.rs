@@ -38,7 +38,7 @@ pub fn assess_risk(content: &str) -> &'static str {
         .filter(|line| {
             let trimmed = line.trim_start_matches('#');
             let hashes = line.len() - trimmed.len();
-            if hashes < 2 || hashes > 3 {
+            if !(2..=3).contains(&hashes) {
                 return false;
             }
             trimmed.trim_start().starts_with("Task ")
