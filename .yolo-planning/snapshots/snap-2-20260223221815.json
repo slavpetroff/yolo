@@ -1,0 +1,29 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "3b9bd7c3-8d89-46f0-857e-c4a51ea781e6",
+    "phase": 2,
+    "phase_name": "02-qa-gate-agent",
+    "plans": [
+      {
+        "id": "02-01",
+        "status": "complete",
+        "title": "Two-stage QA gate in execute protocol",
+        "wave": 1
+      },
+      {
+        "id": "02-02",
+        "status": "complete",
+        "title": "QA agent definition updates for two-stage integration",
+        "wave": 1
+      }
+    ],
+    "started_at": "2026-02-24T00:10:00Z",
+    "status": "complete",
+    "total_waves": 1,
+    "wave": 1
+  },
+  "matcher": "auto",
+  "phase": "2",
+  "timestamp": "2026-02-23T22:18:15Z"
+}

@@ -17,9 +17,9 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** Workflow Integrity Enforcement — All 4 phases complete, ready for archive
-**Last shipped:** Phase 4: Integration Tests & Validation (2026-02-24) — 2 plans, 3 commits
-**Next action:** Run /yolo:vibe --archive to archive the milestone
+**Work:** None (idle)
+**Last shipped:** Workflow Integrity Enforcement (2026-02-24) — 4 phases, 9 plans, 12 commits
+**Next action:** Run /yolo:vibe to start a new milestone
 
 ## Installed Skills
 
