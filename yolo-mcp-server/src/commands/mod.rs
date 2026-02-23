@@ -71,3 +71,6 @@ pub mod diff_against_plan;
 pub mod validate_requirements;
 pub mod verify_plan_completion;
 pub mod parse_frontmatter;
+pub mod resolve_plugin_root;
+pub mod compile_progress;
+pub mod git_state;
