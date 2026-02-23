@@ -776,6 +776,32 @@ QA_REPORT='{"passed": true, "checks": []}'
      ```
    - STOP execution. Return to user with: "QA remediation loop exhausted after {QA_MAX_CYCLES} cycles. Fix remaining issues manually and re-run `/yolo:vibe --execute {N}`"
 
+**Dev remediation context scoping:**
+
+Dev receives ONLY the specific failure details for each check — not the full QA report. This keeps the remediation task focused and token-efficient. Each failure maps to a concrete, actionable instruction:
+
+| Failed check | Remediation instruction | Dev action |
+|---|---|---|
+| `commit-lint` | "Rewrite commit {hash}: {suggested_fix}" | `git commit --amend` or interactive rebase to fix message format |
+| `diff-against-plan` | "Update SUMMARY.md files_modified section to include: {undeclared_files}" | Add missing file entries to SUMMARY.md `## Files Modified` |
+| `verify-plan-completion` | "Fix SUMMARY.md field {field_name}: expected {expected}, got {actual}" | Correct the specific YAML frontmatter field or body section |
+| `validate-requirements` | "Add evidence for requirement: '{requirement_text}'" | Update SUMMARY.md `## What Was Built` with evidence of delivery |
+| `check-regression` | N/A (always `fixable_by: "architect"` — HARD STOP, never reaches Dev) | — |
+
+**Context provided to Dev for each remediation task:**
+- Working directory path
+- Plan path (`{plan_path}`)
+- Summary path (`{summary_path}`)
+- Specific failure name and evidence string
+- Concrete fix instruction (from table above)
+
+**Dev does NOT receive:**
+- The full QA report (only failures relevant to this cycle)
+- Results from passed checks
+- Findings from previous cycles (only current failures)
+
+**Dev commit format:** `fix({scope}): {description}` — e.g., `fix(03-01): correct SUMMARY.md files_modified to match git diff`
+
 **When inactive:** Display `○ QA gate skipped (qa_gate: {value})` and proceed to Step 4.
 
 ### Step 4: Verification (Native Testing)
