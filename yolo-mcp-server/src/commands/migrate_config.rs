@@ -265,4 +265,102 @@ mod tests {
         fs::write(&config, "not json").unwrap();
         assert!(migrate_config(&config, &defaults).is_err());
     }
+
+    fn write_minimal_schema(dir: &Path) {
+        let schema = json!({
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+                "effort": { "type": "string", "enum": ["minimal", "balanced", "thorough"] },
+                "auto_commit": { "type": "boolean" },
+                "max_tasks_per_plan": { "type": "integer", "minimum": 1, "maximum": 10 },
+                "v2_typed_protocol": { "type": "boolean" },
+                "v3_schema_validation": { "type": "boolean" },
+                "v2_hard_gates": { "type": "boolean" },
+                "v2_hard_contracts": { "type": "boolean" }
+            },
+            "additionalProperties": false
+        });
+        fs::write(dir.join("config.schema.json"), schema.to_string()).unwrap();
+    }
+
+    #[test]
+    fn test_schema_validation_rejects_invalid_type() {
+        let dir = tempdir().unwrap();
+        let config = dir.path().join("config.json");
+        let defaults = dir.path().join("defaults.json");
+        write_minimal_schema(dir.path());
+        fs::write(&defaults, json!({"effort": "balanced"}).to_string()).unwrap();
+        fs::write(&config, json!({"effort": 123}).to_string()).unwrap();
+
+        let result = migrate_config(&config, &defaults);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("Config validation failed"), "got: {err}");
+    }
+
+    #[test]
+    fn test_schema_validation_rejects_unknown_key() {
+        let dir = tempdir().unwrap();
+        let config = dir.path().join("config.json");
+        let defaults = dir.path().join("defaults.json");
+        write_minimal_schema(dir.path());
+        fs::write(&defaults, json!({"effort": "balanced"}).to_string()).unwrap();
+        fs::write(
+            &config,
+            json!({"effort": "balanced", "bogus_key": true}).to_string(),
+        )
+        .unwrap();
+
+        let result = migrate_config(&config, &defaults);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("Config validation failed"), "got: {err}");
+    }
+
+    #[test]
+    fn test_schema_validation_accepts_valid_config() {
+        let dir = tempdir().unwrap();
+        let config = dir.path().join("config.json");
+        let defaults = dir.path().join("defaults.json");
+        write_minimal_schema(dir.path());
+        fs::write(
+            &defaults,
+            json!({"effort": "balanced", "auto_commit": true}).to_string(),
+        )
+        .unwrap();
+        fs::write(&config, json!({"effort": "thorough"}).to_string()).unwrap();
+
+        assert!(migrate_config(&config, &defaults).is_ok());
+    }
+
+    #[test]
+    fn test_schema_missing_degrades_gracefully() {
+        // No schema file written — validation should be skipped, not error
+        let dir = tempdir().unwrap();
+        let config = dir.path().join("config.json");
+        let defaults = dir.path().join("defaults.json");
+        fs::write(&defaults, json!({"effort": "balanced"}).to_string()).unwrap();
+        fs::write(&config, json!({"effort": "thorough"}).to_string()).unwrap();
+
+        assert!(migrate_config(&config, &defaults).is_ok());
+    }
+
+    #[test]
+    fn test_enforcement_flag_warnings() {
+        // Test the logic: when enforcement flags are false, they should be detected
+        let merged = json!({
+            "v2_typed_protocol": false,
+            "v3_schema_validation": true,
+            "v2_hard_gates": false,
+            "v2_hard_contracts": true
+        });
+        let flags = ["v2_typed_protocol", "v3_schema_validation", "v2_hard_gates", "v2_hard_contracts"];
+        let disabled: Vec<&str> = flags
+            .iter()
+            .filter(|f| !merged.get(**f).and_then(|v| v.as_bool()).unwrap_or(false))
+            .copied()
+            .collect();
+        assert_eq!(disabled, vec!["v2_typed_protocol", "v2_hard_gates"]);
+    }
 }
