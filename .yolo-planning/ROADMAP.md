@@ -1,32 +1,25 @@
-# Roadmap: Comprehensive Plugin Audit
+# Roadmap: Workflow Integrity Enforcement
 
-**Milestone:** Comprehensive Plugin Audit
-**Phases:** 5
-**Scope:** All 274 files — 43K Rust, 9K Markdown, 11K tests, 650 config
+**Milestone:** Workflow Integrity Enforcement
+**Phases:** 4
+**Scope:** Execute protocol (SKILL.md), tier context system (tier_context.rs), agent definitions, enforcement hooks
 
-## Phase 1: Rust Code Audit
-**Goal:** Audit all 113 Rust source files (commands, hooks, MCP, CLI, telemetry) for code quality, logic issues, dead code, error handling, and naming.
-**Success criteria:** Findings report with severity-rated issues covering all 79 commands, 24 hooks, MCP server, router, and telemetry.
-**REQ:** REQ-01, REQ-02
+## Phase 1: Review Gate — Agent-Based Adversarial Review
+**Goal:** Replace the review-plan CLI-only path in Step 2b with a two-stage review: Rust CLI pre-check (structural validation) THEN yolo-reviewer agent spawn (adversarial design review). The agent's VERDICT becomes the gate verdict, not the CLI exit code.
+**Success criteria:** Execute protocol spawns yolo-reviewer agent for every plan when review_gate="always". Reviewer agent can reject a plan and trigger the architect revision feedback loop. Rust CLI pre-check still runs as a fast fail-early gate.
+**REQ:** REQ-01, REQ-04, REQ-08
 
-## Phase 2: Markdown & Token Efficiency Audit ✓
-**Goal:** Audit all 53 markdown files (commands, agents, skills, references) for token waste, redundant protocols, verbose instructions, and inline shell/jq patterns that belong in Rust.
-**Success criteria:** Findings report identifying token savings opportunities with estimated savings per file, Rust offload candidates (REQ-05), and redundant/overlapping commands (REQ-06).
-**REQ:** REQ-03, REQ-04, REQ-05, REQ-06, REQ-07, REQ-08
-**Completed:** 2026-02-23 — 4 plans, 16 commits
+## Phase 2: QA Gate — Agent-Based Verification
+**Goal:** Replace the QA CLI-only path in Step 3d with a two-stage verification: Rust CLI commands provide structured data, THEN yolo-qa agent analyzes results and applies adversarial verification. QA agent's report becomes the gate verdict.
+**Success criteria:** Execute protocol spawns yolo-qa agent after Dev completion when qa_gate="always". QA agent can trigger HARD STOP or dev-fixable remediation loop. CLI commands still run as data sources for the QA agent.
+**REQ:** REQ-02, REQ-04, REQ-08
 
-## Phase 3: Config, Schema & Test Coverage Audit ✓
-**Goal:** Audit config files for schema-code consistency, and test suite for coverage gaps.
-**Success criteria:** Config consistency report (schema vs. actual keys used), test coverage gap analysis (untested commands/hooks), and stale test identification.
-**REQ:** REQ-09, REQ-10
-**Completed:** 2026-02-23 — 3 plans, 15 commits
+## Phase 3: Context Integrity — Architecture Persistence & Step Ordering
+**Goal:** Fix context injection so developers receive ARCHITECTURE.md. Add step-ordering verification to execution-state.json. Strengthen delegation mandate to survive compression.
+**Success criteria:** Execution family tier2 includes ARCHITECTURE.md. Execution-state.json tracks which steps completed (prevents skip). Lead delegation mandate is reinforced with anti-takeover patterns.
+**REQ:** REQ-03, REQ-05, REQ-06
 
-## Phase 4: Cross-Cutting Analysis & Prioritization
-**Goal:** Synthesize findings from phases 1-3 into a prioritized remediation backlog. Identify patterns across categories (e.g., same issue in multiple commands), estimate effort, and recommend phase ordering for fixes.
-**Success criteria:** Prioritized remediation backlog with effort estimates, grouped by theme (code quality, token savings, Rust offload, dead code).
-**REQ:** REQ-01 through REQ-11
-
-## Phase 5: Critical Remediation
-**Goal:** Fix the highest-priority issues identified in Phase 4.
-**Success criteria:** All critical/high severity issues resolved, tests passing, no regressions.
-**REQ:** REQ-11
+## Phase 4: Integration Tests & Validation
+**Goal:** Add bats tests verifying that review and QA agents are spawned during execution, feedback loops trigger correctly, and context includes ARCHITECTURE.md for all roles.
+**Success criteria:** New test files covering agent spawn verification, gate enforcement, context compilation with architecture, and step ordering. All existing tests still pass.
+**REQ:** REQ-07

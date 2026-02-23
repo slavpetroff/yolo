@@ -1,8 +1,8 @@
-# Comprehensive Plugin Audit
+# Workflow Integrity Enforcement
 
-Full-spectrum audit of the YOLO plugin — logic correctness, code quality, token efficiency, Rust offload candidates, redundant commands, MD file quality, and dead code elimination.
+Fix fundamental workflow integrity gaps where review gates, QA gates, context injection, and step ordering are defined in agent specs but never enforced during execution.
 
-**Core value:** Surface every issue, inconsistency, and optimization opportunity across all 274 files (43K Rust, 9K Markdown, 11K tests, 650 config) so the plugin ships clean.
+**Core value:** Every quality gate described in agent definitions must actually run and have blocking power during execution.
 
 ## Requirements
 
@@ -11,15 +11,15 @@ Full-spectrum audit of the YOLO plugin — logic correctness, code quality, toke
 ### Active
 
 ### Out of Scope
-- New features unrelated to audit findings
-- Changes to MCP server JSON-RPC protocol
-- UI/UX redesign of output formats
+- New workflow features not related to fixing existing gaps
+- Changing the plugin's command interface
+- MCP server protocol changes
 
 ## Constraints
-- Audit-only phases produce findings reports (no code changes)
-- Remediation phases fix issues found in audit phases
-- Tests must pass after each remediation phase
-- No breaking changes to existing command interfaces
+- Fixes must be backward-compatible (no breaking changes to config schema)
+- Tests must pass after each phase
+- Execute protocol changes must work with all effort levels (thorough/balanced/fast/turbo)
+- Agent definitions must remain usable as standalone subagent_types
 
 ## Key Decisions
 
