@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "YOLO Plugin Configuration",
+  "description": "Schema for config/defaults.json and .yolo-planning/config.json",
+  "type": "object",
+  "properties": {
+    "effort": {
+      "type": "string",
+      "enum": ["minimal", "balanced", "thorough"]
+    },
+    "autonomy": {
+      "type": "string",
+      "enum": ["minimal", "standard", "full"]
+    },
+    "auto_commit": {
+      "type": "boolean"
+    },
+    "planning_tracking": {
+      "type": "string",
+      "enum": ["manual", "auto"]
+    },
+    "auto_push": {
+      "type": "string",
+      "enum": ["never", "after_phase", "always"]
+    },
+    "verification_tier": {
+      "type": "string",
+      "enum": ["skip", "quick", "standard", "thorough"]
+    },
+    "skill_suggestions": {
+      "type": "boolean"
+    },
+    "auto_install_skills": {
+      "type": "boolean"
+    },
+    "discovery_questions": {
+      "type": "boolean"
+    },
+    "context_compiler": {
+      "type": "boolean"
+    },
+    "visual_format": {
+      "type": "string",
+      "enum": ["unicode", "ascii", "plain"]
+    },
+    "max_tasks_per_plan": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "prefer_teams": {
+      "type": "string",
+      "enum": ["never", "auto", "always"]
+    },
+    "branch_per_milestone": {
+      "type": "boolean"
+    },
+    "plain_summary": {
+      "type": "boolean"
+    },
+    "active_profile": {
+      "type": "string"
+    },
+    "custom_profiles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "model_profile": {
+      "type": "string",
+      "enum": ["quality", "balanced", "speed"]
+    },
+    "model_overrides": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "agent_max_turns": {
+      "type": "object",
+      "properties": {
+        "scout": { "type": "integer", "minimum": 1 },
+        "qa": { "type": "integer", "minimum": 1 },
+        "architect": { "type": "integer", "minimum": 1 },
+        "debugger": { "type": "integer", "minimum": 1 },
+        "lead": { "type": "integer", "minimum": 1 },
+        "dev": { "type": "integer", "minimum": 1 },
+        "reviewer": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "qa_skip_agents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "v2_hard_contracts": { "type": "boolean" },
+    "v2_hard_gates": { "type": "boolean" },
+    "v2_typed_protocol": { "type": "boolean" },
+    "v2_role_isolation": { "type": "boolean" },
+    "v2_two_phase_completion": { "type": "boolean" },
+    "v2_token_budgets": { "type": "boolean" },
+    "v3_delta_context": { "type": "boolean" },
+    "v3_context_cache": { "type": "boolean" },
+    "v3_plan_research_persist": { "type": "boolean" },
+    "v3_metrics": { "type": "boolean" },
+    "v3_contract_lite": { "type": "boolean" },
+    "v3_lock_lite": { "type": "boolean" },
+    "v3_validation_gates": { "type": "boolean" },
+    "v3_smart_routing": { "type": "boolean" },
+    "v3_event_log": { "type": "boolean" },
+    "v3_schema_validation": { "type": "boolean" },
+    "v3_snapshot_resume": { "type": "boolean" },
+    "v3_lease_locks": { "type": "boolean" },
+    "v3_event_recovery": { "type": "boolean" },
+    "v3_monorepo_routing": { "type": "boolean" },
+    "v4_post_edit_test_check": { "type": "boolean" },
+    "v4_session_cache_warm": { "type": "boolean" },
+    "review_gate": {
+      "type": "string",
+      "enum": ["off", "on_request", "always"]
+    },
+    "qa_gate": {
+      "type": "string",
+      "enum": ["off", "on_request", "always"]
+    },
+    "review_max_cycles": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "qa_max_cycles": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
+    }
+  },
+  "additionalProperties": false
+}
