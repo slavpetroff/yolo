@@ -209,3 +209,91 @@ No unconditionally skipped tests found. Both skip statements are guarded by cond
 - **Unconditional skips:** 0 (both skip statements are conditional)
 - **Duplicate coverage:** 1 pair (`state-updater.bats` / `update-state.bats`) should be consolidated
 - **Overall health:** Test suite is well-maintained with migration comments documenting why tests were adapted
+
+---
+
+## Task 4: Defaults.json Feature Flag Audit
+
+Six feature flags default to `true` in `config/defaults.json`. This section assesses each for appropriateness.
+
+### 1. `v3_schema_validation: true`
+
+**What it enables:** Validates YAML frontmatter on PLAN and SUMMARY files, and JSON structure on contract files. Implemented in `hooks/validate_schema.rs`. Runs as part of the PreToolUse hook pipeline.
+
+**Behavior when enabled:** Checks that plans have required fields (phase, plan, title, wave, depends_on, must_haves), summaries have (phase, plan, title, status, tasks_completed, tasks_total), and contracts have (phase, plan, task_count, allowed_paths). **Fail-open** -- always exits 0 even on validation failure (logs warning but does not block).
+
+**Side effects:** Adds ~1-2ms per PreToolUse invocation for frontmatter parsing. Zero user-visible impact on failure since it is fail-open.
+
+**Assessment:** **KEEP true.** Fail-open design means no risk of blocking users. Catches malformed plans early. Low overhead.
+
+### 2. `v3_snapshot_resume: true`
+
+**What it enables:** Saves execution state snapshots to `.yolo-planning/.snapshots/` during phase execution and restores them on session resume. Implemented in `commands/snapshot_resume.rs`.
+
+**Behavior when enabled:** `snapshot-resume save <phase>` writes JSON snapshot. `snapshot-resume restore <phase>` reads it back. When disabled, commands silently return empty string with exit 0.
+
+**Side effects:** Creates snapshot files (JSON, typically <10KB each) in `.yolo-planning/.snapshots/`. These accumulate per phase/agent but are within `.yolo-planning/` (gitignored). No user-facing prompts or behavior changes.
+
+**Assessment:** **KEEP true.** Session resume is a core reliability feature. Disk usage is negligible. Silent no-op when disabled means toggling is safe.
+
+### 3. `v3_lease_locks: true`
+
+**What it enables:** Defined in `FeatureFlag` enum and reported during session-start. The `lease_lock.rs` command does NOT check this flag internally -- it always operates. The flag serves as a session-start reporting indicator and external orchestration signal.
+
+**Behavior when enabled:** `lease-lock acquire/release/check` commands work regardless of this flag. session-start reports `v3_lease_locks=true/false` in its cache output. `task_lease_ttl_secs` (default 300s) controls lease expiry.
+
+**Side effects:** Creates lock files in `.yolo-planning/.locks/`. Leases auto-expire based on TTL.
+
+**Assessment:** **KEEP true.** The flag is a session-start reporting hint, not a gate. Lease locks prevent concurrent file conflicts in team mode. No downside to having it enabled.
+
+### 4. `v3_event_recovery: true`
+
+**What it enables:** Rebuilds `.execution-state.json` from event log and SUMMARY files. Implemented in `commands/recover_state.rs`. Gated -- command checks `v3_event_recovery` flag and returns `recovered: false` if disabled.
+
+**Behavior when enabled:** `recover-state <phase>` scans event logs and SUMMARY files to reconstruct execution state. Used for crash recovery.
+
+**Side effects:** Reads event log and summary files (I/O). Has a hard dependency: **requires `v3_event_log` to be enabled**, otherwise recovery finds no events. Currently `v3_event_log` defaults to `false` in defaults.json.
+
+**Assessment:** **CHANGE to false.** This flag has a dependency on `v3_event_log` which defaults to `false`. Enabling recovery without event logging is misleading -- `session-start` emits a WARNING but recovery silently returns "no events found". The flag should match `v3_event_log`'s default (both false) until the user explicitly enables event logging.
+
+### 5. `v2_typed_protocol: true`
+
+**What it enables:** Validates event types in `log-event` against an allowlist of ~30 known types. Implemented in `commands/log_event.rs` line 76-81. Also gates message validation in `hooks/validate_message.rs`.
+
+**Behavior when enabled:** Unknown event types are rejected with a WARNING and the event is NOT written. Messages are validated against schema definitions.
+
+**Side effects:** Blocks custom/experimental event types. If a new event type is added to code but not to the allowlist, it gets silently dropped with a stderr warning.
+
+**Assessment:** **KEEP true with caveat.** Type validation catches typos and ensures event log consistency. However, the allowlist is hardcoded in Rust (not configurable). New event types require a code change. This is acceptable for a plugin that controls its own event vocabulary, but should be documented for contributors.
+
+### 6. `v2_token_budgets: true`
+
+**What it enables:** Per-role token budget enforcement. Implemented in `commands/token_budget.rs`. Gated -- returns `skip, v2_token_budgets=false` when disabled.
+
+**Behavior when enabled:** `token-budget <role> <file>` measures content against role-specific budgets from `config/token-budgets.json`. Default budget is 32,000 chars per role. Returns whether content is within budget and applies truncation if overage.
+
+**Side effects:** Active truncation of context sent to agents. If budgets are set too low, agents receive incomplete context. Depends on `config/token-budgets.json` for per-role customization (falls back to defaults if missing).
+
+**Assessment:** **KEEP true.** Token budgets prevent runaway context costs. The 32K default is generous for most roles. Users can customize via `config/token-budgets.json`. The feature degrades gracefully (uses defaults when config missing).
+
+### Flag Dependency Matrix
+
+| Flag | Depends On | Dependency Satisfied in Defaults? |
+|------|-----------|-----------------------------------|
+| `v3_schema_validation` | None | N/A |
+| `v3_snapshot_resume` | None | N/A |
+| `v3_lease_locks` | None (informational) | N/A |
+| `v3_event_recovery` | `v3_event_log` | **NO** (`v3_event_log` defaults to `false`) |
+| `v2_typed_protocol` | `v3_event_log` (for event validation) | No, but typed_protocol also covers messages |
+| `v2_token_budgets` | None | N/A |
+
+### Recommendations Summary
+
+| Flag | Current | Recommendation | Rationale |
+|------|---------|---------------|-----------|
+| `v3_schema_validation` | `true` | **Keep** | Fail-open, low overhead, catches errors early |
+| `v3_snapshot_resume` | `true` | **Keep** | Core reliability, negligible cost |
+| `v3_lease_locks` | `true` | **Keep** | Informational flag, no gate behavior |
+| `v3_event_recovery` | `true` | **Change to `false`** | Dependency `v3_event_log` is `false`; recovery without events is a no-op that misleads |
+| `v2_typed_protocol` | `true` | **Keep** | Prevents event/message type drift, low friction |
+| `v2_token_budgets` | `true` | **Keep** | Prevents runaway costs, generous defaults |
