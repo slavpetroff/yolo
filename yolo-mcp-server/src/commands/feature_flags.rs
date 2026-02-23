@@ -147,6 +147,33 @@ mod tests {
     }
 
     #[test]
+    fn test_recovery_flags_default_true() {
+        let defaults_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .join("config")
+            .join("defaults.json");
+        let content = fs::read_to_string(&defaults_path).expect("defaults.json must exist");
+        let config: Value = serde_json::from_str(&content).expect("valid JSON");
+
+        assert_eq!(
+            config.get("v3_event_recovery").and_then(|v| v.as_bool()),
+            Some(true),
+            "v3_event_recovery must default to true"
+        );
+        assert_eq!(
+            config.get("v3_snapshot_resume").and_then(|v| v.as_bool()),
+            Some(true),
+            "v3_snapshot_resume must default to true"
+        );
+        assert_eq!(
+            config.get("v3_lease_locks").and_then(|v| v.as_bool()),
+            Some(true),
+            "v3_lease_locks must default to true"
+        );
+    }
+
+    #[test]
     fn test_is_enabled_true() {
         let dir = tempfile::tempdir().unwrap();
         let planning_dir = dir.path().join(".yolo-planning");
