@@ -17,9 +17,9 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** Type Safety & Self-Healing — 2 phases scoped, research complete
-**Last shipped:** Agent Routing & Release Automation (2026-02-23) — 3 phases, 15 tasks, 12 commits, v2.8.0
-**Next action:** Run `/yolo:vibe --discuss` or `/yolo:vibe --plan` for Phase 1
+**Work:** Type Safety & Self-Healing — Phase 1 complete, Phase 2 pending
+**Last shipped:** Hard Typification & Contract Enforcement (2026-02-23) — 5 plans, 25 tasks, 18 commits
+**Next action:** Run `/yolo:vibe --plan 2` to plan Phase 2 (Self-Healing Infrastructure)
 
 ## Installed Skills
 
