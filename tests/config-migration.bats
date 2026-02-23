@@ -167,7 +167,7 @@ EOF
   cat > "$TEST_TEMP_DIR/.yolo-planning/config.json" <<'EOF'
 {
   "effort": "balanced",
-  "planning_tracking": "auto",
+  "planning_tracking": "commit",
   "auto_push": "after_phase"
 }
 EOF
@@ -175,7 +175,7 @@ EOF
   run_migration
 
   run jq -r '.planning_tracking' "$TEST_TEMP_DIR/.yolo-planning/config.json"
-  [ "$output" = "auto" ]
+  [ "$output" = "commit" ]
 
   run jq -r '.auto_push' "$TEST_TEMP_DIR/.yolo-planning/config.json"
   [ "$output" = "after_phase" ]
