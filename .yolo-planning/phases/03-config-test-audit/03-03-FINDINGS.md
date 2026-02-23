@@ -157,3 +157,55 @@ Cross-reference of 79 Rust command modules (`yolo-mcp-server/src/commands/*.rs`)
 - **CLI commands with no bats coverage:** 24
 - **Coverage rate:** 67% of CLI-facing commands tested via bats
 - **Note:** Many untested modules have Rust `#[cfg(test)]` unit tests internally, but no integration-level bats test exercises them through the CLI binary
+
+---
+
+## Task 3: Stale and Redundant Test Identification
+
+### Tests Referencing Removed Agent: `yolo-scout`
+
+The `yolo-scout` agent was removed (merged into `yolo-reviewer`), but 3 test files still reference it:
+
+| File | Lines | Impact |
+|------|-------|--------|
+| `tests/hooks-isolation-lifecycle.bats` | 159, 163-164, 172, 272 | Uses `yolo-scout` as agent_type in SubagentStart hooks. Tests pass because the Rust binary normalizes any agent_type string -- it does not validate against known agents. **Low risk** but misleading. |
+| `tests/agent-health.bats` | 52, 56, 60 | Uses `yolo-scout` for health-check registration/idle tests. Same normalization applies. **Low risk.** |
+| `tests/typed-protocol.bats` | 56-61, 150-151, 162-163 | Tests `scout_findings` schema and scout role in hierarchy. These test the message-schemas.json file which still defines scout_findings. **Valid if schema still has scout.** |
+| `tests/shutdown-protocol.bats` | 186, 215, 225, 269-270 | Iterates over roles including "scout" for shutdown authorization. **Valid if schemas still define scout.** |
+| `tests/smart-routing.bats` | 17-36, 57 | Tests scout routing decisions. Scout may still be a valid routing target even without a dedicated agent file. |
+| `tests/token-budgets.bats` | 36, 44, 54-56, 80, 87 | Uses `scout` as role for token-budget calculations. Valid as a role name in budgets. |
+
+**Recommendation:** The `yolo-scout` references in `hooks-isolation-lifecycle.bats` and `agent-health.bats` should be updated to use an existing agent (e.g., `yolo-researcher` or `yolo-reviewer`). The typed-protocol and shutdown-protocol tests are valid as long as `message-schemas.json` still includes scout definitions.
+
+### Unconditional Skip Statements
+
+| File | Line | Skip Reason |
+|------|------|-------------|
+| `tests/schema-validation.bats` | 11 | `skip "yolo binary not found at $YOLO_BIN"` -- Conditional, only triggers when binary is missing. **Valid.** |
+| `tests/sessionstart-compact-hooks.bats` | 123 | `skip "PreToolUse hook not configured in hooks.json"` -- Conditional, only triggers when hook config is absent. **Valid.** |
+
+No unconditionally skipped tests found. Both skip statements are guarded by conditions.
+
+### Duplicate/Overlapping Test Coverage
+
+| Files | Overlap | Recommendation |
+|-------|---------|---------------|
+| `state-updater.bats` (4 tests) / `update-state.bats` (5 tests) | Both test the `update-state` CLI command. `state-updater.bats` was the original (pre-migration name), `update-state.bats` was added post-migration. `state-updater.bats` test "PLAN trigger supports NN-PLAN naming" overlaps with `update-state.bats` "PLAN trigger flips Status ready to active". | **Consolidate** into one file. `update-state.bats` follows the CLI naming convention. Move unique tests from `state-updater.bats` and delete it. |
+| `control-plane.bats` / `hard-gates.bats` + `lock-lite.bats` | `control-plane.bats` was migrated from the removed `control-plane.sh`. It exercises `generate-contract`, `hard-gate`, `lock`, `lease-lock`, and `compile-context` which each have their own dedicated test files. | **Low priority.** `control-plane.bats` acts as an integration test combining multiple commands, while the others are unit-level. Keep both. |
+| `hooks-isolation-lifecycle.bats` / `role-isolation.bats` / `role-isolation-runtime.bats` | All three test role isolation, but at different levels: hooks-isolation tests the PreToolUse hook, role-isolation tests config/schema definitions, role-isolation-runtime tests runtime enforcement. | **No action needed.** Tests are complementary, not duplicative. |
+
+### Tests Referencing Removed/Changed Features
+
+| File | Issue | Severity |
+|------|-------|----------|
+| `tests/hooks-isolation-lifecycle.bats:6` | Comment: "Commit format validation was removed in the Rust migration." Test file still exists and has valid tests -- the comment is accurate documentation. | **Informational only** |
+| `tests/control-plane.bats:2-3` | Comment: "Migrated: control-plane.sh orchestrator removed." Tests now exercise individual Rust subcommands. | **Informational only** |
+| `tests/resolve-claude-dir.bats:2` | Comment: "Migrated: resolve-claude-dir.sh removed." Tests now exercise hooks.json structure and Rust behavior. | **Informational only** |
+| `tests/hooks-isolation-lifecycle.bats:144,363,413,449` | Comments reference "self-blocking removed in v1.21.13". Tests verify the removal still holds. | **Valid regression tests** |
+
+### Summary
+
+- **Stale references:** 3 test files reference removed `yolo-scout` agent as test data
+- **Unconditional skips:** 0 (both skip statements are conditional)
+- **Duplicate coverage:** 1 pair (`state-updater.bats` / `update-state.bats`) should be consolidated
+- **Overall health:** Test suite is well-maintained with migration comments documenting why tests were adapted
