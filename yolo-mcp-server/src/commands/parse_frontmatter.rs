@@ -82,7 +82,7 @@ fn parse_frontmatter_content(content: &str) -> Option<serde_json::Map<String, se
         }
 
         // Key-value line
-        if let Some(colon_pos) = line.find(':') {
+        if let Some((key_part, val_part)) = line.split_once(':') {
             // Flush any pending list
             if let Some(key) = current_key.take() {
                 if !current_list.is_empty() {
@@ -90,16 +90,15 @@ fn parse_frontmatter_content(content: &str) -> Option<serde_json::Map<String, se
                 }
             }
 
-            let key = line[..colon_pos].trim().to_string();
-            let val_raw = line[colon_pos + 1..].trim();
+            let key = key_part.trim().to_string();
+            let val_raw = val_part.trim();
 
             if val_raw.is_empty() {
                 // Multi-line value (list) coming next
                 current_key = Some(key);
                 current_list.clear();
-            } else if val_raw.starts_with('[') && val_raw.ends_with(']') {
+            } else if let Some(inner) = val_raw.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
                 // Inline array: key: [a, b, c]
-                let inner = &val_raw[1..val_raw.len() - 1];
                 let items: Vec<serde_json::Value> = inner
                     .split(',')
                     .map(|s| {
