@@ -375,12 +375,80 @@ mod tests {
         let phases_dir = plan_dir.join("phases");
         let p1 = phases_dir.join("01-init");
         fs::create_dir_all(&p1).unwrap();
-        
+
         fs::write(p1.join("01-init-PLAN.md"), "plan").unwrap();
         fs::write(p1.join("01-init-SUMMARY.md"), "summary").unwrap();
-        
+
         let (out, _) = execute(&[], dir.path()).unwrap();
         assert!(out.contains("phase_count=1"));
         assert!(out.contains("next_phase_state=all_done"));
+    }
+
+    #[test]
+    fn test_suggest_route_no_planning() {
+        let dir = tempdir().unwrap();
+        let (out, _) = execute(&["--suggest-route".into()], dir.path()).unwrap();
+        assert!(out.contains("suggested_route=init"), "Expected suggested_route=init, got: {}", out);
+    }
+
+    #[test]
+    fn test_suggest_route_needs_plan() {
+        let dir = tempdir().unwrap();
+        let plan_dir = dir.path().join(".yolo-planning");
+        fs::create_dir_all(&plan_dir).unwrap();
+        fs::write(plan_dir.join("PROJECT.md"), "Real project").unwrap();
+        let phases_dir = plan_dir.join("phases");
+        fs::create_dir_all(phases_dir.join("01-test")).unwrap();
+
+        let (out, _) = execute(&["--suggest-route".into()], dir.path()).unwrap();
+        assert!(out.contains("suggested_route=plan"), "Expected suggested_route=plan, got: {}", out);
+    }
+
+    #[test]
+    fn test_suggest_route_needs_execute() {
+        let dir = tempdir().unwrap();
+        let plan_dir = dir.path().join(".yolo-planning");
+        let phases_dir = plan_dir.join("phases");
+        let p1 = phases_dir.join("01-init");
+        fs::create_dir_all(&p1).unwrap();
+        fs::write(plan_dir.join("PROJECT.md"), "Real project").unwrap();
+        fs::write(p1.join("01-init-PLAN.md"), "plan").unwrap();
+
+        let (out, _) = execute(&["--suggest-route".into()], dir.path()).unwrap();
+        assert!(out.contains("suggested_route=execute"), "Expected suggested_route=execute, got: {}", out);
+    }
+
+    #[test]
+    fn test_suggest_route_all_done() {
+        let dir = tempdir().unwrap();
+        let plan_dir = dir.path().join(".yolo-planning");
+        let phases_dir = plan_dir.join("phases");
+        let p1 = phases_dir.join("01-init");
+        fs::create_dir_all(&p1).unwrap();
+        fs::write(plan_dir.join("PROJECT.md"), "Real project").unwrap();
+        fs::write(p1.join("01-init-PLAN.md"), "plan").unwrap();
+        fs::write(p1.join("01-init-SUMMARY.md"), "summary").unwrap();
+
+        let (out, _) = execute(&["--suggest-route".into()], dir.path()).unwrap();
+        assert!(out.contains("suggested_route=archive"), "Expected suggested_route=archive, got: {}", out);
+    }
+
+    #[test]
+    fn test_suggest_route_execution_running() {
+        let dir = tempdir().unwrap();
+        let plan_dir = dir.path().join(".yolo-planning");
+        fs::create_dir_all(&plan_dir).unwrap();
+        fs::write(plan_dir.join("PROJECT.md"), "Real project").unwrap();
+        fs::write(plan_dir.join(".execution-state.json"), r#"{"status":"running"}"#).unwrap();
+
+        let (out, _) = execute(&["--suggest-route".into()], dir.path()).unwrap();
+        assert!(out.contains("suggested_route=resume"), "Expected suggested_route=resume, got: {}", out);
+    }
+
+    #[test]
+    fn test_no_suggest_route_without_flag() {
+        let dir = tempdir().unwrap();
+        let (out, _) = execute(&[], dir.path()).unwrap();
+        assert!(!out.contains("suggested_route"), "Output should not contain suggested_route without flag");
     }
 }
