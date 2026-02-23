@@ -662,6 +662,12 @@ QA_REPORT='{"passed": true, "checks": []}'
      mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
    ```
 
+   **Log qa_loop_start event:**
+   ```bash
+   INITIAL_FAILED_COUNT=$(echo "$FAILED_CHECKS" | jq 'length')
+   "$HOME/.cargo/bin/yolo" log-event qa_loop_start {phase} plan={NN-MM} max_cycles=${QA_MAX_CYCLES} failed_count=${INITIAL_FAILED_COUNT} 2>/dev/null || true
+   ```
+
    Resolve Dev model:
    ```bash
    DEV_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
@@ -691,6 +697,11 @@ QA_REPORT='{"passed": true, "checks": []}'
      mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
    ```
 
+   **Log qa_loop_cycle event:**
+   ```bash
+   "$HOME/.cargo/bin/yolo" log-event qa_loop_cycle {phase} plan={NN-MM} cycle=${QA_CYCLE} failed_count=${FAILED_COUNT} dev_fixable=${DEV_FIXABLE} 2>/dev/null || true
+   ```
+
    c. For each failed check, build a scoped remediation task (see "Dev remediation context scoping" below).
 
    d. Spawn Dev subagent via Task tool (execution family, model from resolve-model):
@@ -717,11 +728,23 @@ QA_REPORT='{"passed": true, "checks": []}'
    model: "${DEV_MODEL}"
    ```
 
-   e. After Dev completes, re-run ONLY previously failed checks (skip checks in PASSED_CHECKS):
+   e. **Delta re-run optimization:** After Dev completes, re-run ONLY previously failed checks (skip checks in PASSED_CHECKS):
    ```bash
-   # Only re-run checks whose names appear in FAILED_CHECKS, not in PASSED_CHECKS
-   # This saves tokens by skipping check-regression, verify-plan-completion etc. if they already passed
+   # Build list of check names that need re-running
+   RERUN_CHECKS=$(echo "$FAILED_CHECKS" | jq -r '.[].name')
+   # For each check name in RERUN_CHECKS, re-run ONLY that command:
+   #   "verify-plan-completion" → yolo verify-plan-completion ...
+   #   "commit-lint"            → yolo commit-lint ...
+   #   "diff-against-plan"      → yolo diff-against-plan ...
+   #   "validate-requirements"  → yolo validate-requirements ...
+   #   "check-regression"       → yolo check-regression ...
+   # Skip any check whose name appears in PASSED_CHECKS — it already passed and
+   # does not need re-verification. This saves token cost per cycle.
    ```
+
+   > **Cache note:** Dev and QA share the "execution" Tier 2 cache.
+   > Only Tier 3 content (remediation tasks) changes between iterations.
+   > This avoids re-sending the full context on each cycle, saving significant tokens.
 
    f. Update failure list:
    ```bash
@@ -730,19 +753,21 @@ QA_REPORT='{"passed": true, "checks": []}'
    PASSED_CHECKS=$(echo "$PASSED_CHECKS" "$NEW_PASSES" | jq -s 'add | unique')
    ```
 
-   g. If all checks now pass: exit loop. Display `✓ QA verification passed (cycle {QA_CYCLE}/{QA_MAX_CYCLES})`. Update execution-state:
+   g. If all checks now pass: exit loop. Display `✓ QA verification passed (cycle {QA_CYCLE}/{QA_MAX_CYCLES})`. Update execution-state and log:
       ```bash
       jq --arg plan "{NN-MM}" '.qa_loops[$plan].status = "passed"' \
         .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
         mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+      "$HOME/.cargo/bin/yolo" log-event qa_loop_end {phase} plan={NN-MM} cycles_used=${QA_CYCLE} final_status=pass 2>/dev/null || true
       ```
 
 3. **Max cycles exceeded** (loop exits with failures remaining):
-   - Update execution-state:
+   - Update execution-state and log:
      ```bash
      jq --arg plan "{NN-MM}" '.qa_loops[$plan].status = "failed"' \
        .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
        mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+     "$HOME/.cargo/bin/yolo" log-event qa_loop_end {phase} plan={NN-MM} cycles_used=${QA_MAX_CYCLES} final_status=max_exceeded 2>/dev/null || true
      ```
    - Display `✗ QA verification FAILED after {QA_MAX_CYCLES} cycles`
    - Display all remaining failures:
