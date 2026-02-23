@@ -8,14 +8,14 @@
 | Phase | Status | Plans | Tasks | Commits |
 |-------|--------|-------|-------|----------|
 | 1 | Complete | 2 | 6 | 5 |
-| 2 | Pending | — | — | — |
+| 2 | Complete | 1 | 3 | 2 |
 | 3 | Pending | — | — | — |
 
 ---
 
 ## Phase List
 - [x] [Phase 1: Specialized Agent Routing](#phase-1-specialized-agent-routing)
-- [ ] [Phase 2: Archive Release Automation](#phase-2-archive-release-automation)
+- [x] [Phase 2: Archive Release Automation](#phase-2-archive-release-automation)
 - [ ] [Phase 3: Testing & Release](#phase-3-testing--release)
 
 ---
