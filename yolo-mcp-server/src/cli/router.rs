@@ -5,6 +5,284 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, token_budget, token_economics_report, lock_lite, lease_lock, two_phase_complete, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, log_event, collect_metrics, compress_context, prune_completed, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary, cache_context, cache_nuke, delta_files, help_output, bump_version, doctor_cleanup, auto_repair, rollout_stage, verify, install_hooks, migrate_config, migrate_orphaned_state, tier_context, clean_stale_teams, tmux_watchdog, verify_init_todo, verify_vibe, verify_claude_bootstrap, pre_push_hook, validate_plan, review_plan, check_regression, commit_lint, diff_against_plan, validate_requirements, verify_plan_completion};
 use crate::hooks;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Command {
+    Report,
+    ReportTokens,
+    UpdateState,
+    Statusline,
+    HardGate,
+    SessionStart,
+    MetricsReport,
+    TokenBaseline,
+    Bootstrap,
+    SuggestNext,
+    ListTodos,
+    PhaseDetect,
+    DetectStack,
+    Infer,
+    PlanningGit,
+    ResolveModel,
+    ResolveTurns,
+    LogEvent,
+    CollectMetrics,
+    GenerateContract,
+    ContractRevision,
+    AssessRisk,
+    GatePolicy,
+    SmartRoute,
+    RouteMonorepo,
+    SnapshotResume,
+    PersistState,
+    RecoverState,
+    RollingSummary,
+    GsdIndex,
+    Incidents,
+    Artifact,
+    GsdSummary,
+    CacheContext,
+    CacheNuke,
+    DeltaFiles,
+    MapStaleness,
+    TokenBudget,
+    Lock,
+    LeaseLock,
+    TwoPhaseComplete,
+    HelpOutput,
+    BumpVersion,
+    Doctor,
+    AutoRepair,
+    RolloutStage,
+    Verify,
+    Hook,
+    InstallHooks,
+    MigrateConfig,
+    InvalidateTierCache,
+    CompressContext,
+    PruneCompleted,
+    CompileContext,
+    InstallMcp,
+    MigrateOrphanedState,
+    CleanStaleTeams,
+    TmuxWatchdog,
+    VerifyInitTodo,
+    VerifyVibe,
+    VerifyClaudeBootstrap,
+    PrePush,
+    ValidatePlan,
+    ReviewPlan,
+    CheckRegression,
+    CommitLint,
+    DiffAgainstPlan,
+    ValidateRequirements,
+    VerifyPlanCompletion,
+}
+
+impl Command {
+    pub fn from_arg(s: &str) -> Option<Command> {
+        match s {
+            "report" => Some(Command::Report),
+            "report-tokens" => Some(Command::ReportTokens),
+            "update-state" => Some(Command::UpdateState),
+            "statusline" => Some(Command::Statusline),
+            "hard-gate" => Some(Command::HardGate),
+            "session-start" => Some(Command::SessionStart),
+            "metrics-report" => Some(Command::MetricsReport),
+            "token-baseline" => Some(Command::TokenBaseline),
+            "bootstrap" => Some(Command::Bootstrap),
+            "suggest-next" => Some(Command::SuggestNext),
+            "list-todos" => Some(Command::ListTodos),
+            "phase-detect" => Some(Command::PhaseDetect),
+            "detect-stack" => Some(Command::DetectStack),
+            "infer" => Some(Command::Infer),
+            "planning-git" => Some(Command::PlanningGit),
+            "resolve-model" => Some(Command::ResolveModel),
+            "resolve-turns" => Some(Command::ResolveTurns),
+            "log-event" => Some(Command::LogEvent),
+            "collect-metrics" => Some(Command::CollectMetrics),
+            "generate-contract" => Some(Command::GenerateContract),
+            "contract-revision" => Some(Command::ContractRevision),
+            "assess-risk" => Some(Command::AssessRisk),
+            "gate-policy" => Some(Command::GatePolicy),
+            "smart-route" => Some(Command::SmartRoute),
+            "route-monorepo" => Some(Command::RouteMonorepo),
+            "snapshot-resume" => Some(Command::SnapshotResume),
+            "persist-state" => Some(Command::PersistState),
+            "recover-state" => Some(Command::RecoverState),
+            "rolling-summary" => Some(Command::RollingSummary),
+            "gsd-index" => Some(Command::GsdIndex),
+            "incidents" => Some(Command::Incidents),
+            "artifact" => Some(Command::Artifact),
+            "gsd-summary" => Some(Command::GsdSummary),
+            "cache-context" => Some(Command::CacheContext),
+            "cache-nuke" => Some(Command::CacheNuke),
+            "delta-files" => Some(Command::DeltaFiles),
+            "map-staleness" => Some(Command::MapStaleness),
+            "token-budget" => Some(Command::TokenBudget),
+            "lock" => Some(Command::Lock),
+            "lease-lock" => Some(Command::LeaseLock),
+            "two-phase-complete" => Some(Command::TwoPhaseComplete),
+            "help-output" => Some(Command::HelpOutput),
+            "bump-version" => Some(Command::BumpVersion),
+            "doctor" => Some(Command::Doctor),
+            "auto-repair" => Some(Command::AutoRepair),
+            "rollout-stage" | "rollout" => Some(Command::RolloutStage),
+            "verify" => Some(Command::Verify),
+            "hook" => Some(Command::Hook),
+            "install-hooks" => Some(Command::InstallHooks),
+            "migrate-config" => Some(Command::MigrateConfig),
+            "invalidate-tier-cache" => Some(Command::InvalidateTierCache),
+            "compress-context" => Some(Command::CompressContext),
+            "prune-completed" => Some(Command::PruneCompleted),
+            "compile-context" => Some(Command::CompileContext),
+            "install-mcp" => Some(Command::InstallMcp),
+            "migrate-orphaned-state" => Some(Command::MigrateOrphanedState),
+            "clean-stale-teams" => Some(Command::CleanStaleTeams),
+            "tmux-watchdog" => Some(Command::TmuxWatchdog),
+            "verify-init-todo" => Some(Command::VerifyInitTodo),
+            "verify-vibe" => Some(Command::VerifyVibe),
+            "verify-claude-bootstrap" => Some(Command::VerifyClaudeBootstrap),
+            "pre-push" => Some(Command::PrePush),
+            "validate-plan" => Some(Command::ValidatePlan),
+            "review-plan" => Some(Command::ReviewPlan),
+            "check-regression" => Some(Command::CheckRegression),
+            "commit-lint" => Some(Command::CommitLint),
+            "diff-against-plan" => Some(Command::DiffAgainstPlan),
+            "validate-requirements" => Some(Command::ValidateRequirements),
+            "verify-plan-completion" => Some(Command::VerifyPlanCompletion),
+            _ => None,
+        }
+    }
+
+    /// Return the canonical CLI name for this command.
+    pub fn name(&self) -> &'static str {
+        match self {
+            Command::Report => "report",
+            Command::ReportTokens => "report-tokens",
+            Command::UpdateState => "update-state",
+            Command::Statusline => "statusline",
+            Command::HardGate => "hard-gate",
+            Command::SessionStart => "session-start",
+            Command::MetricsReport => "metrics-report",
+            Command::TokenBaseline => "token-baseline",
+            Command::Bootstrap => "bootstrap",
+            Command::SuggestNext => "suggest-next",
+            Command::ListTodos => "list-todos",
+            Command::PhaseDetect => "phase-detect",
+            Command::DetectStack => "detect-stack",
+            Command::Infer => "infer",
+            Command::PlanningGit => "planning-git",
+            Command::ResolveModel => "resolve-model",
+            Command::ResolveTurns => "resolve-turns",
+            Command::LogEvent => "log-event",
+            Command::CollectMetrics => "collect-metrics",
+            Command::GenerateContract => "generate-contract",
+            Command::ContractRevision => "contract-revision",
+            Command::AssessRisk => "assess-risk",
+            Command::GatePolicy => "gate-policy",
+            Command::SmartRoute => "smart-route",
+            Command::RouteMonorepo => "route-monorepo",
+            Command::SnapshotResume => "snapshot-resume",
+            Command::PersistState => "persist-state",
+            Command::RecoverState => "recover-state",
+            Command::RollingSummary => "rolling-summary",
+            Command::GsdIndex => "gsd-index",
+            Command::Incidents => "incidents",
+            Command::Artifact => "artifact",
+            Command::GsdSummary => "gsd-summary",
+            Command::CacheContext => "cache-context",
+            Command::CacheNuke => "cache-nuke",
+            Command::DeltaFiles => "delta-files",
+            Command::MapStaleness => "map-staleness",
+            Command::TokenBudget => "token-budget",
+            Command::Lock => "lock",
+            Command::LeaseLock => "lease-lock",
+            Command::TwoPhaseComplete => "two-phase-complete",
+            Command::HelpOutput => "help-output",
+            Command::BumpVersion => "bump-version",
+            Command::Doctor => "doctor",
+            Command::AutoRepair => "auto-repair",
+            Command::RolloutStage => "rollout-stage",
+            Command::Verify => "verify",
+            Command::Hook => "hook",
+            Command::InstallHooks => "install-hooks",
+            Command::MigrateConfig => "migrate-config",
+            Command::InvalidateTierCache => "invalidate-tier-cache",
+            Command::CompressContext => "compress-context",
+            Command::PruneCompleted => "prune-completed",
+            Command::CompileContext => "compile-context",
+            Command::InstallMcp => "install-mcp",
+            Command::MigrateOrphanedState => "migrate-orphaned-state",
+            Command::CleanStaleTeams => "clean-stale-teams",
+            Command::TmuxWatchdog => "tmux-watchdog",
+            Command::VerifyInitTodo => "verify-init-todo",
+            Command::VerifyVibe => "verify-vibe",
+            Command::VerifyClaudeBootstrap => "verify-claude-bootstrap",
+            Command::PrePush => "pre-push",
+            Command::ValidatePlan => "validate-plan",
+            Command::ReviewPlan => "review-plan",
+            Command::CheckRegression => "check-regression",
+            Command::CommitLint => "commit-lint",
+            Command::DiffAgainstPlan => "diff-against-plan",
+            Command::ValidateRequirements => "validate-requirements",
+            Command::VerifyPlanCompletion => "verify-plan-completion",
+        }
+    }
+
+    /// All known canonical command names.
+    fn all_names() -> &'static [&'static str] {
+        &[
+            "report", "report-tokens", "update-state", "statusline", "hard-gate",
+            "session-start", "metrics-report", "token-baseline", "bootstrap",
+            "suggest-next", "list-todos", "phase-detect", "detect-stack", "infer",
+            "planning-git", "resolve-model", "resolve-turns", "log-event",
+            "collect-metrics", "generate-contract", "contract-revision", "assess-risk",
+            "gate-policy", "smart-route", "route-monorepo", "snapshot-resume",
+            "persist-state", "recover-state", "rolling-summary", "gsd-index",
+            "incidents", "artifact", "gsd-summary", "cache-context", "cache-nuke",
+            "delta-files", "map-staleness", "token-budget", "lock", "lease-lock",
+            "two-phase-complete", "help-output", "bump-version", "doctor", "auto-repair",
+            "rollout-stage", "verify", "hook", "install-hooks", "migrate-config",
+            "invalidate-tier-cache", "compress-context", "prune-completed",
+            "compile-context", "install-mcp", "migrate-orphaned-state",
+            "clean-stale-teams", "tmux-watchdog", "verify-init-todo", "verify-vibe",
+            "verify-claude-bootstrap", "pre-push", "validate-plan", "review-plan",
+            "check-regression", "commit-lint", "diff-against-plan",
+            "validate-requirements", "verify-plan-completion",
+        ]
+    }
+
+    /// Suggest the closest command name for a typo.
+    pub fn suggest(input: &str) -> Option<&'static str> {
+        let mut best: Option<(&str, usize)> = None;
+        for name in Self::all_names() {
+            let dist = edit_distance(input, name);
+            if dist <= 3 {
+                if best.is_none() || dist < best.unwrap().1 {
+                    best = Some((name, dist));
+                }
+            }
+        }
+        best.map(|(name, _)| name)
+    }
+}
+
+fn edit_distance(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    let mut dp = vec![vec![0usize; b.len() + 1]; a.len() + 1];
+    for i in 0..=a.len() { dp[i][0] = i; }
+    for j in 0..=b.len() { dp[0][j] = j; }
+    for i in 1..=a.len() {
+        for j in 1..=b.len() {
+            let cost = if a[i-1] == b[j-1] { 0 } else { 1 };
+            dp[i][j] = (dp[i-1][j] + 1).min(dp[i][j-1] + 1).min(dp[i-1][j-1] + cost);
+        }
+    }
+    dp[a.len()][b.len()]
+}
+
 pub fn generate_report(total_calls: i64, compile_calls: i64, avg_output_length: f64, unique_sessions: Option<i64>) -> String {
     let mut out = String::new();
     out.push_str("============================================================\n");
@@ -57,8 +335,9 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
         return Err("Usage: yolo <command> [args...]".to_string());
     }
 
-    match args[1].as_str() {
-        "report" => {
+    let command = Command::from_arg(args[1].as_str());
+    match command {
+        Some(Command::Report) => {
             if !db_path.exists() {
                 return Err("No telemetry data found! Connect the MCP server and run some tasks first.".to_string());
             }
@@ -92,17 +371,17 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
 
             Ok((generate_report(total_calls, compile_calls, avg_output_length, unique_sessions), 0))
         }
-        "report-tokens" => {
+        Some(Command::ReportTokens) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             token_economics_report::execute(&args, &cwd, &db_path)
         }
-        "update-state" => {
+        Some(Command::UpdateState) => {
             if args.len() < 3 {
                 return Err("Usage: yolo update-state <file_path>".to_string());
             }
             state_updater::update_state(&args[2]).map(|s| (s, 0))
         }
-        "statusline" => {
+        Some(Command::Statusline) => {
             let mut stdin_json = String::new();
             let _ = std::io::stdin().read_to_string(&mut stdin_json);
             if stdin_json.is_empty() {
@@ -110,24 +389,24 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
             }
             statusline::render_statusline(&stdin_json).map(|s| (s, 0))
         }
-        "hard-gate" => {
+        Some(Command::HardGate) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             hard_gate::execute_gate(&args, &cwd)
         }
-        "session-start" => {
+        Some(Command::SessionStart) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             session_start::execute_session_start(&cwd)
         }
-        "metrics-report" => {
+        Some(Command::MetricsReport) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             let phase_filter = if args.len() > 2 { Some(args[2].as_str()) } else { None };
             metrics_report::generate_metrics_report(&cwd, phase_filter)
         }
-        "token-baseline" => {
+        Some(Command::TokenBaseline) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             token_baseline::execute(&args, &cwd)
         }
-        "bootstrap" => {
+        Some(Command::Bootstrap) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             // Dispatch bootstrap subcommands; fall through to bootstrap_claude for CLAUDE.md
             if args.len() > 2 {
@@ -141,159 +420,159 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
             }
             bootstrap_claude::execute(&args, &cwd)
         }
-        "suggest-next" => {
+        Some(Command::SuggestNext) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             suggest_next::execute(&args, &cwd)
         }
-        "list-todos" => {
+        Some(Command::ListTodos) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             list_todos::execute(&args, &cwd)
         }
-        "phase-detect" => {
+        Some(Command::PhaseDetect) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             phase_detect::execute(&args, &cwd)
         }
-        "detect-stack" => {
+        Some(Command::DetectStack) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             detect_stack::execute(&args, &cwd)
         }
-        "infer" => {
+        Some(Command::Infer) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             infer_project_context::execute(&args, &cwd)
         }
-        "planning-git" => {
+        Some(Command::PlanningGit) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             planning_git::execute(&args, &cwd)
         }
-        "resolve-model" => {
+        Some(Command::ResolveModel) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             resolve_model::execute(&args, &cwd)
         }
-        "resolve-turns" => {
+        Some(Command::ResolveTurns) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             resolve_turns::execute(&args, &cwd)
         }
-        "log-event" => {
+        Some(Command::LogEvent) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             log_event::execute(&args, &cwd)
         }
-        "collect-metrics" => {
+        Some(Command::CollectMetrics) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             collect_metrics::execute(&args, &cwd)
         }
-        "generate-contract" => {
+        Some(Command::GenerateContract) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             generate_contract::execute(&args, &cwd)
         }
-        "contract-revision" => {
+        Some(Command::ContractRevision) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             contract_revision::execute(&args, &cwd)
         }
-        "assess-risk" => {
+        Some(Command::AssessRisk) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             assess_plan_risk::execute(&args, &cwd)
         }
-        "gate-policy" => {
+        Some(Command::GatePolicy) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             resolve_gate_policy::execute(&args, &cwd)
         }
-        "smart-route" => {
+        Some(Command::SmartRoute) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             smart_route::execute(&args, &cwd)
         }
-        "route-monorepo" => {
+        Some(Command::RouteMonorepo) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             route_monorepo::execute(&args, &cwd)
         }
-        "snapshot-resume" => {
+        Some(Command::SnapshotResume) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             snapshot_resume::execute(&args[2..].to_vec(), &cwd)
         }
-        "persist-state" => {
+        Some(Command::PersistState) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             persist_state::execute(&args[2..].to_vec(), &cwd)
         }
-        "recover-state" => {
+        Some(Command::RecoverState) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             recover_state::execute(&args[2..].to_vec(), &cwd)
         }
-        "rolling-summary" => {
+        Some(Command::RollingSummary) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             compile_rolling_summary::execute(&args[2..].to_vec(), &cwd)
         }
-        "gsd-index" => {
+        Some(Command::GsdIndex) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             generate_gsd_index::execute(&args, &cwd)
         }
-        "incidents" => {
+        Some(Command::Incidents) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             generate_incidents::execute(&args, &cwd)
         }
-        "artifact" => {
+        Some(Command::Artifact) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             artifact_registry::execute(&args, &cwd)
         }
-        "gsd-summary" => {
+        Some(Command::GsdSummary) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             infer_gsd_summary::execute(&args, &cwd)
         }
-        "cache-context" => {
+        Some(Command::CacheContext) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             cache_context::execute(&args, &cwd)
         }
-        "cache-nuke" => {
+        Some(Command::CacheNuke) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             cache_nuke::execute(&args, &cwd)
         }
-        "delta-files" => {
+        Some(Command::DeltaFiles) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             delta_files::execute(&args, &cwd)
         }
-        "map-staleness" => {
+        Some(Command::MapStaleness) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             hooks::map_staleness::execute(&args, &cwd)
         }
-        "token-budget" => {
+        Some(Command::TokenBudget) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             token_budget::execute(&args, &cwd)
         }
-        "lock" => {
+        Some(Command::Lock) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             lock_lite::execute(&args, &cwd)
         }
-        "lease-lock" => {
+        Some(Command::LeaseLock) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             lease_lock::execute(&args, &cwd)
         }
-        "two-phase-complete" => {
+        Some(Command::TwoPhaseComplete) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             two_phase_complete::execute(&args, &cwd)
         }
-        "help-output" => {
+        Some(Command::HelpOutput) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             help_output::execute(&args[1..], &cwd)
         }
-        "bump-version" => {
+        Some(Command::BumpVersion) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             bump_version::execute(&args, &cwd)
         }
-        "doctor" => {
+        Some(Command::Doctor) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             doctor_cleanup::execute(&args, &cwd)
         }
-        "auto-repair" => {
+        Some(Command::AutoRepair) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             auto_repair::execute(&args, &cwd)
         }
-        "rollout-stage" | "rollout" => {
+        Some(Command::RolloutStage) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             rollout_stage::execute(&args, &cwd)
         }
-        "verify" => {
+        Some(Command::Verify) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             verify::execute(&args, &cwd)
         }
-        "hook" => {
+        Some(Command::Hook) => {
             if args.len() < 3 {
                 return Err("Usage: yolo hook <event-name>".to_string());
             }
@@ -320,10 +599,10 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
 
             result
         }
-        "install-hooks" => {
+        Some(Command::InstallHooks) => {
             install_hooks::install_hooks().map(|s| (s, 0))
         }
-        "migrate-config" => {
+        Some(Command::MigrateConfig) => {
             if args.len() < 3 {
                 return Err("Usage: yolo migrate-config <config_path> [defaults_path]".to_string());
             }
@@ -356,21 +635,21 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
                 Err(e) => Err(e),
             }
         }
-        "invalidate-tier-cache" => {
+        Some(Command::InvalidateTierCache) => {
             match tier_context::invalidate_tier_cache() {
                 Ok(()) => Ok(("Tier cache invalidated".to_string(), 0)),
                 Err(e) => Ok((format!("Cache invalidation failed (non-fatal): {}", e), 0)),
             }
         }
-        "compress-context" => {
+        Some(Command::CompressContext) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             compress_context::execute(&args, &cwd)
         }
-        "prune-completed" => {
+        Some(Command::PruneCompleted) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             prune_completed::execute(&args, &cwd)
         }
-        "compile-context" => {
+        Some(Command::CompileContext) => {
             if args.len() < 4 {
                 return Err("Usage: yolo compile-context <phase> <role> <phases_dir> [plan_path]".to_string());
             }
@@ -398,7 +677,7 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
                 }
             }
         }
-        "install-mcp" => {
+        Some(Command::InstallMcp) => {
             // Locate install-yolo-mcp.sh relative to plugin root or binary
             let plugin_root = env::var("CLAUDE_PLUGIN_ROOT").unwrap_or_else(|_| {
                 env::current_exe()
@@ -428,7 +707,7 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
                 Ok((combined, output.status.code().unwrap_or(1)))
             }
         }
-        "migrate-orphaned-state" => {
+        Some(Command::MigrateOrphanedState) => {
             if args.len() < 3 {
                 return Err("Usage: yolo migrate-orphaned-state <planning_dir>".to_string());
             }
@@ -439,64 +718,72 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
                 Err(e) => Err(e),
             }
         }
-        "clean-stale-teams" => {
+        Some(Command::CleanStaleTeams) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             let claude_dir = cwd.join(".claude");
             let log_file = cwd.join(".yolo-planning").join("clean-stale-teams.log");
             let (teams, tasks) = clean_stale_teams::clean_stale_teams(&claude_dir, &log_file);
             Ok((format!("Cleaned {} teams, {} task dirs", teams, tasks), 0))
         }
-        "tmux-watchdog" => {
+        Some(Command::TmuxWatchdog) => {
             match tmux_watchdog::get_tmux_session() {
                 Some(session) => Ok((format!("tmux session: {}", session), 0)),
                 None => Ok(("Not running in tmux".to_string(), 0)),
             }
         }
-        "verify-init-todo" => {
+        Some(Command::VerifyInitTodo) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             verify_init_todo::execute(&args, &cwd)
         }
-        "verify-vibe" => {
+        Some(Command::VerifyVibe) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             verify_vibe::execute(&args, &cwd)
         }
-        "verify-claude-bootstrap" => {
+        Some(Command::VerifyClaudeBootstrap) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             verify_claude_bootstrap::execute(&args, &cwd)
         }
-        "pre-push" => {
+        Some(Command::PrePush) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             pre_push_hook::execute(&args, &cwd)
         }
-        "validate-plan" => {
+        Some(Command::ValidatePlan) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             validate_plan::execute(&args, &cwd)
         }
-        "review-plan" => {
+        Some(Command::ReviewPlan) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             review_plan::execute(&args, &cwd)
         }
-        "check-regression" => {
+        Some(Command::CheckRegression) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             check_regression::execute(&args, &cwd)
         }
-        "commit-lint" => {
+        Some(Command::CommitLint) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             commit_lint::execute(&args, &cwd)
         }
-        "diff-against-plan" => {
+        Some(Command::DiffAgainstPlan) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             diff_against_plan::execute(&args, &cwd)
         }
-        "validate-requirements" => {
+        Some(Command::ValidateRequirements) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             validate_requirements::execute(&args, &cwd)
         }
-        "verify-plan-completion" => {
+        Some(Command::VerifyPlanCompletion) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             verify_plan_completion::execute(&args, &cwd)
         }
-        _ => Err(format!("Unknown command: {}", args[1]))
+        None => {
+            let suggestion = Command::suggest(&args[1]);
+            let msg = if let Some(s) = suggestion {
+                format!("Unknown command: '{}'. Did you mean '{}'?", args[1], s)
+            } else {
+                format!("Unknown command: '{}'", args[1])
+            };
+            Err(msg)
+        }
     }
 }
 
@@ -530,8 +817,9 @@ mod tests {
         let path = std::env::temp_dir().join(format!("yolo-test-cli-missing-{}.db", std::process::id()));
         // missing args
         assert!(run_cli(vec!["yolo".into()], path.clone()).is_err());
-        // wrong command
-        assert!(run_cli(vec!["yolo".into(), "unknown".into()], path.clone()).is_err());
+        // wrong command — should get "Unknown command: 'unknown'"
+        let err = run_cli(vec!["yolo".into(), "unknown".into()], path.clone()).unwrap_err();
+        assert!(err.contains("Unknown command: 'unknown'"), "got: {}", err);
         // valid command, missing db
         assert!(run_cli(vec!["yolo".into(), "report".into()], path.clone()).is_err());
     }
@@ -570,6 +858,53 @@ mod tests {
                 assert!(!e.contains("Unknown command"), "Command {} should be routed but got: {}", cmd, e);
             }
         }
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_command_from_arg_all_variants() {
+        // Every canonical name must map to Some(Command)
+        for name in Command::all_names() {
+            assert!(Command::from_arg(name).is_some(), "from_arg({}) returned None", name);
+        }
+        // Alias
+        assert_eq!(Command::from_arg("rollout"), Some(Command::RolloutStage));
+    }
+
+    #[test]
+    fn test_command_from_arg_unknown() {
+        assert_eq!(Command::from_arg("nonexistent"), None);
+        assert_eq!(Command::from_arg(""), None);
+        assert_eq!(Command::from_arg("zzzzz"), None);
+    }
+
+    #[test]
+    fn test_command_name_roundtrip() {
+        for name in Command::all_names() {
+            let cmd = Command::from_arg(name).unwrap();
+            assert_eq!(cmd.name(), *name, "roundtrip failed for {}", name);
+        }
+    }
+
+    #[test]
+    fn test_command_suggest_typo() {
+        assert_eq!(Command::suggest("reprot"), Some("report"));
+        assert_eq!(Command::suggest("reporr"), Some("report"));
+        assert_eq!(Command::suggest("boostrap"), Some("bootstrap"));
+        assert_eq!(Command::suggest("vrify"), Some("verify"));
+    }
+
+    #[test]
+    fn test_command_suggest_no_match() {
+        assert_eq!(Command::suggest("zzzzzzzzzzz"), None);
+        assert_eq!(Command::suggest("xylophone"), None);
+    }
+
+    #[test]
+    fn test_run_cli_did_you_mean() {
+        let path = std::env::temp_dir().join(format!("yolo-test-suggest-{}.db", std::process::id()));
+        let err = run_cli(vec!["yolo".into(), "reprot".into()], path.clone()).unwrap_err();
+        assert!(err.contains("Did you mean 'report'"), "got: {}", err);
         let _ = std::fs::remove_file(&path);
     }
 }
