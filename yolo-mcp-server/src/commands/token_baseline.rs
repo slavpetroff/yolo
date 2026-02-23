@@ -1,6 +1,6 @@
 use std::path::Path;
 use std::fs;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use serde_json::{Value, json, Map};
 
 fn load_jsonl(path: &Path) -> Vec<Value> {

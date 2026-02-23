@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use serde_json::json;
-use chrono::{NaiveDate, Utc, Datelike};
+use chrono::{NaiveDate, Utc};
 
 fn resolve_state_path(planning_dir: &Path) -> Result<PathBuf, String> {
     let state_path = planning_dir.join("STATE.md");
