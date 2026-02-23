@@ -85,6 +85,10 @@ Recent commits:
       Files Modified: {list}
     ```
 
-Follow discovered issues display protocol: @references/discovered-issues-protocol.md
+**Discovered Issues** display protocol:
+    De-duplicate by test name and file (keep first error message). Cap at 20.
+    Format each as: `⚠ testName (path/to/file): error message`
+    Suggest: `/yolo:todo <description>` to track.
+    This is **display-only**. STOP. Do not take further action on discovered issues.
 
 ➜ Next: /yolo:status -- View project status

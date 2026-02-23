@@ -53,15 +53,18 @@ Config: Pre-injected by SessionStart hook.
 
     Committed, with discovered issues (Dev reported pre-existing failures):
 
-    Follow discovered issues display protocol: @references/discovered-issues-protocol.md
-
     ```text
     ✓ Fix applied
       {commit hash} {commit message}
       Files: {changed files}
     ```
 
-    If discovered issues exist, append them after the result box per the protocol above.
+    **Discovered Issues** display protocol:
+    De-duplicate by test name and file (keep first error message). Cap at 20.
+    Format each as: `⚠ testName (path/to/file): error message`
+    Suggest: `/yolo:todo <description>` to track.
+    This is **display-only**. STOP. Do not take further action on discovered issues.
+
     Run `"$HOME/.cargo/bin/yolo" suggest-next fix` and display.
 
     Dev stopped:

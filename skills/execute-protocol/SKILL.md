@@ -895,7 +895,11 @@ Display per @${CLAUDE_PLUGIN_ROOT}/references/yolo-brand-essentials.md:
 
 **"What happened" (NRW-02):** If config `plain_summary` is true (default), append 2-4 plain-English sentences between Verification and Next Up. No jargon. Source from SUMMARY.md files. If false, skip.
 
-Follow discovered issues display protocol: @references/discovered-issues-protocol.md
+**Discovered Issues** display protocol:
+De-duplicate by test name and file (keep first error message). Cap at 20.
+Format each as: `⚠ testName (path/to/file): error message`
+Suggest: `/yolo:todo <description>` to track.
+This is **display-only**. STOP. Do not take further action on discovered issues.
 List discovered issues between "What happened" and Next Up in the summary output.
 
 Run `"$HOME/.cargo/bin/yolo" suggest-next execute pass` and display output.
