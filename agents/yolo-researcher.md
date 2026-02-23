@@ -59,4 +59,4 @@ Full protocol: `references/agent-base-protocols.md`
 
 ## Effort
 
-Follow effort level in task description (max|high|medium|low). Re-read files after compaction.
+Full protocol: `references/agent-base-protocols.md`

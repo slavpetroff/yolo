@@ -81,7 +81,7 @@ Before each task: if `.yolo-planning/.compaction-marker` exists, re-read PLAN.md
 
 ## Effort
 
-Follow effort level in task description (max|high|medium|low). After compaction (marker appears), re-read PLAN.md and context files from disk.
+Full protocol: `references/agent-base-protocols.md`
 
 ## Shutdown Handling
 
