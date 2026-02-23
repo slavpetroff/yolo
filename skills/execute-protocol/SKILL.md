@@ -110,6 +110,11 @@ ACCUMULATED_FINDINGS=$(echo "$ACCUMULATED_FINDINGS" | jq --argjson f "$CURRENT_F
      mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
    ```
 
+   **Log review_loop_start event:**
+   ```bash
+   "$HOME/.cargo/bin/yolo" log-event review_loop_start {phase} plan={NN-MM} max_cycles=${REVIEW_MAX_CYCLES} 2>/dev/null || true
+   ```
+
 2. Resolve Architect model:
 ```bash
 ARCH_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model architect .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
@@ -168,28 +173,37 @@ ARCH_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model architect .yolo-planning/conf
      mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
    ```
 
+   **Log review_loop_cycle event:**
+   ```bash
+   HIGH_COUNT=$(echo "$CURRENT_FINDINGS" | jq '[.[] | select(.severity == "high")] | length')
+   "$HOME/.cargo/bin/yolo" log-event review_loop_cycle {phase} plan={NN-MM} cycle=${REVIEW_CYCLE} verdict=${VERDICT} high_count=${HIGH_COUNT} 2>/dev/null || true
+   ```
+
    e. Parse new verdict:
-      - `verdict: "approve"` -- Exit loop. Display `✓ Plan {NN-MM} review: approved (cycle {REVIEW_CYCLE}/{max})`. Update execution-state:
+      - `verdict: "approve"` -- Exit loop. Display `✓ Plan {NN-MM} review: approved (cycle {REVIEW_CYCLE}/{max})`. Update execution-state and log:
         ```bash
         jq --arg plan "{NN-MM}" '.review_loops[$plan].status = "passed"' \
           .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
           mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+        "$HOME/.cargo/bin/yolo" log-event review_loop_end {phase} plan={NN-MM} cycles_used=${REVIEW_CYCLE} final_verdict=approve 2>/dev/null || true
         ```
-      - `verdict: "conditional"` -- Exit loop. Attach findings as warnings to DEV_CONTEXT. Display `⚠ Plan {NN-MM} review: conditional (cycle {REVIEW_CYCLE}/{max})`. Update execution-state:
+      - `verdict: "conditional"` -- Exit loop. Attach findings as warnings to DEV_CONTEXT. Display `⚠ Plan {NN-MM} review: conditional (cycle {REVIEW_CYCLE}/{max})`. Update execution-state and log:
         ```bash
         jq --arg plan "{NN-MM}" '.review_loops[$plan].status = "passed"' \
           .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
           mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+        "$HOME/.cargo/bin/yolo" log-event review_loop_end {phase} plan={NN-MM} cycles_used=${REVIEW_CYCLE} final_verdict=conditional 2>/dev/null || true
         ```
         Proceed to Step 3.
       - `verdict: "reject"` -- Continue loop (next iteration)
 
 4. **Max cycles exceeded** (loop exits with `VERDICT == "reject"`):
-   - Update execution-state:
+   - Update execution-state and log:
      ```bash
      jq --arg plan "{NN-MM}" '.review_loops[$plan].status = "failed"' \
        .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
        mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+     "$HOME/.cargo/bin/yolo" log-event review_loop_end {phase} plan={NN-MM} cycles_used=${REVIEW_MAX_CYCLES} final_verdict=reject 2>/dev/null || true
      ```
    - Display `✗ Plan {NN-MM} review: REJECTED after {REVIEW_MAX_CYCLES} cycles`
    - Display accumulated findings summary (deduplicated by finding ID):
