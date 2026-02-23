@@ -7,7 +7,7 @@ V2 inter-agent messages use strict JSON schemas. Every message includes a mandat
 ```json
 {
   "id": "uuid-v4",
-  "type": "plan_contract|execution_update|blocker_report|approval_request|approval_response|shutdown_request|shutdown_response",
+  "type": "plan_contract|execution_update|blocker_report|approval_request|approval_response|scout_findings|shutdown_request|shutdown_response",
   "phase": 1,
   "task": "1-1-T3",
   "author_role": "lead|dev|debugger|architect|docs",
@@ -28,6 +28,7 @@ V2 inter-agent messages use strict JSON schemas. Every message includes a mandat
 | debugger_report   | debugger                  | lead                      |
 | approval_request  | dev, lead                 | lead, architect           |
 | approval_response | lead, architect           | dev, lead                 |
+| scout_findings    | scout                     | lead, architect           |
 | shutdown_request  | lead (orchestrator)       | dev, lead, debugger, docs |
 | shutdown_response | dev, lead, debugger, docs | lead (orchestrator)       |
 
@@ -121,6 +122,22 @@ Envelope: `"type": "debugger_report"`. Distinct from `blocker_report` -- uses di
   "reason": "Auth module access justified by cross-cutting dependency",
   "conditions": ["Must not change existing API surface"],
   "modifications": []
+}
+```
+
+## `scout_findings` (Scout -> Lead/Architect)
+
+```json
+{
+  "topic": "Research topic or question",
+  "findings": [
+    {
+      "source": "URL or file path",
+      "insight": "Key finding text",
+      "confidence": "high|medium|low"
+    }
+  ],
+  "recommendations": ["Actionable next step 1", "Actionable next step 2"]
 }
 ```
 
