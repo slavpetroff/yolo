@@ -8,9 +8,28 @@ use sysinfo::System;
 use reqwest::blocking::Client;
 use std::time::Duration;
 
+#[derive(Clone, Copy)]
+enum StepStatus {
+    Ok,
+    Skip,
+    Warn,
+    Error,
+}
+
+impl StepStatus {
+    fn as_str(&self) -> &'static str {
+        match self {
+            StepStatus::Ok => "ok",
+            StepStatus::Skip => "skip",
+            StepStatus::Warn => "warn",
+            StepStatus::Error => "error",
+        }
+    }
+}
+
 struct StepResult {
     name: &'static str,
-    status: &'static str,
+    status: StepStatus,
     ms: u64,
 }
 
@@ -37,7 +56,7 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
                 "ok": false,
                 "cmd": "session-start",
                 "delta": {
-                    "steps": [{"step": "dependency_check", "status": "error", "ms": step_start.elapsed().as_millis() as u64}],
+                    "steps": [{"step": "dependency_check", "status": StepStatus::Error.as_str(), "ms": step_start.elapsed().as_millis() as u64}],
                     "warnings": ["jq not found"],
                     "next_action": "install jq"
                 },
@@ -46,7 +65,7 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
         });
         return Ok((out.to_string(), 0));
     }
-    steps.push(StepResult { name: "dependency_check", status: "ok", ms: step_start.elapsed().as_millis() as u64 });
+    steps.push(StepResult { name: "dependency_check", status: StepStatus::Ok, ms: step_start.elapsed().as_millis() as u64 });
 
     // 2. Compaction check
     step_start = Instant::now();
@@ -69,7 +88,7 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
     }
     steps.push(StepResult {
         name: "compaction_check",
-        status: if compaction_skipped { "skip" } else { "ok" },
+        status: if compaction_skipped { StepStatus::Skip } else { StepStatus::Ok },
         ms: step_start.elapsed().as_millis() as u64,
     });
 
@@ -83,7 +102,7 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
     }
     steps.push(StepResult {
         name: "config_migration",
-        status: if config_migration_skipped { "skip" } else { "ok" },
+        status: if config_migration_skipped { StepStatus::Skip } else { StepStatus::Ok },
         ms: step_start.elapsed().as_millis() as u64,
     });
 
@@ -105,19 +124,19 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
     }
     steps.push(StepResult {
         name: "claude_md_migration",
-        status: if claude_md_skipped { "skip" } else { "ok" },
+        status: if claude_md_skipped { StepStatus::Skip } else { StepStatus::Ok },
         ms: step_start.elapsed().as_millis() as u64,
     });
 
     // 5. Todos hierarchy migration
     step_start = Instant::now();
     flatten_todos_migration(&planning_dir);
-    steps.push(StepResult { name: "todos_migration", status: "ok", ms: step_start.elapsed().as_millis() as u64 });
+    steps.push(StepResult { name: "todos_migration", status: StepStatus::Ok, ms: step_start.elapsed().as_millis() as u64 });
 
     // 6. Orphaned state migration (native Rust)
     step_start = Instant::now();
     let _ = super::migrate_orphaned_state::migrate_orphaned_state(&planning_dir);
-    steps.push(StepResult { name: "orphaned_state_migration", status: "ok", ms: step_start.elapsed().as_millis() as u64 });
+    steps.push(StepResult { name: "orphaned_state_migration", status: StepStatus::Ok, ms: step_start.elapsed().as_millis() as u64 });
 
     // 7. Config Cache & Warnings
     step_start = Instant::now();
@@ -128,14 +147,14 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
     }
     steps.push(StepResult {
         name: "config_cache",
-        status: if config_cache_has_warnings { "warn" } else { "ok" },
+        status: if config_cache_has_warnings { StepStatus::Warn } else { StepStatus::Ok },
         ms: step_start.elapsed().as_millis() as u64,
     });
 
     // 8. First run welcome
     step_start = Instant::now();
     let welcome_msg = check_first_run(&claude_dir);
-    steps.push(StepResult { name: "first_run_check", status: "ok", ms: step_start.elapsed().as_millis() as u64 });
+    steps.push(StepResult { name: "first_run_check", status: StepStatus::Ok, ms: step_start.elapsed().as_millis() as u64 });
 
     // 9. Update Check
     step_start = Instant::now();
@@ -146,19 +165,19 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
     }
     steps.push(StepResult {
         name: "update_check",
-        status: if update_has_warnings { "warn" } else { "ok" },
+        status: if update_has_warnings { StepStatus::Warn } else { StepStatus::Ok },
         ms: step_start.elapsed().as_millis() as u64,
     });
 
     // 10. StatusLine & Tmux migration
     step_start = Instant::now();
     migrate_statusline_and_tmux(&claude_dir, &planning_dir);
-    steps.push(StepResult { name: "statusline_migration", status: "ok", ms: step_start.elapsed().as_millis() as u64 });
+    steps.push(StepResult { name: "statusline_migration", status: StepStatus::Ok, ms: step_start.elapsed().as_millis() as u64 });
 
     // 11. Cache cleanup and syncing
     step_start = Instant::now();
     cleanup_and_sync_cache(&claude_dir);
-    steps.push(StepResult { name: "cache_cleanup", status: "ok", ms: step_start.elapsed().as_millis() as u64 });
+    steps.push(StepResult { name: "cache_cleanup", status: StepStatus::Ok, ms: step_start.elapsed().as_millis() as u64 });
 
     // 12. Hook installation & stale team cleanup (native Rust)
     step_start = Instant::now();
@@ -167,13 +186,13 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
         let log_file = planning_dir.join(".hook-errors.log");
         super::clean_stale_teams::clean_stale_teams(&claude_dir, &log_file);
     }
-    steps.push(StepResult { name: "hook_installation", status: "ok", ms: step_start.elapsed().as_millis() as u64 });
+    steps.push(StepResult { name: "hook_installation", status: StepStatus::Ok, ms: step_start.elapsed().as_millis() as u64 });
 
     // 13. Reconcile execution state & Orphan Agents
     step_start = Instant::now();
     let state_msg = reconcile_execution_state(&planning_dir);
     cleanup_orphaned_agents(&planning_dir);
-    steps.push(StepResult { name: "execution_state_reconcile", status: "ok", ms: step_start.elapsed().as_millis() as u64 });
+    steps.push(StepResult { name: "execution_state_reconcile", status: StepStatus::Ok, ms: step_start.elapsed().as_millis() as u64 });
 
     // 14. Tmux watchdog (native Rust)
     step_start = Instant::now();
@@ -184,14 +203,14 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
     }
     steps.push(StepResult {
         name: "tmux_watchdog",
-        status: if tmux_skipped { "skip" } else { "ok" },
+        status: if tmux_skipped { StepStatus::Skip } else { StepStatus::Ok },
         ms: step_start.elapsed().as_millis() as u64,
     });
 
     // 15. Determine Next Action & Build Context
     step_start = Instant::now();
     let ctx = build_context(cwd, &planning_dir, &state_msg);
-    steps.push(StepResult { name: "build_context", status: "ok", ms: step_start.elapsed().as_millis() as u64 });
+    steps.push(StepResult { name: "build_context", status: StepStatus::Ok, ms: step_start.elapsed().as_millis() as u64 });
 
     // 16. Optional: compile progress data
     let progress_data = if with_progress {
@@ -203,7 +222,7 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
             Ok((output, 0)) => {
                 steps.push(StepResult {
                     name: "compile_progress",
-                    status: "ok",
+                    status: StepStatus::Ok,
                     ms: step_start.elapsed().as_millis() as u64,
                 });
                 serde_json::from_str::<Value>(&output).ok()
@@ -211,7 +230,7 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
             _ => {
                 steps.push(StepResult {
                     name: "compile_progress",
-                    status: "error",
+                    status: StepStatus::Error,
                     ms: step_start.elapsed().as_millis() as u64,
                 });
                 None
@@ -231,7 +250,7 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
             Ok((output, 0)) => {
                 steps.push(StepResult {
                     name: "git_state",
-                    status: "ok",
+                    status: StepStatus::Ok,
                     ms: step_start.elapsed().as_millis() as u64,
                 });
                 serde_json::from_str::<Value>(&output).ok()
@@ -239,7 +258,7 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
             _ => {
                 steps.push(StepResult {
                     name: "git_state",
-                    status: "error",
+                    status: StepStatus::Error,
                     ms: step_start.elapsed().as_millis() as u64,
                 });
                 None
@@ -251,7 +270,7 @@ pub fn execute_session_start(args: &[String], cwd: &Path) -> Result<(String, i32
 
     let steps_json: Vec<Value> = steps.iter().map(|s| json!({
         "step": s.name,
-        "status": s.status,
+        "status": s.status.as_str(),
         "ms": s.ms
     })).collect();
 
@@ -1138,8 +1157,8 @@ mod tests {
 
     #[test]
     fn test_step_result_json_format() {
-        let step = StepResult { name: "test_step", status: "ok", ms: 42 };
-        let j = json!({"step": step.name, "status": step.status, "ms": step.ms});
+        let step = StepResult { name: "test_step", status: StepStatus::Ok, ms: 42 };
+        let j = json!({"step": step.name, "status": step.status.as_str(), "ms": step.ms});
         assert_eq!(j["step"], "test_step");
         assert_eq!(j["status"], "ok");
         assert_eq!(j["ms"], 42);
@@ -1148,13 +1167,13 @@ mod tests {
     #[test]
     fn test_step_status_variants() {
         let cases = vec![
-            StepResult { name: "dep", status: "ok", ms: 1 },
-            StepResult { name: "compact", status: "skip", ms: 0 },
-            StepResult { name: "cache", status: "warn", ms: 5 },
-            StepResult { name: "jq", status: "error", ms: 2 },
+            StepResult { name: "dep", status: StepStatus::Ok, ms: 1 },
+            StepResult { name: "compact", status: StepStatus::Skip, ms: 0 },
+            StepResult { name: "cache", status: StepStatus::Warn, ms: 5 },
+            StepResult { name: "jq", status: StepStatus::Error, ms: 2 },
         ];
         let steps_json: Vec<Value> = cases.iter().map(|s| json!({
-            "step": s.name, "status": s.status, "ms": s.ms
+            "step": s.name, "status": s.status.as_str(), "ms": s.ms
         })).collect();
         assert_eq!(steps_json.len(), 4);
         assert_eq!(steps_json[0]["status"], "ok");
