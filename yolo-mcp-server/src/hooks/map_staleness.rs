@@ -11,7 +11,7 @@ use super::utils;
 /// Handle SessionStart: check codebase map staleness.
 /// If >30% files changed since map creation, emit hookSpecificOutput JSON
 /// advising the user to refresh.
-pub fn handle(input: &HookInput, hook_mode: bool) -> Result<HookOutput, String> {
+pub fn handle(_input: &HookInput, hook_mode: bool) -> Result<HookOutput, String> {
     let cwd = std::env::current_dir().map_err(|e| format!("Failed to get cwd: {}", e))?;
 
     let planning_dir = match utils::get_planning_dir(&cwd) {
