@@ -374,6 +374,50 @@ Phase progress, plan completion, effort profile, QA status -- everything rendere
 
 <br>
 
+## Feedback Loops
+
+Two automated loops catch problems before they escape to production.
+
+### Review Gate Loop (Step 2b)
+
+When `review_gate` is active, plans are reviewed before execution begins. On rejection, the loop triggers automatically:
+
+1. Reviewer rejects plan with delta-findings and suggested fixes
+2. Architect revises the plan, addressing only flagged issues
+3. Reviewer re-reviews, receiving prior findings for comparison
+4. Loop repeats until **approve/conditional** or `review_max_cycles` exceeded (hard stop)
+
+Each plan maintains its own independent loop counter. Delta-findings pass between iterations so the Reviewer does not re-flag resolved issues.
+
+### QA Gate Loop (Step 3d)
+
+When `qa_gate` is active, completed work is verified by 5 QA checks. On failure:
+
+1. Failures categorized by `fixable_by`: `dev`, `architect`, or `manual`
+2. Dev-fixable issues trigger scoped auto-remediation -- Dev receives only the failing check context, not the full plan
+3. Only previously-failed checks re-run (delta re-runs)
+4. Architect/manual issues cause **immediate hard stop** -- no auto-fix attempt
+5. Loop repeats until all checks pass or `qa_max_cycles` exceeded (hard stop)
+
+### Configuration
+
+| Setting              | Default | Values                         | Effect |
+| :------------------- | :------ | :----------------------------- | :----- |
+| `review_gate`        | `never` | `always`/`on_request`/`never`  | Enable review loop before execution |
+| `qa_gate`            | `never` | `always`/`on_request`/`never`  | Enable QA loop after execution |
+| `review_max_cycles`  | `3`     | `1`-`5`                        | Max review iterations per plan |
+| `qa_max_cycles`      | `3`     | `1`-`5`                        | Max QA remediation iterations |
+
+### Cache Efficiency
+
+Review loop agents share the "planning" Tier 2 cache. QA loop agents share the "execution" Tier 2 cache. Loops stay warm between iterations -- no context recompilation on retry.
+
+<br>
+
+---
+
+<br>
+
 ## Design Decisions
 
 ### File System as State Machine
