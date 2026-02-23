@@ -26,6 +26,17 @@
 - Updated bats tests for new flags
 - REQ-04
 
+## Phase 3b: Rust Idiom Cleanup
+**Goal:** Refactor Phase 2+3 Rust code to use idiomatic patterns — enums, match arms, shared utilities
+**Success criteria:**
+- String-based state machines replaced with enums (StepStatus, PhaseState, Route, AgentRole, Model)
+- if-else chains replaced with match arms throughout
+- Regex moved outside loops / replaced with str methods
+- Code duplication eliminated (config parsing, dir listing, response builders, skill collection)
+- Error handling convention unified (Err vs Ok with exit code)
+- Raw string indexing replaced with safe str methods (split_once, strip_prefix)
+- All existing tests still pass
+
 ## Phase 4: Compress Agent & Command Instructions
 **Goal:** Revise MD files to call Rust CLI, remove redundant inline logic, compress agent instructions
 **Success criteria:**
