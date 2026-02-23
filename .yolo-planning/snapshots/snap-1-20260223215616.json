@@ -1,0 +1,29 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "844a90c4-6fa4-463d-a04b-fdc9e3807582",
+    "phase": 1,
+    "phase_name": "01-review-gate-agent",
+    "plans": [
+      {
+        "id": "01-01",
+        "status": "pending",
+        "title": "Two-stage review gate in execute protocol",
+        "wave": 1
+      },
+      {
+        "id": "01-02",
+        "status": "pending",
+        "title": "Reviewer agent definition updates for two-stage integration",
+        "wave": 1
+      }
+    ],
+    "started_at": "2026-02-23T21:55:55Z",
+    "status": "running",
+    "total_waves": 1,
+    "wave": 1
+  },
+  "matcher": "auto",
+  "phase": "1",
+  "timestamp": "2026-02-23T21:56:16Z"
+}
