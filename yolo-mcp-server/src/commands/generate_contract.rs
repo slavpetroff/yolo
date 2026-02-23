@@ -79,8 +79,8 @@ fn fm_list(fm: &str, key: &str) -> Vec<String> {
             continue;
         }
         if in_list {
-            if trimmed.starts_with("- ") {
-                let item = trimmed[2..].trim().trim_matches('"').trim_matches('\'').trim();
+            if let Some(stripped) = trimmed.strip_prefix("- ") {
+                let item = stripped.trim().trim_matches('"').trim_matches('\'').trim();
                 if !item.is_empty() {
                     result.push(item.to_string());
                 }

@@ -213,11 +213,10 @@ fn extract_key_decisions(archive_dir: &Path) -> Vec<String> {
 
         // Parse bullet items: - Decision text
         let trimmed = line.trim();
-        if let Some(stripped) = trimmed.strip_prefix("- ") {
-            if !stripped.is_empty() {
+        if let Some(stripped) = trimmed.strip_prefix("- ")
+            && !stripped.is_empty() {
                 decisions.push(stripped.to_string());
             }
-        }
     }
 
     decisions
@@ -225,8 +224,8 @@ fn extract_key_decisions(archive_dir: &Path) -> Vec<String> {
 
 fn extract_current_work(index: &Option<Value>, archive_dir: &Path) -> Value {
     // Try INDEX.json first — find first in_progress phase
-    if let Some(idx) = index {
-        if let Some(phases) = idx.get("phases").and_then(|v| v.as_array()) {
+    if let Some(idx) = index
+        && let Some(phases) = idx.get("phases").and_then(|v| v.as_array()) {
             for phase in phases {
                 if phase.get("status").and_then(|v| v.as_str()) == Some("in_progress") {
                     let num = phase.get("num").and_then(|v| v.as_u64()).unwrap_or(0);
@@ -241,7 +240,6 @@ fn extract_current_work(index: &Option<Value>, archive_dir: &Path) -> Value {
                 }
             }
         }
-    }
 
     // Fallback to STATE.md
     let state_file = archive_dir.join("STATE.md");

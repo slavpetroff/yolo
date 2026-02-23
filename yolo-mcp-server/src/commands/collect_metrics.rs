@@ -52,11 +52,10 @@ pub fn collect(
         "phase": phase.parse::<i64>().unwrap_or(0),
     });
 
-    if let Some(p) = plan {
-        if let Ok(plan_num) = p.parse::<i64>() {
+    if let Some(p) = plan
+        && let Ok(plan_num) = p.parse::<i64>() {
             obj["plan"] = json!(plan_num);
         }
-    }
 
     if !data_pairs.is_empty() {
         let mut data_obj = serde_json::Map::new();
@@ -98,7 +97,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let phase = &args[3];
     let remaining = if args.len() > 4 { &args[4..] } else { &[] };
 
-    let (plan, data_pairs) = parse_args(&remaining.to_vec());
+    let (plan, data_pairs) = parse_args(remaining);
 
     let result = collect(event, phase, plan.as_deref(), &data_pairs, cwd)?;
 

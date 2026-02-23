@@ -21,11 +21,10 @@ pub fn atomic_write(path: &Path, content: &[u8]) -> io::Result<()> {
     let tmp_path = append_suffix(path, &format!("tmp.{}", pid));
 
     // Ensure parent directory exists
-    if let Some(parent) = path.parent() {
-        if !parent.exists() {
+    if let Some(parent) = path.parent()
+        && !parent.exists() {
             fs::create_dir_all(parent)?;
         }
-    }
 
     fs::write(&tmp_path, content)?;
 
@@ -97,7 +96,7 @@ pub fn read_verified(path: &Path) -> io::Result<Vec<u8>> {
     let content = fs::read(path)?;
 
     match verify_checksum(path) {
-        Ok(true) => return Ok(content),
+        Ok(true) => Ok(content),
         Ok(false) => {
             // Sidecar missing or mismatch — try backup
             let backup = append_suffix(path, "backup");

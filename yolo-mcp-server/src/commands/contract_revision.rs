@@ -11,19 +11,17 @@ use super::{collect_metrics, generate_contract, log_event};
 pub fn revise(old_contract_path: &Path, plan_path: &Path, cwd: &Path) -> String {
     // Check v2_hard_contracts flag
     let config_path = cwd.join(".yolo-planning").join("config.json");
-    if config_path.exists() {
-        if let Ok(config_str) = fs::read_to_string(&config_path) {
-            if let Ok(config) = serde_json::from_str::<Value>(&config_str) {
-                let enabled = config
-                    .get("v2_hard_contracts")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false);
-                if !enabled {
-                    return String::new();
-                }
+    if config_path.exists()
+        && let Ok(config_str) = fs::read_to_string(&config_path)
+        && let Ok(config) = serde_json::from_str::<Value>(&config_str) {
+            let enabled = config
+                .get("v2_hard_contracts")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            if !enabled {
+                return String::new();
             }
         }
-    }
 
     if !old_contract_path.exists() || !plan_path.exists() {
         return String::new();

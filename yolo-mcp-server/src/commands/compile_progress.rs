@@ -116,8 +116,8 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 fn resolve_milestone(planning_dir: &Path, milestones_dir: &Path) -> (Option<String>, Option<std::path::PathBuf>) {
     // Check ACTIVE file first
     let active_file = planning_dir.join("ACTIVE");
-    if active_file.exists() {
-        if let Ok(content) = fs::read_to_string(&active_file) {
+    if active_file.exists()
+        && let Ok(content) = fs::read_to_string(&active_file) {
             let slug = content.trim();
             if !slug.is_empty() {
                 let phases = milestones_dir.join(slug).join("phases");
@@ -126,11 +126,10 @@ fn resolve_milestone(planning_dir: &Path, milestones_dir: &Path) -> (Option<Stri
                 }
             }
         }
-    }
 
     // Try milestones dir - pick the only one or first one
-    if milestones_dir.is_dir() {
-        if let Ok(entries) = fs::read_dir(milestones_dir) {
+    if milestones_dir.is_dir()
+        && let Ok(entries) = fs::read_dir(milestones_dir) {
             let mut dirs: Vec<_> = entries
                 .filter_map(|e| e.ok())
                 .filter(|e| e.path().is_dir())
@@ -144,7 +143,6 @@ fn resolve_milestone(planning_dir: &Path, milestones_dir: &Path) -> (Option<Stri
                 }
             }
         }
-    }
 
     // Fall back to planning_dir/phases
     let phases = planning_dir.join("phases");
