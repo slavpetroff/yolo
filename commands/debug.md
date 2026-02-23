@@ -95,13 +95,6 @@ Recent commits:
       Files Modified: {list}
     ```
 
-**Discovered Issues:** If the Debugger reported pre-existing failures, out-of-scope bugs, or issues unrelated to the investigated bug, append after the result box. Cap the list at 20 entries; if more exist, show the first 20 and append `... and {N} more`:
-```text
-  Discovered Issues:
-    ⚠ testName (path/to/file): error message
-    ⚠ testName (path/to/file): error message
-  Suggest: /yolo:todo <description> to track
-```
-This is **display-only**. Do NOT edit STATE.md, do NOT add todos, do NOT invoke /yolo:todo, and do NOT enter an interactive loop. The user decides whether to track these. If no discovered issues: omit the section entirely. After displaying discovered issues, STOP. Do not take further action.
+Follow discovered issues display protocol: @references/discovered-issues-protocol.md
 
 ➜ Next: /yolo:status -- View project status
