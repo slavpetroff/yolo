@@ -3,6 +3,7 @@ use std::path::Path;
 use regex::Regex;
 use serde_json::json;
 use super::structured_response::Timer;
+use super::utils;
 
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let timer = Timer::start();
@@ -31,7 +32,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     }
 
     let phases_dir = phases_dir.unwrap();
-    let phase_dirs = list_phase_dirs(&phases_dir);
+    let phase_dirs = utils::sorted_phase_dirs(&phases_dir);
 
     let mut phases_completed = 0usize;
     let mut phases_in_progress = 0usize;
@@ -155,21 +156,6 @@ fn resolve_milestone(planning_dir: &Path, milestones_dir: &Path) -> (Option<Stri
     }
 
     (None, None)
-}
-
-fn list_phase_dirs(phases_dir: &Path) -> Vec<(String, std::path::PathBuf)> {
-    let phase_re = Regex::new(r"^\d{2}-").unwrap();
-    let mut dirs = Vec::new();
-    if let Ok(entries) = fs::read_dir(phases_dir) {
-        for entry in entries.filter_map(|e| e.ok()) {
-            let name = entry.file_name().to_string_lossy().to_string();
-            if entry.path().is_dir() && phase_re.is_match(&name) {
-                dirs.push((name, entry.path()));
-            }
-        }
-    }
-    dirs.sort_by(|a, b| a.0.cmp(&b.0));
-    dirs
 }
 
 fn count_plans_and_summaries(dir: &Path) -> (usize, usize) {
