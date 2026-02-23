@@ -3,8 +3,9 @@ use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
 use serde_json::{json, Value};
 use crate::mcp::jsonrpc::{IncomingMessage, JsonRpcError, Notification, Request, Response};
+use crate::mcp::retry::{self, CircuitBreaker, RetryConfig};
 use crate::telemetry::db::TelemetryDb;
-use crate::mcp::tools::{self, ToolState};
+use crate::mcp::tools::ToolState;
 
 pub async fn run_server<R: AsyncBufReadExt + Unpin, W: AsyncWriteExt + Unpin + Send + 'static>(
     mut reader: R,
@@ -12,6 +13,8 @@ pub async fn run_server<R: AsyncBufReadExt + Unpin, W: AsyncWriteExt + Unpin + S
     telemetry: Arc<TelemetryDb>,
     tool_state: Arc<ToolState>,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let circuit_breaker = Arc::new(tokio::sync::Mutex::new(CircuitBreaker::new()));
+    let retry_config = RetryConfig::default();
     let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(64);
 
     // Writer task: drains the channel and writes to stdout sequentially
@@ -41,8 +44,10 @@ pub async fn run_server<R: AsyncBufReadExt + Unpin, W: AsyncWriteExt + Unpin + S
                 let tel = telemetry.clone();
                 let ts = tool_state.clone();
                 let resp_tx = tx.clone();
+                let cb = circuit_breaker.clone();
+                let rc = retry_config.clone();
                 tokio::spawn(async move {
-                    let response = handle_request(req, tel, ts, input_len).await;
+                    let response = handle_request(req, tel, ts, input_len, cb, rc).await;
                     if let Ok(response_str) = serde_json::to_string(&response) {
                         let _ = resp_tx.send(response_str + "\n").await;
                     }
@@ -83,6 +88,8 @@ async fn handle_request(
     telemetry: Arc<TelemetryDb>,
     tool_state: Arc<ToolState>,
     input_len: usize,
+    circuit_breaker: Arc<tokio::sync::Mutex<CircuitBreaker>>,
+    retry_config: RetryConfig,
 ) -> Response {
     let start_time = std::time::Instant::now();
     let method = req.method.as_str();
@@ -178,7 +185,22 @@ async fn handle_request(
                 telemetry_name = name.to_string();
             }
 
-            let tool_res = tools::handle_tool_call(name, arguments, tool_state.clone()).await;
+            let (tool_res, retry_stats) = retry::retry_tool_call(
+                name,
+                arguments,
+                tool_state.clone(),
+                &retry_config,
+                circuit_breaker.clone(),
+            )
+            .await;
+
+            if retry_stats.retried {
+                eprintln!(
+                    "[retry] tool={} attempts={} circuit_opened={}",
+                    name, retry_stats.attempts, retry_stats.circuit_opened
+                );
+            }
+
             Some(tool_res)
         }
         _ => {
@@ -238,6 +260,14 @@ mod tests {
         std::env::temp_dir().join(format!("yolo-test-{}-{}.db", name, std::process::id()))
     }
 
+    fn default_cb() -> Arc<tokio::sync::Mutex<CircuitBreaker>> {
+        Arc::new(tokio::sync::Mutex::new(CircuitBreaker::new()))
+    }
+
+    fn default_rc() -> RetryConfig {
+        RetryConfig::default()
+    }
+
     #[tokio::test]
     async fn test_handle_initialize() {
         let db_path = temp_db_path("init");
@@ -252,7 +282,7 @@ mod tests {
             params: None,
         };
 
-        let response = handle_request(req, telemetry, tool_state, 50).await;
+        let response = handle_request(req, telemetry, tool_state, 50, default_cb(), default_rc()).await;
         let result = response.result.unwrap();
         assert_eq!(result.get("serverInfo").unwrap().get("name").unwrap().as_str().unwrap(), "yolo-expert-mcp");
         let _ = std::fs::remove_file(&db_path);
@@ -272,7 +302,7 @@ mod tests {
             params: None,
         };
 
-        let response = handle_request(req, telemetry, tool_state, 48).await;
+        let response = handle_request(req, telemetry, tool_state, 48, default_cb(), default_rc()).await;
         let result = response.result.unwrap();
         let tools = result.get("tools").unwrap().as_array().unwrap();
         assert!(tools.len() > 0);
@@ -296,7 +326,7 @@ mod tests {
             })),
         };
 
-        let response = handle_request(req, telemetry, tool_state, 80).await;
+        let response = handle_request(req, telemetry, tool_state, 80, default_cb(), default_rc()).await;
         let result = response.result.unwrap();
         assert_eq!(result.get("isError").unwrap().as_bool().unwrap(), true);
         let _ = std::fs::remove_file(&db_path);
@@ -316,7 +346,7 @@ mod tests {
             params: None,
         };
 
-        let response = handle_request(req, telemetry, tool_state, 55).await;
+        let response = handle_request(req, telemetry, tool_state, 55, default_cb(), default_rc()).await;
         assert!(response.error.is_some());
         assert_eq!(response.error.unwrap().code, -32601);
         let _ = std::fs::remove_file(&db_path);
@@ -439,7 +469,7 @@ mod tests {
             params: None,
         };
 
-        let _ = handle_request(req, telemetry.clone(), tool_state, input_len).await;
+        let _ = handle_request(req, telemetry.clone(), tool_state, input_len, default_cb(), default_rc()).await;
 
         // Query the telemetry DB file directly via rusqlite
         let conn = rusqlite::Connection::open(&db_path).unwrap();
@@ -473,7 +503,7 @@ mod tests {
             })),
         };
 
-        let _ = handle_request(req, telemetry.clone(), tool_state, 100).await;
+        let _ = handle_request(req, telemetry.clone(), tool_state, 100, default_cb(), default_rc()).await;
 
         // Query the telemetry DB file directly via rusqlite
         let conn = rusqlite::Connection::open(&db_path).unwrap();
