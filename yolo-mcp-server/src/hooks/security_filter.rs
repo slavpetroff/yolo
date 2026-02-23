@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 use std::time::SystemTime;
 
-use super::types::{HookInput, HookOutput};
+use super::types::{HookInput, HookOutput, SecurityFilterInput};
 
 /// Sensitive file patterns that must be blocked.
 const SENSITIVE_PATTERN: &str = r"\.env$|\.env\.|\.pem$|\.key$|\.cert$|\.p12$|\.pfx$|credentials\.json$|secrets\.json$|service-account.*\.json$|node_modules/|\.git/|dist/|build/";
@@ -16,13 +16,27 @@ const MARKER_MAX_AGE_SECS: u64 = 86400;
 /// Fail-CLOSED: returns exit 2 on any parse error (never allow unvalidated input through).
 /// Extracts `file_path` from `tool_input.file_path`, `tool_input.path`, or `tool_input.pattern`.
 pub fn handle(input: &HookInput) -> Result<HookOutput, String> {
+    let typed = SecurityFilterInput::from_hook_input(input);
+
     // Skip file-path validation for tools that don't operate on files (e.g., Bash)
-    let tool_name = input.data.get("tool_name").and_then(|v| v.as_str()).unwrap_or("");
+    let tool_name = typed.tool_name.as_deref().unwrap_or("");
     if tool_name == "Bash" {
         return Ok(HookOutput::empty());
     }
 
-    let file_path = extract_file_path(&input.data);
+    // Prefer typed tool_input fields, fall back to raw extraction
+    let file_path = typed
+        .tool_input
+        .as_ref()
+        .and_then(|ti| {
+            ti.file_path
+                .as_deref()
+                .filter(|s| !s.is_empty())
+                .or(ti.path.as_deref().filter(|s| !s.is_empty()))
+                .or(ti.pattern.as_deref().filter(|s| !s.is_empty()))
+                .map(|s| s.to_string())
+        })
+        .or_else(|| extract_file_path(&input.data));
 
     // Fail-closed: if we can't extract a path, block
     let file_path = match file_path {
