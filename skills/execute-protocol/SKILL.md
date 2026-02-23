@@ -398,6 +398,16 @@ Tier 1 (`--- TIER 1: SHARED BASE ---`) contains project-wide content shared by e
 - Truncation uses tail strategy (keep most recent context).
 - When `v2_token_budgets=false`: no truncation (pass through).
 
+**Agent routing (subagent_type):** All Task tool spawn points in this protocol MUST include `subagent_type` to route to specialized agents with role-specific tool constraints, turn limits, and permission modes.
+
+| Role | subagent_type | Agent definition |
+|------|--------------|-----------------|
+| Dev | `yolo:yolo-dev` | `agents/yolo-dev.md` |
+| Architect | `yolo:yolo-architect` | `agents/yolo-architect.md` |
+| Lead | `yolo:yolo-lead` | `agents/yolo-lead.md` |
+| Reviewer | `yolo:yolo-reviewer` | `agents/yolo-reviewer.md` |
+| QA | `yolo:yolo-qa` | `agents/yolo-qa.md` |
+
 **Model resolution:** Resolve models for Dev agents:
 
 ```bash
