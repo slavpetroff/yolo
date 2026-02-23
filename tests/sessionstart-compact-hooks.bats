@@ -155,3 +155,36 @@ teardown() {
   [ "$status" -eq 2 ]
   [[ "$output" == *"permissionDecision"* ]]
 }
+
+# --- session-start --with-progress / --with-git ---
+
+@test "session-start --with-progress includes progress data" {
+  cd "$TEST_TEMP_DIR"
+  mkdir -p .yolo-planning/phases/01-setup
+  echo "## Task 1: work" > .yolo-planning/phases/01-setup/01-01-PLAN.md
+  run "$YOLO_BIN" session-start --with-progress
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.structuredResult.progress' >/dev/null
+  echo "$output" | jq -e '.structuredResult.progress.tasks.total' >/dev/null
+}
+
+@test "session-start --with-git includes git state" {
+  cd "$TEST_TEMP_DIR"
+  run "$YOLO_BIN" session-start --with-git
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.structuredResult.git' >/dev/null
+  echo "$output" | jq -e '.structuredResult.git.branch' >/dev/null
+}
+
+@test "session-start without flags has no progress/git data" {
+  cd "$TEST_TEMP_DIR"
+  run "$YOLO_BIN" session-start
+  [ "$status" -eq 0 ]
+  # progress and git should be null (absent) when flags not passed
+  local has_progress
+  has_progress=$(echo "$output" | jq '.structuredResult.progress // empty')
+  [ -z "$has_progress" ]
+  local has_git
+  has_git=$(echo "$output" | jq '.structuredResult.git // empty')
+  [ -z "$has_git" ]
+}
