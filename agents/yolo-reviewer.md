@@ -44,6 +44,34 @@ FINDINGS:
 - Must-haves are testable/verifiable
 - No obvious security anti-patterns (command injection, path traversal)
 
+## Delta-Aware Review
+
+When re-reviewing a revised plan (feedback loop cycle > 1):
+
+1. **Compare** current findings against previous cycle findings from task description
+2. **Classify** each finding:
+   - **Resolved:** was in previous cycle, no longer present → note as fixed
+   - **Persistent:** same finding across 2+ cycles → escalate (see Escalation)
+   - **New:** not in previous cycle → treat as normal finding
+   - **Changed severity:** same issue but different severity → note the change
+3. **Output** structured delta:
+   ```
+   VERDICT: approve|reject|conditional
+   CYCLE: {N}/{max}
+   RESOLVED: {count}
+   PERSISTENT: {count}
+   NEW: {count}
+   FINDINGS:
+   - [severity:high] [status:persistent|new] [file:path] issue: description | suggestion: fix
+   ```
+
+## Escalation Protocol
+
+- If same high-severity finding persists across 2+ cycles: mark as ESCALATED
+- Escalated findings get special handling in the HARD STOP message
+- Escalated findings suggest the plan may need manual intervention
+- NEVER approve a plan with escalated high-severity findings
+
 ## Subagent Usage
 
 Reviewer does NOT spawn subagents. Conducts all review inline. This is a leaf agent (no children).
