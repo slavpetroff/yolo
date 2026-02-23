@@ -416,4 +416,81 @@ mod tests {
         // Empty override should be ignored, falls through to profile value
         assert_eq!(out.trim(), "opus");
     }
+
+    #[test]
+    fn test_with_cost_flag() {
+        let dir = tempdir().unwrap();
+        let profiles = write_profiles(dir.path());
+        let config = write_config(dir.path(), r#"{"model_profile": "quality"}"#);
+
+        let (out, code) = execute(
+            &["yolo".into(), "resolve-model".into(), "lead".into(), config, profiles, "--with-cost".into()],
+            dir.path(),
+        ).unwrap();
+        assert_eq!(code, 0);
+        let parsed: serde_json::Value = serde_json::from_str(out.trim()).unwrap();
+        assert_eq!(parsed["model"], "opus");
+        assert_eq!(parsed["cost_weight"], 100);
+    }
+
+    #[test]
+    fn test_all_flag() {
+        let dir = tempdir().unwrap();
+        let profiles = write_profiles(dir.path());
+        let config = write_config(dir.path(), r#"{"model_profile": "quality"}"#);
+
+        let (out, code) = execute(
+            &["yolo".into(), "resolve-model".into(), "--all".into(), config, profiles],
+            dir.path(),
+        ).unwrap();
+        assert_eq!(code, 0);
+        let parsed: serde_json::Value = serde_json::from_str(out.trim()).unwrap();
+        let obj = parsed.as_object().unwrap();
+        assert_eq!(obj.len(), 9);
+        assert_eq!(parsed["lead"], "opus");
+        assert_eq!(parsed["scout"], "haiku");
+        assert_eq!(parsed["qa"], "sonnet");
+    }
+
+    #[test]
+    fn test_all_with_cost_combined() {
+        let dir = tempdir().unwrap();
+        let profiles = write_profiles(dir.path());
+        let config = write_config(dir.path(), r#"{"model_profile": "quality"}"#);
+
+        let (out, code) = execute(
+            &["yolo".into(), "resolve-model".into(), "--all".into(), "--with-cost".into(), config, profiles],
+            dir.path(),
+        ).unwrap();
+        assert_eq!(code, 0);
+        let parsed: serde_json::Value = serde_json::from_str(out.trim()).unwrap();
+        assert_eq!(parsed["lead"]["model"], "opus");
+        assert_eq!(parsed["lead"]["cost_weight"], 100);
+        assert_eq!(parsed["scout"]["model"], "haiku");
+        assert_eq!(parsed["scout"]["cost_weight"], 2);
+    }
+
+    #[test]
+    fn test_all_without_agent_name() {
+        let dir = tempdir().unwrap();
+        let profiles = write_profiles(dir.path());
+        let config = write_config(dir.path(), r#"{}"#);
+
+        // --all should NOT require an agent positional arg
+        let (out, code) = execute(
+            &["yolo".into(), "resolve-model".into(), "--all".into(), config, profiles],
+            dir.path(),
+        ).unwrap();
+        assert_eq!(code, 0);
+        let parsed: serde_json::Value = serde_json::from_str(out.trim()).unwrap();
+        assert!(parsed.as_object().unwrap().contains_key("dev"));
+    }
+
+    #[test]
+    fn test_cost_weight_values() {
+        assert_eq!(cost_weight("opus"), 100);
+        assert_eq!(cost_weight("sonnet"), 20);
+        assert_eq!(cost_weight("haiku"), 2);
+        assert_eq!(cost_weight("unknown"), 0);
+    }
 }
