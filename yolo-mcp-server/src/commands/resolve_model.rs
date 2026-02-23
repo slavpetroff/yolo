@@ -568,4 +568,37 @@ mod tests {
         assert_eq!(Model::Sonnet.cost_weight(), 20);
         assert_eq!(Model::Haiku.cost_weight(), 2);
     }
+
+    #[test]
+    fn test_agent_role_from_str_valid() {
+        for &role in AgentRole::all() {
+            assert!(AgentRole::from_str(role.as_str()).is_some(), "AgentRole::from_str failed for '{}'", role.as_str());
+        }
+    }
+
+    #[test]
+    fn test_agent_role_from_str_invalid() {
+        assert!(AgentRole::from_str("invalid").is_none());
+        assert!(AgentRole::from_str("").is_none());
+        assert!(AgentRole::from_str("LEAD").is_none());
+    }
+
+    #[test]
+    fn test_model_from_str_valid() {
+        assert!(Model::from_str("opus").is_some());
+        assert!(Model::from_str("sonnet").is_some());
+        assert!(Model::from_str("haiku").is_some());
+    }
+
+    #[test]
+    fn test_model_from_str_invalid() {
+        assert!(Model::from_str("unknown").is_none());
+        assert!(Model::from_str("").is_none());
+        assert!(Model::from_str("OPUS").is_none());
+    }
+
+    #[test]
+    fn test_agent_role_all_count() {
+        assert_eq!(AgentRole::all().len(), 9);
+    }
 }

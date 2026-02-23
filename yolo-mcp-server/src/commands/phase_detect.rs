@@ -485,4 +485,22 @@ mod tests {
         let (out, _) = execute(&[], dir.path()).unwrap();
         assert!(!out.contains("suggested_route"), "Output should not contain suggested_route without flag");
     }
+
+    #[test]
+    fn test_phase_state_as_str() {
+        assert_eq!(PhaseState::NoPhases.as_str(), "no_phases");
+        assert_eq!(PhaseState::NeedsPlanAndExecute.as_str(), "needs_plan_and_execute");
+        assert_eq!(PhaseState::NeedsExecute.as_str(), "needs_execute");
+        assert_eq!(PhaseState::AllDone.as_str(), "all_done");
+    }
+
+    #[test]
+    fn test_route_as_str() {
+        assert_eq!(Route::Init.as_str(), "init");
+        assert_eq!(Route::Bootstrap.as_str(), "bootstrap");
+        assert_eq!(Route::Resume.as_str(), "resume");
+        assert_eq!(Route::Plan.as_str(), "plan");
+        assert_eq!(Route::Execute.as_str(), "execute");
+        assert_eq!(Route::Archive.as_str(), "archive");
+    }
 }

@@ -1180,4 +1180,12 @@ mod tests {
         assert!(!warnings.is_empty());
         assert!(warnings.contains("v2_hard_gates requires v2_hard_contracts"));
     }
+
+    #[test]
+    fn test_step_status_as_str() {
+        assert_eq!(StepStatus::Ok.as_str(), "ok");
+        assert_eq!(StepStatus::Skip.as_str(), "skip");
+        assert_eq!(StepStatus::Warn.as_str(), "warn");
+        assert_eq!(StepStatus::Error.as_str(), "error");
+    }
 }
