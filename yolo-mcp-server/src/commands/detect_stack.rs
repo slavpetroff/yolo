@@ -3,11 +3,11 @@ use std::path::Path;
 use serde_json::json;
 
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
-    let project_dir = if args.len() > 2 {
-        Path::new(&args[2])
-    } else {
-        cwd
-    };
+    let include_brownfield = args.iter().any(|a| a == "--brownfield");
+    // Find first positional arg (non-flag) after "detect-stack"
+    let project_dir = args.iter().skip(2).find(|a| !a.starts_with("--"))
+        .map(|s| Path::new(s.as_str()))
+        .unwrap_or(cwd);
 
     let mappings_path = project_dir.join("config").join("stack-mappings.json");
     if !mappings_path.exists() {
@@ -294,7 +294,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         find_skills = true;
     }
 
-    let out = json!({
+    let mut out = json!({
         "detected_stack": detected,
         "installed": {
             "global": installed_global.split(',').filter(|s| !s.is_empty()).collect::<Vec<&str>>(),
@@ -305,6 +305,18 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         "suggestions": suggestions,
         "find_skills_available": find_skills
     });
+
+    if include_brownfield {
+        let brownfield = match std::process::Command::new("git")
+            .args(["ls-files", "."])
+            .current_dir(project_dir)
+            .output()
+        {
+            Ok(output) => !String::from_utf8_lossy(&output.stdout).trim().is_empty(),
+            Err(_) => false,
+        };
+        out.as_object_mut().unwrap().insert("brownfield".to_string(), json!(brownfield));
+    }
 
     Ok((serde_json::to_string_pretty(&out).unwrap() + "\n", 0))
 }
@@ -400,5 +412,46 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
         assert!(parsed["detected_stack"].as_array().unwrap().iter().any(|v| v == "dotnet"),
             "Expected dotnet via *.sln pattern, got: {}", out);
+    }
+
+    #[test]
+    fn test_detect_stack_brownfield_in_git_repo() {
+        let dir = tempdir().unwrap();
+        let config_dir = dir.path().join("config");
+        fs::create_dir_all(&config_dir).unwrap();
+        fs::write(config_dir.join("stack-mappings.json"), r#"{"_meta":{}}"#).unwrap();
+
+        // Init a git repo with tracked files
+        std::process::Command::new("git").args(["init", "-q"]).current_dir(dir.path()).output().unwrap();
+        std::process::Command::new("git").args(["config", "user.email", "test@test.com"]).current_dir(dir.path()).output().unwrap();
+        std::process::Command::new("git").args(["config", "user.name", "Test"]).current_dir(dir.path()).output().unwrap();
+        fs::write(dir.path().join("dummy.txt"), "x").unwrap();
+        std::process::Command::new("git").args(["add", "dummy.txt"]).current_dir(dir.path()).output().unwrap();
+        std::process::Command::new("git").args(["commit", "-q", "-m", "init"]).current_dir(dir.path()).output().unwrap();
+
+        let (out, code) = execute(&[
+            "yolo".into(), "detect-stack".into(),
+            dir.path().to_string_lossy().to_string(),
+            "--brownfield".into(),
+        ], dir.path()).unwrap();
+        assert_eq!(code, 0);
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(parsed["brownfield"], json!(true));
+    }
+
+    #[test]
+    fn test_detect_stack_no_brownfield_key_without_flag() {
+        let dir = tempdir().unwrap();
+        let config_dir = dir.path().join("config");
+        fs::create_dir_all(&config_dir).unwrap();
+        fs::write(config_dir.join("stack-mappings.json"), r#"{"_meta":{}}"#).unwrap();
+
+        let (out, code) = execute(&[
+            "yolo".into(), "detect-stack".into(),
+            dir.path().to_string_lossy().to_string(),
+        ], dir.path()).unwrap();
+        assert_eq!(code, 0);
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert!(parsed.get("brownfield").is_none(), "brownfield key should not be present without flag");
     }
 }
