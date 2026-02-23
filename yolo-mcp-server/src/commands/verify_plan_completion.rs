@@ -264,8 +264,8 @@ fn parse_list_field(frontmatter: &str, field_name: &str) -> Vec<String> {
         }
 
         if in_field {
-            if trimmed.starts_with("- ") {
-                let item = trimmed[2..].trim().trim_matches('"').trim_matches('\'');
+            if let Some(rest) = trimmed.strip_prefix("- ") {
+                let item = rest.trim().trim_matches('"').trim_matches('\'');
                 if !item.is_empty() {
                     result.push(item.to_string());
                 }

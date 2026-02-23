@@ -9,16 +9,15 @@ fn read_config(config_path: &Path) -> (String, String) {
     let mut planning_tracking = "manual".to_string();
     let mut auto_push = "never".to_string();
 
-    if config_path.exists() {
-        if let Ok(content) = fs::read_to_string(config_path) {
-            if let Ok(json) = serde_json::from_str::<Value>(&content) {
-                if let Some(v) = json.get("planning_tracking").and_then(|v| v.as_str()) {
-                    planning_tracking = v.to_string();
-                }
-                if let Some(v) = json.get("auto_push").and_then(|v| v.as_str()) {
-                    auto_push = v.to_string();
-                }
-            }
+    if config_path.exists()
+        && let Ok(content) = fs::read_to_string(config_path)
+        && let Ok(json) = serde_json::from_str::<Value>(&content)
+    {
+        if let Some(v) = json.get("planning_tracking").and_then(|v| v.as_str()) {
+            planning_tracking = v.to_string();
+        }
+        if let Some(v) = json.get("auto_push").and_then(|v| v.as_str()) {
+            auto_push = v.to_string();
         }
     }
 
@@ -107,19 +106,19 @@ fn sync_root_ignore(cwd: &Path, mode: &str) {
             return;
         }
 
-        if let Ok(content) = fs::read_to_string(&root_ignore) {
-            if !content.lines().any(|l| l == ".yolo-planning/") {
-                let _ = fs::write(&root_ignore, format!("{}\n.yolo-planning/\n", content));
-            }
+        if let Ok(content) = fs::read_to_string(&root_ignore)
+            && !content.lines().any(|l| l == ".yolo-planning/")
+        {
+            let _ = fs::write(&root_ignore, format!("{}\n.yolo-planning/\n", content));
         }
         return;
     }
 
-    if mode == "commit" && root_ignore.exists() {
-        if let Ok(content) = fs::read_to_string(&root_ignore) {
-            let filtered: Vec<&str> = content.lines().filter(|l| *l != ".yolo-planning/").collect();
-            let _ = fs::write(&root_ignore, filtered.join("\n") + "\n");
-        }
+    if mode == "commit" && root_ignore.exists()
+        && let Ok(content) = fs::read_to_string(&root_ignore)
+    {
+        let filtered: Vec<&str> = content.lines().filter(|l| *l != ".yolo-planning/").collect();
+        let _ = fs::write(&root_ignore, filtered.join("\n") + "\n");
     }
 }
 

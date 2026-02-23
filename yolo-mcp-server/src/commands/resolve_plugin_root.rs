@@ -58,19 +58,19 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
     // Strategy 3: Binary location — grandparent of current_exe.
     // This always succeeds when current_exe resolves, since the binary must reside in a directory.
-    if let Ok(exe) = env::current_exe() {
-        if let Some(parent) = exe.parent() {
-            let grandparent = parent.parent().unwrap_or(parent);
-            let elapsed = start.elapsed().as_millis();
-            let out = json!({
-                "ok": true,
-                "cmd": "resolve-plugin-root",
-                "plugin_root": grandparent.to_string_lossy(),
-                "resolved_via": "binary",
-                "elapsed_ms": elapsed
-            });
-            return Ok((serde_json::to_string(&out).map_err(|e| e.to_string())? + "\n", 0));
-        }
+    if let Ok(exe) = env::current_exe()
+        && let Some(parent) = exe.parent()
+    {
+        let grandparent = parent.parent().unwrap_or(parent);
+        let elapsed = start.elapsed().as_millis();
+        let out = json!({
+            "ok": true,
+            "cmd": "resolve-plugin-root",
+            "plugin_root": grandparent.to_string_lossy(),
+            "resolved_via": "binary",
+            "elapsed_ms": elapsed
+        });
+        return Ok((serde_json::to_string(&out).map_err(|e| e.to_string())? + "\n", 0));
     }
 
     let out = json!({"error": "could not resolve plugin root"});

@@ -18,17 +18,16 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let snapshots_dir = planning_dir.join(".snapshots");
 
     // Check feature flag v3_snapshot_resume
-    if config_path.exists() {
-        if let Ok(content) = fs::read_to_string(&config_path) {
-            if let Ok(config) = serde_json::from_str::<Value>(&content) {
-                let enabled = config
-                    .get("v3_snapshot_resume")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false);
-                if !enabled {
-                    return Ok(("".to_string(), 0));
-                }
-            }
+    if config_path.exists()
+        && let Ok(content) = fs::read_to_string(&config_path)
+        && let Ok(config) = serde_json::from_str::<Value>(&content)
+    {
+        let enabled = config
+            .get("v3_snapshot_resume")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        if !enabled {
+            return Ok(("".to_string(), 0));
         }
     }
 
@@ -138,15 +137,15 @@ fn restore_snapshot(
     if !preferred_role.is_empty() && preferred_role != "unknown" {
         for name in &candidates {
             let path = snapshots_dir.join(name);
-            if let Ok(content) = fs::read_to_string(&path) {
-                if let Ok(snap) = serde_json::from_str::<Value>(&content) {
-                    let role = snap
-                        .get("agent_role")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("");
-                    if role == preferred_role {
-                        return Ok((path.to_string_lossy().to_string(), 0));
-                    }
+            if let Ok(content) = fs::read_to_string(&path)
+                && let Ok(snap) = serde_json::from_str::<Value>(&content)
+            {
+                let role = snap
+                    .get("agent_role")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                if role == preferred_role {
+                    return Ok((path.to_string_lossy().to_string(), 0));
                 }
             }
         }

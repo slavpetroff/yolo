@@ -7,6 +7,7 @@ use std::path::Path;
 ///   - Scout: skip for turbo/fast
 ///   - Architect: include only for thorough
 ///   - All others: always include
+///
 /// Output: JSON {"agent","decision","reason"}
 /// Exit: 0 always — routing must never block execution.
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {

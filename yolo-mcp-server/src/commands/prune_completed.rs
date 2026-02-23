@@ -64,7 +64,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
 /// Checks if a directory name looks like a phase directory (starts with digits).
 fn is_phase_dir_name(name: &str) -> bool {
-    name.chars().next().map_or(false, |c| c.is_ascii_digit())
+    name.chars().next().is_some_and(|c| c.is_ascii_digit())
 }
 
 /// A phase is complete when every *-PLAN.md or *.plan.jsonl has a corresponding

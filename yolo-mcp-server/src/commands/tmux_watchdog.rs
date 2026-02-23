@@ -20,17 +20,16 @@ pub fn spawn_watchdog(planning_dir: &Path, session: &str) -> Result<bool, String
     let pid_file = planning_dir.join(".watchdog-pid");
 
     // Check if watchdog already running
-    if pid_file.exists() {
-        if let Ok(content) = fs::read_to_string(&pid_file) {
-            if let Ok(pid_u32) = content.trim().parse::<u32>() {
-                let mut sys = sysinfo::System::new();
-                sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
-                if sys.process(sysinfo::Pid::from_u32(pid_u32)).is_some() {
-                    return Ok(false); // Already running
-                }
-                let _ = fs::remove_file(&pid_file);
-            }
+    if pid_file.exists()
+        && let Ok(content) = fs::read_to_string(&pid_file)
+        && let Ok(pid_u32) = content.trim().parse::<u32>()
+    {
+        let mut sys = sysinfo::System::new();
+        sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+        if sys.process(sysinfo::Pid::from_u32(pid_u32)).is_some() {
+            return Ok(false); // Already running
         }
+        let _ = fs::remove_file(&pid_file);
     }
 
     // Spawn watchdog in background thread

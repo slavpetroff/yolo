@@ -290,8 +290,8 @@ fn parse_list_field(frontmatter: &str, field_name: &str) -> Vec<String> {
         }
 
         if in_field {
-            if trimmed.starts_with("- ") {
-                let item = trimmed[2..].trim().trim_matches('"').trim_matches('\'');
+            if let Some(rest) = trimmed.strip_prefix("- ") {
+                let item = rest.trim().trim_matches('"').trim_matches('\'');
                 if !item.is_empty() {
                     result.push(item.to_string());
                 }
@@ -310,8 +310,8 @@ fn extract_file_paths(content: &str) -> Vec<String> {
     let mut paths = Vec::new();
     for line in content.lines() {
         let trimmed = line.trim();
-        if trimmed.starts_with("**Files:**") {
-            let value = trimmed["**Files:**".len()..].trim();
+        if let Some(rest) = trimmed.strip_prefix("**Files:**") {
+            let value = rest.trim();
             for part in value.split(',') {
                 let part = part.trim();
                 // Skip entries marked as new

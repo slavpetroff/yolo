@@ -134,8 +134,8 @@ fn extract_section(content: &str, heading: &str) -> String {
         let line_lower = line.to_lowercase();
         let trimmed = line_lower.trim();
 
-        if trimmed.starts_with("## ") {
-            let section_name = trimmed[3..].trim();
+        if let Some(rest) = trimmed.strip_prefix("## ") {
+            let section_name = rest.trim();
             if section_name == heading_lower {
                 in_section = true;
                 if !header_printed {
@@ -168,8 +168,8 @@ fn extract_decisions_with_skills(content: &str) -> String {
         let line_lower = line.to_lowercase();
         let trimmed = line_lower.trim();
 
-        if trimmed.starts_with("## ") {
-            let section_name = trimmed[3..].trim();
+        if let Some(rest) = trimmed.strip_prefix("## ") {
+            let section_name = rest.trim();
             if section_name == "decisions" || section_name == "key decisions" {
                 in_section = true;
                 if !header_printed {

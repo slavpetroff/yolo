@@ -136,10 +136,10 @@ fn filter_completed_phases(text: &str) -> String {
     let table_re = Regex::new(r"^\|\s*(\d+)\s*\|\s*Complete\s*\|").unwrap();
     let mut completed: Vec<u32> = Vec::new();
     for line in text.lines() {
-        if let Some(caps) = table_re.captures(line) {
-            if let Ok(n) = caps[1].parse::<u32>() {
-                completed.push(n);
-            }
+        if let Some(caps) = table_re.captures(line)
+            && let Ok(n) = caps[1].parse::<u32>()
+        {
+            completed.push(n);
         }
     }
 
@@ -154,14 +154,14 @@ fn filter_completed_phases(text: &str) -> String {
 
     for line in text.lines() {
         // Check if this line starts a phase detail section
-        if let Some(caps) = phase_header_re.captures(line) {
-            if let Ok(n) = caps[1].parse::<u32>() {
-                if completed.contains(&n) {
-                    skipping = true;
-                    continue;
-                } else {
-                    skipping = false;
-                }
+        if let Some(caps) = phase_header_re.captures(line)
+            && let Ok(n) = caps[1].parse::<u32>()
+        {
+            if completed.contains(&n) {
+                skipping = true;
+                continue;
+            } else {
+                skipping = false;
             }
         }
 
@@ -260,62 +260,62 @@ pub fn build_tier3_volatile(
     }
 
     // Otherwise enumerate plan files from the phases directory
-    if phase > 0 {
-        if let Some(pd) = phases_dir {
-            // Resolve phase directory by prefix match (e.g., "02-researcher-agent")
-            let prefix = format!("{:02}", phase);
-            let phase_dir = std::fs::read_dir(pd)
+    if phase > 0
+        && let Some(pd) = phases_dir
+    {
+        // Resolve phase directory by prefix match (e.g., "02-researcher-agent")
+        let prefix = format!("{:02}", phase);
+        let phase_dir = std::fs::read_dir(pd)
+            .into_iter()
+            .flatten()
+            .filter_map(|e| e.ok())
+            .filter(|e| {
+                let name = e.file_name();
+                let name_str = name.to_string_lossy();
+                (name_str == prefix
+                    || name_str.starts_with(&format!("{}-", prefix)))
+                    && e.path().is_dir()
+            })
+            .map(|e| e.path())
+            .next()
+            .unwrap_or_else(|| pd.join(&prefix));
+
+        if phase_dir.is_dir() {
+            // Inject plan files
+            let mut plan_entries: Vec<_> = std::fs::read_dir(&phase_dir)
                 .into_iter()
                 .flatten()
-                .filter_map(|e| e.ok())
+                .flatten()
                 .filter(|e| {
                     let name = e.file_name();
                     let name_str = name.to_string_lossy();
-                    (name_str == prefix
-                        || name_str.starts_with(&format!("{}-", prefix)))
-                        && e.path().is_dir()
+                    name_str.ends_with("-PLAN.md") || name_str.ends_with(".plan.jsonl")
                 })
-                .map(|e| e.path())
-                .next()
-                .unwrap_or_else(|| pd.join(&prefix));
-
-            if phase_dir.is_dir() {
-                // Inject plan files
-                let mut plan_entries: Vec<_> = std::fs::read_dir(&phase_dir)
-                    .into_iter()
-                    .flatten()
-                    .flatten()
-                    .filter(|e| {
-                        let name = e.file_name();
-                        let name_str = name.to_string_lossy();
-                        name_str.ends_with("-PLAN.md") || name_str.ends_with(".plan.jsonl")
-                    })
-                    .collect();
-                plan_entries.sort_by_key(|e| e.file_name());
-                for entry in plan_entries {
-                    if let Ok(text) = std::fs::read_to_string(entry.path()) {
-                        let name = entry.file_name().to_string_lossy().to_string();
-                        content.push_str(&format!("\n# Phase {} Plan: {}\n{}\n", phase, name, text));
-                    }
+                .collect();
+            plan_entries.sort_by_key(|e| e.file_name());
+            for entry in plan_entries {
+                if let Ok(text) = std::fs::read_to_string(entry.path()) {
+                    let name = entry.file_name().to_string_lossy().to_string();
+                    content.push_str(&format!("\n# Phase {} Plan: {}\n{}\n", phase, name, text));
                 }
+            }
 
-                // Inject research findings if present
-                let mut research_entries: Vec<_> = std::fs::read_dir(&phase_dir)
-                    .into_iter()
-                    .flatten()
-                    .flatten()
-                    .filter(|e| {
-                        let name = e.file_name();
-                        let name_str = name.to_string_lossy();
-                        name_str == "RESEARCH.md" || name_str.ends_with("-RESEARCH.md")
-                    })
-                    .collect();
-                research_entries.sort_by_key(|e| e.file_name());
-                for entry in research_entries {
-                    if let Ok(text) = std::fs::read_to_string(entry.path()) {
-                        let name = entry.file_name().to_string_lossy().to_string();
-                        content.push_str(&format!("\n# Research: {}\n{}\n", name, text));
-                    }
+            // Inject research findings if present
+            let mut research_entries: Vec<_> = std::fs::read_dir(&phase_dir)
+                .into_iter()
+                .flatten()
+                .flatten()
+                .filter(|e| {
+                    let name = e.file_name();
+                    let name_str = name.to_string_lossy();
+                    name_str == "RESEARCH.md" || name_str.ends_with("-RESEARCH.md")
+                })
+                .collect();
+            research_entries.sort_by_key(|e| e.file_name());
+            for entry in research_entries {
+                if let Ok(text) = std::fs::read_to_string(entry.path()) {
+                    let name = entry.file_name().to_string_lossy().to_string();
+                    content.push_str(&format!("\n# Research: {}\n{}\n", name, text));
                 }
             }
         }

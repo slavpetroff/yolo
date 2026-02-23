@@ -102,12 +102,12 @@ fn scan_dir_for_markers(base: &Path, dir: &Path, depth: usize, roots: &mut HashS
             scan_dir_for_markers(base, &path, depth + 1, roots);
         } else if path.is_file() && PACKAGE_MARKERS.contains(&name.as_ref()) {
             // Skip root-level markers (depth 0 means marker is at cwd itself)
-            if depth > 0 {
-                if let Ok(relative) = dir.strip_prefix(base) {
-                    let rel_str = relative.to_string_lossy().to_string();
-                    if !rel_str.is_empty() {
-                        roots.insert(rel_str);
-                    }
+            if depth > 0
+                && let Ok(relative) = dir.strip_prefix(base)
+            {
+                let rel_str = relative.to_string_lossy().to_string();
+                if !rel_str.is_empty() {
+                    roots.insert(rel_str);
                 }
             }
         }

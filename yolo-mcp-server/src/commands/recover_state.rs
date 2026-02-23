@@ -27,23 +27,22 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let config_path = planning_dir.join("config.json");
 
     // Check v3_event_recovery feature flag
-    if config_path.exists() {
-        if let Ok(content) = fs::read_to_string(&config_path) {
-            if let Ok(config) = serde_json::from_str::<Value>(&content) {
-                let enabled = config
-                    .get("v3_event_recovery")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false);
-                if !enabled {
-                    let envelope = json!({
-                        "ok": true,
-                        "cmd": "recover-state",
-                        "delta": { "recovered": false, "reason": "v3_event_recovery disabled" },
-                        "elapsed_ms": start.elapsed().as_millis() as u64
-                    });
-                    return Ok((serde_json::to_string(&envelope).unwrap_or_default(), 3));
-                }
-            }
+    if config_path.exists()
+        && let Ok(content) = fs::read_to_string(&config_path)
+        && let Ok(config) = serde_json::from_str::<Value>(&content)
+    {
+        let enabled = config
+            .get("v3_event_recovery")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        if !enabled {
+            let envelope = json!({
+                "ok": true,
+                "cmd": "recover-state",
+                "delta": { "recovered": false, "reason": "v3_event_recovery disabled" },
+                "elapsed_ms": start.elapsed().as_millis() as u64
+            });
+            return Ok((serde_json::to_string(&envelope).unwrap_or_default(), 3));
         }
     }
 

@@ -115,12 +115,11 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
     // Resolve effort: explicit arg -> config.effort -> "balanced"
     let mut effort = normalize_effort(effort_input);
 
-    if effort.is_none() {
-        if let Some(ref cfg) = config {
-            if let Some(cfg_effort) = cfg.get("effort").and_then(|v| v.as_str()) {
-                effort = normalize_effort(cfg_effort);
-            }
-        }
+    if effort.is_none()
+        && let Some(ref cfg) = config
+        && let Some(cfg_effort) = cfg.get("effort").and_then(|v| v.as_str())
+    {
+        effort = normalize_effort(cfg_effort);
     }
 
     let effort = effort.unwrap_or_else(|| "balanced".to_string());
@@ -140,10 +139,10 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
                 // Try: effort, legacy, balanced, medium (fallback chain)
                 let candidates = [effort.as_str(), legacy, "balanced", "medium"];
                 for key in &candidates {
-                    if let Some(val) = node.get(*key) {
-                        if let Some(turns) = normalize_turn_value(val) {
-                            return Ok((format!("{}\n", turns), 0));
-                        }
+                    if let Some(val) = node.get(*key)
+                        && let Some(turns) = normalize_turn_value(val)
+                    {
+                        return Ok((format!("{}\n", turns), 0));
                     }
                 }
                 // Object exists but no matching key — fall through to scalar/default

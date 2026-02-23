@@ -69,10 +69,8 @@ pub fn resolve_policy(effort: &str, risk: &str, autonomy: &str) -> serde_json::V
                     }
                     _ => {}
                 }
-            } else if risk == "medium" {
-                if autonomy == "cautious" {
-                    approval_required = true;
-                }
+            } else if risk == "medium" && autonomy == "cautious" {
+                approval_required = true;
             }
         }
         "thorough" => {
