@@ -431,11 +431,12 @@ description: |
   {If resuming: "Resume from Task {N}. Tasks 1-{N-1} already committed."}
   {If autonomous: false: "This plan has checkpoints -- pause for user input."}
 activeForm: "Executing {NN-MM}"
+subagent_type: "yolo:yolo-dev"
 ```
 
 Display: `◆ Spawning Dev teammate (${DEV_MODEL})...`
 
-**CRITICAL:** Pass `model: "${DEV_MODEL}"` and `maxTurns: ${DEV_MAX_TURNS}` parameters to the Task tool invocation when spawning Dev teammates.
+**CRITICAL:** Pass `model: "${DEV_MODEL}"`, `maxTurns: ${DEV_MAX_TURNS}`, and `subagent_type: "yolo:yolo-dev"` parameters to the Task tool invocation when spawning Dev teammates.
 **CRITICAL:** When team was created (2+ plans), pass `team_name: "yolo-phase-{NN}"` and `name: "dev-{MM}"` parameters to each Task tool invocation. This enables colored agent labels and status bar entries.
 
 Wire dependencies via TaskUpdate: read `depends_on` from each plan's frontmatter, add `addBlockedBy: [task IDs of dependency plans]`. Plans with empty depends_on start immediately.
