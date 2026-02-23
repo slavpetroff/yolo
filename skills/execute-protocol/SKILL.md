@@ -97,6 +97,7 @@ CURRENT_FINDINGS=$(echo "$REVIEW_RESULT" | jq '.findings')
 ACCUMULATED_FINDINGS=$(echo "$ACCUMULATED_FINDINGS" | jq --argjson f "$CURRENT_FINDINGS" '. + $f')
 ```
 
+   <!-- RUST-OFFLOAD: update-exec-state -->
    **Track loop start in execution-state.json:**
    ```bash
    jq --arg plan "{NN-MM}" --argjson max "$REVIEW_MAX_CYCLES" \
@@ -105,6 +106,7 @@ ACCUMULATED_FINDINGS=$(echo "$ACCUMULATED_FINDINGS" | jq --argjson f "$CURRENT_F
      mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
    ```
 
+   <!-- RUST-OFFLOAD: log-event -->
    **Log review_loop_start event:**
    ```bash
    "$HOME/.cargo/bin/yolo" log-event review_loop_start {phase} plan={NN-MM} max_cycles=${REVIEW_MAX_CYCLES} 2>/dev/null || true
@@ -190,6 +192,7 @@ ARCH_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns architect .yolo-planning/
    ACCUMULATED_FINDINGS=$(echo "$ACCUMULATED_FINDINGS" | jq --argjson f "$CURRENT_FINDINGS" '. + $f')
    ```
 
+   <!-- RUST-OFFLOAD: update-exec-state -->
    **Track cycle in execution-state.json:**
    ```bash
    CYCLE_SUMMARY=$(echo "$CURRENT_FINDINGS" | jq '{verdict: "'"$VERDICT"'", finding_count: length, high: [.[] | select(.severity == "high")] | length}')
@@ -199,6 +202,7 @@ ARCH_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns architect .yolo-planning/
      mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
    ```
 
+   <!-- RUST-OFFLOAD: log-event -->
    **Log review_loop_cycle event:**
    ```bash
    HIGH_COUNT=$(echo "$CURRENT_FINDINGS" | jq '[.[] | select(.severity == "high")] | length')
@@ -207,6 +211,8 @@ ARCH_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns architect .yolo-planning/
 
    f. Parse new verdict:
       - `verdict: "approve"` -- Exit loop. Display `✓ Plan {NN-MM} review: approved (cycle {REVIEW_CYCLE}/{max})`. Update execution-state and log:
+        <!-- RUST-OFFLOAD: update-exec-state -->
+        <!-- RUST-OFFLOAD: log-event -->
         ```bash
         jq --arg plan "{NN-MM}" '.review_loops[$plan].status = "passed"' \
           .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
@@ -214,6 +220,8 @@ ARCH_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns architect .yolo-planning/
         "$HOME/.cargo/bin/yolo" log-event review_loop_end {phase} plan={NN-MM} cycles_used=${REVIEW_CYCLE} final_verdict=approve 2>/dev/null || true
         ```
       - `verdict: "conditional"` -- Exit loop. Attach findings as warnings to DEV_CONTEXT. Display `⚠ Plan {NN-MM} review: conditional (cycle {REVIEW_CYCLE}/{max})`. Update execution-state and log:
+        <!-- RUST-OFFLOAD: update-exec-state -->
+        <!-- RUST-OFFLOAD: log-event -->
         ```bash
         jq --arg plan "{NN-MM}" '.review_loops[$plan].status = "passed"' \
           .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
@@ -224,6 +232,8 @@ ARCH_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns architect .yolo-planning/
       - `verdict: "reject"` -- Continue loop (next iteration)
 
 4. **Max cycles exceeded** (loop exits with `VERDICT == "reject"`):
+   <!-- RUST-OFFLOAD: update-exec-state -->
+   <!-- RUST-OFFLOAD: log-event -->
    - Update execution-state and log:
      ```bash
      jq --arg plan "{NN-MM}" '.review_loops[$plan].status = "failed"' \
@@ -629,6 +639,7 @@ QA_REPORT='{"passed": true, "checks": []}'
    PASSED_CHECKS=$(echo "$QA_REPORT" | jq '[.checks[] | select(.status == "pass")] | map(.name)')
    ```
 
+   <!-- RUST-OFFLOAD: update-exec-state -->
    **Track loop start in execution-state.json:**
    ```bash
    jq --arg plan "{NN-MM}" --argjson max "$QA_MAX_CYCLES" \
@@ -637,6 +648,7 @@ QA_REPORT='{"passed": true, "checks": []}'
      mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
    ```
 
+   <!-- RUST-OFFLOAD: log-event -->
    **Log qa_loop_start event:**
    ```bash
    INITIAL_FAILED_COUNT=$(echo "$FAILED_CHECKS" | jq 'length')
@@ -657,6 +669,7 @@ QA_REPORT='{"passed": true, "checks": []}'
 
    b. Display: `◆ QA remediation cycle {QA_CYCLE}/{QA_MAX_CYCLES} — spawning Dev to fix {N} failures...`
 
+   <!-- RUST-OFFLOAD: update-exec-state -->
    **Track cycle in execution-state.json:**
    ```bash
    FAILED_COUNT=$(echo "$FAILED_CHECKS" | jq 'length')
@@ -672,6 +685,7 @@ QA_REPORT='{"passed": true, "checks": []}'
      mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
    ```
 
+   <!-- RUST-OFFLOAD: log-event -->
    **Log qa_loop_cycle event:**
    ```bash
    "$HOME/.cargo/bin/yolo" log-event qa_loop_cycle {phase} plan={NN-MM} cycle=${QA_CYCLE} failed_count=${FAILED_COUNT} dev_fixable=${DEV_FIXABLE} 2>/dev/null || true
@@ -730,6 +744,8 @@ QA_REPORT='{"passed": true, "checks": []}'
    PASSED_CHECKS=$(echo "$PASSED_CHECKS" "$NEW_PASSES" | jq -s 'add | unique')
    ```
 
+   <!-- RUST-OFFLOAD: update-exec-state -->
+   <!-- RUST-OFFLOAD: log-event -->
    g. If all checks now pass: exit loop. Display `✓ QA verification passed (cycle {QA_CYCLE}/{QA_MAX_CYCLES})`. Update execution-state and log:
       ```bash
       jq --arg plan "{NN-MM}" '.qa_loops[$plan].status = "passed"' \
@@ -739,6 +755,8 @@ QA_REPORT='{"passed": true, "checks": []}'
       ```
 
 3. **Max cycles exceeded** (loop exits with failures remaining):
+   <!-- RUST-OFFLOAD: update-exec-state -->
+   <!-- RUST-OFFLOAD: log-event -->
    - Update execution-state and log:
      ```bash
      jq --arg plan "{NN-MM}" '.qa_loops[$plan].status = "failed"' \
