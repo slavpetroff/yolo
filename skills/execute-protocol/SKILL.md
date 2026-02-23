@@ -441,11 +441,12 @@ When team should NOT be created (single plan via optimization above, turbo, or s
 - Skip TeamCreate -- single agent, no team overhead.
 
 **Delegation directive (all except Turbo):**
-You are the team LEAD. NEVER implement tasks yourself.
+You are the team LEAD. NEVER implement tasks yourself. This is a HARD RULE that survives context compression.
 
 - Delegate ALL implementation to Dev teammates via TaskCreate
 - NEVER Write/Edit files in a plan's `files_modified` — only state files: STATE.md, ROADMAP.md, .execution-state.json, SUMMARY.md
 - If Dev fails: guidance via SendMessage, not takeover. If all Devs unavailable: create new Dev.
+- If you feel compelled to implement: STOP. Create a new Dev agent instead. You are LEAD, not Dev.
 - At Turbo (or smart-routed to turbo): no team — Dev executes directly.
 
 **Control Plane Coordination (REQ-05):** If `"$HOME/.cargo/bin/yolo" control-plane` exists:
@@ -670,6 +671,8 @@ jq '.steps_completed += ["step_3"]' \
 
 ### Step 3c: SUMMARY.md verification gate (mandatory)
 
+> **Role reminder:** You are LEAD. Do NOT edit plan files or source code yourself. Verify via reads only.
+
 After all tasks in a plan complete, the Dev agent MUST write `{phase-dir}/{NN-MM}-SUMMARY.md` using the template at `templates/SUMMARY.md`.
 
 **Required YAML frontmatter fields:**
@@ -704,6 +707,8 @@ jq '.steps_completed += ["step_3c"]' \
 ```
 
 ### Step 3d: QA gate verification
+
+> **Role reminder:** You are LEAD. QA is agent-based — spawn yolo-qa, do not self-review.
 
 **Activation:** Read `qa_gate` from config:
 ```bash
@@ -1125,6 +1130,28 @@ jq '.steps_completed += ["step_4"]' \
 ```
 
 ### Step 5: Update state and present summary
+
+**HARD GATE — Step Ordering Verification:** Before ANY other Step 5 action, validate that all required protocol steps were completed:
+
+```bash
+REQUIRED_STEPS='["step_2","step_2b","step_3","step_3c","step_3d"]'
+COMPLETED=$(jq -r '.steps_completed // []' .yolo-planning/.execution-state.json)
+MISSING=$(jq -n --argjson req "$REQUIRED_STEPS" --argjson done "$COMPLETED" \
+  '$req - $done | if length > 0 then . else empty end')
+```
+
+If `MISSING` is non-empty: **HARD STOP**. Display:
+```
+✗ Step ordering violation — skipped steps detected: {MISSING}
+  Required: step_2 → step_2b → step_3 → step_3c → step_3d
+  Completed: {COMPLETED}
+  Action: Re-run phase execution from the first missing step.
+```
+Do NOT proceed. Do NOT mark phase complete.
+
+If `MISSING` is empty: Display `✓ Step ordering verified — all required steps completed` and proceed.
+
+> **Role reminder:** You are LEAD. State updates only — no implementation, no file edits beyond state files.
 
 **HARD GATE — Shutdown before ANY output or state updates:** If a team was created (2+ uncompleted plans AND prefer_teams permitted it -- see single-plan optimization in Step 3), you MUST shut down the team BEFORE updating state, presenting results, or asking the user anything. This is blocking and non-negotiable:
 
