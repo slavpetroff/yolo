@@ -615,10 +615,107 @@ Check: must_haves from plan have evidence in SUMMARY/code.
 ```
 Check: test count hasn't decreased.
 
-**Aggregate results:**
-- If ALL checks pass (exit 0): Display `✓ QA verification passed` and proceed to Step 4
-- If ANY check fails (exit 1): Display `✗ QA verification failed` with findings. STOP execution.
-- Produce structured report: `{passed: bool, checks: [{name, status, evidence}], regressions: N}`
+**Aggregate results and QA feedback loop:**
+
+Read `qa_max_cycles` from config (default 3):
+```bash
+QA_MAX_CYCLES=$(jq -r '.qa_max_cycles // 3' .yolo-planning/config.json 2>/dev/null)
+```
+
+Run all 5 QA commands above. Collect results into a structured report:
+```bash
+QA_REPORT='{"passed": true, "checks": []}'
+# For each check, capture exit code and output, append to QA_REPORT.checks[]
+# Each check entry: {"name": "{check_name}", "status": "pass|fail", "evidence": "...", "fixable_by": "{dev|architect|manual}"}
+```
+
+**fixable_by classification** per check command:
+- `commit-lint` → `"dev"` (Dev can amend/rewrite commit messages)
+- `diff-against-plan` → `"dev"` (Dev can update SUMMARY.md files_modified)
+- `verify-plan-completion` → `"dev"` (Dev can fix SUMMARY.md fields)
+- `validate-requirements` → `"dev"` (Dev can add evidence to SUMMARY.md)
+- `check-regression` → `"architect"` (test count decrease is a plan-level issue)
+
+**If ALL checks pass** (exit 0): Display `✓ QA verification passed` and proceed to Step 4.
+
+**If ANY check fails** (exit 1): Categorize failures:
+
+1. **HARD STOP checks:** If ANY failure has `fixable_by: "architect"` or `fixable_by: "manual"`:
+   - Display `✗ QA verification HARD STOP — non-dev-fixable failures found`
+   - Display each hard-stop failure: `✗ [{check_name}] {evidence} (fixable_by: {value})`
+   - STOP execution. Return to user with: "QA found issues requiring {architect revision | manual intervention}. Fix and re-run `/yolo:vibe --execute {N}`"
+
+2. **Dev-fixable checks — enter remediation loop:**
+
+   Initialize loop state:
+   ```bash
+   QA_CYCLE=0
+   FAILED_CHECKS=$(echo "$QA_REPORT" | jq '[.checks[] | select(.status == "fail")]')
+   PASSED_CHECKS=$(echo "$QA_REPORT" | jq '[.checks[] | select(.status == "pass")] | map(.name)')
+   ```
+
+   Resolve Dev model:
+   ```bash
+   DEV_MODEL=$("$HOME/.cargo/bin/yolo" resolve-model dev .yolo-planning/config.json ${CLAUDE_PLUGIN_ROOT}/config/model-profiles.json)
+   ```
+
+   **Loop** while `FAILED_CHECKS` is non-empty AND `QA_CYCLE < QA_MAX_CYCLES`:
+
+   a. Increment cycle:
+   ```bash
+   QA_CYCLE=$((QA_CYCLE + 1))
+   ```
+
+   b. Display: `◆ QA remediation cycle {QA_CYCLE}/{QA_MAX_CYCLES} — spawning Dev to fix {N} failures...`
+
+   c. For each failed check, build a scoped remediation task (see "Dev remediation context scoping" below).
+
+   d. Spawn Dev subagent via Task tool (execution family, model from resolve-model):
+   ```
+   subject: "QA remediation cycle {QA_CYCLE} for plan {NN-MM}"
+   description: |
+     {DEV_CONTEXT}
+
+     You are fixing QA failures found after plan execution.
+
+     **Plan path:** {plan_path}
+     **Summary path:** {summary_path}
+     **QA cycle:** {QA_CYCLE} of {QA_MAX_CYCLES}
+
+     **Failures to fix:**
+     {SCOPED_REMEDIATION_TASKS}
+
+     Instructions:
+     1. Read each failure description
+     2. Apply the specific fix described
+     3. Commit fixes with `fix({scope}): {description}` format
+     4. Do NOT change plan scope — only fix the identified QA failures
+   activeForm: "QA remediation cycle {QA_CYCLE} for plan {NN-MM}"
+   model: "${DEV_MODEL}"
+   ```
+
+   e. After Dev completes, re-run ONLY previously failed checks (skip checks in PASSED_CHECKS):
+   ```bash
+   # Only re-run checks whose names appear in FAILED_CHECKS, not in PASSED_CHECKS
+   # This saves tokens by skipping check-regression, verify-plan-completion etc. if they already passed
+   ```
+
+   f. Update failure list:
+   ```bash
+   FAILED_CHECKS=$(echo "$QA_REPORT" | jq '[.checks[] | select(.status == "fail")]')
+   NEW_PASSES=$(echo "$QA_REPORT" | jq '[.checks[] | select(.status == "pass")] | map(.name)')
+   PASSED_CHECKS=$(echo "$PASSED_CHECKS" "$NEW_PASSES" | jq -s 'add | unique')
+   ```
+
+   g. If all checks now pass: exit loop. Display `✓ QA verification passed (cycle {QA_CYCLE}/{QA_MAX_CYCLES})`.
+
+3. **Max cycles exceeded** (loop exits with failures remaining):
+   - Display `✗ QA verification FAILED after {QA_MAX_CYCLES} cycles`
+   - Display all remaining failures:
+     ```bash
+     echo "$FAILED_CHECKS" | jq -r '.[] | "  ✗ [\(.name)] \(.evidence)"'
+     ```
+   - STOP execution. Return to user with: "QA remediation loop exhausted after {QA_MAX_CYCLES} cycles. Fix remaining issues manually and re-run `/yolo:vibe --execute {N}`"
 
 **When inactive:** Display `○ QA gate skipped (qa_gate: {value})` and proceed to Step 4.
 
