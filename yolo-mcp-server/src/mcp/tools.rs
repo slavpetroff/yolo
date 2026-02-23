@@ -71,18 +71,27 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
                 None,
             );
 
-            // Append async git diff to tier3 (async operation not available in sync tier builder)
-            if let Ok(diff) = Command::new("git").arg("diff").arg("HEAD").output().await {
-                let diff_str = String::from_utf8_lossy(&diff.stdout);
-                if !diff_str.trim().is_empty() {
-                    ctx.tier3.push_str("Recent Uncommitted Diffs:\n```diff\n");
-                    ctx.tier3.push_str(&diff_str);
-                    ctx.tier3.push_str("\n```\n");
-                } else {
+            // Append async git diff to tier3 with half the configured timeout (git diff should be fast)
+            let diff_timeout_ms = read_timeout_config() / 2;
+            let mut git_cmd = Command::new("git");
+            git_cmd.arg("diff").arg("HEAD");
+            match run_command_with_timeout(&mut git_cmd, diff_timeout_ms).await {
+                Ok(diff) => {
+                    let diff_str = String::from_utf8_lossy(&diff.stdout);
+                    if !diff_str.trim().is_empty() {
+                        ctx.tier3.push_str("Recent Uncommitted Diffs:\n```diff\n");
+                        ctx.tier3.push_str(&diff_str);
+                        ctx.tier3.push_str("\n```\n");
+                    } else {
+                        ctx.tier3.push_str("No recent file diffs found.\n");
+                    }
+                }
+                Err(e) if e.contains("timed out") => {
+                    ctx.tier3.push_str("Git diff timed out\n");
+                }
+                Err(_) => {
                     ctx.tier3.push_str("No recent file diffs found.\n");
                 }
-            } else {
-                ctx.tier3.push_str("No recent file diffs found.\n");
             }
 
             ctx.tier3.push_str("\n--- END COMPILED CONTEXT ---\n");
