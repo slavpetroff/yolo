@@ -3,7 +3,7 @@
   "autonomy": "standard",
   "auto_commit": true,
   "planning_tracking": "commit",
-  "auto_push": "never",
+  "auto_push": "always",
   "verification_tier": "standard",
   "skill_suggestions": true,
   "auto_install_skills": false,
@@ -30,9 +30,9 @@
   "qa_skip_agents": [
     "docs"
   ],
-  "v3_delta_context": false,
+  "v3_delta_context": true,
   "v3_context_cache": false,
-  "v3_plan_research_persist": false,
+  "v3_plan_research_persist": true,
   "v3_metrics": true,
   "v3_contract_lite": false,
   "v3_lock_lite": false,
