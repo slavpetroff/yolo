@@ -68,6 +68,10 @@ LEAD_FILE="$BATS_TEST_DIRNAME/../agents/yolo-lead.md"
   grep -q 'steps_completed += \["step_2b"\]' "$SKILL_FILE"
 }
 
+@test "SKILL.md tracks step_2c completion" {
+  grep -q 'steps_completed += \["step_2c"\]' "$SKILL_FILE"
+}
+
 @test "SKILL.md tracks step_3 completion" {
   grep -q 'steps_completed += \["step_3"\]' "$SKILL_FILE"
 }
@@ -88,6 +92,14 @@ LEAD_FILE="$BATS_TEST_DIRNAME/../agents/yolo-lead.md"
 
 @test "SKILL.md defines REQUIRED_STEPS variable" {
   grep -q 'REQUIRED_STEPS=' "$SKILL_FILE"
+}
+
+@test "REQUIRED_STEPS includes step_2c" {
+  grep 'REQUIRED_STEPS=' "$SKILL_FILE" | grep -q 'step_2c'
+}
+
+@test "Required steps display includes step_2c in ordering" {
+  grep -q 'step_2b.*step_2c.*step_3' "$SKILL_FILE"
 }
 
 @test "SKILL.md contains Step ordering violation error message" {
