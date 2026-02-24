@@ -53,6 +53,53 @@ pub fn load_config(config_path: &Path) -> YoloConfig {
         .unwrap_or_default()
 }
 
+/// Extract raw frontmatter text between `---` delimiters.
+/// Returns None if content doesn't start with `---` or has no closing delimiter.
+pub fn extract_frontmatter(content: &str) -> Option<String> {
+    let mut lines = content.lines();
+    if lines.next()? != "---" {
+        return None;
+    }
+    let mut fm_lines = Vec::new();
+    for line in lines {
+        if line == "---" {
+            return if fm_lines.is_empty() {
+                None
+            } else {
+                Some(fm_lines.join("\n"))
+            };
+        }
+        fm_lines.push(line);
+    }
+    None // no closing ---
+}
+
+/// Split content into (frontmatter_text, body_text).
+/// Returns empty frontmatter if no valid frontmatter block found.
+pub fn split_frontmatter(content: &str) -> (String, String) {
+    let mut lines = content.lines();
+    let mut fm_lines = Vec::new();
+    let mut body_lines = Vec::new();
+    let mut dashes_seen = 0;
+
+    for line in &mut lines {
+        if line.trim() == "---" {
+            dashes_seen += 1;
+            if dashes_seen == 2 {
+                break;
+            }
+            continue;
+        }
+        if dashes_seen == 1 {
+            fm_lines.push(line);
+        }
+    }
+    for line in lines {
+        body_lines.push(line);
+    }
+    (fm_lines.join("\n"), body_lines.join("\n"))
+}
+
 /// List directories under `phases_dir` whose names start with two ASCII digits
 /// followed by a hyphen (e.g. "01-setup"), returned sorted by name.
 pub fn sorted_phase_dirs(phases_dir: &Path) -> Vec<(String, PathBuf)> {
