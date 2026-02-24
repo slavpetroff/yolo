@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Execution State",
+  "type": "object",
+  "properties": {
+    "phase": { "type": "integer" },
+    "phase_name": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["running", "awaiting_approval", "complete"]
+    },
+    "started_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": ["string", "null"], "format": "date-time" },
+    "wave": { "type": "integer" },
+    "total_waves": { "type": "integer" },
+    "correlation_id": { "type": "string" },
+    "steps_completed": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "plans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "wave": { "type": "integer" },
+          "status": { "type": "string" }
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "properties": {
+        "requested_at": { "type": "string", "format": "date-time" },
+        "plan_path": { "type": "string" },
+        "approved": { "type": "boolean" },
+        "approved_at": { "type": ["string", "null"], "format": "date-time" }
+      },
+      "required": ["plan_path", "approved"]
+    }
+  },
+  "required": ["status"]
+}
