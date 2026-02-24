@@ -859,7 +859,7 @@ subagent_type: "yolo:yolo-qa"
 - Parse `passed:`, `remediation_eligible:`, `checks:`, `hard_stop_reasons:`, `dev_fixable_failures:` fields
 - Convert checks into JSON array matching `CLI_QA_REPORT.checks[]` format: `{"name": "...", "status": "pass|fail", "evidence": "...", "fixable_by": "dev|architect|manual"}`
 - Agent can override CLI `fixable_by` classification (agent has more context from codebase cross-referencing)
-- If parsing fails (agent didn't follow format): treat as if agent returned CLI results unchanged, with a warning about unparseable report
+- If parsing fails (agent didn't follow format): STOP with error — fail-closed on unparseable QA report. Do not silently fall back to CLI results, as the agent may have found critical issues that would be lost.
 
 ```bash
 # Extract QA REPORT block from agent completion
@@ -873,8 +873,15 @@ QA_REPORT=$(echo "$AGENT_CHECKS_RAW" | while IFS= read -r line; do
 done | jq -s '{passed: '"${AGENT_PASSED:-false}"', remediation_eligible: '"${AGENT_REMEDIATION:-false}"', checks: .}')
 # Fallback if parsing fails
 if [ -z "$AGENT_PASSED" ]; then
-  echo "Warning: QA agent report unparseable — using CLI results"
-  QA_REPORT="$CLI_QA_REPORT"
+  echo "✗ QA report parse failure — agent output did not contain a valid 'passed:' field."
+  echo "  Raw output (last 20 lines):"
+  echo "$AGENT_OUTPUT" | tail -20
+  echo ""
+  echo "  Action: Check QA agent definition or re-run with --qa"
+  # Fail-closed: treat unparseable report as a failure
+  QA_REPORT='{"passed": false, "remediation_eligible": false, "checks": [{"name": "qa-parse-failure", "status": "fail", "fixable_by": "manual", "evidence": "QA agent output could not be parsed. Human review required."}]}'
+  # Log the parse failure for diagnostics
+  "$HOME/.cargo/bin/yolo" log-event qa_parse_failure {phase} plan={NN-MM} 2>/dev/null || true
 fi
 ```
 
