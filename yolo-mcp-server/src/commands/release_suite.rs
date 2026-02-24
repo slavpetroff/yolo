@@ -4,6 +4,7 @@ use std::process::Command;
 use std::time::Instant;
 
 use crate::commands::bump_version;
+use crate::commands::extract_changelog;
 
 fn s(v: &str) -> String {
     v.to_string()
@@ -38,7 +39,7 @@ fn run_git(cwd: &Path, git_args: &[&str]) -> (String, String, i32) {
 
 /// Facade command that orchestrates a full release: bump-version, git add, commit, tag, push.
 ///
-/// Usage: yolo release-suite [--major|--minor] [--dry-run] [--no-push] [--offline]
+/// Usage: yolo release-suite [--major|--minor] [--dry-run] [--no-push] [--no-release] [--offline]
 ///
 /// Exit codes: 0=all pass, 1=any step failed
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
@@ -50,6 +51,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let major = args.iter().any(|a| a == "--major");
     let minor = args.iter().any(|a| a == "--minor");
     let offline = args.iter().any(|a| a == "--offline");
+    let no_release = args.iter().any(|a| a == "--no-release");
 
     if major && minor {
         return Err("Cannot use both --major and --minor".to_string());
@@ -336,6 +338,80 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         }));
     }
 
+    // --- Step 6: gh release create (unless --no-push, --no-release, or dry-run) ---
+    let push_ok = steps.iter().any(|s| s["name"] == "git-push" && s["status"] == "ok");
+    if dry_run {
+        steps.push(json!({
+            "name": "gh-release",
+            "status": "dry-run",
+            "detail": format!("Would create release v{}", new_version)
+        }));
+    } else if no_push || no_release || !push_ok {
+        let reason = if no_release {
+            "Skipped (--no-release)"
+        } else if no_push {
+            "Skipped (no push)"
+        } else {
+            "Skipped (push did not succeed)"
+        };
+        steps.push(json!({
+            "name": "gh-release",
+            "status": "skipped",
+            "detail": reason
+        }));
+    } else {
+        // Extract changelog body for release notes
+        let changelog_args = vec![s("yolo"), s("extract-changelog")];
+        let release_body = match extract_changelog::execute(&changelog_args, cwd) {
+            Ok((json_str, _)) => {
+                let parsed: Value = serde_json::from_str(&json_str).unwrap_or(json!({}));
+                if parsed["delta"]["found"] == true {
+                    parsed["delta"]["body"]
+                        .as_str()
+                        .unwrap_or("")
+                        .to_string()
+                } else {
+                    format!("Release v{}", new_version)
+                }
+            }
+            Err(_) => format!("Release v{}", new_version),
+        };
+
+        let tag = format!("v{}", new_version);
+        match Command::new("gh")
+            .args(["release", "create", &tag, "--title", &tag, "--notes", &release_body])
+            .current_dir(cwd)
+            .output()
+        {
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+                let code = output.status.code().unwrap_or(1);
+                if code == 0 {
+                    let url = stdout.trim().to_string();
+                    steps.push(json!({
+                        "name": "gh-release",
+                        "status": "ok",
+                        "url": url
+                    }));
+                } else {
+                    steps.push(json!({
+                        "name": "gh-release",
+                        "status": "warn",
+                        "detail": format!("gh release failed: {}", stderr.trim())
+                    }));
+                }
+            }
+            Err(_) => {
+                steps.push(json!({
+                    "name": "gh-release",
+                    "status": "warn",
+                    "detail": "gh CLI not found"
+                }));
+            }
+        }
+    }
+
     // --- Build success response ---
     let response = json!({
         "ok": true,
@@ -556,6 +632,31 @@ mod tests {
         let steps = parsed["delta"]["steps"].as_array().unwrap();
         let push_step = steps.iter().find(|s| s["name"] == "git-push").unwrap();
         assert_eq!(push_step["status"], "skipped");
+        // gh-release should also be skipped when no push
+        let gh_step = steps.iter().find(|s| s["name"] == "gh-release").unwrap();
+        assert_eq!(gh_step["status"], "skipped");
+    }
+
+    #[test]
+    fn test_no_release_skips_gh_release() {
+        let dir = setup_test_env();
+        let (out, code) = execute(
+            &[
+                s("yolo"),
+                s("release-suite"),
+                s("--no-push"),
+                s("--no-release"),
+                s("--offline"),
+            ],
+            dir.path(),
+        )
+        .unwrap();
+        assert_eq!(code, 0);
+        let parsed: Value = serde_json::from_str(&out).unwrap();
+        let steps = parsed["delta"]["steps"].as_array().unwrap();
+        let gh_step = steps.iter().find(|s| s["name"] == "gh-release").unwrap();
+        assert_eq!(gh_step["status"], "skipped");
+        assert!(gh_step["detail"].as_str().unwrap().contains("--no-release"));
     }
 
     #[test]
@@ -595,7 +696,7 @@ mod tests {
         assert_eq!(parsed["delta"]["bump_type"], "patch");
 
         let steps = parsed["delta"]["steps"].as_array().unwrap();
-        assert_eq!(steps.len(), 5);
+        assert_eq!(steps.len(), 6);
         assert_eq!(steps[0]["name"], "bump-version");
         assert_eq!(steps[0]["status"], "ok");
         assert_eq!(steps[1]["name"], "git-add");
@@ -606,6 +707,8 @@ mod tests {
         assert_eq!(steps[3]["status"], "ok");
         assert_eq!(steps[4]["name"], "git-push");
         assert_eq!(steps[4]["status"], "skipped");
+        assert_eq!(steps[5]["name"], "gh-release");
+        assert_eq!(steps[5]["status"], "skipped");
 
         // Verify VERSION was actually bumped
         let ver = fs::read_to_string(dir.path().join("VERSION")).unwrap();
