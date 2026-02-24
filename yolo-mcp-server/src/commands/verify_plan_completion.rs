@@ -3,6 +3,7 @@ use regex::Regex;
 use serde_json::json;
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 use std::sync::OnceLock;
 
 /// Verifies plan completion by cross-referencing SUMMARY.md against PLAN.md.
@@ -17,7 +18,7 @@ use std::sync::OnceLock;
 /// 5. Required body sections exist: ## What Was Built, ## Files Modified
 ///
 /// Exit codes: 0=all pass, 1=any fail
-pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
+pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     if args.len() < 4 {
         return Err(
             "Usage: yolo verify-plan-completion <summary_path> <plan_path>".to_string(),
@@ -133,7 +134,7 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
         all_pass = false;
     }
 
-    // Check 4: commit_hashes non-empty and valid format
+    // Check 4: commit_hashes non-empty, valid format, and exist in git repo
     if let Some(ref fm) = frontmatter {
         let hashes = parse_list_field(fm, "commit_hashes");
         let hex_re = hex_hash_re();
@@ -145,11 +146,43 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
         } else {
             let invalid: Vec<&String> =
                 hashes.iter().filter(|h| !hex_re.is_match(h)).collect();
-            if invalid.is_empty() {
-                checks.push(json!({"name": "commit_hashes", "status": "pass", "detail": format!("{} valid hashes", hashes.len()), "fixable_by": "none"}));
-            } else {
+            if !invalid.is_empty() {
                 checks.push(json!({"name": "commit_hashes", "status": "fail", "detail": format!("Invalid hashes: {:?}", invalid), "fixable_by": "dev"}));
                 all_pass = false;
+            } else {
+                // Regex passed — now verify hashes exist in the git repo
+                let in_git = Command::new("git")
+                    .args(["rev-parse", "--is-inside-work-tree"])
+                    .current_dir(cwd)
+                    .output();
+                let is_git_repo = match in_git {
+                    Ok(out) => out.status.success(),
+                    Err(_) => false,
+                };
+                if !is_git_repo {
+                    checks.push(json!({"name": "commit_hashes", "status": "warn", "detail": "Not a git repo, skipping existence check", "fixable_by": "none"}));
+                } else {
+                    let mut not_found: Vec<String> = Vec::new();
+                    for h in &hashes {
+                        let result = Command::new("git")
+                            .args(["rev-parse", "--verify", &format!("{}^{{commit}}", h)])
+                            .current_dir(cwd)
+                            .output();
+                        let exists = match result {
+                            Ok(out) => out.status.success(),
+                            Err(_) => false,
+                        };
+                        if !exists {
+                            not_found.push(h.clone());
+                        }
+                    }
+                    if not_found.is_empty() {
+                        checks.push(json!({"name": "commit_hashes", "status": "pass", "detail": format!("{} valid hashes", hashes.len()), "fixable_by": "none"}));
+                    } else {
+                        checks.push(json!({"name": "commit_hashes", "status": "fail", "detail": format!("Hashes not found in repo: {:?}", not_found), "fixable_by": "dev"}));
+                        all_pass = false;
+                    }
+                }
             }
         }
     } else {
@@ -348,11 +381,195 @@ Do another thing.
         assert_eq!(code, 0, "Expected exit 0, got {}: {}", code, output);
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
         assert_eq!(parsed["ok"], true);
-        // All passing checks should have fixable_by: "none"
+        // All passing/warn checks should have fixable_by: "none"
         let checks = parsed["checks"].as_array().unwrap();
         for check in checks {
             assert_eq!(check["fixable_by"], "none", "Passing check {} should have fixable_by=none", check["name"]);
         }
+        // commit_hashes is "warn" since tempdir is not a git repo
+        let hash_check = checks.iter().find(|c| c["name"] == "commit_hashes").unwrap();
+        assert_eq!(hash_check["status"], "warn");
+    }
+
+    #[test]
+    fn test_commit_hash_not_in_repo() {
+        let dir = tempdir().unwrap();
+        let summary_path = dir.path().join("SUMMARY.md");
+        let plan_path = dir.path().join("PLAN.md");
+
+        fs::write(
+            &summary_path,
+            "\
+---
+phase: \"04\"
+plan: \"01\"
+title: \"Test hashes\"
+status: complete
+tasks_completed: 1
+tasks_total: 1
+commit_hashes:
+  - \"abc1234\"
+---
+
+# Summary
+
+## What Was Built
+
+Test.
+
+## Files Modified
+
+- test.rs
+",
+        )
+        .unwrap();
+
+        fs::write(
+            &plan_path,
+            "\
+---
+phase: \"04\"
+plan: \"01\"
+title: \"Test\"
+wave: 1
+depends_on: []
+must_haves:
+  - \"Works\"
+---
+
+# Plan
+
+### Task 1: Only task
+
+Do something.
+",
+        )
+        .unwrap();
+
+        // tempdir is NOT a git repo — should get warn, not fail
+        let args = vec![
+            "yolo".to_string(),
+            "verify-plan-completion".to_string(),
+            summary_path.to_string_lossy().to_string(),
+            plan_path.to_string_lossy().to_string(),
+        ];
+        let (output, code) = execute(&args, dir.path()).unwrap();
+        assert_eq!(code, 0, "Expected exit 0 (warn, not fail), got {}: {}", code, output);
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        let checks = parsed["checks"].as_array().unwrap();
+        let hash_check = checks.iter().find(|c| c["name"] == "commit_hashes").unwrap();
+        assert_eq!(hash_check["status"], "warn");
+    }
+
+    #[test]
+    fn test_commit_hash_in_real_git_repo() {
+        let dir = tempdir().unwrap();
+        let repo = dir.path();
+
+        // Initialize a real git repo and create a commit
+        Command::new("git")
+            .args(["init"])
+            .current_dir(repo)
+            .output()
+            .expect("git init failed");
+        Command::new("git")
+            .args(["config", "user.email", "test@test.com"])
+            .current_dir(repo)
+            .output()
+            .expect("git config email failed");
+        Command::new("git")
+            .args(["config", "user.name", "Test"])
+            .current_dir(repo)
+            .output()
+            .expect("git config name failed");
+        fs::write(repo.join("dummy.txt"), "hello").unwrap();
+        Command::new("git")
+            .args(["add", "."])
+            .current_dir(repo)
+            .output()
+            .expect("git add failed");
+        Command::new("git")
+            .args(["commit", "-m", "initial"])
+            .current_dir(repo)
+            .output()
+            .expect("git commit failed");
+
+        // Capture the real hash
+        let hash_out = Command::new("git")
+            .args(["rev-parse", "HEAD"])
+            .current_dir(repo)
+            .output()
+            .expect("git rev-parse HEAD failed");
+        let real_hash = String::from_utf8(hash_out.stdout).unwrap().trim().to_string();
+
+        let summary_path = repo.join("SUMMARY.md");
+        let plan_path = repo.join("PLAN.md");
+
+        fs::write(
+            &summary_path,
+            format!(
+                "\
+---
+phase: \"04\"
+plan: \"01\"
+title: \"Real repo test\"
+status: complete
+tasks_completed: 1
+tasks_total: 1
+commit_hashes:
+  - \"{}\"
+---
+
+# Summary
+
+## What Was Built
+
+Test.
+
+## Files Modified
+
+- dummy.txt
+",
+                real_hash
+            ),
+        )
+        .unwrap();
+
+        fs::write(
+            &plan_path,
+            "\
+---
+phase: \"04\"
+plan: \"01\"
+title: \"Test\"
+wave: 1
+depends_on: []
+must_haves:
+  - \"Works\"
+---
+
+# Plan
+
+### Task 1: Only task
+
+Do something.
+",
+        )
+        .unwrap();
+
+        let args = vec![
+            "yolo".to_string(),
+            "verify-plan-completion".to_string(),
+            summary_path.to_string_lossy().to_string(),
+            plan_path.to_string_lossy().to_string(),
+        ];
+        let (output, code) = execute(&args, repo).unwrap();
+        assert_eq!(code, 0, "Expected exit 0, got {}: {}", code, output);
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(parsed["ok"], true);
+        let checks = parsed["checks"].as_array().unwrap();
+        let hash_check = checks.iter().find(|c| c["name"] == "commit_hashes").unwrap();
+        assert_eq!(hash_check["status"], "pass");
     }
 
     #[test]
