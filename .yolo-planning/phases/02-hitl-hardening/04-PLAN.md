@@ -85,16 +85,14 @@ Follow existing test patterns: `load test_helper`, `PROJECT_ROOT="${BATS_TEST_DI
 
 ### Task 4: Update existing step ordering test expectations
 
-**File:** `tests/workflow-integrity.bats`
+**File:** `tests/workflow-integrity-context.bats`
 
 **What to change:**
 
-Find any existing tests that reference the `REQUIRED_STEPS` array or step ordering. Update them to expect `step_2c` in the list. Specifically:
+The REQUIRED_STEPS test is at `tests/workflow-integrity-context.bats` (around line 89). Update it to expect `step_2c` in the list:
 
-1. If there is a test checking `REQUIRED_STEPS` content, add `step_2c` to the expected values
-2. If there is a test checking the "Required:" display text, update to include `step_2c`
-
-If no such tests exist in `workflow-integrity.bats`, add:
-- **step_2c in required steps list**: `grep 'step_2c' skills/execute-protocol/SKILL.md` within the REQUIRED_STEPS context
+1. Find the test checking `REQUIRED_STEPS` content and add `step_2c` to the expected values (between `step_2b` and `step_3`)
+2. Find the test checking the "Required:" display text and update to include `step_2c`
+3. Add a new test asserting `step_2c` presence in the REQUIRED_STEPS array, following the pattern of existing step tracking tests (lines 63-81)
 
 **Why:** Existing tests must be updated to match the new protocol structure. Failing to update would cause test failures after Plan 02 lands.
