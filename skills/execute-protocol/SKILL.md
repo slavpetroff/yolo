@@ -134,7 +134,7 @@ subagent_type: "yolo:yolo-reviewer"
 - Extract `FINDINGS:` block (everything after FINDINGS: until end of structured block)
 - Parse each finding line: `[id:X] [severity:Y] [file:Z] issue: DESC | suggestion: FIX` into JSON
 - Convert to JSON array: `{"id": "X", "severity": "Y", "file": "Z", "title": "DESC", "description": "DESC", "suggestion": "FIX"}`
-- If parsing fails (agent didn't follow format): treat as `conditional` with a warning finding about unparseable verdict
+- If parsing fails (agent didn't follow format): treat as `reject` and STOP — fail-closed on unparseable verdict
 
 ```bash
 # Extract VERDICT line from agent completion
@@ -147,10 +147,17 @@ CURRENT_FINDINGS=$(echo "$AGENT_FINDINGS_RAW" | while IFS= read -r line; do
 done | jq -s '.')
 # Fallback if parsing fails
 if [ -z "$AGENT_VERDICT" ]; then
-  AGENT_VERDICT="conditional"
-  CURRENT_FINDINGS='[{"id":"parse-fail","severity":"medium","file":"","title":"Unparseable reviewer verdict","description":"Reviewer agent did not produce a structured verdict. Treating as conditional.","suggestion":"Review agent output manually."}]'
+  echo "✗ Reviewer verdict parse failure — agent output did not contain a valid VERDICT line."
+  echo "  Raw output (last 20 lines):"
+  echo "$AGENT_OUTPUT" | tail -20
+  echo ""
+  echo "  Action: Check reviewer agent definition or re-run with --review"
+  VERDICT="reject"
+  # STOP — do not proceed to execution. Fail-closed on unparseable verdict.
+  # Log the parse failure for diagnostics
+  "$HOME/.cargo/bin/yolo" log-event review_parse_failure {phase} plan={NN-MM} 2>/dev/null || true
+  # Enter the reject handling path (which will either loop or stop at max cycles)
 fi
-VERDICT="$AGENT_VERDICT"
 ```
 
 **Agent spawn fallback:**
@@ -309,7 +316,7 @@ ARCH_MAX_TURNS=$("$HOME/.cargo/bin/yolo" resolve-turns architect .yolo-planning/
    **Parse agent re-review output** (same parsing as initial review):
    - Extract `VERDICT:` and `FINDINGS:` from agent completion
    - Convert findings to JSON array for `CURRENT_FINDINGS`
-   - If parsing fails: treat as `conditional` with warning finding
+   - If parsing fails: treat as `reject` and STOP — fail-closed on unparseable verdict
 
    **Fallback on re-review:** If agent spawn fails during a re-review cycle, fall back to CLI verdict:
    - Display: `⚠ Reviewer agent unavailable — falling back to CLI review for plan {NN-MM} (cycle {REVIEW_CYCLE})`
