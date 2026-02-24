@@ -8,6 +8,7 @@ depends_on: [{deps}]
 cross_phase_deps: [{phase: {N}, plan: "{NN-MM}", artifact: "{path}", reason: "{why}"}]
 autonomous: {true|false}
 effort_override: {thorough|balanced|fast|turbo}
+agent: {agent-role}
 skills_used: [{skill}]
 files_modified: [{path}]
 forbidden_commands: []
