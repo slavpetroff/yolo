@@ -740,6 +740,36 @@ if [ $? -ne 0 ]; then QA_MAX_TURNS=25; fi
 
 For each completed plan in the phase, run **two-stage QA verification**:
 
+**Agent skip check (per plan):**
+
+Before running Stage 1 for a plan, check whether the plan's producing agent is in the skip list:
+
+```bash
+# Check qa_skip_agents -- skip QA for plans produced by listed agents
+SKIP_QA=false
+QA_SKIP_AGENTS=$(jq -r '.qa_skip_agents // [] | .[]' .yolo-planning/config.json 2>/dev/null)
+PLAN_AGENT=$(sed -n 's/^agent: *"\{0,1\}\([^"]*\)"\{0,1\}/\1/p' "{plan_path}" | head -1)
+for skip_agent in $QA_SKIP_AGENTS; do
+  if [ "$PLAN_AGENT" = "$skip_agent" ]; then
+    SKIP_QA=true
+    break
+  fi
+done
+
+if [ "$SKIP_QA" = "true" ]; then
+  echo "○ QA skipped for plan {NN-MM} (agent: ${PLAN_AGENT} in qa_skip_agents)"
+  # Do not run CLI checks or spawn QA agent for this plan.
+  # Proceed to the next plan.
+fi
+```
+
+If `SKIP_QA` is true, skip both Stage 1 (CLI data collection) and Stage 2 (QA agent spawn) for this plan and move to the next completed plan. If `SKIP_QA` is false (or no `agent` field in frontmatter), proceed with QA normally.
+
+- Read `qa_skip_agents` array from config (once per plan, or cache for the phase)
+- Read `agent` field from PLAN.md YAML frontmatter
+- If the plan's agent matches any entry in the skip list, set `SKIP_QA=true` and display skip message
+- If no `agent` field in frontmatter (empty `PLAN_AGENT`), proceed with QA normally (fail-open for backward compat)
+
 #### Stage 1 -- CLI data collection
 
 Run the following 5 verification commands as data collectors:
