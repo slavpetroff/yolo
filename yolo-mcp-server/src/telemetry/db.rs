@@ -18,7 +18,8 @@ impl TelemetryDb {
     }
 
     fn init(&self) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock()
+            .map_err(|e| rusqlite::Error::InvalidParameterName(format!("Mutex poisoned: {}", e)))?;
         conn.execute(
             "CREATE TABLE IF NOT EXISTS tool_usage (
                 id INTEGER PRIMARY KEY,
@@ -64,7 +65,8 @@ impl TelemetryDb {
         cache_write_tokens: i64,
     ) -> Result<()> {
         let ts = Utc::now().to_rfc3339();
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock()
+            .map_err(|e| rusqlite::Error::InvalidParameterName(format!("Mutex poisoned: {}", e)))?;
         conn.execute(
             "INSERT INTO agent_token_usage (agent_role, phase, session_id, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, timestamp)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
@@ -83,7 +85,8 @@ impl TelemetryDb {
     }
 
     pub fn query_agent_token_summary(&self) -> Result<Vec<Value>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock()
+            .map_err(|e| rusqlite::Error::InvalidParameterName(format!("Mutex poisoned: {}", e)))?;
         let mut stmt = conn.prepare(
             "SELECT agent_role, phase,
                     SUM(input_tokens) as total_input,
@@ -144,7 +147,8 @@ impl TelemetryDb {
         retry_count: u32,
     ) -> Result<()> {
         let ts = Utc::now().to_rfc3339();
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock()
+            .map_err(|e| rusqlite::Error::InvalidParameterName(format!("Mutex poisoned: {}", e)))?;
         conn.execute(
             "INSERT INTO tool_usage (tool_name, agent_role, session_id, input_length, output_length, execution_time_ms, success, retry_count, timestamp)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
