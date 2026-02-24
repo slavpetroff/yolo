@@ -781,7 +781,7 @@ CLI_QA_REPORT='{"passed": true, "checks": []}'
 - `diff-against-plan` → `"dev"` (Dev can update SUMMARY.md files_modified)
 - `verify-plan-completion` → `"dev"` (Dev can fix SUMMARY.md fields)
 - `validate-requirements` → `"dev"` (Dev can add evidence to SUMMARY.md)
-- `check-regression` → `"architect"` (test count decrease is a plan-level issue)
+- `check-regression` → `"manual"` (test count change requires human review)
 
 **Fast-path optimization:** If ALL 5 CLI commands pass (exit 0), skip agent spawn entirely. Display `✓ QA verification passed (CLI)` and proceed to Step 4. Agent adds value on failures, not on clean passes.
 
@@ -1067,7 +1067,7 @@ Dev receives ONLY the specific failure details for each check — not the full Q
 | `diff-against-plan` | "Update SUMMARY.md files_modified section to include: {undeclared_files}" | Add missing file entries to SUMMARY.md `## Files Modified` |
 | `verify-plan-completion` | "Fix SUMMARY.md field {field_name}: expected {expected}, got {actual}" | Correct the specific YAML frontmatter field or body section |
 | `validate-requirements` | "Add evidence for requirement: '{requirement_text}'" | Update SUMMARY.md `## What Was Built` with evidence of delivery |
-| `check-regression` | N/A (always `fixable_by: "architect"` — HARD STOP, never reaches Dev) | — |
+| `check-regression` | N/A (always `fixable_by: "manual"` — HARD STOP, never reaches Dev) | — |
 
 **Context provided to Dev for each remediation task:**
 - Working directory path
