@@ -17,7 +17,7 @@ Loaded on demand by /yolo:vibe Execute mode. Not a user-facing command.
 3. `git log --oneline -20` for committed tasks (crash recovery).
 4. Build remaining plans list. If `--plan=NN`, filter to that plan.
 5. Partially-complete plans: note resume-from task number.
-6. **Crash recovery:** If `.yolo-planning/.execution-state.json` exists with `"status": "running"`, update plan statuses to match current SUMMARY.md state.
+6. **Crash recovery:** If `.yolo-planning/.execution-state.json` exists with `"status": "running"`, update plan statuses to match current SUMMARY.md state. If `"status"` is `"awaiting_approval"`, do NOT overwrite with `"running"` — preserve the approval state so Step 2c can enforce the gate.
      6b. **Generate correlation_id:** Generate a UUID for this phase execution:
    - If `.yolo-planning/.execution-state.json` already exists and has `correlation_id` (crash-resume):
      preserve it: `CORRELATION_ID=$(jq -r '.correlation_id // ""' .yolo-planning/.execution-state.json 2>/dev/null || echo "")`
@@ -28,7 +28,8 @@ Loaded on demand by /yolo:vibe Execute mode. Not a user-facing command.
 
 ```json
 {
-  "phase": N, "phase_name": "{slug}", "status": "running",
+  "phase": N, "phase_name": "{slug}",
+  "status": "running",  // Valid statuses: "running", "awaiting_approval", "complete"
   "started_at": "{ISO 8601}", "wave": 1, "total_waves": N,
   "correlation_id": "{UUID}",
   "steps_completed": [],
