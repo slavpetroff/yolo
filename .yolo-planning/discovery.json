@@ -97,6 +97,48 @@
       "date": "2026-02-24",
       "phase": "02",
       "question": "Which facade commands should we build?"
+    },
+    {
+      "answer": "Run all 5 checks in parallel, return unified JSON with per-check results + overall pass/fail. Individual commands coexist for debugging.",
+      "area": "qa-suite-strategy",
+      "date": "2026-02-24",
+      "phase": "02",
+      "question": "How should qa-suite aggregate the 5 QA checks?"
+    },
+    {
+      "answer": "Full preview with no side effects. Compute version, show changelog edit, list files, show commit message + tag — write nothing.",
+      "area": "release-suite-dry-run",
+      "date": "2026-02-24",
+      "phase": "02",
+      "question": "What should --dry-run show for release-suite?"
+    },
+    {
+      "answer": "Report and stop. No automatic rollback. User decides whether to retry, reset, or fix.",
+      "area": "release-suite-failure",
+      "date": "2026-02-24",
+      "phase": "02",
+      "question": "How should release-suite handle partial failure?"
+    },
+    {
+      "answer": "Yes, auto-include Cargo.toml and Cargo.lock (if changed) in release commit git add.",
+      "area": "release-suite-cargo",
+      "date": "2026-02-24",
+      "phase": "02",
+      "question": "Should release-suite include Cargo.toml in the release commit?"
+    },
+    {
+      "answer": "Merge into single resolve-agent command with --all flag. Single agent returns {model, turns}. --all returns all agents. Always return complete data with defaults — caller never needs fallback logic.",
+      "area": "resolve-agent-design",
+      "date": "2026-02-24",
+      "phase": "02",
+      "question": "How should resolve-agent and resolve-models-all be structured?"
+    },
+    {
+      "answer": "Facade-first, remove old sequential patterns from all instruction files. Clean break.",
+      "area": "instruction-migration",
+      "date": "2026-02-24",
+      "phase": "02",
+      "question": "How should instructions be updated to use facades?"
     }
   ],
   "deferred": [
@@ -127,8 +169,8 @@
     {
       "id": "REQ-03",
       "priority": "Must-have",
-      "source": "Discussion: facade-commands",
-      "text": "5 facade commands batch sequential operations: qa-suite, resolve-agent, release-suite, resolve-models-all, bootstrap-all"
+      "source": "Discussion: facade-commands + phase-2-decisions",
+      "text": "4 facade commands batch sequential operations: qa-suite, resolve-agent (with --all), release-suite, bootstrap-all. resolve-models-all merged into resolve-agent --all."
     },
     {
       "id": "REQ-07",
@@ -147,7 +189,12 @@
       "toml_edit crate preserves TOML formatting on edit",
       "gh release create supports --notes-file for changelog sections",
       "bump_version.rs manages 4 JSON files but missing Cargo.toml (TOML)",
-      "Cargo.toml version drifted to 2.7.1 while plugin is at 2.9.5"
+      "Cargo.toml version drifted to 2.7.1 while plugin is at 2.9.5",
+      "QA suite: 5 commands called sequentially in execute-protocol (SKILL.md:800-846)",
+      "resolve-agent: 2 calls per agent (resolve-model + resolve-turns) x5 agents in execute-protocol",
+      "release-suite: 6-step sequence in archive.md (bump, changelog, stage, commit, tag, push)",
+      "bootstrap-all: 6-7 sequential bootstrap calls in bootstrap.md",
+      "Router has 80+ flat commands, no existing composite patterns"
     ]
   }
 }
