@@ -8,6 +8,58 @@ use tokio::time::{timeout, Duration};
 
 use crate::commands::tier_context;
 
+const EXECUTION_STATE_PATH: &str = ".yolo-planning/.execution-state.json";
+
+/// Reads, updates, and atomically writes the execution state file for HITL approval.
+///
+/// When `approved == false`, sets status to `"awaiting_approval"` with approval metadata.
+/// When `approved == true`, sets status to `"running"` and marks approval as granted.
+/// Writes atomically via temp file + rename.
+pub fn write_approval_state(plan_path: &str, approved: bool) -> Result<Value, String> {
+    let state_path = Path::new(EXECUTION_STATE_PATH);
+    let now = chrono::Utc::now().to_rfc3339();
+
+    // Read existing state or start fresh
+    let mut state: Value = if state_path.exists() {
+        let data = std::fs::read_to_string(state_path)
+            .map_err(|e| format!("Failed to read execution state: {}", e))?;
+        serde_json::from_str(&data)
+            .unwrap_or_else(|_| json!({}))
+    } else {
+        json!({})
+    };
+
+    let map = state.as_object_mut().ok_or("Execution state is not a JSON object")?;
+
+    if approved {
+        map.insert("status".into(), json!("running"));
+        if let Some(approval) = map.get_mut("approval").and_then(|a| a.as_object_mut()) {
+            approval.insert("approved".into(), json!(true));
+            approval.insert("approved_at".into(), json!(now));
+        }
+    } else {
+        map.insert("status".into(), json!("awaiting_approval"));
+        map.insert("approval".into(), json!({
+            "requested_at": now,
+            "plan_path": plan_path,
+            "approved": false
+        }));
+    }
+
+    let updated = Value::Object(map.clone());
+
+    // Atomic write: temp file + rename
+    let tmp_path = state_path.with_extension("json.tmp");
+    let serialized = serde_json::to_string_pretty(&updated)
+        .map_err(|e| format!("Failed to serialize execution state: {}", e))?;
+    std::fs::write(&tmp_path, &serialized)
+        .map_err(|e| format!("Failed to write temp state file: {}", e))?;
+    std::fs::rename(&tmp_path, state_path)
+        .map_err(|e| format!("Failed to rename temp state file: {}", e))?;
+
+    Ok(updated)
+}
+
 pub struct ToolState {
     locks: Mutex<HashMap<String, String>>, // file_path -> task_id
     last_prefix_hashes: Mutex<HashMap<String, String>>, // role -> last prefix_hash
@@ -254,16 +306,36 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
         "request_human_approval" => {
             let p = params.unwrap_or(json!({}));
             let plan_path = p.get("plan_path").and_then(|v| v.as_str()).unwrap_or("");
-            
-            // For MVP, we simulate a HITL pause.
-            // In a real Claude deployment, this tool would return a specific text format 
-            // that the Claude orchestrator catches as a prompt request.
-            json!({ 
-                "content": [{
-                    "type": "text", 
-                    "text": format!("HITL Request Triggered for {}. Execution halted pending vision approval.", plan_path)
-                }] 
-            })
+
+            // Ensure .yolo-planning/ directory exists
+            let planning_dir = Path::new(".yolo-planning");
+            if !planning_dir.is_dir() {
+                return json!({
+                    "content": [{"type": "text", "text": "Error: .yolo-planning/ directory does not exist"}],
+                    "isError": true
+                });
+            }
+
+            match write_approval_state(plan_path, false) {
+                Ok(state) => {
+                    let requested_at = state["approval"]["requested_at"].as_str().unwrap_or("");
+                    json!({
+                        "content": [{"type": "text", "text": "HITL approval requested. Execution paused."}],
+                        "status": "paused",
+                        "approval": {
+                            "requested_at": requested_at,
+                            "plan_path": plan_path,
+                            "state_file": EXECUTION_STATE_PATH
+                        }
+                    })
+                }
+                Err(e) => {
+                    json!({
+                        "content": [{"type": "text", "text": format!("Failed to write execution state: {}", e)}],
+                        "isError": true
+                    })
+                }
+            }
         }
         _ => json!({ "content": [{"type": "text", "text": format!("Unknown tool: {}", name)}], "isError": true })
     }
@@ -478,22 +550,71 @@ mod tests {
 
     #[tokio::test]
     async fn test_request_human_approval() {
+        let tmp = std::env::temp_dir().join(format!("yolo-test-hitl-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".yolo-planning")).unwrap();
+
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
         let state = Arc::new(ToolState::new());
         let params = Some(json!({"plan_path": "ROADMAP.md"}));
-        
+
         let result = handle_tool_call("request_human_approval", params, state).await;
-        let text = result.get("content").unwrap().as_array().unwrap()[0].get("text").unwrap().as_str().unwrap();
-        
-        assert!(text.contains("HITL Request Triggered"));
-        assert!(text.contains("ROADMAP.md"));
+        let text = result["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains("HITL approval requested"));
+
+        // Verify structured response fields
+        assert_eq!(result["status"].as_str().unwrap(), "paused");
+        assert_eq!(result["approval"]["plan_path"].as_str().unwrap(), "ROADMAP.md");
+        assert!(result["approval"]["requested_at"].as_str().unwrap().len() > 0);
+        assert_eq!(result["approval"]["state_file"].as_str().unwrap(), ".yolo-planning/.execution-state.json");
+
+        // Verify state file was written
+        let state_data: Value = serde_json::from_str(
+            &std::fs::read_to_string(tmp.join(".yolo-planning/.execution-state.json")).unwrap()
+        ).unwrap();
+        assert_eq!(state_data["status"].as_str().unwrap(), "awaiting_approval");
+        assert_eq!(state_data["approval"]["plan_path"].as_str().unwrap(), "ROADMAP.md");
+        assert_eq!(state_data["approval"]["approved"].as_bool().unwrap(), false);
+
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 
     #[tokio::test]
-    async fn test_request_human_approval_missing_param() {
+    async fn test_request_human_approval_missing_dir() {
+        let tmp = std::env::temp_dir().join(format!("yolo-test-hitl-nodir-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        // No .yolo-planning/ directory
+
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
         let state = Arc::new(ToolState::new());
         let result = handle_tool_call("request_human_approval", None, state).await;
-        let content = result.get("content").unwrap().as_array().unwrap()[0].get("text").unwrap().as_str().unwrap();
-        assert!(content.contains("HITL Request Triggered"));
+        assert_eq!(result.get("isError").unwrap(), true);
+        let text = result["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains(".yolo-planning/"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_write_approval_state_approve() {
+        let tmp = std::env::temp_dir().join(format!("yolo-test-hitl-approve-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".yolo-planning")).unwrap();
+
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+
+        // First request approval (sets awaiting_approval)
+        let result = write_approval_state("plan.jsonl", false).unwrap();
+        assert_eq!(result["status"].as_str().unwrap(), "awaiting_approval");
+
+        // Then approve
+        let result = write_approval_state("plan.jsonl", true).unwrap();
+        assert_eq!(result["status"].as_str().unwrap(), "running");
+        assert_eq!(result["approval"]["approved"].as_bool().unwrap(), true);
+        assert!(result["approval"]["approved_at"].as_str().is_some());
+
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 
     #[tokio::test]
