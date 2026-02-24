@@ -50,6 +50,12 @@
       "payload_optional": ["conditions", "modifications"],
       "description": "Response to an approval request"
     },
+    "hitl_approval": {
+      "allowed_roles": ["lead", "architect"],
+      "payload_required": ["plan_path", "gate_type", "status"],
+      "payload_optional": ["requested_at", "approved_at", "approved_by"],
+      "description": "HITL approval gate state for vision gate and other blocking checkpoints"
+    },
     "shutdown_request": {
       "allowed_roles": ["lead"],
       "payload_required": ["reason", "team_name"],
@@ -65,7 +71,7 @@
   },
   "role_hierarchy": {
     "lead": {"can_send": ["plan_contract", "approval_request", "approval_response", "shutdown_request", "shutdown_response"], "can_receive": ["execution_update", "blocker_report", "debugger_report", "qa_verdict", "scout_findings", "approval_request", "shutdown_request", "shutdown_response"]},
-    "architect": {"can_send": ["plan_contract", "approval_response"], "can_receive": ["scout_findings", "approval_request"]},
+    "architect": {"can_send": ["plan_contract", "approval_response", "hitl_approval"], "can_receive": ["scout_findings", "approval_request"]},
     "dev": {"can_send": ["execution_update", "blocker_report", "approval_request", "shutdown_response"], "can_receive": ["plan_contract", "approval_response", "shutdown_request"]},
     "qa": {"can_send": ["qa_verdict", "shutdown_response"], "can_receive": ["plan_contract", "shutdown_request"]},
     "scout": {"can_send": ["scout_findings", "shutdown_response"], "can_receive": ["plan_contract", "shutdown_request"]},
