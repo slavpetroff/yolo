@@ -67,6 +67,36 @@ fn write_json_version(path: &Path, pointer: &str, version: &str) -> Result<(), S
     Ok(())
 }
 
+/// Read version from a TOML file's [package] table.
+fn read_toml_version(path: &Path) -> Result<String, String> {
+    if !path.exists() {
+        return Err(format!("{} not found", path.display()));
+    }
+    let content = fs::read_to_string(path)
+        .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
+    let doc = content
+        .parse::<toml_edit::DocumentMut>()
+        .map_err(|e| format!("Invalid TOML in {}: {}", path.display(), e))?;
+    doc.get("package")
+        .and_then(|p| p.get("version"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .ok_or_else(|| format!("package.version not found in {}", path.display()))
+}
+
+/// Write version into a TOML file's [package] table, preserving formatting.
+fn write_toml_version(path: &Path, version: &str) -> Result<(), String> {
+    let content = fs::read_to_string(path)
+        .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
+    let mut doc = content
+        .parse::<toml_edit::DocumentMut>()
+        .map_err(|e| format!("Invalid TOML in {}: {}", path.display(), e))?;
+    doc["package"]["version"] = toml_edit::value(version);
+    fs::write(path, doc.to_string())
+        .map_err(|e| format!("Failed to write {}: {}", path.display(), e))?;
+    Ok(())
+}
+
 /// Increment the patch component of a semver string.
 fn increment_patch(version: &str) -> String {
     let parts: Vec<&str> = version.split('.').collect();
@@ -75,6 +105,30 @@ fn increment_patch(version: &str) -> String {
             return format!("{}.{}.{}", parts[0], parts[1], patch + 1);
     }
     // Fallback: append .1
+    format!("{}.1", version)
+}
+
+/// Increment the major component: X.Y.Z -> (X+1).0.0
+fn increment_major(version: &str) -> String {
+    let parts: Vec<&str> = version.split('.').collect();
+    if !parts.is_empty() {
+        if let Ok(major) = parts[0].parse::<u64>() {
+            return format!("{}.0.0", major + 1);
+        }
+    }
+    format!("{}.1", version)
+}
+
+/// Increment the minor component: X.Y.Z -> X.(Y+1).0
+fn increment_minor(version: &str) -> String {
+    let parts: Vec<&str> = version.split('.').collect();
+    if parts.len() >= 2 {
+        if let Ok(major) = parts[0].parse::<u64>() {
+            if let Ok(minor) = parts[1].parse::<u64>() {
+                return format!("{}.{}.0", major, minor + 1);
+            }
+        }
+    }
     format!("{}.1", version)
 }
 
@@ -94,6 +148,7 @@ fn max_version<'a>(a: &'a str, b: &'a str) -> &'a str {
 struct VersionFiles {
     version_file: &'static str,
     json_files: Vec<(&'static str, &'static str)>, // (path, json_pointer)
+    toml_files: Vec<&'static str>,
 }
 
 fn version_files() -> VersionFiles {
@@ -101,9 +156,9 @@ fn version_files() -> VersionFiles {
         version_file: "VERSION",
         json_files: vec![
             (".claude-plugin/plugin.json", "/version"),
-            (".claude-plugin/marketplace.json", "/plugins/0/version"),
             ("marketplace.json", "/plugins/0/version"),
         ],
+        toml_files: vec!["yolo-mcp-server/Cargo.toml"],
     }
 }
 
@@ -123,6 +178,15 @@ fn verify_versions(cwd: &Path, start: Instant) -> Result<(String, i32), String> 
     for (path, pointer) in &vf.json_files {
         let full = cwd.join(path);
         match read_json_version(&full, pointer) {
+            Ok(v) => versions.push((path.to_string(), v)),
+            Err(e) => errors.push(e),
+        }
+    }
+
+    // Read TOML files
+    for path in &vf.toml_files {
+        let full = cwd.join(path);
+        match read_toml_version(&full) {
             Ok(v) => versions.push((path.to_string(), v)),
             Err(e) => errors.push(e),
         }
@@ -183,8 +247,14 @@ fn fetch_remote_version(offline: bool) -> Option<String> {
     }
 }
 
-/// Bump mode: increment patch, write to all files.
-fn bump_version(cwd: &Path, offline: bool, start: Instant) -> Result<(String, i32), String> {
+/// Bump mode: increment version, write to all files.
+fn bump_version(
+    cwd: &Path,
+    offline: bool,
+    major: bool,
+    minor: bool,
+    start: Instant,
+) -> Result<(String, i32), String> {
     let local_version = read_version_file(cwd)?;
 
     let remote_version = fetch_remote_version(offline);
@@ -193,7 +263,21 @@ fn bump_version(cwd: &Path, offline: bool, start: Instant) -> Result<(String, i3
         None => &local_version,
     };
 
-    let new_version = increment_patch(base_version);
+    let new_version = if major {
+        increment_major(base_version)
+    } else if minor {
+        increment_minor(base_version)
+    } else {
+        increment_patch(base_version)
+    };
+    let bump_type = if major {
+        "major"
+    } else if minor {
+        "minor"
+    } else {
+        "patch"
+    };
+
     let vf = version_files();
     let mut files_updated: Vec<Value> = Vec::new();
     let mut changed: Vec<String> = Vec::new();
@@ -216,6 +300,17 @@ fn bump_version(cwd: &Path, offline: bool, start: Instant) -> Result<(String, i3
         }
     }
 
+    // Write TOML files
+    for path in &vf.toml_files {
+        let full = cwd.join(path);
+        if full.exists() {
+            let old = read_toml_version(&full).unwrap_or_else(|_| "unknown".to_string());
+            write_toml_version(&full, &new_version)?;
+            files_updated.push(json!({"path": path, "old": old, "new": new_version}));
+            changed.push(path.to_string());
+        }
+    }
+
     let response = json!({
         "ok": true,
         "cmd": "bump-version",
@@ -223,6 +318,7 @@ fn bump_version(cwd: &Path, offline: bool, start: Instant) -> Result<(String, i3
         "delta": {
             "old_version": local_version,
             "new_version": new_version,
+            "bump_type": bump_type,
             "remote_version": remote_version,
             "files_updated": files_updated
         },
@@ -232,16 +328,22 @@ fn bump_version(cwd: &Path, offline: bool, start: Instant) -> Result<(String, i3
     Ok((response.to_string(), 0))
 }
 
-/// CLI entry point: `yolo bump-version [--verify] [--offline]`
+/// CLI entry point: `yolo bump-version [--verify] [--offline] [--major] [--minor]`
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let start = Instant::now();
     let verify = args.iter().any(|a| a == "--verify");
     let offline = args.iter().any(|a| a == "--offline");
+    let major = args.iter().any(|a| a == "--major");
+    let minor = args.iter().any(|a| a == "--minor");
+
+    if major && minor {
+        return Err("Cannot use both --major and --minor".to_string());
+    }
 
     if verify {
         verify_versions(cwd, start)
     } else {
-        bump_version(cwd, offline, start)
+        bump_version(cwd, offline, major, minor, start)
     }
 }
 
@@ -264,24 +366,29 @@ mod tests {
             serde_json::to_string_pretty(&json!({
                 "name": "test",
                 "version": "1.2.3"
-            })).unwrap(),
-        ).unwrap();
-
-        // .claude-plugin/marketplace.json
-        fs::write(
-            plugin_dir.join("marketplace.json"),
-            serde_json::to_string_pretty(&json!({
-                "plugins": [{"name": "test", "version": "1.2.3"}]
-            })).unwrap(),
-        ).unwrap();
+            }))
+            .unwrap(),
+        )
+        .unwrap();
 
         // Root marketplace.json
         fs::write(
             dir.path().join("marketplace.json"),
             serde_json::to_string_pretty(&json!({
                 "plugins": [{"name": "test", "version": "1.2.3"}]
-            })).unwrap(),
-        ).unwrap();
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        // yolo-mcp-server/Cargo.toml
+        let cargo_dir = dir.path().join("yolo-mcp-server");
+        fs::create_dir_all(&cargo_dir).unwrap();
+        fs::write(
+            cargo_dir.join("Cargo.toml"),
+            "[package]\nname = \"yolo-mcp-server\"\nversion = \"1.2.3\"\nedition = \"2024\"\n",
+        )
+        .unwrap();
 
         dir
     }
@@ -315,13 +422,14 @@ mod tests {
     #[test]
     fn test_bump_offline() {
         let dir = setup_test_env();
-        let (output, code) = bump_version(dir.path(), true, Instant::now()).unwrap();
+        let (output, code) = bump_version(dir.path(), true, false, false, Instant::now()).unwrap();
         assert_eq!(code, 0);
         let j: Value = serde_json::from_str(&output).unwrap();
         assert_eq!(j["ok"], true);
         assert_eq!(j["cmd"], "bump-version");
         assert_eq!(j["delta"]["old_version"], "1.2.3");
         assert_eq!(j["delta"]["new_version"], "1.2.4");
+        assert_eq!(j["delta"]["bump_type"], "patch");
         let files = j["delta"]["files_updated"].as_array().unwrap();
         assert!(files.iter().any(|f| f["path"] == "VERSION" && f["old"] == "1.2.3" && f["new"] == "1.2.4"));
 
@@ -330,14 +438,21 @@ mod tests {
         assert_eq!(new_ver.trim(), "1.2.4");
 
         let plugin: Value = serde_json::from_str(
-            &fs::read_to_string(dir.path().join(".claude-plugin/plugin.json")).unwrap()
-        ).unwrap();
+            &fs::read_to_string(dir.path().join(".claude-plugin/plugin.json")).unwrap(),
+        )
+        .unwrap();
         assert_eq!(plugin["version"], "1.2.4");
 
         let mp: Value = serde_json::from_str(
-            &fs::read_to_string(dir.path().join("marketplace.json")).unwrap()
-        ).unwrap();
+            &fs::read_to_string(dir.path().join("marketplace.json")).unwrap(),
+        )
+        .unwrap();
         assert_eq!(mp["plugins"][0]["version"], "1.2.4");
+
+        // Verify Cargo.toml updated
+        let cargo_content =
+            fs::read_to_string(dir.path().join("yolo-mcp-server/Cargo.toml")).unwrap();
+        assert!(cargo_content.contains("version = \"1.2.4\""));
     }
 
     #[test]
@@ -405,5 +520,69 @@ mod tests {
 
         let content: Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
         assert_eq!(content["plugins"][0]["version"], "3.0.0");
+    }
+
+    #[test]
+    fn test_increment_major() {
+        assert_eq!(increment_major("1.2.3"), "2.0.0");
+        assert_eq!(increment_major("0.9.9"), "1.0.0");
+    }
+
+    #[test]
+    fn test_increment_minor() {
+        assert_eq!(increment_minor("1.2.3"), "1.3.0");
+        assert_eq!(increment_minor("0.0.1"), "0.1.0");
+    }
+
+    #[test]
+    fn test_bump_major_flag() {
+        let dir = setup_test_env();
+        let (output, code) =
+            bump_version(dir.path(), true, true, false, Instant::now()).unwrap();
+        assert_eq!(code, 0);
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["delta"]["new_version"], "2.0.0");
+        assert_eq!(j["delta"]["bump_type"], "major");
+    }
+
+    #[test]
+    fn test_bump_minor_flag() {
+        let dir = setup_test_env();
+        let (output, code) =
+            bump_version(dir.path(), true, false, true, Instant::now()).unwrap();
+        assert_eq!(code, 0);
+        let j: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(j["delta"]["new_version"], "1.3.0");
+        assert_eq!(j["delta"]["bump_type"], "minor");
+    }
+
+    #[test]
+    fn test_toml_read_write() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("Cargo.toml");
+        fs::write(
+            &path,
+            "[package]\nname = \"test\"\nversion = \"1.0.0\"\n",
+        )
+        .unwrap();
+        assert_eq!(read_toml_version(&path).unwrap(), "1.0.0");
+        write_toml_version(&path, "2.0.0").unwrap();
+        assert_eq!(read_toml_version(&path).unwrap(), "2.0.0");
+        // Verify formatting preserved
+        let content = fs::read_to_string(&path).unwrap();
+        assert!(content.contains("name = \"test\""));
+    }
+
+    #[test]
+    fn test_major_minor_conflict() {
+        let dir = setup_test_env();
+        let args: Vec<String> = vec![
+            "yolo".into(),
+            "bump-version".into(),
+            "--major".into(),
+            "--minor".into(),
+        ];
+        let result = execute(&args, dir.path());
+        assert!(result.is_err());
     }
 }
