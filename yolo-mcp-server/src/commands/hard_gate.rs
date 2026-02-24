@@ -5,6 +5,7 @@ use chrono::Utc;
 use sha2::{Sha256, Digest};
 use std::process::Command;
 use regex::Regex;
+use std::sync::OnceLock;
 use super::{log_event, collect_metrics};
 
 #[derive(serde::Serialize)]
@@ -287,8 +288,11 @@ pub fn execute_gate(args: &[String], cwd: &Path) -> Result<(String, i32), String
                 return Ok(emit_res("pass", "no commits to check"));
             }
 
-            let re = Regex::new(r"^(feat|fix|test|refactor|perf|docs|style|chore)\(.+\): .+").unwrap();
-            if re.is_match(&last_msg) {
+            fn commit_format_re() -> &'static Regex {
+                static RE: OnceLock<Regex> = OnceLock::new();
+                RE.get_or_init(|| Regex::new(r"^(feat|fix|test|refactor|perf|docs|style|chore)\(.+\): .+").unwrap())
+            }
+            if commit_format_re().is_match(&last_msg) {
                 Ok(emit_res("pass", "commit format valid"))
             } else {
                 Ok(emit_res("fail", &format!("commit format invalid: {}", last_msg)))
