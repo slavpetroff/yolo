@@ -1189,6 +1189,18 @@ If autonomy is confident or pure-vibe: display "○ UAT verification skipped (au
 
 Note: "Run inline" means the execute-protocol agent runs the verify protocol directly, not by invoking /yolo:verify as a command. The protocol is the same; the entry point differs.
 
+**HITL gate summary (all autonomy levels):**
+
+| Gate | Where | Blocking mechanism |
+|------|-------|--------------------|
+| Vision gate (Architect) | Step 2c | execution-state.json status=awaiting_approval |
+| Review gate | Step 2b | Reviewer verdict loop |
+| Plan approval gate | Step 3 | plan_mode_required on Dev spawn |
+| UAT checkpoint | Step 4.5 | User-interactive CHECKPOINT loop |
+
+Vision gate and Review gate are autonomy-independent (always active when triggered).
+Plan approval and UAT are autonomy-gated per the tables above.
+
 **Track step completion (conditional — only if UAT was active):**
 ```bash
 jq '.steps_completed += ["step_4"]' \
