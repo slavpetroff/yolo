@@ -2,8 +2,8 @@
 
 **Project:** YOLO Plugin
 **Milestone:** Workflow Validation & Rust Quality Audit
-**Phase:** 1 — QA & Reviewer Gate Enforcement
-**Status:** Complete
+**Phase:** 2 — HITL Hardening
+**Status:** Planned
 
 ## Decisions
 None.

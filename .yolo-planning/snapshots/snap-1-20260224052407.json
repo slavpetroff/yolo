@@ -1,0 +1,47 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "b8789896-2567-45ec-baec-3ffe9ecd9953",
+    "phase": 1,
+    "phase_name": "qa-reviewer-gate-enforcement",
+    "plans": [
+      {
+        "id": "01-01",
+        "status": "pending",
+        "title": "Gate defaults to always",
+        "wave": 1
+      },
+      {
+        "id": "01-02",
+        "status": "pending",
+        "title": "Enforce qa_skip_agents in execute protocol",
+        "wave": 1
+      },
+      {
+        "id": "01-03",
+        "status": "pending",
+        "title": "Fix check-regression fixable_by inconsistency",
+        "wave": 1
+      },
+      {
+        "id": "01-04",
+        "status": "pending",
+        "title": "Verdict parsing fails closed",
+        "wave": 1
+      }
+    ],
+    "started_at": "2026-02-24T00:00:00Z",
+    "status": "running",
+    "steps_completed": [
+      "step_2",
+      "step_2b",
+      "step_3",
+      "step_3c"
+    ],
+    "total_waves": 1,
+    "wave": 1
+  },
+  "matcher": "auto",
+  "phase": "1",
+  "timestamp": "2026-02-24T05:24:07Z"
+}
