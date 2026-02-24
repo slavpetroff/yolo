@@ -167,7 +167,7 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
 
             // Determine cache hit/miss by comparing prefix_hash to previous call for this role
             let (cache_hit, cache_read_tokens_estimate, cache_write_tokens_estimate) = {
-                let mut hashes = state.last_prefix_hashes.lock().unwrap();
+                let mut hashes = state.last_prefix_hashes.lock().unwrap_or_else(|e| e.into_inner());
                 let prev = hashes.get(role).cloned();
                 hashes.insert(role.to_string(), prefix_hash.clone());
                 match prev {
@@ -227,7 +227,7 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
             let task_id = p.get("task_id").and_then(|v| v.as_str()).unwrap_or("unknown");
             let file_path = p.get("file_path").and_then(|v| v.as_str()).unwrap_or("unknown");
             
-            let mut locks = state.locks.lock().unwrap();
+            let mut locks = state.locks.lock().unwrap_or_else(|e| e.into_inner());
             if let Some(owner) = locks.get(file_path) {
                 if owner == task_id {
                     json!({ "content": [{"type": "text", "text": format!("Already hold lock on {}", file_path)}] })
@@ -244,7 +244,7 @@ pub async fn handle_tool_call(name: &str, params: Option<Value>, state: Arc<Tool
             let task_id = p.get("task_id").and_then(|v| v.as_str()).unwrap_or("unknown");
             let file_path = p.get("file_path").and_then(|v| v.as_str()).unwrap_or("unknown");
             
-            let mut locks = state.locks.lock().unwrap();
+            let mut locks = state.locks.lock().unwrap_or_else(|e| e.into_inner());
             match locks.get(file_path) {
                 Some(owner) if owner == task_id => {
                     locks.remove(file_path);
