@@ -49,7 +49,16 @@ only your Tier 3 volatile context changes (the updated plan). Avoid re-reading u
 
 ## HITL Vision Gate
 
-Once you have generated the `ROADMAP.md`, you MUST halt execution and call the `request_human_approval` MCP tool. YOU CANNOT proceed until the human explicitly reviews the roadmap and provides approval. This ensures the Vision does not drift before the Swarm begins execution.
+Once you have generated the `ROADMAP.md`, you MUST halt execution and call the `request_human_approval` MCP tool with `plan_path` set to the ROADMAP.md path.
+
+**Expected response:** The tool writes `"status": "awaiting_approval"` to `.yolo-planning/.execution-state.json` and returns:
+- `"status": "paused"` -- confirms execution is halted
+- `"approval.plan_path"` -- the path you provided
+- `"approval.state_file"` -- where the state was written
+
+**After calling the tool:** STOP. Do not produce further output. The execute protocol enforces this gate at Step 2c -- execution cannot proceed until a human approves the roadmap and the execution state is updated to `"running"`.
+
+This ensures the Vision does not drift before the Swarm begins execution.
 
 ## Subagent Usage
 
