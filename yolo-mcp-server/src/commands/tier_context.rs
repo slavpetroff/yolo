@@ -1,6 +1,7 @@
 use regex::Regex;
 use sha2::{Sha256, Digest};
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 /// Returns the cache directory path: /tmp/yolo-tier-cache-{uid}/
 fn cache_dir() -> PathBuf {
@@ -131,9 +132,19 @@ pub fn build_tier1(planning_dir: &Path) -> String {
 /// Cache invalidation happens naturally: when this function produces
 /// different output (due to newly completed phases), the content hash
 /// in the tier cache will mismatch, triggering a cache rebuild.
+fn get_table_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"^\|\s*(\d+)\s*\|\s*Complete\s*\|").unwrap())
+}
+
+fn get_phase_header_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"^## Phase (\d+):").unwrap())
+}
+
 fn filter_completed_phases(text: &str) -> String {
     // Pass 1: collect completed phase numbers from progress table rows
-    let table_re = Regex::new(r"^\|\s*(\d+)\s*\|\s*Complete\s*\|").unwrap();
+    let table_re = get_table_re();
     let mut completed: Vec<u32> = Vec::new();
     for line in text.lines() {
         if let Some(caps) = table_re.captures(line)
@@ -148,7 +159,7 @@ fn filter_completed_phases(text: &str) -> String {
     }
 
     // Pass 2: filter out ## Phase N sections for completed phases
-    let phase_header_re = Regex::new(r"^## Phase (\d+):").unwrap();
+    let phase_header_re = get_phase_header_re();
     let mut result = String::with_capacity(text.len());
     let mut skipping = false;
 
