@@ -1,6 +1,7 @@
 use regex::Regex;
 use std::fs;
 use std::path::Path;
+use std::sync::OnceLock;
 use std::time::SystemTime;
 
 use super::types::{HookInput, HookOutput, SecurityFilterInput};
@@ -45,10 +46,12 @@ pub fn handle(input: &HookInput) -> Result<HookOutput, String> {
     };
 
     // Check sensitive file patterns
-    let re = Regex::new(SENSITIVE_PATTERN)
-        .map_err(|e| format!("Failed to compile sensitive pattern regex: {}", e))?;
+    fn get_sensitive_re() -> &'static Regex {
+        static RE: OnceLock<Regex> = OnceLock::new();
+        RE.get_or_init(|| Regex::new(SENSITIVE_PATTERN).unwrap())
+    }
 
-    if re.is_match(&file_path) {
+    if get_sensitive_re().is_match(&file_path) {
         return Ok(deny(&format!("Blocked: sensitive file ({})", file_path)));
     }
 
