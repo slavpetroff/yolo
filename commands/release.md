@@ -57,8 +57,10 @@ No flags = patch bump (default).
 
 ### Step 2: Bump version
 
---major/--minor: read VERSION, compute new version, write to all 4 files (VERSION, .claude-plugin/plugin.json, .claude-plugin/marketplace.json, marketplace.json).
+--major/--minor: read VERSION, compute new version, write to all 3 files (VERSION, .claude-plugin/plugin.json, .claude-plugin/marketplace.json).
 Neither flag: `yolo bump-version`. Capture new version.
+
+> **Note:** `marketplace.json` lives at `.claude-plugin/marketplace.json` (not repo root).
 
 ### Step 3: Update CHANGELOG header
 
@@ -71,7 +73,7 @@ No [Unreleased]: display ○.
 
 ### Step 5: Commit
 
-Stage individually (only if modified): VERSION, .claude-plugin/plugin.json, .claude-plugin/marketplace.json, marketplace.json, CHANGELOG.md (if changed), README.md (if changed). Commit: `chore: release v{new-version}`
+Stage individually (only if modified): VERSION, .claude-plugin/plugin.json, .claude-plugin/marketplace.json, CHANGELOG.md (if changed), README.md (if changed). Commit: `chore: release v{new-version}`
 
 ### Step 6: Tag
 

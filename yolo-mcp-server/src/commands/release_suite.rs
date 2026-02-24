@@ -14,7 +14,7 @@ fn s(v: &str) -> String {
 const RELEASE_FILES: &[&str] = &[
     "VERSION",
     ".claude-plugin/plugin.json",
-    "marketplace.json",
+    ".claude-plugin/marketplace.json",
     "yolo-mcp-server/Cargo.toml",
     "yolo-mcp-server/Cargo.lock",
     "CHANGELOG.md",
@@ -498,9 +498,9 @@ mod tests {
         )
         .unwrap();
 
-        // marketplace.json
+        // .claude-plugin/marketplace.json
         fs::write(
-            dir.path().join("marketplace.json"),
+            plugin_dir.join("marketplace.json"),
             serde_json::to_string_pretty(&json!({
                 "plugins": [{"name": "test", "version": "1.2.3"}]
             }))

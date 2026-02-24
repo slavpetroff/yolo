@@ -156,7 +156,7 @@ fn version_files() -> VersionFiles {
         version_file: "VERSION",
         json_files: vec![
             (".claude-plugin/plugin.json", "/version"),
-            ("marketplace.json", "/plugins/0/version"),
+            (".claude-plugin/marketplace.json", "/plugins/0/version"),
         ],
         toml_files: vec!["yolo-mcp-server/Cargo.toml"],
     }
@@ -371,9 +371,9 @@ mod tests {
         )
         .unwrap();
 
-        // Root marketplace.json
+        // .claude-plugin/marketplace.json
         fs::write(
-            dir.path().join("marketplace.json"),
+            plugin_dir.join("marketplace.json"),
             serde_json::to_string_pretty(&json!({
                 "plugins": [{"name": "test", "version": "1.2.3"}]
             }))
@@ -444,7 +444,7 @@ mod tests {
         assert_eq!(plugin["version"], "1.2.4");
 
         let mp: Value = serde_json::from_str(
-            &fs::read_to_string(dir.path().join("marketplace.json")).unwrap(),
+            &fs::read_to_string(dir.path().join(".claude-plugin/marketplace.json")).unwrap(),
         )
         .unwrap();
         assert_eq!(mp["plugins"][0]["version"], "1.2.4");

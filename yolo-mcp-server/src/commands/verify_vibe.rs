@@ -12,7 +12,7 @@ pub fn execute(_args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let claude_md = cwd.join("CLAUDE.md");
     let help = cwd.join("commands/help.md");
     let suggest = cwd.join("yolo-mcp-server/src/commands/suggest_next.rs");
-    let mkt_root = cwd.join("marketplace.json");
+    let mkt_root = cwd.join(".claude-plugin/marketplace.json");
     let mkt_plugin = cwd.join(".claude-plugin/marketplace.json");
 
     let mut output = String::new();
