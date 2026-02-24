@@ -1,7 +1,9 @@
+use crate::commands::utils::extract_frontmatter;
 use regex::Regex;
 use serde_json::json;
 use std::fs;
 use std::path::Path;
+use std::sync::OnceLock;
 
 /// Verifies plan completion by cross-referencing SUMMARY.md against PLAN.md.
 ///
@@ -134,7 +136,7 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
     // Check 4: commit_hashes non-empty and valid format
     if let Some(ref fm) = frontmatter {
         let hashes = parse_list_field(fm, "commit_hashes");
-        let hex_re = Regex::new(r"^[0-9a-fA-F]{7,}$").unwrap();
+        let hex_re = hex_hash_re();
         if hashes.is_empty() {
             checks.push(
                 json!({"name": "commit_hashes", "status": "fail", "detail": "commit_hashes is empty", "fixable_by": "dev"}),
@@ -183,24 +185,6 @@ pub fn execute(args: &[String], _cwd: &Path) -> Result<(String, i32), String> {
     Ok((resp.to_string(), if all_pass { 0 } else { 1 }))
 }
 
-/// Extract frontmatter content between first `---` and second `---`.
-fn extract_frontmatter(content: &str) -> Option<String> {
-    if !content.starts_with("---") {
-        return None;
-    }
-    let after_first = &content[3..];
-    let rest = after_first.trim_start_matches(|c: char| c != '\n');
-    let rest = rest.strip_prefix('\n').unwrap_or(rest);
-    if let Some(end_idx) = rest.find("\n---") {
-        Some(rest[..end_idx].to_string())
-    } else if rest.ends_with("---") {
-        let trimmed = rest.trim_end_matches("---");
-        Some(trimmed.to_string())
-    } else {
-        None
-    }
-}
-
 /// Check if a frontmatter field exists.
 fn has_field(frontmatter: &str, field_name: &str) -> bool {
     let prefix = format!("{}:", field_name);
@@ -222,10 +206,19 @@ fn field_value(frontmatter: &str, field_name: &str) -> Option<String> {
     None
 }
 
+fn hex_hash_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"^[0-9a-fA-F]{7,}$").unwrap())
+}
+
+fn task_header_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"(?m)^### Task \d+").unwrap())
+}
+
 /// Count `### Task N` headers in the plan content.
 fn count_plan_tasks(content: &str) -> u32 {
-    let re = Regex::new(r"(?m)^### Task \d+").unwrap();
-    re.find_iter(content).count() as u32
+    task_header_re().find_iter(content).count() as u32
 }
 
 /// Parse a YAML list field from frontmatter (supports inline array and block list).

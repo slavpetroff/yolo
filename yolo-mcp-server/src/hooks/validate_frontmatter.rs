@@ -1,3 +1,4 @@
+use crate::commands::utils::extract_frontmatter;
 use serde_json::{json, Value};
 use std::fs;
 
@@ -68,30 +69,6 @@ fn extract_file_path(input: &Value) -> String {
         .and_then(|ti| ti.get("file_path").and_then(|v| v.as_str()))
         .unwrap_or("")
         .to_string()
-}
-
-/// Extract frontmatter block between first and second `---` lines.
-pub fn extract_frontmatter(content: &str) -> Option<String> {
-    let mut lines = content.lines();
-
-    // First line must be `---`
-    if lines.next() != Some("---") {
-        return None;
-    }
-
-    let mut fm_lines = Vec::new();
-    for line in lines {
-        if line == "---" {
-            break;
-        }
-        fm_lines.push(line);
-    }
-
-    if fm_lines.is_empty() {
-        return None;
-    }
-
-    Some(fm_lines.join("\n"))
 }
 
 /// Check the description field in frontmatter content.

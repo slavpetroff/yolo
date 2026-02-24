@@ -1,37 +1,11 @@
+use crate::commands::utils::split_frontmatter;
 use regex::Regex;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
-
-/// Parse YAML frontmatter delimited by `---` lines.
-/// Returns the frontmatter text (without delimiters) and the body after it.
-fn split_frontmatter(content: &str) -> (String, String) {
-    let mut lines = content.lines();
-    let mut fm_lines = Vec::new();
-    let mut body_lines = Vec::new();
-    let mut dashes_seen = 0;
-
-    for line in &mut lines {
-        if line.trim() == "---" {
-            dashes_seen += 1;
-            if dashes_seen == 2 {
-                break;
-            }
-            continue;
-        }
-        if dashes_seen == 1 {
-            fm_lines.push(line);
-        }
-    }
-
-    for line in lines {
-        body_lines.push(line);
-    }
-
-    (fm_lines.join("\n"), body_lines.join("\n"))
-}
+use std::sync::OnceLock;
 
 /// Extract a simple scalar value from frontmatter: `key: value`
 fn fm_scalar(fm: &str, key: &str) -> Option<String> {
@@ -93,9 +67,19 @@ fn fm_list(fm: &str, key: &str) -> Vec<String> {
     result
 }
 
+fn files_pattern_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"\*\*Files:\*\*\s+(.+)").unwrap())
+}
+
+fn task_heading_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"(?m)^#{2,3}\s+Task\s+\d+").unwrap())
+}
+
 /// Extract allowed_paths from `**Files:**` lines in the plan body.
 fn extract_allowed_paths(body: &str) -> Vec<String> {
-    let re = Regex::new(r"\*\*Files:\*\*\s+(.+)").unwrap();
+    let re = files_pattern_re();
     let mut paths = BTreeSet::new();
 
     for cap in re.captures_iter(body) {
@@ -120,8 +104,7 @@ fn extract_allowed_paths(body: &str) -> Vec<String> {
 
 /// Count task headings: `## Task N` or `### Task N`
 fn count_tasks(body: &str) -> usize {
-    let re = Regex::new(r"(?m)^#{2,3}\s+Task\s+\d+").unwrap();
-    re.find_iter(body).count()
+    task_heading_re().find_iter(body).count()
 }
 
 /// Generate task IDs: {phase}-{plan}-T{N}
