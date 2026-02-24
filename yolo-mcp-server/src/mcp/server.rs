@@ -164,7 +164,7 @@ async fn handle_request(
                     },
                     {
                         "name": "request_human_approval",
-                        "description": "Halts execution and requests HITL assessment.",
+                        "description": "Halts execution and requests HITL assessment. Writes execution state to .yolo-planning/.execution-state.json with status and approval metadata. Returns structured JSON with `status` (\"paused\") and `approval` fields (requested_at, plan_path, state_file). Requires .yolo-planning/ directory to exist.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
