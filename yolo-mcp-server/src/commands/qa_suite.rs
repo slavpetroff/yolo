@@ -16,56 +16,41 @@ fn s(v: &str) -> String {
 /// Usage: yolo qa-suite <summary_path> <plan_path> [--commit-range R] [--phase-dir D]
 ///
 /// Runs:
-/// 1. verify-plan-completion — cross-references SUMMARY vs PLAN
-/// 2. commit-lint — validates conventional commit format
-/// 3. check-regression — counts tests for regression detection
-/// 4. diff-against-plan — cross-references declared files vs git diffs
-/// 5. validate-requirements — checks must_haves are evidenced
+/// 1. verify-plan-completion -- cross-references SUMMARY vs PLAN
+/// 2. commit-lint -- validates conventional commit format
+/// 3. check-regression -- counts tests for regression detection
+/// 4. diff-against-plan -- cross-references declared files vs git diffs
+/// 5. validate-requirements -- checks must_haves are evidenced
 ///
 /// Exit codes: 0=all pass, 1=any fail
 pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let start = Instant::now();
 
-    if args.len() < 4 {
+    // Filter positional args (skip flags and their values)
+    let positional: Vec<&String> = args.iter().filter(|a| !a.starts_with("--")).collect();
+
+    if positional.len() < 4 {
         return Err(
             "Usage: yolo qa-suite <summary_path> <plan_path> [--commit-range R] [--phase-dir D]"
                 .to_string(),
         );
     }
 
-    let summary_path = args[2].clone();
-    let plan_path = args[3].clone();
+    let summary_path = positional[2].clone();
+    let plan_path = positional[3].clone();
 
     // Parse optional flags
-    let mut commit_range = "HEAD~1..HEAD".to_string();
-    let mut phase_dir = String::new();
-
-    let mut i = 4;
-    while i < args.len() {
-        match args[i].as_str() {
-            "--commit-range" if i + 1 < args.len() => {
-                commit_range = args[i + 1].clone();
-                i += 2;
-            }
-            "--phase-dir" if i + 1 < args.len() => {
-                phase_dir = args[i + 1].clone();
-                i += 2;
-            }
-            _ => {
-                i += 1;
-            }
-        }
-    }
-
-    // Default phase_dir to parent of summary_path
-    if phase_dir.is_empty() {
-        if let Some(parent) = Path::new(&summary_path).parent() {
-            phase_dir = parent.to_string_lossy().to_string();
-        }
-    }
+    let commit_range = parse_flag(args, "--commit-range").unwrap_or_else(|| s("HEAD~1..HEAD"));
+    let phase_dir = parse_flag(args, "--phase-dir").unwrap_or_else(|| {
+        Path::new(&summary_path)
+            .parent()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| s("."))
+    });
 
     // Run all 5 checks
-    let checks: Vec<(&str, Result<(String, i32), String>)> = vec![
+    type CheckResult = Result<(String, i32), String>;
+    let checks: Vec<(&str, CheckResult)> = vec![
         (
             "verify-plan-completion",
             verify_plan_completion::execute(
@@ -131,7 +116,7 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
             }
             Err(e) => {
                 checks_failed += 1;
-                results.insert(name.to_string(), json!({"error": e}));
+                results.insert(name.to_string(), json!({"ok": false, "error": e}));
             }
         }
     }
@@ -152,6 +137,17 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     Ok((response.to_string(), if all_pass { 0 } else { 1 }))
 }
 
+/// Parse a --flag value pair from args.
+fn parse_flag(args: &[String], flag: &str) -> Option<String> {
+    let mut iter = args.iter();
+    while let Some(arg) = iter.next() {
+        if arg == flag {
+            return iter.next().cloned();
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -162,14 +158,52 @@ mod tests {
         let summary = dir.join("01-01-SUMMARY.md");
         fs::write(
             &summary,
-            "---\nphase: 01\nplan: 01\ntitle: \"test\"\nstatus: complete\ntasks_completed: 1\ntasks_total: 1\ncommit_hashes: [\"abc1234\"]\n---\n\n# Plan 01 Summary\n\n## What Was Built\ntest feature\n\n## Files Modified\n- test.rs\n",
+            "\
+---
+phase: \"01\"
+plan: \"01\"
+title: \"test\"
+status: complete
+tasks_completed: 1
+tasks_total: 1
+commit_hashes: [\"abc1234\"]
+---
+
+# Plan 01 Summary
+
+## What Was Built
+
+test feature
+
+## Files Modified
+
+- test.rs
+",
         )
         .unwrap();
 
         let plan = dir.join("01-PLAN.md");
         fs::write(
             &plan,
-            "---\nphase: 01\nplan: 01\ntitle: \"test\"\nwave: 1\ndepends_on: []\nmust_haves:\n  - \"test feature\"\n---\n\n# Plan 01: test\n\n## Task 1: test\n\n**Files:** `test.rs`\n\nDo something.\n",
+            "\
+---
+phase: \"01\"
+plan: \"01\"
+title: \"test\"
+wave: 1
+depends_on: []
+must_haves:
+  - \"test feature\"
+---
+
+# Plan 01: test
+
+### Task 1: test
+
+**Files:** `test.rs`
+
+Do something.
+",
         )
         .unwrap();
 
@@ -192,19 +226,37 @@ mod tests {
         let dir = tempdir().unwrap();
         let (summary, plan) = create_fixtures(dir.path());
 
-        let (out, _code) = execute(&[s("yolo"), s("qa-suite"), summary, plan], dir.path()).unwrap();
+        let (out, _code) =
+            execute(&[s("yolo"), s("qa-suite"), summary, plan], dir.path()).unwrap();
 
         let parsed: Value = serde_json::from_str(&out).unwrap();
         assert_eq!(parsed["cmd"], "qa-suite");
         assert!(parsed["elapsed_ms"].is_number());
+        assert!(parsed["ok"].is_boolean());
         assert!(parsed["delta"]["results"].is_object());
+    }
 
+    #[test]
+    fn test_all_five_checks_in_results() {
+        let dir = tempdir().unwrap();
+        let (summary, plan) = create_fixtures(dir.path());
+
+        let (out, _code) =
+            execute(&[s("yolo"), s("qa-suite"), summary, plan], dir.path()).unwrap();
+
+        let parsed: Value = serde_json::from_str(&out).unwrap();
         let results = parsed["delta"]["results"].as_object().unwrap();
-        assert!(results.contains_key("verify-plan-completion"));
-        assert!(results.contains_key("commit-lint"));
-        assert!(results.contains_key("check-regression"));
-        assert!(results.contains_key("diff-against-plan"));
-        assert!(results.contains_key("validate-requirements"));
+
+        let expected = [
+            "verify-plan-completion",
+            "commit-lint",
+            "check-regression",
+            "diff-against-plan",
+            "validate-requirements",
+        ];
+        for key in &expected {
+            assert!(results.contains_key(*key), "Missing result key: {}", key);
+        }
     }
 
     #[test]
@@ -212,14 +264,19 @@ mod tests {
         let dir = tempdir().unwrap();
         let (summary, plan) = create_fixtures(dir.path());
 
-        let (out, _) = execute(&[s("yolo"), s("qa-suite"), summary, plan], dir.path()).unwrap();
+        let (out, _) =
+            execute(&[s("yolo"), s("qa-suite"), summary, plan], dir.path()).unwrap();
 
         let parsed: Value = serde_json::from_str(&out).unwrap();
         assert_eq!(parsed["delta"]["checks_run"], 5);
+
+        let passed = parsed["delta"]["checks_passed"].as_u64().unwrap();
+        let failed = parsed["delta"]["checks_failed"].as_u64().unwrap();
+        assert_eq!(passed + failed, 5);
     }
 
     #[test]
-    fn test_optional_flags() {
+    fn test_optional_flags_accepted() {
         let dir = tempdir().unwrap();
         let (summary, plan) = create_fixtures(dir.path());
 
@@ -240,5 +297,6 @@ mod tests {
 
         let parsed: Value = serde_json::from_str(&out).unwrap();
         assert_eq!(parsed["cmd"], "qa-suite");
+        assert_eq!(parsed["delta"]["checks_run"], 5);
     }
 }
