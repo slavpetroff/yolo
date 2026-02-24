@@ -1,7 +1,9 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 use serde_json::json;
 use chrono::{NaiveDate, Utc};
+use regex::Regex;
 
 fn resolve_state_path(planning_dir: &Path) -> Result<PathBuf, String> {
     let state_path = planning_dir.join("STATE.md");
@@ -156,9 +158,13 @@ fn parse_todo_line(line: &str) -> (String, String, String, String) {
         priority = "low".to_string();
     }
 
+    fn get_date_re() -> &'static Regex {
+        static RE: OnceLock<Regex> = OnceLock::new();
+        RE.get_or_init(|| Regex::new(r"\(added ([0-9]{4}-[0-9]{2}-[0-9]{2})\)").unwrap())
+    }
+
     let mut date_str = String::new();
-    let re = regex::Regex::new(r"\(added ([0-9]{4}-[0-9]{2}-[0-9]{2})\)").unwrap();
-    if let Some(caps) = re.captures(&text) {
+    if let Some(caps) = get_date_re().captures(&text) {
         if let Some(m) = caps.get(1) {
             date_str = m.as_str().to_string();
         }
@@ -239,8 +245,11 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         let mut display_text = text.clone();
         display_text = display_text.replacen("[HIGH] ", "", 1);
         display_text = display_text.replacen("[low] ", "", 1);
-        let date_suffix_re = regex::Regex::new(r" *\(added [0-9]{4}-[0-9]{2}-[0-9]{2}\)$").unwrap();
-        display_text = date_suffix_re.replace(&display_text, "").to_string();
+        fn get_date_suffix_re() -> &'static Regex {
+            static RE: OnceLock<Regex> = OnceLock::new();
+            RE.get_or_init(|| Regex::new(r" *\(added [0-9]{4}-[0-9]{2}-[0-9]{2}\)$").unwrap())
+        }
+        display_text = get_date_suffix_re().replace(&display_text, "").to_string();
 
         let age_suffix = if age.is_empty() { "".to_string() } else { format!(" ({})", age) };
         display.push_str(&format!("{}. {}{}{}\n", display_num, pri_tag, display_text, age_suffix));
