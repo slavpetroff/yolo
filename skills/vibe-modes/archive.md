@@ -56,18 +56,9 @@ FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
    ```bash
    # Forward --major or --minor if passed, otherwise default patch bump
    if [ "$BUMP_TYPE" = "major" ]; then
-     OLD_VERSION=$(cat VERSION)
-     # Compute major bump manually: X.Y.Z -> (X+1).0.0
-     MAJOR=$(echo "$OLD_VERSION" | cut -d. -f1)
-     NEW_VERSION="$((MAJOR + 1)).0.0"
-     echo "$NEW_VERSION" > VERSION
-     # Update all version files
+     "$HOME/.cargo/bin/yolo" bump-version --major
    elif [ "$BUMP_TYPE" = "minor" ]; then
-     OLD_VERSION=$(cat VERSION)
-     MAJOR=$(echo "$OLD_VERSION" | cut -d. -f1)
-     MINOR=$(echo "$OLD_VERSION" | cut -d. -f2)
-     NEW_VERSION="${MAJOR}.$((MINOR + 1)).0"
-     echo "$NEW_VERSION" > VERSION
+     "$HOME/.cargo/bin/yolo" bump-version --minor
    else
      "$HOME/.cargo/bin/yolo" bump-version
    fi
@@ -81,7 +72,7 @@ FAIL -> STOP with remediation suggestions. WARN -> proceed with warnings.
 
    **Release commit:**
    ```bash
-   git add VERSION .claude-plugin/plugin.json .claude-plugin/marketplace.json marketplace.json
+   git add VERSION .claude-plugin/plugin.json marketplace.json
    # Add CHANGELOG.md only if modified
    git diff --quiet CHANGELOG.md 2>/dev/null || git add CHANGELOG.md
    git commit -m "chore: release v${NEW_VERSION}"
