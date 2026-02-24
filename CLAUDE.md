@@ -17,9 +17,8 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** Plugin Hardening & Release Pipeline
-**Phase:** 1 of 4 — Version Unification & Build Consistency (pending planning)
-**Last shipped:** Workflow Validation & Rust Quality Audit (2026-02-24) — 4 phases, 12 plans, 15+ commits
+**Work:** None (ready for new milestone)
+**Last shipped:** Plugin Hardening & Release Pipeline (2026-02-24) — 4 phases, 16 plans, 15+ commits, v2.9.7
 
 ## Installed Skills
 
