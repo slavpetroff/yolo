@@ -1,3 +1,4 @@
+use crate::commands::utils::load_config;
 use regex::Regex;
 use std::fs;
 use std::path::Path;
@@ -210,44 +211,18 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
 
     // --- Config values ---
     let config_file = planning_dir.join("config.json");
-    
-    let mut cfg_effort = "balanced".to_string();
-    let mut cfg_autonomy = "standard".to_string();
-    let mut cfg_auto_commit = "true".to_string();
-    let mut cfg_planning_tracking = "manual".to_string();
-    let mut cfg_auto_push = "never".to_string();
-    let mut cfg_verification_tier = "standard".to_string();
-    let mut cfg_prefer_teams = "always".to_string();
-    let mut cfg_max_tasks = "5".to_string();
-    let mut cfg_context_compiler = "true".to_string();
-    let mut cfg_compaction = "130000".to_string();
+    let config = load_config(&config_file);
 
-    if config_file.exists()
-        && let Ok(content) = fs::read_to_string(&config_file)
-        && let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content)
-    {
-        if let Some(v) = parsed.get("effort").and_then(|v| v.as_str()) { cfg_effort = v.to_string(); }
-        if let Some(v) = parsed.get("autonomy").and_then(|v| v.as_str()) { cfg_autonomy = v.to_string(); }
-        if let Some(v) = parsed.get("auto_commit").and_then(|v| v.as_bool()) { cfg_auto_commit = v.to_string(); }
-        if let Some(v) = parsed.get("planning_tracking").and_then(|v| v.as_str()) { cfg_planning_tracking = v.to_string(); }
-        if let Some(v) = parsed.get("auto_push").and_then(|v| v.as_str()) { cfg_auto_push = v.to_string(); }
-        if let Some(v) = parsed.get("verification_tier").and_then(|v| v.as_str()) { cfg_verification_tier = v.to_string(); }
-        if let Some(v) = parsed.get("prefer_teams").and_then(|v| v.as_str()) { cfg_prefer_teams = v.to_string(); }
-        if let Some(v) = parsed.get("max_tasks_per_plan").and_then(|v| v.as_i64()) { cfg_max_tasks = v.to_string(); }
-        if let Some(v) = parsed.get("context_compiler").and_then(|v| v.as_bool()) { cfg_context_compiler = v.to_string(); }
-        if let Some(v) = parsed.get("compaction_threshold").and_then(|v| v.as_i64()) { cfg_compaction = v.to_string(); }
-    }
-
-    out.push_str(&format!("config_effort={}\n", cfg_effort));
-    out.push_str(&format!("config_autonomy={}\n", cfg_autonomy));
-    out.push_str(&format!("config_auto_commit={}\n", cfg_auto_commit));
-    out.push_str(&format!("config_planning_tracking={}\n", cfg_planning_tracking));
-    out.push_str(&format!("config_auto_push={}\n", cfg_auto_push));
-    out.push_str(&format!("config_verification_tier={}\n", cfg_verification_tier));
-    out.push_str(&format!("config_prefer_teams={}\n", cfg_prefer_teams));
-    out.push_str(&format!("config_max_tasks_per_plan={}\n", cfg_max_tasks));
-    out.push_str(&format!("config_context_compiler={}\n", cfg_context_compiler));
-    out.push_str(&format!("config_compaction_threshold={}\n", cfg_compaction));
+    out.push_str(&format!("config_effort={}\n", config.effort));
+    out.push_str(&format!("config_autonomy={}\n", config.autonomy));
+    out.push_str(&format!("config_auto_commit={}\n", config.auto_commit));
+    out.push_str(&format!("config_planning_tracking={}\n", config.planning_tracking));
+    out.push_str(&format!("config_auto_push={}\n", config.auto_push));
+    out.push_str(&format!("config_verification_tier={}\n", config.verification_tier));
+    out.push_str(&format!("config_prefer_teams={}\n", config.prefer_teams));
+    out.push_str(&format!("config_max_tasks_per_plan={}\n", config.max_tasks_per_plan));
+    out.push_str(&format!("config_context_compiler={}\n", config.context_compiler));
+    out.push_str(&format!("config_compaction_threshold={}\n", config.compaction_threshold));
 
     // --- Codebase map status ---
     let has_codebase_map = planning_dir.join("codebase").join("META.md").exists();

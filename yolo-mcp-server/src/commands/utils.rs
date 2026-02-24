@@ -22,6 +22,7 @@ pub struct YoloConfig {
     pub qa_gate: String,
     pub review_max_cycles: u32,
     pub qa_max_cycles: u32,
+    pub compaction_threshold: u64,
 }
 
 impl Default for YoloConfig {
@@ -41,6 +42,7 @@ impl Default for YoloConfig {
             qa_gate: "on_request".into(),
             review_max_cycles: 3,
             qa_max_cycles: 3,
+            compaction_threshold: 130000,
         }
     }
 }
