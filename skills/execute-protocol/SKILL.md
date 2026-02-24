@@ -1201,7 +1201,7 @@ jq '.steps_completed += ["step_4"]' \
 **HARD GATE — Step Ordering Verification:** Before ANY other Step 5 action, validate that all required protocol steps were completed:
 
 ```bash
-REQUIRED_STEPS='["step_2","step_2b","step_3","step_3c","step_3d"]'
+REQUIRED_STEPS='["step_2","step_2b","step_2c","step_3","step_3c","step_3d"]'
 COMPLETED=$(jq -r '.steps_completed // []' .yolo-planning/.execution-state.json)
 MISSING=$(jq -n --argjson req "$REQUIRED_STEPS" --argjson done "$COMPLETED" \
   '$req - $done | if length > 0 then . else empty end')
@@ -1210,7 +1210,7 @@ MISSING=$(jq -n --argjson req "$REQUIRED_STEPS" --argjson done "$COMPLETED" \
 If `MISSING` is non-empty: **HARD STOP**. Display:
 ```
 ✗ Step ordering violation — skipped steps detected: {MISSING}
-  Required: step_2 → step_2b → step_3 → step_3c → step_3d
+  Required: step_2 → step_2b → step_2c → step_3 → step_3c → step_3d
   Completed: {COMPLETED}
   Action: Re-run phase execution from the first missing step.
 ```
