@@ -1,0 +1,38 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "878802b3-75eb-46db-9f1c-f8f9faaf98a0",
+    "phase": 3,
+    "phase_name": "agent-output-consistency",
+    "plans": [
+      {
+        "id": "03-01",
+        "status": "pending",
+        "title": "commit_hashes git existence validation",
+        "wave": 1
+      },
+      {
+        "id": "03-02",
+        "status": "pending",
+        "title": "diff-against-plan --commits flag",
+        "wave": 1
+      },
+      {
+        "id": "03-03",
+        "status": "pending",
+        "title": "SUMMARY naming enforcement",
+        "wave": 1
+      }
+    ],
+    "started_at": "2026-02-24T11:07:58Z",
+    "status": "running",
+    "steps_completed": [
+      "step_2"
+    ],
+    "total_waves": 1,
+    "wave": 1
+  },
+  "matcher": "auto",
+  "phase": "3",
+  "timestamp": "2026-02-24T11:09:57Z"
+}
