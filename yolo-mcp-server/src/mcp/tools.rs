@@ -995,6 +995,143 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_request_human_approval_writes_execution_state() {
+        let tmp = std::env::temp_dir().join(format!("yolo-test-hitl-write-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".yolo-planning")).unwrap();
+
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
+        let params = Some(json!({"plan_path": "phases/01/ROADMAP.md"}));
+
+        let _ = handle_tool_call("request_human_approval", params, state).await;
+
+        // Read the state file from disk
+        let state_data: Value = serde_json::from_str(
+            &std::fs::read_to_string(tmp.join(".yolo-planning/.execution-state.json")).unwrap()
+        ).unwrap();
+
+        assert_eq!(state_data["status"].as_str().unwrap(), "awaiting_approval");
+        assert_eq!(state_data["approval"]["plan_path"].as_str().unwrap(), "phases/01/ROADMAP.md");
+        assert_eq!(state_data["approval"]["approved"].as_bool().unwrap(), false);
+
+        // Validate requested_at is a valid ISO 8601 timestamp
+        let requested_at = state_data["approval"]["requested_at"].as_str().unwrap();
+        assert!(
+            chrono::DateTime::parse_from_rfc3339(requested_at).is_ok(),
+            "requested_at should be valid ISO 8601: {}",
+            requested_at
+        );
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_request_human_approval_structured_response() {
+        let tmp = std::env::temp_dir().join(format!("yolo-test-hitl-resp-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".yolo-planning")).unwrap();
+
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
+        let params = Some(json!({"plan_path": "my-plan.md"}));
+
+        let result = handle_tool_call("request_human_approval", params, state).await;
+
+        // Verify structured response fields
+        assert_eq!(result["status"].as_str().unwrap(), "paused");
+        assert_eq!(result["approval"]["plan_path"].as_str().unwrap(), "my-plan.md");
+        assert_eq!(
+            result["approval"]["state_file"].as_str().unwrap(),
+            ".yolo-planning/.execution-state.json"
+        );
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_request_human_approval_preserves_existing_state() {
+        let tmp = std::env::temp_dir().join(format!("yolo-test-hitl-preserve-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".yolo-planning")).unwrap();
+
+        // Write pre-existing execution state
+        let pre_state = json!({
+            "status": "running",
+            "phase": 2,
+            "wave": 1,
+            "plans": [{"id": "02-01", "title": "Test plan", "wave": 1, "status": "pending"}]
+        });
+        std::fs::write(
+            tmp.join(".yolo-planning/.execution-state.json"),
+            serde_json::to_string_pretty(&pre_state).unwrap(),
+        ).unwrap();
+
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+        let state = Arc::new(ToolState::new());
+        let params = Some(json!({"plan_path": "ROADMAP.md"}));
+
+        let _ = handle_tool_call("request_human_approval", params, state).await;
+
+        // Read updated state
+        let state_data: Value = serde_json::from_str(
+            &std::fs::read_to_string(tmp.join(".yolo-planning/.execution-state.json")).unwrap()
+        ).unwrap();
+
+        // Status changed to awaiting_approval
+        assert_eq!(state_data["status"].as_str().unwrap(), "awaiting_approval");
+        // Other fields preserved
+        assert_eq!(state_data["phase"].as_i64().unwrap(), 2);
+        assert_eq!(state_data["wave"].as_i64().unwrap(), 1);
+        assert_eq!(state_data["plans"][0]["id"].as_str().unwrap(), "02-01");
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_write_approval_state_request() {
+        let tmp = std::env::temp_dir().join(format!("yolo-test-hitl-req-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".yolo-planning")).unwrap();
+
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+
+        let result = write_approval_state("test-plan.md", false).unwrap();
+        assert_eq!(result["status"].as_str().unwrap(), "awaiting_approval");
+        assert_eq!(result["approval"]["plan_path"].as_str().unwrap(), "test-plan.md");
+        assert_eq!(result["approval"]["approved"].as_bool().unwrap(), false);
+
+        // Verify file on disk
+        let state_data: Value = serde_json::from_str(
+            &std::fs::read_to_string(tmp.join(".yolo-planning/.execution-state.json")).unwrap()
+        ).unwrap();
+        assert_eq!(state_data["status"].as_str().unwrap(), "awaiting_approval");
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
+    async fn test_write_approval_state_creates_dir() {
+        let tmp = std::env::temp_dir().join(format!("yolo-test-hitl-mkdir-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        // .yolo-planning/ does NOT exist yet
+
+        let (_lock, _cwd) = lock_and_chdir(&tmp);
+
+        // Create the dir just before calling (write_approval_state expects parent to exist)
+        std::fs::create_dir_all(tmp.join(".yolo-planning")).unwrap();
+
+        let result = write_approval_state("plan.md", false);
+        assert!(result.is_ok());
+
+        // Verify file was created
+        assert!(tmp.join(".yolo-planning/.execution-state.json").exists());
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[tokio::test]
     async fn test_read_timeout_config_custom() {
         let tmp = std::env::temp_dir().join(format!("yolo-test-timeout-custom-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
