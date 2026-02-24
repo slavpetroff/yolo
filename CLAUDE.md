@@ -17,9 +17,9 @@ A Claude Code plugin that adds structured development workflows — planning, ex
 
 ## Active Context
 
-**Work:** None (idle)
+**Work:** Plugin Hardening & Release Pipeline
+**Phase:** 1 of 4 — Version Unification & Build Consistency (pending planning)
 **Last shipped:** Workflow Validation & Rust Quality Audit (2026-02-24) — 4 phases, 12 plans, 15+ commits
-**Next action:** Run /yolo:vibe to start a new milestone
 
 ## Installed Skills
 

@@ -55,51 +55,99 @@
       "date": "2026-02-21",
       "phase": "bootstrap",
       "question": "Should protocol references become skills?"
+    },
+    {
+      "answer": "Use toml_edit crate for proper TOML parsing/writing. Preserves formatting and comments.",
+      "area": "cargo-toml-sync",
+      "date": "2026-02-24",
+      "phase": "01",
+      "question": "How should bump_version.rs update Cargo.toml (TOML format)?"
+    },
+    {
+      "answer": "Always in sync. One product, one version. All 4 files match VERSION as SSOT.",
+      "area": "version-parity",
+      "date": "2026-02-24",
+      "phase": "01",
+      "question": "Should Cargo.toml version always match plugin VERSION file?"
+    },
+    {
+      "answer": "Delete .claude-plugin/marketplace.json. Root marketplace.json is canonical for marketplace discovery. .claude-plugin/ keeps only plugin.json.",
+      "area": "marketplace-consolidation",
+      "date": "2026-02-24",
+      "phase": "01",
+      "question": "How to consolidate two identical marketplace.json files?"
+    },
+    {
+      "answer": "Extend yolo bump-version CLI with --major/--minor flags. Archive delegates all version logic to CLI. Remove bash version math from archive.md.",
+      "area": "archive-bump-dedup",
+      "date": "2026-02-24",
+      "phase": "01",
+      "question": "How to handle archive.md duplicate version bump logic?"
+    },
+    {
+      "answer": "Force sync immediately. bump_version.rs always reads VERSION as SSOT and writes to all targets regardless of starting state.",
+      "area": "initial-sync",
+      "date": "2026-02-24",
+      "phase": "01",
+      "question": "How to handle initial Cargo.toml version drift (2.7.1 vs 2.9.5)?"
+    },
+    {
+      "answer": "All 5: qa-suite, resolve-agent, release-suite, resolve-models-all, bootstrap-all",
+      "area": "facade-commands",
+      "date": "2026-02-24",
+      "phase": "02",
+      "question": "Which facade commands should we build?"
     }
   ],
-  "deferred": [],
+  "deferred": [
+    {
+      "idea": "Cross-platform binary distribution via cargo-dist",
+      "mentioned_during": "Phase 1 discussion",
+      "date": "2026-02-24"
+    },
+    {
+      "idea": "CI job for Rust build/test (currently only lint + bats)",
+      "mentioned_during": "Phase 1 discussion",
+      "date": "2026-02-24"
+    }
+  ],
   "inferred": [
     {
       "id": "REQ-01",
       "priority": "Must-have",
-      "source": "Discussion: agent prompt architecture",
-      "text": "Hybrid 2-tier cache prefix: shared base (Tier 1) + role-family (Tier 2) + volatile tail (Tier 3)"
+      "source": "Discussion: cargo-toml-sync + version-parity",
+      "text": "VERSION file is SSOT. bump-version updates VERSION, plugin.json, marketplace.json, and Cargo.toml."
     },
     {
       "id": "REQ-02",
       "priority": "Must-have",
-      "source": "Discussion: workflow token economics",
-      "text": "Token economics dashboard with per-agent cost, cache hit rates, waste identification, and ROI metrics"
+      "source": "Discussion: archive-bump-dedup",
+      "text": "Archive creates GitHub release with gh release create after tag+push."
     },
     {
       "id": "REQ-03",
-      "priority": "Should-have",
-      "source": "Discussion: context budget strategy",
-      "text": "CLAUDE.md moderate pruning to ~40 lines with verbose sections moved to on-demand skills"
+      "priority": "Must-have",
+      "source": "Discussion: facade-commands",
+      "text": "5 facade commands batch sequential operations: qa-suite, resolve-agent, release-suite, resolve-models-all, bootstrap-all"
     },
     {
-      "id": "REQ-04",
-      "priority": "Should-have",
-      "source": "Discussion: feature utilization",
-      "text": "Selective migration of largest protocol references to skills system"
-    },
-    {
-      "id": "REQ-05",
-      "priority": "Should-have",
-      "source": "Discussion: feature utilization",
-      "text": "Hook-based automation for linting, test validation, cache warming, and compaction triggers"
-    },
-    {
-      "id": "REQ-06",
-      "priority": "Should-have",
-      "source": "Discussion: feature utilization",
-      "text": "Subagent isolation patterns for research and verification to protect main context"
+      "id": "REQ-07",
+      "priority": "Must-have",
+      "source": "Discussion: marketplace-consolidation",
+      "text": "Consolidate to single marketplace.json at repo root. Remove .claude-plugin/marketplace.json."
     }
   ],
   "research_summary": {
     "available": true,
-    "date": "2026-02-21",
-    "domain": "",
-    "key_findings": []
+    "date": "2026-02-24",
+    "domain": "claude-code-plugins",
+    "key_findings": [
+      "Plugin manifest (.claude-plugin/plugin.json) is required for MCP server config",
+      "Marketplace discovery reads root marketplace.json",
+      "toml_edit crate preserves TOML formatting on edit",
+      "gh release create supports --notes-file for changelog sections",
+      "bump_version.rs manages 4 JSON files but missing Cargo.toml (TOML)",
+      "Cargo.toml version drifted to 2.7.1 while plugin is at 2.9.5"
+    ]
   }
 }
