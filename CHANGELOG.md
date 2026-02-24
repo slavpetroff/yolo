@@ -2,6 +2,28 @@
 
 All notable changes to YOLO will be documented in this file.
 
+## v2.9.5 (2026-02-24)
+
+### Workflow Gates
+- **review_gate/qa_gate defaults** — Changed from "on_request" to "always" in defaults.json
+- **qa_skip_agents** — Docs plans skip QA gate enforcement in execute protocol
+- **Verdict fail-closed** — Malformed review/QA output triggers STOP, not continue
+
+### HITL Hardening
+- **request_human_approval** — Rewritten from stub to production: writes execution state, returns structured pause signal
+- **Vision Gate (Step 2c)** — Execute protocol enforces approval state check before proceeding
+- **execution-state-schema.json** — New JSON Schema with `awaiting_approval` status
+
+### Rust Quality
+- **Mutex hardening** — 7 `.lock().unwrap()` calls replaced with proper error handling (map_err + poison recovery)
+- **Regex OnceLock** — 13 `Regex::new()` calls cached via `std::sync::OnceLock` statics
+- **Frontmatter dedup** — 3 duplicate implementations consolidated into `commands/utils.rs` (-47 lines)
+- **YoloConfig migration** — `phase_detect.rs` migrated from manual JSON parsing to typed struct
+
+### Tests
+- 18 new bats tests (gate-defaults, qa-skip-agents, fixable-by, verdict-parse, hitl-vision-gate, workflow-integrity)
+- 6 new Rust unit tests for request_human_approval and write_approval_state
+
 ## v2.9.1 (2026-02-23)
 
 ### Fixed
