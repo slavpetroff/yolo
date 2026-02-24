@@ -416,6 +416,28 @@ jq '.steps_completed += ["step_2b"]' \
   mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
 ```
 
+### Step 2c: Vision gate enforcement
+
+**Purpose:** Prevent execution from proceeding while the roadmap is awaiting human approval. This gate is autonomy-independent — it always fires when the execution state has `"status": "awaiting_approval"`.
+
+1. Read `.yolo-planning/.execution-state.json` and check the `"status"` field.
+
+2. **If `"status"` is `"awaiting_approval"`:**
+   - Display: `⏸ Vision gate: Awaiting human approval for {plan_path}. Execution paused.`
+   - **HARD STOP.** Do NOT proceed to Step 3.
+   - Display: `Resume: User must approve the roadmap, then execution state will be updated to "running".`
+
+3. **If `"status"` is `"running"` or no approval metadata exists** (backward compat — missing status field or missing file):
+   - Display: `✓ Vision gate: cleared`
+   - Proceed to Step 3.
+
+**Track step completion:**
+```bash
+jq '.steps_completed += ["step_2c"]' \
+  .yolo-planning/.execution-state.json > /tmp/exec-state-tmp.json && \
+  mv /tmp/exec-state-tmp.json .yolo-planning/.execution-state.json
+```
+
 ### Step 3: Create Agent Team and execute
 
 **Team creation (multi-agent only):**
