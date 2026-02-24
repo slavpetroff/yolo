@@ -21,8 +21,8 @@
       "license": "MIT",
       "name": "yolo",
       "source": "./",
-      "version": "2.9.4"
+      "version": "2.9.5"
     }
   ],
-  "version": "2.9.0"
+  "version": "2.9.5"
 }
