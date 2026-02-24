@@ -2,6 +2,7 @@ use regex::Regex;
 use serde_json::json;
 use std::path::Path;
 use std::process::Command;
+use std::sync::OnceLock;
 
 /// Validates commit messages against the conventional commit format.
 ///
@@ -36,9 +37,14 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
     let stdout = String::from_utf8_lossy(&output.stdout);
     let lines: Vec<&str> = stdout.lines().filter(|l| !l.is_empty()).collect();
 
-    let commit_re =
-        Regex::new(r"^(feat|fix|test|refactor|perf|docs|style|chore)\([a-z0-9._-]+\): .+")
-            .unwrap();
+    fn get_commit_re() -> &'static Regex {
+        static RE: OnceLock<Regex> = OnceLock::new();
+        RE.get_or_init(|| {
+            Regex::new(r"^(feat|fix|test|refactor|perf|docs|style|chore)\([a-z0-9._-]+\): .+")
+                .unwrap()
+        })
+    }
+    let commit_re = get_commit_re();
 
     let mut violations = Vec::new();
     let total = lines.len();
