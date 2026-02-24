@@ -80,3 +80,4 @@ pub mod config_read;
 pub mod compile_progress;
 pub mod git_state;
 pub mod release_suite;
+pub mod extract_changelog;

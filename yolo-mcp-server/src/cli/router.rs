@@ -2,7 +2,7 @@ use rusqlite::Connection;
 use std::env;
 use std::io::Read;
 use std::path::PathBuf;
-use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, token_budget, token_economics_report, lock_lite, lease_lock, two_phase_complete, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, bootstrap_all, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, resolve_agent, log_event, collect_metrics, compress_context, prune_completed, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary, cache_context, cache_nuke, delta_files, help_output, bump_version, doctor_cleanup, auto_repair, rollout_stage, verify, install_hooks, migrate_config, migrate_orphaned_state, tier_context, clean_stale_teams, tmux_watchdog, verify_init_todo, verify_vibe, verify_claude_bootstrap, pre_push_hook, validate_plan, review_plan, check_regression, commit_lint, diff_against_plan, qa_suite, release_suite, validate_requirements, verify_plan_completion, parse_frontmatter, resolve_plugin_root, config_read, compile_progress, git_state};
+use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, token_budget, token_economics_report, lock_lite, lease_lock, two_phase_complete, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, bootstrap_all, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, resolve_agent, log_event, collect_metrics, compress_context, prune_completed, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary, cache_context, cache_nuke, delta_files, help_output, bump_version, doctor_cleanup, auto_repair, rollout_stage, verify, install_hooks, migrate_config, migrate_orphaned_state, tier_context, clean_stale_teams, tmux_watchdog, verify_init_todo, verify_vibe, verify_claude_bootstrap, pre_push_hook, validate_plan, review_plan, check_regression, commit_lint, diff_against_plan, qa_suite, release_suite, validate_requirements, verify_plan_completion, parse_frontmatter, resolve_plugin_root, config_read, compile_progress, git_state, extract_changelog};
 use crate::hooks;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -85,6 +85,7 @@ pub enum Command {
     QaSuite,
     ReleaseSuite,
     BootstrapAll,
+    ExtractChangelog,
 }
 
 impl Command {
@@ -168,6 +169,7 @@ impl Command {
             "qa-suite" => Some(Command::QaSuite),
             "release-suite" => Some(Command::ReleaseSuite),
             "bootstrap-all" => Some(Command::BootstrapAll),
+            "extract-changelog" => Some(Command::ExtractChangelog),
             _ => None,
         }
     }
@@ -253,6 +255,7 @@ impl Command {
             Command::QaSuite => "qa-suite",
             Command::ReleaseSuite => "release-suite",
             Command::BootstrapAll => "bootstrap-all",
+            Command::ExtractChangelog => "extract-changelog",
         }
     }
 
@@ -279,6 +282,7 @@ impl Command {
             "parse-frontmatter", "resolve-plugin-root", "config-read",
             "compile-progress", "git-state",
             "qa-suite", "release-suite", "bootstrap-all",
+            "extract-changelog",
         ]
     }
 
@@ -839,6 +843,10 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
         Some(Command::BootstrapAll) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             bootstrap_all::execute(&args, &cwd)
+        }
+        Some(Command::ExtractChangelog) => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            extract_changelog::execute(&args, &cwd)
         }
         None => {
             let suggestion = Command::suggest(&args[1]);
