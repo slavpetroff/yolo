@@ -1,6 +1,8 @@
+use regex::Regex;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
+use std::sync::OnceLock;
 
 #[derive(Clone, Copy)]
 enum PhaseState {
@@ -144,9 +146,12 @@ pub fn execute(args: &[String], cwd: &Path) -> Result<(String, i32), String> {
         phase_count = dirs.len();
 
         if phase_count > 0 {
-            let re = regex::Regex::new(r"^(\d+).*").unwrap();
+            fn digit_prefix_re() -> &'static Regex {
+                static RE: OnceLock<Regex> = OnceLock::new();
+                RE.get_or_init(|| Regex::new(r"^(\d+).*").unwrap())
+            }
             for (dirname, path) in dirs {
-                let num = if let Some(caps) = re.captures(&dirname) {
+                let num = if let Some(caps) = digit_prefix_re().captures(&dirname) {
                     caps.get(1).map(|m| m.as_str()).unwrap_or("")
                 } else {
                     ""
