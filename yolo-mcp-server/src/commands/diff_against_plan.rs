@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
+use std::sync::OnceLock;
 
 /// Cross-references declared files in SUMMARY against actual git diffs.
 ///
@@ -176,8 +177,12 @@ fn extract_declared_files(content: &str) -> Vec<String> {
 
 /// Get files modified in the given commit hashes via `git show --stat`.
 fn get_git_files(hashes: &[String], cwd: &Path) -> Vec<String> {
+    fn stat_re() -> &'static Regex {
+        static RE: OnceLock<Regex> = OnceLock::new();
+        RE.get_or_init(|| Regex::new(r"^ ([^ ].+?)\s+\|").unwrap())
+    }
+
     let mut files = HashSet::new();
-    let stat_re = Regex::new(r"^ ([^ ].+?)\s+\|").unwrap();
 
     for hash in hashes {
         let output = Command::new("git")
@@ -189,7 +194,7 @@ fn get_git_files(hashes: &[String], cwd: &Path) -> Vec<String> {
             && o.status.success() {
                 let stdout = String::from_utf8_lossy(&o.stdout);
                 for line in stdout.lines() {
-                    if let Some(caps) = stat_re.captures(line) {
+                    if let Some(caps) = stat_re().captures(line) {
                         let file_path = caps[1].trim();
                         if !file_path.is_empty() {
                             files.insert(file_path.to_string());
