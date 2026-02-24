@@ -1,0 +1,42 @@
+{
+  "agent_name": "",
+  "execution_state": {
+    "correlation_id": "de11156e-f5e2-4901-9e60-36362fd65f3a",
+    "phase": 1,
+    "phase_name": "01-version-unification",
+    "plans": [
+      {
+        "id": "01-01",
+        "status": "complete",
+        "title": "Add toml_edit dep and sync Cargo.toml",
+        "wave": 1
+      },
+      {
+        "id": "01-02",
+        "status": "complete",
+        "title": "Delete duplicate marketplace.json",
+        "wave": 1
+      },
+      {
+        "id": "01-03",
+        "status": "complete",
+        "title": "Simplify archive.md version delegation",
+        "wave": 1
+      },
+      {
+        "id": "01-04",
+        "status": "pending",
+        "title": "Extend bump_version.rs with TOML and flags",
+        "wave": 2
+      }
+    ],
+    "started_at": "2026-02-24T09:14:22Z",
+    "status": "running",
+    "steps_completed": [],
+    "total_waves": 2,
+    "wave": 2
+  },
+  "matcher": "auto",
+  "phase": "1",
+  "timestamp": "2026-02-24T09:16:29Z"
+}
