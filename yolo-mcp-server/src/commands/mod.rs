@@ -21,6 +21,7 @@ pub mod migrate_config;
 pub mod migrate_orphaned_state;
 pub mod phase_detect;
 pub mod planning_git;
+pub mod resolve_agent;
 pub mod resolve_model;
 pub mod resolve_turns;
 pub mod session_start;

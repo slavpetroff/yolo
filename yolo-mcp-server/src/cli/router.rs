@@ -2,7 +2,7 @@ use rusqlite::Connection;
 use std::env;
 use std::io::Read;
 use std::path::PathBuf;
-use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, token_budget, token_economics_report, lock_lite, lease_lock, two_phase_complete, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, log_event, collect_metrics, compress_context, prune_completed, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary, cache_context, cache_nuke, delta_files, help_output, bump_version, doctor_cleanup, auto_repair, rollout_stage, verify, install_hooks, migrate_config, migrate_orphaned_state, tier_context, clean_stale_teams, tmux_watchdog, verify_init_todo, verify_vibe, verify_claude_bootstrap, pre_push_hook, validate_plan, review_plan, check_regression, commit_lint, diff_against_plan, validate_requirements, verify_plan_completion, parse_frontmatter, resolve_plugin_root, config_read, compile_progress, git_state};
+use crate::commands::{state_updater, statusline, hard_gate, session_start, metrics_report, token_baseline, token_budget, token_economics_report, lock_lite, lease_lock, two_phase_complete, bootstrap_claude, bootstrap_project, bootstrap_requirements, bootstrap_roadmap, bootstrap_state, suggest_next, list_todos, phase_detect, detect_stack, infer_project_context, planning_git, resolve_model, resolve_turns, resolve_agent, log_event, collect_metrics, compress_context, prune_completed, generate_contract, contract_revision, assess_plan_risk, resolve_gate_policy, smart_route, route_monorepo, snapshot_resume, persist_state, recover_state, compile_rolling_summary, generate_gsd_index, generate_incidents, artifact_registry, infer_gsd_summary, cache_context, cache_nuke, delta_files, help_output, bump_version, doctor_cleanup, auto_repair, rollout_stage, verify, install_hooks, migrate_config, migrate_orphaned_state, tier_context, clean_stale_teams, tmux_watchdog, verify_init_todo, verify_vibe, verify_claude_bootstrap, pre_push_hook, validate_plan, review_plan, check_regression, commit_lint, diff_against_plan, validate_requirements, verify_plan_completion, parse_frontmatter, resolve_plugin_root, config_read, compile_progress, git_state};
 use crate::hooks;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,6 +24,7 @@ pub enum Command {
     PlanningGit,
     ResolveModel,
     ResolveTurns,
+    ResolveAgent,
     LogEvent,
     CollectMetrics,
     GenerateContract,
@@ -103,6 +104,7 @@ impl Command {
             "planning-git" => Some(Command::PlanningGit),
             "resolve-model" => Some(Command::ResolveModel),
             "resolve-turns" => Some(Command::ResolveTurns),
+            "resolve-agent" => Some(Command::ResolveAgent),
             "log-event" => Some(Command::LogEvent),
             "collect-metrics" => Some(Command::CollectMetrics),
             "generate-contract" => Some(Command::GenerateContract),
@@ -184,6 +186,7 @@ impl Command {
             Command::PlanningGit => "planning-git",
             Command::ResolveModel => "resolve-model",
             Command::ResolveTurns => "resolve-turns",
+            Command::ResolveAgent => "resolve-agent",
             Command::LogEvent => "log-event",
             Command::CollectMetrics => "collect-metrics",
             Command::GenerateContract => "generate-contract",
@@ -250,7 +253,7 @@ impl Command {
             "report", "report-tokens", "update-state", "statusline", "hard-gate",
             "session-start", "metrics-report", "token-baseline", "bootstrap",
             "suggest-next", "list-todos", "phase-detect", "detect-stack", "infer",
-            "planning-git", "resolve-model", "resolve-turns", "log-event",
+            "planning-git", "resolve-model", "resolve-turns", "resolve-agent", "log-event",
             "collect-metrics", "generate-contract", "contract-revision", "assess-risk",
             "gate-policy", "smart-route", "route-monorepo", "snapshot-resume",
             "persist-state", "recover-state", "rolling-summary", "gsd-index",
@@ -467,6 +470,10 @@ pub fn run_cli(args: Vec<String>, db_path: PathBuf) -> Result<(String, i32), Str
         Some(Command::ResolveTurns) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
             resolve_turns::execute(&args, &cwd)
+        }
+        Some(Command::ResolveAgent) => {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            resolve_agent::execute(&args, &cwd)
         }
         Some(Command::LogEvent) => {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));

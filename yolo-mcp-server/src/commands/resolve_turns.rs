@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-const VALID_AGENTS: &[&str] = &["lead", "dev", "qa", "scout", "debugger", "architect", "docs"];
+const VALID_AGENTS: &[&str] = &["lead", "dev", "qa", "scout", "debugger", "architect", "docs", "researcher", "reviewer"];
 
 fn default_base_turns(agent: &str) -> u32 {
     match agent {
@@ -12,6 +12,8 @@ fn default_base_turns(agent: &str) -> u32 {
         "lead" => 50,
         "dev" => 75,
         "docs" => 30,
+        "researcher" => 15,
+        "reviewer" => 15,
         _ => 0,
     }
 }
